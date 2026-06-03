@@ -1,0 +1,13 @@
+# netlify.toml — конфиг деплоя для Netlify
+# Кладётся в корень проекта.
+
+[build]
+  command = "npm run build"
+  publish = "dist"            # Vite собирает сюда
+
+# SPA-fallback: любой путь (включая /j/CODE) отдаёт index.html,
+# чтобы клиентский роутинг и ссылки-приглашения работали без 404.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

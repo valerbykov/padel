@@ -1,0 +1,6 @@
+# _redirects — SPA-fallback для Netlify и Cloudflare Pages.
+# Файл кладётся в папку public/ (Vite копирует его в dist при сборке).
+# Любой путь, включая /j/CODE, отдаёт index.html → клиентский роутинг и
+# ссылки-приглашения работают без ошибки 404.
+
+/*    /index.html   200

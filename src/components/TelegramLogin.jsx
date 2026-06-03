@@ -1,0 +1,63 @@
+// components/TelegramLogin.jsx
+// Кнопка «Войти через Telegram». Рендерит официальный виджет Telegram,
+// проверяет данные через Edge Function 'telegram-auth' и поднимает сессию.
+//
+// props:
+//   botName   — username бота БЕЗ @ (напр. "padel_league_bot")
+//   onSuccess — колбэк после успешного входа
+import React, { useEffect, useRef, useState } from "react";
+import { supabase } from "../lib/supabase";
+
+export default function TelegramLogin({ botName, onSuccess }) {
+  const containerRef = useRef(null);
+  const [status, setStatus] = useState(""); // '', 'busy', 'error'
+  const [errText, setErrText] = useState("");
+
+  useEffect(() => {
+    // Глобальный колбэк, который дёргает виджет Telegram.
+    window.__tgAuth = async (user) => {
+      setStatus("busy"); setErrText("");
+      try {
+        // 1. Проверка подписи на сервере + получение одноразового token_hash.
+        const { data, error } = await supabase.functions.invoke("telegram-auth", { body: user });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        // 2. Меняем token_hash на полноценную сессию Supabase.
+        const { error: vErr } = await supabase.auth.verifyOtp({
+          type: "magiclink",
+          token_hash: data.token_hash,
+        });
+        if (vErr) throw vErr;
+
+        setStatus("");
+        onSuccess?.();
+      } catch (e) {
+        setStatus("error");
+        const map = { bad_signature: "Подпись Telegram не прошла проверку", expired: "Данные входа устарели" };
+        setErrText(map[e.message] || "Не удалось войти через Telegram");
+      }
+    };
+
+    // Вставляем официальный скрипт-виджет Telegram.
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = "https://telegram.org/js/telegram-widget.js?22";
+    script.setAttribute("data-telegram-login", botName);
+    script.setAttribute("data-size", "large");
+    script.setAttribute("data-radius", "12");
+    script.setAttribute("data-onauth", "__tgAuth(user)");
+    script.setAttribute("data-request-access", "write");
+    containerRef.current?.appendChild(script);
+
+    return () => { try { delete window.__tgAuth; } catch (e) {} };
+  }, [botName, onSuccess]);
+
+  return (
+    <div style={{ fontFamily: "'Outfit',sans-serif", textAlign: "center" }}>
+      <div ref={containerRef} />
+      {status === "busy" && <p style={{ color: "#7d9488", fontSize: 13 }}>Входим…</p>}
+      {status === "error" && <p style={{ color: "#ff6a52", fontSize: 13 }}>{errText}</p>}
+    </div>
+  );
+}
