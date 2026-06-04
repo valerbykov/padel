@@ -83,7 +83,19 @@ export default function TournamentJoin({ code, botName }) {
             <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 14 }}>{(t.players || []).length}/{t.target_size} игроков · до {t.points_per_game} очков</div>
 
             {t.status !== "open" ? (
-              <TournamentResults t={t} />
+              <>
+                {session ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--lime)", marginBottom: 12 }}>
+                    <UserCheck size={16} /> Вошёл как {profileName || "игрок"}
+                    <button onClick={() => window.location.assign("/")} style={{ marginLeft: "auto", background: "#16291f", color: "#eef3ee", border: "1px solid #22382c", borderRadius: 10, padding: "6px 10px", cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontSize: 12 }}>В приложение →</button>
+                  </div>
+                ) : (
+                  <button className="tj-btn" style={{ marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={() => setShowLogin(true)}>
+                    <LogIn size={16} /> Войти
+                  </button>
+                )}
+                <TournamentResults t={t} />
+              </>
             ) : joined ? (
               <p style={{ color: "var(--lime)", display: "flex", alignItems: "center", gap: 8 }}><Check size={16} /> Ты в списке участников!</p>
             ) : (
