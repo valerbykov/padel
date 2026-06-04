@@ -1,8 +1,11 @@
 // components/TournamentJoin.jsx
-// Вход на турнир по ссылке /t/CODE — без аккаунта.
+// Вход на турнир по ссылке /t/CODE. Можно зайти гостем по имени ИЛИ войти
+// в аккаунт — тогда участие привяжется к профилю. props: { code, botName }.
 import React, { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
 import { getTournamentByCode, joinTournamentByCode } from "../lib/tournamentApi";
-import { Trophy, Users, AlertCircle, Check } from "lucide-react";
+import LoginScreen from "./LoginScreen";
+import { Trophy, Users, AlertCircle, Check, LogIn, UserCheck } from "lucide-react";
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
@@ -14,22 +17,48 @@ const css = `
 .tj-input{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Outfit';padding:12px;outline:none;box-sizing:border-box;margin-bottom:10px;}
 .tj-btn{width:100%;background:var(--lime);color:#0a1612;font-weight:700;border:none;border-radius:14px;padding:13px;cursor:pointer;}
 .tj-btn:disabled{filter:grayscale(.6) brightness(.7);cursor:not-allowed;}
+.tj-loginlink{background:none;border:none;color:var(--lime);cursor:pointer;font-family:'Outfit';font-size:13px;display:inline-flex;align-items:center;gap:6px;padding:0;margin-bottom:6px;}
 `;
 
-export default function TournamentJoin({ code }) {
+export default function TournamentJoin({ code, botName }) {
   const [t, setT] = useState(undefined);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [joined, setJoined] = useState(false);
   const [err, setErr] = useState("");
+  const [session, setSession] = useState(null);
+  const [profileName, setProfileName] = useState("");
+  const [showLogin, setShowLogin] = useState(false);
 
   const load = async () => { try { setT(await getTournamentByCode(code)); } catch (e) { setT(null); } };
   useEffect(() => { load(); }, [code]);
 
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => { setSession(s); if (s) setShowLogin(false); });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!session) { setProfileName(""); return; }
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from("profiles").select("name").eq("user_id", user.id).maybeSingle();
+      setProfileName(data?.name || "");
+    })();
+  }, [session]);
+
+  if (showLogin && !session) {
+    return <LoginScreen botName={botName} onSuccess={() => setShowLogin(false)} />;
+  }
+
   const join = async () => {
-    if (!name.trim() || busy) return;
+    const display = session ? (profileName || "Игрок") : name.trim();
+    if (!session && !name.trim()) return;
+    if (busy) return;
     setBusy(true); setErr("");
-    try { await joinTournamentByCode(code, name.trim()); setJoined(true); await load(); }
+    try { await joinTournamentByCode(code, display); setJoined(true); await load(); }
     catch (e) {
       const map = { tournament_full: "Турнир уже заполнен", tournament_closed: "Регистрация закрыта — турнир начался", tournament_not_found: "Турнир не найден" };
       setErr(map[e.message] || "Не удалось присоединиться");
@@ -58,8 +87,19 @@ export default function TournamentJoin({ code }) {
               <p style={{ color: "var(--lime)", display: "flex", alignItems: "center", gap: 8 }}><Check size={16} /> Ты в списке участников!</p>
             ) : (
               <>
-                <input className="tj-input" placeholder="Твоё имя" value={name} onChange={(e) => setName(e.target.value)} />
-                <button className="tj-btn" disabled={!name.trim() || busy} onClick={join}>{busy ? "Присоединяюсь…" : "Присоединиться"}</button>
+                {session ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--lime)", fontSize: 13, marginBottom: 12 }}>
+                    <UserCheck size={16} /> Вошёл как {profileName || "игрок"}
+                  </div>
+                ) : (
+                  <>
+                    <input className="tj-input" placeholder="Твоё имя (как гость)" value={name} onChange={(e) => setName(e.target.value)} />
+                    <button className="tj-loginlink" onClick={() => setShowLogin(true)}>
+                      <LogIn size={14} /> Войти через аккаунт
+                    </button>
+                  </>
+                )}
+                <button className="tj-btn" disabled={(!session && !name.trim()) || busy} onClick={join}>{busy ? "Присоединяюсь…" : "Присоединиться"}</button>
                 {err && <p style={{ color: "var(--coral)", fontSize: 13, marginTop: 8 }}>{err}</p>}
               </>
             )}

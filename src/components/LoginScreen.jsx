@@ -46,7 +46,7 @@ export default function LoginScreen({ botName, onSuccess }) {
     try {
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
-        options: { emailRedirectTo: window.location.origin },
+        options: { emailRedirectTo: window.location.href },
       });
       if (error) throw error;
       setMsg({ kind: "ok", text: "Ссылка для входа отправлена на почту" });

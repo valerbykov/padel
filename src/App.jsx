@@ -74,8 +74,8 @@ export default function App() {
   }, [profile]);
 
   // Гость по ссылке-приглашению — без логина.
-  if (inviteCode) return <GuestJoin code={inviteCode} />;
-  if (tournamentCode) return <TournamentJoin code={tournamentCode} />;
+  if (inviteCode) return <GuestJoin code={inviteCode} botName={BOT_NAME} />;
+  if (tournamentCode) return <TournamentJoin code={tournamentCode} botName={BOT_NAME} />;
 
   // Явно открыли экран входа.
   if (showLogin && !session) {
