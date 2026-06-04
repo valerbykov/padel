@@ -4,7 +4,8 @@ import React, { useEffect, useState, useCallback } from "react";
 import { supabase } from "./lib/supabase";
 import { getLeaderboard, addMember, createGame, listGames, submitResult, linkFor } from "./lib/padelApi";
 import { getRatingHistory } from "./lib/statsApi";
-import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, Calendar, MapPin, TrendingUp, LogIn } from "lucide-react";
+import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, Calendar, MapPin, TrendingUp, LogIn, Award } from "lucide-react";
+import Tournaments from "./components/Tournaments";
 
 const fmtDate = (iso) => {
   if (!iso) return "";
@@ -75,7 +76,7 @@ export default function PadelLeague({ groupId }) {
 
   useEffect(() => { loadLeaderboard(); }, [loadLeaderboard]);
 
-  const titles = { board: "Таблица", games: "Игры", history: "История" };
+  const titles = { board: "Таблица", games: "Игры", history: "История", tournaments: "Турниры" };
 
   if (!groupId) {
     return (
@@ -103,6 +104,7 @@ export default function PadelLeague({ groupId }) {
 
         {tab === "board" && <Board groupId={groupId} players={players} reload={loadLeaderboard} />}
         {tab === "games" && <Games groupId={groupId} players={players} reloadLeaderboard={loadLeaderboard} />}
+        {tab === "tournaments" && <Tournaments groupId={groupId} players={players} />}
         {tab === "history" && <HistoryView groupId={groupId} players={players} />}
       </div>
 
@@ -110,6 +112,7 @@ export default function PadelLeague({ groupId }) {
         <div style={{ maxWidth: 460, margin: "0 auto", display: "flex" }}>
           <button className={`pl-tab ${tab === "board" ? "on" : ""}`} onClick={() => setTab("board")}><Trophy size={20} />Рейтинг</button>
           <button className={`pl-tab ${tab === "games" ? "on" : ""}`} onClick={() => setTab("games")}><Swords size={20} />Игры</button>
+          <button className={`pl-tab ${tab === "tournaments" ? "on" : ""}`} onClick={() => setTab("tournaments")}><Award size={20} />Турниры</button>
           <button className={`pl-tab ${tab === "history" ? "on" : ""}`} onClick={() => setTab("history")}><History size={20} />История</button>
         </div>
       </nav>

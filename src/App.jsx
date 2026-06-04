@@ -6,6 +6,7 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "./lib/supabase";
 import LoginScreen from "./components/LoginScreen";
 import GuestJoin from "./components/GuestJoin";
+import TournamentJoin from "./components/TournamentJoin";
 import PadelLeague from "./PadelLeague";
 import { LogIn } from "lucide-react";
 
@@ -16,12 +17,18 @@ function getInviteCode() {
   return m ? m[1].toUpperCase() : null;
 }
 
+function getTournamentCode() {
+  const m = window.location.pathname.match(/^\/t\/([A-Za-z0-9]{4})$/);
+  return m ? m[1].toUpperCase() : null;
+}
+
 export default function App() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [groupId, setGroupId] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
   const inviteCode = getInviteCode();
+  const tournamentCode = getTournamentCode();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -68,6 +75,7 @@ export default function App() {
 
   // Гость по ссылке-приглашению — без логина.
   if (inviteCode) return <GuestJoin code={inviteCode} />;
+  if (tournamentCode) return <TournamentJoin code={tournamentCode} />;
 
   // Явно открыли экран входа.
   if (showLogin && !session) {
