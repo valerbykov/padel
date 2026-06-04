@@ -96,9 +96,33 @@ function groupRounds(matches) {
   return r;
 }
 
+function AddPlayer({ players, existing, onAdd, disabled }) {
+  const [q, setQ] = useState("");
+  const [busy, setBusy] = useState(false);
+  const existingIds = (existing || []).filter((p) => p.profile_id).map((p) => p.profile_id);
+  const matches = q.trim()
+    ? players.filter((p) => p.name.toLowerCase().includes(q.trim().toLowerCase()) && !existingIds.includes(p.id)).slice(0, 5)
+    : [];
+  const add = async (entry) => { setBusy(true); try { await onAdd(entry); setQ(""); } finally { setBusy(false); } };
+
+  if (disabled) return <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 10 }}>Набрано максимум игроков.</div>;
+  return (
+    <div style={{ marginTop: 10 }}>
+      <input className="tr-input" placeholder="Имя / поиск — игрок или гость" value={q} onChange={(e) => setQ(e.target.value)} />
+      {q.trim() && (
+        <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 4 }}>
+          {matches.map((p) => (
+            <button key={p.id} className="tr-ghost" disabled={busy} style={{ padding: "8px 10px", textAlign: "left" }} onClick={() => add({ profileId: p.id, name: p.name })}>{p.name}</button>
+          ))}
+          <button className="tr-btn" disabled={busy} style={{ padding: "8px 10px", textAlign: "left" }} onClick={() => add({ name: q.trim() })}>+ Гость: {q.trim()}</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TournamentView({ id, players, back }) {
   const [t, setT] = useState(null);
-  const [adding, setAdding] = useState("");
   const [toast, setToast] = useState("");
   const [cur, setCur] = useState(1);
   const initRef = useRef(false);
@@ -132,11 +156,6 @@ function TournamentView({ id, players, back }) {
     const text = `Турнир по паделю${t.name ? ` «${t.name}»` : ""}: ${url} (код ${t.invite_code})`;
     try { if (navigator.share) { await navigator.share({ title: "Турнир", text, url }); return; } } catch (e) {}
     try { await navigator.clipboard.writeText(text); setToast("Скопировано ✓"); setTimeout(() => setToast(""), 1500); } catch (e) {}
-  };
-  const addFromRoster = async () => {
-    if (!adding) return;
-    const p = players.find((x) => x.id === adding);
-    try { await addTournamentPlayer(t.id, { profileId: p.id, name: p.name }); setAdding(""); load(); } catch (e) { alert("Не удалось добавить"); }
   };
   const start = async () => { try { await startTournament(t.id, t.players); load(); } catch (e) { alert(e.message || "Не удалось запустить"); } };
   const saveScore = async (matchId, a, b) => { await submitMatchScore(matchId, a, b); await load(); };
@@ -175,13 +194,8 @@ function TournamentView({ id, players, back }) {
                 <button style={{ padding: 4, border: "none", background: "none", color: "var(--mut)", cursor: "pointer" }} onClick={async () => { await removeTournamentPlayer(p.id); load(); }}><X size={14} /></button>
               </div>
             ))}
-            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-              <select className="tr-select" value={adding} onChange={(e) => setAdding(e.target.value)}>
-                <option value="">+ добавить из состава</option>
-                {players.filter((p) => !t.players.some((tp) => tp.profile_id === p.id)).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-              <button className="tr-btn" style={{ padding: "0 16px" }} onClick={addFromRoster}>OK</button>
-            </div>
+            <AddPlayer players={players} existing={t.players} disabled={t.players.length >= t.target_size}
+              onAdd={async (entry) => { await addTournamentPlayer(t.id, entry); load(); }} />
           </div>
           <button className="tr-btn" style={{ width: "100%", padding: 14, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
             disabled={t.players.length < 4 || t.players.length % 4 !== 0} onClick={start}>
