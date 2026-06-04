@@ -1,7 +1,7 @@
 // App.jsx — корень приложения.
 // Показывает приложение лиги сразу. Сверху панель: «Войти» для гостей,
-// имя + «Выйти» для авторизованных. Ссылка-приглашение /j/CODE открывает
-// экран гостя без логина.
+// имя + «Выйти» для авторизованных. Определяет группу пользователя (groupId)
+// и прокидывает её в PadelLeague. Ссылка /j/CODE открывает экран гостя.
 import React, { useEffect, useState } from "react";
 import { supabase } from "./lib/supabase";
 import LoginScreen from "./components/LoginScreen";
@@ -9,8 +9,7 @@ import GuestJoin from "./components/GuestJoin";
 import PadelLeague from "./PadelLeague";
 import { LogIn } from "lucide-react";
 
-// Имя твоего Telegram-бота без @ (для кнопки входа через Telegram).
-const BOT_NAME = "padel_league_bot";
+const BOT_NAME = "padel_league_bot"; // имя твоего Telegram-бота без @
 
 function getInviteCode() {
   const m = window.location.pathname.match(/^\/j\/([A-Za-z0-9]{4})$/);
@@ -20,6 +19,7 @@ function getInviteCode() {
 export default function App() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [groupId, setGroupId] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
   const inviteCode = getInviteCode();
 
@@ -32,7 +32,7 @@ export default function App() {
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
-      if (s) setShowLogin(false); // после успешного входа закрываем экран логина
+      if (s) setShowLogin(false);
     });
     return () => sub.subscription.unsubscribe();
   }, []);
@@ -50,15 +50,30 @@ export default function App() {
     return () => { active = false; };
   }, [session]);
 
+  // Группа пользователя (берём первую, где он состоит).
+  useEffect(() => {
+    let active = true;
+    if (!profile) { setGroupId(null); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("group_members")
+        .select("group_id")
+        .eq("profile_id", profile.id)
+        .limit(1)
+        .maybeSingle();
+      if (active) setGroupId(data?.group_id ?? null);
+    })();
+    return () => { active = false; };
+  }, [profile]);
+
   // Гость по ссылке-приглашению — без логина.
   if (inviteCode) return <GuestJoin code={inviteCode} />;
 
-  // Явно открыли экран входа (по кнопке «Войти»).
+  // Явно открыли экран входа.
   if (showLogin && !session) {
     return <LoginScreen botName={BOT_NAME} onSuccess={() => setShowLogin(false)} />;
   }
 
-  // Основной экран: приложение лиги + верхняя панель со входом/профилем.
   return (
     <div style={{ minHeight: "100vh", background: "#0a1612" }}>
       <TopBar
@@ -67,21 +82,18 @@ export default function App() {
         onLogin={() => setShowLogin(true)}
         onSignOut={() => supabase.auth.signOut()}
       />
-      <PadelLeague />
+      <PadelLeague groupId={groupId} />
     </div>
   );
 }
 
 function TopBar({ session, name, onLogin, onSignOut }) {
-  const base = {
-    border: "1px solid #22382c", borderRadius: 10, padding: "6px 12px",
-    fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif",
-  };
+  const base = { border: "1px solid #22382c", borderRadius: 10, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif" };
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
       padding: "10px 16px", borderBottom: "1px solid #22382c",
-      background: "rgba(10,22,18,.92)", position: "sticky", top: 0, zIndex: 40,
+      background: "rgba(10,22,18,.92)", position: "sticky", top: 0, zIndex: 60,
       fontFamily: "'Outfit',sans-serif",
     }}>
       <span style={{ color: "#eef3ee", fontSize: 14, fontWeight: 600 }}>
