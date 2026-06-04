@@ -72,7 +72,12 @@ Deno.serve(async (req) => {
     // Освежаем метаданные (аватар/username могли поменяться).
     if (link.user?.id) await admin.auth.admin.updateUserById(link.user.id, { user_metadata: meta });
 
-    return json({ token_hash: link.properties.hashed_token });
+    // Отдаём клиенту email и одноразовый код — он меняет их на сессию.
+    return json({
+      email,
+      token: link.properties.email_otp,
+      token_hash: link.properties.hashed_token,
+    });
   } catch (e) {
     return json({ error: String(e) }, 500);
   }

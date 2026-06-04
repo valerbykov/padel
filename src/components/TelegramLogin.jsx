@@ -23,12 +23,20 @@ export default function TelegramLogin({ botName, onSuccess }) {
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
 
-        // 2. Меняем token_hash на полноценную сессию Supabase.
-        const { error: vErr } = await supabase.auth.verifyOtp({
-          type: "magiclink",
-          token_hash: data.token_hash,
-        });
-        if (vErr) throw vErr;
+        // 2. Меняем одноразовый код на полноценную сессию Supabase.
+        let verifyErr = null;
+        if (data.email && data.token) {
+          const r = await supabase.auth.verifyOtp({ email: data.email, token: data.token, type: "email" });
+          verifyErr = r.error;
+        } else {
+          verifyErr = new Error("no_token");
+        }
+        // запасной путь — через token_hash
+        if (verifyErr && data.token_hash) {
+          const r2 = await supabase.auth.verifyOtp({ token_hash: data.token_hash, type: "email" });
+          verifyErr = r2.error;
+        }
+        if (verifyErr) throw verifyErr;
 
         setStatus("");
         onSuccess?.();
