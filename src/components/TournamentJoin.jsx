@@ -4,6 +4,7 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { getTournamentByCode, joinTournamentByCode } from "../lib/tournamentApi";
+import { standings } from "../lib/americano";
 import LoginScreen from "./LoginScreen";
 import { Trophy, Users, AlertCircle, Check, LogIn, UserCheck } from "lucide-react";
 
@@ -82,7 +83,7 @@ export default function TournamentJoin({ code, botName }) {
             <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 14 }}>{(t.players || []).length}/{t.target_size} игроков · до {t.points_per_game} очков</div>
 
             {t.status !== "open" ? (
-              <p style={{ color: "var(--mut)" }}>{t.status === "active" ? "Турнир уже идёт." : "Турнир завершён."}</p>
+              <TournamentResults t={t} />
             ) : joined ? (
               <p style={{ color: "var(--lime)", display: "flex", alignItems: "center", gap: 8 }}><Check size={16} /> Ты в списке участников!</p>
             ) : (
@@ -115,6 +116,25 @@ export default function TournamentJoin({ code, botName }) {
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function TournamentResults({ t }) {
+  const table = standings((t.players || []).map((p) => ({ id: p.id, name: p.name })), t.matches || []);
+  const done = t.status === "finished";
+  return (
+    <div>
+      <p style={{ color: "var(--mut)", marginBottom: 6 }}>{done ? "Турнир завершён." : "Турнир идёт."}</p>
+      <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{done ? "Итоговая таблица" : "Текущая таблица"}</div>
+      {table.map((p, i) => (
+        <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderBottom: "1px solid var(--line)" }}>
+          <span className="tj-d" style={{ width: 20, color: ["#ffd23f", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)" }}>{i + 1}</span>
+          <span style={{ flex: 1, fontWeight: i === 0 && done ? 700 : 500 }}>{p.name}</span>
+          <span style={{ fontSize: 11, color: "var(--mut)" }}>{p.played} игр</span>
+          <span className="tj-d" style={{ color: "var(--lime)", minWidth: 32, textAlign: "right" }}>{p.points}</span>
+        </div>
+      ))}
     </div>
   );
 }

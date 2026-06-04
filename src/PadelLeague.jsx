@@ -6,6 +6,7 @@ import { getLeaderboard, addMember, createGame, listGames, submitResult, linkFor
 import { getRatingHistory } from "./lib/statsApi";
 import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, Calendar, MapPin, TrendingUp, LogIn, Award } from "lucide-react";
 import Tournaments from "./components/Tournaments";
+import CourtView from "./components/CourtView";
 
 const fmtDate = (iso) => {
   if (!iso) return "";
@@ -212,17 +213,52 @@ function Games({ groupId, players, reloadLeaderboard }) {
   );
 }
 
+function SlotPicker({ value, players, taken, onChange, teamLabel }) {
+  const [q, setQ] = useState("");
+  const color = teamLabel === "A" ? "var(--lime)" : "var(--coral)";
+  if (value) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <span className="pl-display" style={{ width: 24, fontSize: 12, color }}>{teamLabel}</span>
+        <div className="pl-slot" style={{ flex: 1, justifyContent: "space-between" }}>
+          <span>{value.label}</span>
+          <button style={{ padding: 4, border: "none", background: "none", color: "var(--mut)", cursor: "pointer" }} onClick={() => onChange(null)}><X size={14} /></button>
+        </div>
+      </div>
+    );
+  }
+  const matches = q.trim()
+    ? players.filter((p) => p.name.toLowerCase().includes(q.trim().toLowerCase()) && !taken.includes(p.id)).slice(0, 5)
+    : [];
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span className="pl-display" style={{ width: 24, fontSize: 12, color }}>{teamLabel}</span>
+        <input className="pl-input" style={{ padding: "9px 10px" }} placeholder="Имя / поиск (пусто = по ссылке)" value={q} onChange={(e) => setQ(e.target.value)} />
+      </div>
+      {q.trim() && (
+        <div style={{ marginTop: 6, marginLeft: 32, display: "flex", flexDirection: "column", gap: 4 }}>
+          {matches.map((p) => (
+            <button key={p.id} className="pl-ghost" style={{ padding: "8px 10px", textAlign: "left" }} onClick={() => { onChange({ profileId: p.id, label: p.name }); setQ(""); }}>{p.name}</button>
+          ))}
+          <button className="pl-btn" style={{ padding: "8px 10px", textAlign: "left" }} onClick={() => { onChange({ guestName: q.trim(), label: q.trim() + " (гость)" }); setQ(""); }}>+ Гость: {q.trim()}</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CreateGame({ groupId, players, back, done }) {
   const [title, setTitle] = useState(""), [date, setDate] = useState(""), [place, setPlace] = useState("");
-  const [slots, setSlots] = useState(["", "", "", ""]);
+  const [slots, setSlots] = useState([null, null, null, null]);
   const [busy, setBusy] = useState(false);
-  const chosen = slots.filter(Boolean);
+  const chosenIds = slots.filter((v) => v && v.profileId).map((v) => v.profileId);
   const setSlot = (i, v) => setSlots((s) => s.map((x, j) => (j === i ? v : x)));
 
   const create = async () => {
     setBusy(true);
     try {
-      await createGame(groupId, { title, startsAt: date || null, place, slots: slots.map((id) => id || null) });
+      await createGame(groupId, { title, startsAt: date || null, place, slots });
       done();
     } catch (e) { alert("Не удалось создать игру"); setBusy(false); }
   };
@@ -242,15 +278,10 @@ function CreateGame({ groupId, players, back, done }) {
         </div>
       </div>
       <div className="pl-card" style={{ padding: 14, marginBottom: 12 }}>
-        <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 10 }}>Слоты — оставь «по ссылке», чтобы друг занял сам</div>
+        <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 10 }}>Слоты — выбери из состава, впиши гостя или оставь пустым (займут по ссылке)</div>
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <span className="pl-display" style={{ width: 58, fontSize: 12, color: i < 2 ? "var(--lime)" : "var(--coral)" }}>{i < 2 ? "КОМ. A" : "КОМ. B"}</span>
-            <select className="pl-select" style={{ padding: "9px 10px" }} value={slots[i]} onChange={(e) => setSlot(i, e.target.value)}>
-              <option value="">🔗 по ссылке</option>
-              {players.map((p) => <option key={p.id} value={p.id} disabled={chosen.includes(p.id) && slots[i] !== p.id}>{p.name}</option>)}
-            </select>
-          </div>
+          <SlotPicker key={i} value={slots[i]} players={players} taken={chosenIds}
+            onChange={(v) => setSlot(i, v)} teamLabel={i < 2 ? "A" : "B"} />
         ))}
       </div>
       <button className="pl-btn" style={{ width: "100%", padding: 14, fontSize: 16 }} disabled={busy} onClick={create}>{busy ? "Создаю…" : "Создать и получить ссылку"}</button>
@@ -305,7 +336,14 @@ function GameCard({ game, reloadGames, reloadLeaderboard }) {
         </div>
       )}
 
-      <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ marginTop: 12 }}>
+        <CourtView courtNumber={1}
+          teamA={slots.filter((s) => s.team === "A").map(nameOf)}
+          teamB={slots.filter((s) => s.team === "B").map(nameOf)}
+          editable={false} />
+      </div>
+
+      <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
         {slots.map((s, i) => (
           <div key={i} className="pl-slot">
             <span className="pl-display" style={{ fontSize: 11, color: s.team === "A" ? "var(--lime)" : "var(--coral)", width: 30 }}>{s.team}</span>

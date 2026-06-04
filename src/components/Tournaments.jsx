@@ -1,13 +1,14 @@
 // components/Tournaments.jsx
-// Турниры Американо: создание, лобби с приглашением по ссылке, раунды
-// со вводом счёта и итоговая таблица. props: { groupId, players }.
-import React, { useEffect, useState, useCallback } from "react";
+// Турниры Американо: создание, лобби с приглашением, ПОСЛЕДОВАТЕЛЬНЫЕ раунды
+// на кортах (CourtView), итоговая таблица. props: { groupId, players }.
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   createTournament, listTournaments, getTournament, addTournamentPlayer, removeTournamentPlayer,
   startTournament, submitMatchScore, finishTournament, tournamentLink,
 } from "../lib/tournamentApi";
 import { standings, allMatchesPlayed } from "../lib/americano";
-import { Trophy, PlusCircle, Share2, Copy, Play, X, ArrowLeft, RefreshCw, Users } from "lucide-react";
+import CourtView from "./CourtView";
+import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, Users, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
@@ -21,17 +22,13 @@ const css = `
 .tr-codebox{font-family:'Anton';letter-spacing:6px;font-size:28px;color:var(--lime);text-align:center;background:var(--surface2);border:1px dashed var(--line);border-radius:14px;padding:10px;}
 .tr-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;}
 `;
-
 const statusLabel = { open: "набор", active: "идёт", finished: "завершён" };
 
 export default function Tournaments({ groupId, players }) {
   const [mode, setMode] = useState("list");
   const [activeId, setActiveId] = useState(null);
-
-  if (mode === "create")
-    return <Create groupId={groupId} back={() => setMode("list")} open={(id) => { setActiveId(id); setMode("view"); }} />;
-  if (mode === "view")
-    return <TournamentView id={activeId} players={players} back={() => setMode("list")} />;
+  if (mode === "create") return <Create groupId={groupId} back={() => setMode("list")} open={(id) => { setActiveId(id); setMode("view"); }} />;
+  if (mode === "view") return <TournamentView id={activeId} players={players} back={() => setMode("list")} />;
   return <List groupId={groupId} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
 }
 
@@ -80,9 +77,7 @@ function Create({ groupId, back, open }) {
         <div>
           <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>Игроков</div>
           <select className="tr-select" value={size} onChange={(e) => setSize(e.target.value)}>
-            <option value={4}>4 (1 корт)</option>
-            <option value={8}>8 (2 корта)</option>
-            <option value={12}>12 (3 корта)</option>
+            <option value={4}>4 (1 корт)</option><option value={8}>8 (2 корта)</option><option value={12}>12 (3 корта)</option>
           </select>
         </div>
         <div>
@@ -95,13 +90,30 @@ function Create({ groupId, back, open }) {
   );
 }
 
+function groupRounds(matches) {
+  const r = {};
+  matches.forEach((m) => { (r[m.round_number] = r[m.round_number] || []).push(m); });
+  return r;
+}
+
 function TournamentView({ id, players, back }) {
   const [t, setT] = useState(null);
   const [adding, setAdding] = useState("");
   const [toast, setToast] = useState("");
+  const [cur, setCur] = useState(1);
+  const initRef = useRef(false);
 
   const load = useCallback(async () => { try { setT(await getTournament(id)); } catch (e) { setT(false); } }, [id]);
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!t || t.status === "open" || initRef.current) return;
+    const rmap = groupRounds(t.matches);
+    const nums = Object.keys(rmap).map(Number).sort((a, b) => a - b);
+    const firstUnplayed = nums.find((n) => rmap[n].some((m) => m.score_a == null));
+    setCur(firstUnplayed || nums[nums.length - 1] || 1);
+    initRef.current = true;
+  }, [t]);
 
   if (t === null) return <div className="tr-root"><style>{css}</style><div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>Загрузка…</div></div>;
   if (t === false) return <div className="tr-root"><style>{css}</style><div className="tr-card" style={{ color: "var(--coral)" }}>Не удалось загрузить турнир.</div></div>;
@@ -109,10 +121,15 @@ function TournamentView({ id, players, back }) {
   const nameOf = (tpId) => (t.players.find((p) => p.id === tpId)?.name) || "?";
   const table = standings(t.players.map((p) => ({ id: p.id, name: p.name })), t.matches);
   const done = allMatchesPlayed(t.matches);
+  const rmap = groupRounds(t.matches);
+  const roundNums = Object.keys(rmap).map(Number).sort((a, b) => a - b);
+  const N = roundNums.length;
+  const curMatches = (rmap[cur] || []).sort((a, b) => a.court - b.court);
+  const curComplete = curMatches.length > 0 && curMatches.every((m) => m.score_a != null);
 
   const share = async () => {
     const url = tournamentLink(t.invite_code);
-    const text = `Зову на турнир по паделю${t.name ? ` «${t.name}»` : ""}! Присоединяйся: ${url} (код ${t.invite_code})`;
+    const text = `Турнир по паделю${t.name ? ` «${t.name}»` : ""}: ${url} (код ${t.invite_code})`;
     try { if (navigator.share) { await navigator.share({ title: "Турнир", text, url }); return; } } catch (e) {}
     try { await navigator.clipboard.writeText(text); setToast("Скопировано ✓"); setTimeout(() => setToast(""), 1500); } catch (e) {}
   };
@@ -121,16 +138,8 @@ function TournamentView({ id, players, back }) {
     const p = players.find((x) => x.id === adding);
     try { await addTournamentPlayer(t.id, { profileId: p.id, name: p.name }); setAdding(""); load(); } catch (e) { alert("Не удалось добавить"); }
   };
-  const start = async () => {
-    try { await startTournament(t.id, t.players); load(); } catch (e) { alert(e.message || "Не удалось запустить"); }
-  };
+  const start = async () => { try { await startTournament(t.id, t.players); load(); } catch (e) { alert(e.message || "Не удалось запустить"); } };
   const saveScore = async (matchId, a, b) => { await submitMatchScore(matchId, a, b); await load(); };
-  const finishIfDone = async () => { if (done && t.status !== "finished") { await finishTournament(t.id); load(); } };
-
-  // раунды
-  const rounds = {};
-  t.matches.forEach((m) => { (rounds[m.round_number] = rounds[m.round_number] || []).push(m); });
-  const roundNums = Object.keys(rounds).map(Number).sort((a, b) => a - b);
 
   return (
     <div className="tr-root">
@@ -140,9 +149,12 @@ function TournamentView({ id, players, back }) {
       <div className="tr-card" style={{ marginBottom: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div className="tr-d" style={{ fontSize: 20 }}>{t.name || "Американо"}</div>
-          <button className="tr-ghost" style={{ padding: 8 }} onClick={load}><RefreshCw size={15} /></button>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button className="tr-ghost" style={{ padding: 8 }} onClick={load}><RefreshCw size={15} /></button>
+            <button className="tr-btn" style={{ padding: "8px 12px", display: "flex", gap: 6, alignItems: "center" }} onClick={share}><Share2 size={14} /> {toast || "Ссылка"}</button>
+          </div>
         </div>
-        <div style={{ fontSize: 12, color: "var(--mut)" }}>{t.players.length}/{t.target_size} игроков · до {t.points_per_game} очков · {statusLabel[t.status]}</div>
+        <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>{t.players.length}/{t.target_size} игроков · до {t.points_per_game} очков · {statusLabel[t.status]}</div>
       </div>
 
       {/* ЛОББИ */}
@@ -155,14 +167,12 @@ function TournamentView({ id, players, back }) {
               <Copy size={15} /> {toast || "Поделиться приглашением"}
             </button>
           </div>
-
           <div className="tr-card" style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>Участники</div>
             {t.players.map((p) => (
               <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid var(--line)" }}>
-                <Users size={14} color="var(--mut)" />
-                <span style={{ flex: 1 }}>{p.name}</span>
-                <button className="tr-ghost" style={{ padding: 4, border: "none", background: "none", color: "var(--mut)" }} onClick={async () => { await removeTournamentPlayer(p.id); load(); }}><X size={14} /></button>
+                <Users size={14} color="var(--mut)" /><span style={{ flex: 1 }}>{p.name}</span>
+                <button style={{ padding: 4, border: "none", background: "none", color: "var(--mut)", cursor: "pointer" }} onClick={async () => { await removeTournamentPlayer(p.id); load(); }}><X size={14} /></button>
               </div>
             ))}
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
@@ -173,23 +183,36 @@ function TournamentView({ id, players, back }) {
               <button className="tr-btn" style={{ padding: "0 16px" }} onClick={addFromRoster}>OK</button>
             </div>
           </div>
-
           <button className="tr-btn" style={{ width: "100%", padding: 14, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-            disabled={t.players.length < 4 || t.players.length % 4 !== 0}
-            onClick={start}>
+            disabled={t.players.length < 4 || t.players.length % 4 !== 0} onClick={start}>
             <Play size={18} /> Запустить турнир ({t.players.length})
           </button>
           {t.players.length % 4 !== 0 && <div style={{ textAlign: "center", color: "var(--coral)", fontSize: 12, marginTop: 8 }}>Нужно число игроков, кратное 4</div>}
         </>
       )}
 
-      {/* АКТИВНЫЙ / ЗАВЕРШЁН */}
+      {/* АКТИВНЫЙ / ЗАВЕРШЁН — раунды по одному */}
       {t.status !== "open" && (
         <>
-          <div className="tr-card" style={{ marginBottom: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div className="tr-d" style={{ fontSize: 16 }}>{done ? "🏆 Итоговая таблица" : "Таблица"}</div>
-            </div>
+          <div className="tr-card" style={{ marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <button className="tr-ghost" style={{ padding: 8, opacity: cur > 1 ? 1 : .4 }} disabled={cur <= 1} onClick={() => setCur(cur - 1)}><ChevronLeft size={18} /></button>
+            <div className="tr-d" style={{ fontSize: 18 }}>Раунд {cur} <span style={{ color: "var(--mut)", fontSize: 14 }}>/ {N}</span></div>
+            <button className="tr-ghost" style={{ padding: 8, opacity: curComplete && cur < N ? 1 : .4 }} disabled={!curComplete || cur >= N} onClick={() => setCur(cur + 1)}><ChevronRight size={18} /></button>
+          </div>
+
+          {curMatches.map((m) => (
+            <CourtView key={m.id} courtNumber={m.court} points={t.points_per_game}
+              teamA={[nameOf(m.team_a[0]), nameOf(m.team_a[1])]} teamB={[nameOf(m.team_b[0]), nameOf(m.team_b[1])]}
+              scoreA={m.score_a} scoreB={m.score_b} editable={t.status !== "finished"}
+              onSave={(a, b) => saveScore(m.id, a, b)} />
+          ))}
+
+          {!curComplete && <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginBottom: 12 }}>Заполни счёт всех кортов, чтобы перейти к следующему раунду.</div>}
+          {curComplete && cur < N && <button className="tr-btn" style={{ width: "100%", padding: 12, marginBottom: 12 }} onClick={() => setCur(cur + 1)}>Следующий раунд →</button>}
+          {done && t.status !== "finished" && <button className="tr-btn" style={{ width: "100%", padding: 13, marginBottom: 12 }} onClick={async () => { await finishTournament(t.id); load(); }}>Завершить турнир</button>}
+
+          <div className="tr-card">
+            <div className="tr-d" style={{ fontSize: 15, marginBottom: 8 }}>{done ? "🏆 Итоговая таблица" : "Таблица"}</div>
             {table.map((p, i) => (
               <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: "1px solid var(--line)" }}>
                 <span className="tr-d" style={{ width: 22, color: ["#ffd23f", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)" }}>{i + 1}</span>
@@ -198,59 +221,8 @@ function TournamentView({ id, players, back }) {
                 <span className="tr-d" style={{ color: "var(--lime)", minWidth: 36, textAlign: "right" }}>{p.points}</span>
               </div>
             ))}
-            {done && t.status !== "finished" && (
-              <button className="tr-btn" style={{ width: "100%", padding: 11, marginTop: 12 }} onClick={finishIfDone}>Завершить турнир</button>
-            )}
           </div>
-
-          {roundNums.map((rn) => (
-            <div key={rn} className="tr-card" style={{ marginBottom: 10 }}>
-              <div className="tr-d" style={{ fontSize: 13, color: "var(--mut)", marginBottom: 8 }}>Раунд {rn}</div>
-              {rounds[rn].sort((a, b) => a.court - b.court).map((m) => (
-                <MatchRow key={m.id} m={m} points={t.points_per_game} nameOf={nameOf} onSave={saveScore} locked={t.status === "finished"} />
-              ))}
-            </div>
-          ))}
         </>
-      )}
-    </div>
-  );
-}
-
-function MatchRow({ m, points, nameOf, onSave, locked }) {
-  const [a, setA] = useState(m.score_a ?? "");
-  const [busy, setBusy] = useState(false);
-  const played = m.score_a != null;
-  const aNum = a === "" ? null : Math.max(0, Math.min(points, Number(a)));
-  const bNum = aNum == null ? null : points - aNum;
-
-  const save = async () => {
-    if (aNum == null) return;
-    setBusy(true);
-    try { await onSave(m.id, aNum, bNum); } finally { setBusy(false); }
-  };
-
-  return (
-    <div style={{ padding: "8px 0", borderBottom: "1px solid var(--line)" }}>
-      <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 4 }}>Корт {m.court}</div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ flex: 1, fontSize: 13 }}>{nameOf(m.team_a[0])} / {nameOf(m.team_a[1])}</span>
-        {locked || played ? (
-          <span className="tr-d" style={{ fontSize: 16 }}>{m.score_a} : {m.score_b}</span>
-        ) : (
-          <>
-            <input className="tr-input" style={{ width: 54, textAlign: "center", padding: "6px" }} type="number" min={0} max={points} value={a}
-              onChange={(e) => setA(e.target.value)} placeholder="0" />
-            <span style={{ color: "var(--mut)" }}>:</span>
-            <span className="tr-d" style={{ width: 30, textAlign: "center" }}>{bNum ?? "—"}</span>
-          </>
-        )}
-        <span style={{ flex: 1, fontSize: 13, textAlign: "right" }}>{nameOf(m.team_b[0])} / {nameOf(m.team_b[1])}</span>
-      </div>
-      {!locked && !played && (
-        <button className="tr-btn" style={{ width: "100%", padding: 7, marginTop: 6, fontSize: 13 }} disabled={aNum == null || busy} onClick={save}>
-          {busy ? "…" : "Сохранить счёт"}
-        </button>
       )}
     </div>
   );

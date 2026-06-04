@@ -115,9 +115,14 @@ export async function createGame(groupId, { title, startsAt, place, slots = [], 
     { team: "A", position: 1 }, { team: "A", position: 2 },
     { team: "B", position: 1 }, { team: "B", position: 2 },
   ];
-  const slotRows = layout.map((s, i) => ({
-    game_id: game.id, team: s.team, position: s.position, profile_id: slots[i] || null,
-  }));
+  const slotRows = layout.map((s, i) => {
+    const v = slots[i];
+    let profile_id = null, guest_name = null;
+    if (typeof v === "string" && v) profile_id = v;           // обратная совместимость
+    else if (v && v.profileId) profile_id = v.profileId;
+    else if (v && v.guestName) guest_name = v.guestName;
+    return { game_id: game.id, team: s.team, position: s.position, profile_id, guest_name };
+  });
   const { error } = await supabase.from("game_slots").insert(slotRows);
   if (error) throw error;
   return game; // содержит invite_code → linkFor(game.invite_code)

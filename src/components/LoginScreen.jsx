@@ -39,6 +39,18 @@ export default function LoginScreen({ botName, onSuccess }) {
 
   const reset = () => { setMsg({ kind: "", text: "" }); };
 
+  // ----- Google OAuth -----
+  const signInGoogle = async () => {
+    reset();
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.href },
+      });
+      if (error) throw error;
+    } catch (e) { setMsg({ kind: "err", text: e.message }); }
+  };
+
   // ----- Email magic-link -----
   const sendEmail = async () => {
     if (!emailOk(email) || busy) return;
@@ -95,6 +107,21 @@ export default function LoginScreen({ botName, onSuccess }) {
       <div className="lg-card">
         <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2 }}>PADEL · ЛИГА ДРУЗЕЙ</div>
         <div className="lg-display" style={{ fontSize: 28, marginTop: 4 }}>Вход</div>
+
+        <button onClick={signInGoogle} style={{
+          width: "100%", marginTop: 16, padding: 12, borderRadius: 14, cursor: "pointer",
+          background: "#fff", color: "#1f1f1f", border: "none", fontWeight: 700, fontFamily: "'Outfit',sans-serif",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+        }}>
+          <span style={{ fontFamily: "Arial, sans-serif", fontWeight: 700, fontSize: 16 }}>
+            <span style={{ color: "#4285F4" }}>G</span><span style={{ color: "#EA4335" }}>o</span><span style={{ color: "#FBBC05" }}>o</span><span style={{ color: "#4285F4" }}>g</span><span style={{ color: "#34A853" }}>l</span><span style={{ color: "#EA4335" }}>e</span>
+          </span>
+          Войти через Google
+        </button>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "16px 0 4px", color: "var(--mut)", fontSize: 12 }}>
+          <div style={{ flex: 1, height: 1, background: "var(--line)" }} /> или <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+        </div>
 
         <div className="lg-seg">
           <button className={method === "telegram" ? "on" : ""} onClick={() => { setMethod("telegram"); reset(); }}><Send size={14} />Telegram</button>
