@@ -11,6 +11,15 @@ import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, Plus
 import Tournaments from "./components/Tournaments";
 import CourtView from "./components/CourtView";
 
+// Детерминированная аватарка по ID/имени игрока (если avatar_url не задан)
+const DOG_COUNT = 15;
+const dogAvatar = (idOrName) => {
+  if (!idOrName) return null;
+  const hash = [...String(idOrName)].reduce((a, c) => a + c.charCodeAt(0), 0);
+  return `/avatars/dog-${String((hash % DOG_COUNT) + 1).padStart(2, "0")}.png`;
+};
+const playerAvatar = (url, idOrName) => url || dogAvatar(idOrName);
+
 const fmtDate = (iso) => {
   if (!iso) return "";
   try { return new Date(iso).toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
@@ -142,9 +151,7 @@ function Board({ groupId, players, reload }) {
       {ranked.map((p, i) => (
         <div key={p.id} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }} onClick={() => setSelected(p)}>
           <div className="pl-display" style={{ width: 22, fontSize: 22, color: ["#ffd23f", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)" }}>{i + 1}</div>
-          {p.avatar_url
-            ? <img src={p.avatar_url} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
-            : <div style={{ width: 38, height: 38, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, color: "var(--lime)" }}>{(p.name || "?").trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase()}</div>}
+          <img src={playerAvatar(p.avatar_url, p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 600, fontSize: 16, display: "flex", alignItems: "center", gap: 6 }}>{p.name}<TrendingUp size={13} color="var(--mut)" /></div>
             <div style={{ fontSize: 12, color: "var(--mut)" }}>{p.matches} игр · {p.wins} побед</div>
@@ -320,7 +327,7 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard }) {
   const [toast, setToast] = useState("");
   const slots = [...(game.slots || [])].sort((a, b) => (a.team + a.position).localeCompare(b.team + b.position));
   const nameOf = (s) => s.profile?.name || s.guest_name;
-  const avatarOf = (s) => s.profile?.avatar_url || null;
+  const avatarOf = (s) => playerAvatar(s.profile?.avatar_url, s.profile_id || s.guest_name);
   const filled = slots.filter((s) => s.profile_id || s.guest_name).length;
   const slotsA = slots.filter((s) => s.team === "A");
   const slotsB = slots.filter((s) => s.team === "B");
@@ -444,7 +451,7 @@ function HistoryView({ groupId, players }) {
   }, [groupId]);
 
   const nameOf = (id) => players.find((p) => p.id === id)?.name || "Игрок";
-  const avatarOf = (id) => players.find((p) => p.id === id)?.avatar_url || null;
+  const avatarOf = (id) => playerAvatar(players.find((p) => p.id === id)?.avatar_url, id);
   const head = (txt) => <div className="pl-display" style={{ fontSize: 13, color: "var(--mut)", margin: "10px 2px 8px" }}>{txt}</div>;
 
   if (matches === null) return <div className="pl-card pl-pop" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>Загрузка…</div>;
@@ -463,7 +470,9 @@ function HistoryView({ groupId, players }) {
       {sel && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(5,12,9,.7)", backdropFilter: "blur(4px)", zIndex: 60, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setSel(null)}>
           <div onClick={(e) => e.stopPropagation()} style={{
-            width: "100%", maxWidth: 460, margin: 8, maxHeight: "90vh",
+            width: "100%", maxWidth: 460,
+            margin: "0 8px 64px",  /* 64px — высота нижнего навбара */
+            maxHeight: "calc(90vh - 64px)",
             background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 18,
             overflowY: "auto", overflowX: "hidden", boxSizing: "border-box",
           }}>
@@ -498,7 +507,14 @@ function HistoryView({ groupId, players }) {
                 🏆 Итоговая таблица
               </div>
               <div style={{ overflow: "hidden", minWidth: 0 }}>
-                <StandingsTable rows={detailedStandings((sel.players || []).map((p) => ({ id: p.id, name: p.name })), sel.matches || [])} />
+                <StandingsTable
+                  rows={detailedStandings((sel.players || []).map((p) => ({ id: p.id, name: p.name })), sel.matches || [])}
+                  avatarOf={(row) => {
+                    const tp = (sel.players || []).find((p) => p.id === row.id);
+                    const gp = players.find((p) => p.id === tp?.profile_id);
+                    return { url: playerAvatar(gp?.avatar_url, tp?.profile_id || tp?.name || row.id) };
+                  }}
+                />
               </div>
             </div>
           </div>
