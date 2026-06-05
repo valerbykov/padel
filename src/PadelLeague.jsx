@@ -4,6 +4,8 @@ import React, { useEffect, useState, useCallback } from "react";
 import { supabase } from "./lib/supabase";
 import { getLeaderboard, addMember, createGame, listGames, submitResult, linkFor } from "./lib/padelApi";
 import { getRatingHistory } from "./lib/statsApi";
+import { listTournaments } from "./lib/tournamentApi";
+import { standings } from "./lib/americano";
 import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, Calendar, MapPin, TrendingUp, LogIn, Award } from "lucide-react";
 import Tournaments from "./components/Tournaments";
 import CourtView from "./components/CourtView";
@@ -184,7 +186,8 @@ function PlayerDetail({ groupId, player, close }) {
 /* --------------------------------- Games ---------------------------------- */
 function Games({ groupId, players, reloadLeaderboard }) {
   const [games, setGames] = useState([]);
-  const [mode, setMode] = useState("list");
+  const [mode, setMode] = useState("list"); // list | create | view
+  const [selId, setSelId] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const loadGames = useCallback(async () => {
@@ -196,6 +199,12 @@ function Games({ groupId, players, reloadLeaderboard }) {
   if (mode === "create")
     return <CreateGame groupId={groupId} players={players} back={() => setMode("list")} done={() => { setMode("list"); loadGames(); }} />;
 
+  if (mode === "view") {
+    const g = games.find((x) => x.id === selId);
+    if (!g) { setMode("list"); return null; }
+    return <GameCard game={g} back={() => setMode("list")} reloadGames={loadGames} reloadLeaderboard={reloadLeaderboard} />;
+  }
+
   return (
     <div className="pl-pop">
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
@@ -203,12 +212,25 @@ function Games({ groupId, players, reloadLeaderboard }) {
           <PlusCircle size={18} /> Создать игру
         </button>
         <button className="pl-ghost" style={{ padding: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontWeight: 600 }} onClick={loadGames}>
-          <RefreshCw size={16} /> Обновить
+          <RefreshCw size={16} />
         </button>
       </div>
       {loading && <div className="pl-card" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>Загрузка…</div>}
       {!loading && games.length === 0 && <div className="pl-card" style={{ padding: 24, textAlign: "center", color: "var(--mut)" }}>Игр нет. Создай игру и отправь ссылку друзьям.</div>}
-      {!loading && games.map((g) => <GameCard key={g.id} game={g} reloadGames={loadGames} reloadLeaderboard={reloadLeaderboard} />)}
+      {!loading && games.map((g) => {
+        const filled = (g.slots || []).filter((s) => s.profile_id || s.guest_name).length;
+        const c = g.status === "played" ? "var(--mut)" : "var(--lime)";
+        return (
+          <div key={g.id} className="pl-card" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 12, cursor: "pointer", padding: "12px 14px" }} onClick={() => { setSelId(g.id); setMode("view"); }}>
+            <Swords size={18} color={c} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600 }}>{g.title || "Падел"}</div>
+              <div style={{ fontSize: 12, color: "var(--mut)" }}>{g.starts_at ? fmtDate(g.starts_at) + " · " : ""}{filled}/4 игроков</div>
+            </div>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: "rgba(255,255,255,.06)", color: c }}>{g.status === "played" ? "сыграна" : "открыта"}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -289,7 +311,7 @@ function CreateGame({ groupId, players, back, done }) {
   );
 }
 
-function GameCard({ game, reloadGames, reloadLeaderboard }) {
+function GameCard({ game, back, reloadGames, reloadLeaderboard }) {
   const [showShare, setShowShare] = useState(false);
   const [toast, setToast] = useState("");
   const slots = [...(game.slots || [])].sort((a, b) => (a.team + a.position).localeCompare(b.team + b.position));
@@ -305,14 +327,24 @@ function GameCard({ game, reloadGames, reloadLeaderboard }) {
 
   if (game.status === "played")
     return (
-      <div className="pl-card" style={{ padding: 14, marginBottom: 8, opacity: .7 }}>
-        <div style={{ fontSize: 12, color: "var(--mut)" }}>{game.title || "Игра"} · сыграна</div>
-        <div className="pl-display" style={{ fontSize: 16 }}>{slots.map(nameOf).filter(Boolean).join(", ")}</div>
+      <div className="pl-pop">
+        {back && <button className="pl-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={back}>← К списку</button>}
+        <div className="pl-card" style={{ padding: 14 }}>
+          <div className="pl-display" style={{ fontSize: 18 }}>{game.title || "Падел"} · сыграна</div>
+          <div style={{ marginTop: 10 }}>
+            <CourtView courtNumber={1}
+              teamA={slots.filter((s) => s.team === "A").map(nameOf)}
+              teamB={slots.filter((s) => s.team === "B").map(nameOf)}
+              editable={false} />
+          </div>
+        </div>
       </div>
     );
 
   return (
-    <div className="pl-card pl-pop" style={{ padding: 14, marginBottom: 10 }}>
+    <div className="pl-pop">
+      {back && <button className="pl-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={back}>← К списку</button>}
+      <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <div className="pl-display" style={{ fontSize: 18 }}>{game.title || "Падел"}</div>
@@ -336,14 +368,7 @@ function GameCard({ game, reloadGames, reloadLeaderboard }) {
         </div>
       )}
 
-      <div style={{ marginTop: 12 }}>
-        <CourtView courtNumber={1}
-          teamA={slots.filter((s) => s.team === "A").map(nameOf)}
-          teamB={slots.filter((s) => s.team === "B").map(nameOf)}
-          editable={false} />
-      </div>
-
-      <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
         {slots.map((s, i) => (
           <div key={i} className="pl-slot">
             <span className="pl-display" style={{ fontSize: 11, color: s.team === "A" ? "var(--lime)" : "var(--coral)", width: 30 }}>{s.team}</span>
@@ -353,9 +378,23 @@ function GameCard({ game, reloadGames, reloadLeaderboard }) {
         ))}
       </div>
 
-      {filled === 4
-        ? <EnterScore gameId={game.id} reloadGames={reloadGames} reloadLeaderboard={reloadLeaderboard} />
-        : <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginTop: 10 }}>{filled}/4 — нажми «Обновить», когда друзья зайдут</div>}
+      <div style={{ marginTop: 12 }}>
+        {filled === 4 ? (
+          <CourtView courtNumber={1} mode="free" maxScore={3} editable
+            teamA={slots.filter((s) => s.team === "A").map(nameOf)}
+            teamB={slots.filter((s) => s.team === "B").map(nameOf)}
+            onSave={async (a, b) => { await submitResult(game.id, a, b); await Promise.all([reloadGames(), reloadLeaderboard()]); }} />
+        ) : (
+          <>
+            <CourtView courtNumber={1}
+              teamA={slots.filter((s) => s.team === "A").map(nameOf)}
+              teamB={slots.filter((s) => s.team === "B").map(nameOf)}
+              editable={false} />
+            <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginTop: 6 }}>{filled}/4 — обнови список, когда друзья зайдут по ссылке</div>
+          </>
+        )}
+      </div>
+      </div>
     </div>
   );
 }
@@ -384,22 +423,42 @@ function EnterScore({ gameId, reloadGames, reloadLeaderboard }) {
 /* ------------------------------- HistoryView ------------------------------ */
 function HistoryView({ groupId, players }) {
   const [matches, setMatches] = useState(null);
+  const [tours, setTours] = useState([]);
   useEffect(() => {
     (async () => {
       const { data } = await supabase.from("matches")
         .select("id, team_a, team_b, sets_a, sets_b, played_at")
         .eq("group_id", groupId).order("played_at", { ascending: false }).limit(30);
       setMatches(data || []);
+      try { const all = await listTournaments(groupId); setTours(all.filter((t) => t.status === "finished")); }
+      catch (e) { setTours([]); }
     })();
   }, [groupId]);
 
   const nameOf = (id) => players.find((p) => p.id === id)?.name || "Игрок";
+  const head = (txt) => <div className="pl-display" style={{ fontSize: 13, color: "var(--mut)", margin: "10px 2px 8px" }}>{txt}</div>;
 
   if (matches === null) return <div className="pl-card pl-pop" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>Загрузка…</div>;
-  if (matches.length === 0) return <div className="pl-card pl-pop" style={{ padding: 28, textAlign: "center", color: "var(--mut)" }}>Пока нет сыгранных матчей.</div>;
+  if (matches.length === 0 && tours.length === 0) return <div className="pl-card pl-pop" style={{ padding: 28, textAlign: "center", color: "var(--mut)" }}>Пока нет сыгранных игр и турниров.</div>;
 
   return (
     <div className="pl-pop">
+      {tours.length > 0 && head("Турниры")}
+      {tours.map((t) => {
+        const table = standings((t.players || []).map((p) => ({ id: p.id, name: p.name })), t.matches || []);
+        const w = table[0];
+        return (
+          <div key={t.id} className="pl-card" style={{ padding: 14, marginBottom: 8, display: "flex", alignItems: "center", gap: 12 }}>
+            <Trophy size={18} color="#ffd23f" />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600 }}>{t.name || "Американо"}</div>
+              <div style={{ fontSize: 12, color: "var(--mut)" }}>{w ? `Победитель: ${w.name} · ${w.points} очк.` : "—"}</div>
+            </div>
+          </div>
+        );
+      })}
+
+      {matches.length > 0 && head("Игры")}
       {matches.map((m) => {
         const aWon = m.sets_a > m.sets_b;
         return (

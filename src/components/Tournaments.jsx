@@ -6,7 +6,7 @@ import {
   createTournament, listTournaments, getTournament, addTournamentPlayer, removeTournamentPlayer,
   startTournament, submitMatchScore, finishTournament, tournamentLink,
 } from "../lib/tournamentApi";
-import { standings, allMatchesPlayed } from "../lib/americano";
+import { standings, detailedStandings, allMatchesPlayed } from "../lib/americano";
 import CourtView from "./CourtView";
 import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, Users, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
 
@@ -143,7 +143,7 @@ function TournamentView({ id, players, back }) {
   if (t === false) return <div className="tr-root"><style>{css}</style><div className="tr-card" style={{ color: "var(--coral)" }}>Не удалось загрузить турнир.</div></div>;
 
   const nameOf = (tpId) => (t.players.find((p) => p.id === tpId)?.name) || "?";
-  const table = standings(t.players.map((p) => ({ id: p.id, name: p.name })), t.matches);
+  const table = detailedStandings(t.players.map((p) => ({ id: p.id, name: p.name })), t.matches);
   const done = allMatchesPlayed(t.matches);
   const rmap = groupRounds(t.matches);
   const roundNums = Object.keys(rmap).map(Number).sort((a, b) => a - b);
@@ -226,12 +226,15 @@ function TournamentView({ id, players, back }) {
           {done && t.status !== "finished" && <button className="tr-btn" style={{ width: "100%", padding: 13, marginBottom: 12 }} onClick={async () => { await finishTournament(t.id); load(); }}>Завершить турнир</button>}
 
           <div className="tr-card">
-            <div className="tr-d" style={{ fontSize: 15, marginBottom: 8 }}>{done ? "🏆 Итоговая таблица" : "Таблица"}</div>
+            <div className="tr-d" style={{ fontSize: 15, marginBottom: 2 }}>{done ? "🏆 Итоговая таблица" : "Таблица"}</div>
+            <div style={{ fontSize: 10, color: "var(--mut)", marginBottom: 8 }}>побед–ничьих–поражений · очки за/против · Δ дельта</div>
             {table.map((p, i) => (
-              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: "1px solid var(--line)" }}>
+              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--line)" }}>
                 <span className="tr-d" style={{ width: 22, color: ["#ffd23f", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)" }}>{i + 1}</span>
-                <span style={{ flex: 1, fontWeight: i === 0 && done ? 700 : 500 }}>{p.name}</span>
-                <span style={{ fontSize: 11, color: "var(--mut)" }}>{p.played} игр</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: i === 0 && done ? 700 : 500 }}>{p.name}</div>
+                  <div style={{ fontSize: 11, color: "var(--mut)" }}>{p.wins}–{p.draws}–{p.losses} · +{p.points}/−{p.against} · Δ{p.delta >= 0 ? "+" : ""}{p.delta}</div>
+                </div>
                 <span className="tr-d" style={{ color: "var(--lime)", minWidth: 36, textAlign: "right" }}>{p.points}</span>
               </div>
             ))}

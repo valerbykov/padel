@@ -62,3 +62,27 @@ export function standings(players, matches) {
 
 export const allMatchesPlayed = (matches) =>
   matches.length > 0 && matches.every((m) => m.score_a != null && m.score_b != null);
+
+// Расширенная таблица: победы/ничьи/поражения, очки за/против, дельта.
+export function detailedStandings(players, matches) {
+  const init = () => ({ points: 0, against: 0, wins: 0, draws: 0, losses: 0, played: 0 });
+  const acc = {};
+  players.forEach((p) => { acc[p.id] = init(); });
+  for (const m of matches) {
+    if (m.score_a == null || m.score_b == null) continue;
+    const aWin = m.score_a > m.score_b, draw = m.score_a === m.score_b;
+    for (const id of (m.team_a || [])) {
+      const s = acc[id]; if (!s) continue;
+      s.points += m.score_a; s.against += m.score_b; s.played++;
+      if (draw) s.draws++; else if (aWin) s.wins++; else s.losses++;
+    }
+    for (const id of (m.team_b || [])) {
+      const s = acc[id]; if (!s) continue;
+      s.points += m.score_b; s.against += m.score_a; s.played++;
+      if (draw) s.draws++; else if (!aWin) s.wins++; else s.losses++;
+    }
+  }
+  return players
+    .map((p) => ({ ...p, ...acc[p.id], delta: acc[p.id].points - acc[p.id].against }))
+    .sort((a, b) => b.points - a.points || b.delta - a.delta);
+}
