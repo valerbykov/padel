@@ -320,7 +320,10 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard }) {
   const [toast, setToast] = useState("");
   const slots = [...(game.slots || [])].sort((a, b) => (a.team + a.position).localeCompare(b.team + b.position));
   const nameOf = (s) => s.profile?.name || s.guest_name;
+  const avatarOf = (s) => s.profile?.avatar_url || null;
   const filled = slots.filter((s) => s.profile_id || s.guest_name).length;
+  const slotsA = slots.filter((s) => s.team === "A");
+  const slotsB = slots.filter((s) => s.team === "B");
 
   const share = async () => {
     const url = linkFor(game.invite_code);
@@ -337,8 +340,8 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard }) {
           <div className="pl-display" style={{ fontSize: 18 }}>{game.title || "Падел"} · сыграна</div>
           <div style={{ marginTop: 10 }}>
             <CourtView courtNumber={1}
-              teamA={slots.filter((s) => s.team === "A").map(nameOf)}
-              teamB={slots.filter((s) => s.team === "B").map(nameOf)}
+              teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
+              teamAvatarsA={slotsA.map(avatarOf)} teamAvatarsB={slotsB.map(avatarOf)}
               editable={false} />
           </div>
         </div>
@@ -384,15 +387,15 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard }) {
 
       <div style={{ marginTop: 12 }}>
         {filled === 4 ? (
-          <CourtView courtNumber={1} mode="free" maxScore={3} editable
-            teamA={slots.filter((s) => s.team === "A").map(nameOf)}
-            teamB={slots.filter((s) => s.team === "B").map(nameOf)}
-            onSave={async (a, b) => { await submitResult(game.id, a, b); await Promise.all([reloadGames(), reloadLeaderboard()]); }} />
+          <CourtView courtNumber={1} mode="sets" editable
+            teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
+            teamAvatarsA={slotsA.map(avatarOf)} teamAvatarsB={slotsB.map(avatarOf)}
+            onSave={async (a, b, detail) => { await submitResult(game.id, a, b, detail); await Promise.all([reloadGames(), reloadLeaderboard()]); }} />
         ) : (
           <>
             <CourtView courtNumber={1}
-              teamA={slots.filter((s) => s.team === "A").map(nameOf)}
-              teamB={slots.filter((s) => s.team === "B").map(nameOf)}
+              teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
+              teamAvatarsA={slotsA.map(avatarOf)} teamAvatarsB={slotsB.map(avatarOf)}
               editable={false} />
             <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginTop: 6 }}>{filled}/4 — обнови список, когда друзья зайдут по ссылке</div>
           </>
@@ -432,7 +435,7 @@ function HistoryView({ groupId, players }) {
   useEffect(() => {
     (async () => {
       const { data } = await supabase.from("matches")
-        .select("id, team_a, team_b, sets_a, sets_b, played_at")
+        .select("id, team_a, team_b, sets_a, sets_b, score_detail, played_at")
         .eq("group_id", groupId).order("played_at", { ascending: false }).limit(30);
       setMatches(data || []);
       try { const all = await listTournaments(groupId); setTours(all.filter((t) => t.status === "finished")); }
@@ -441,23 +444,63 @@ function HistoryView({ groupId, players }) {
   }, [groupId]);
 
   const nameOf = (id) => players.find((p) => p.id === id)?.name || "Игрок";
+  const avatarOf = (id) => players.find((p) => p.id === id)?.avatar_url || null;
   const head = (txt) => <div className="pl-display" style={{ fontSize: 13, color: "var(--mut)", margin: "10px 2px 8px" }}>{txt}</div>;
 
   if (matches === null) return <div className="pl-card pl-pop" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>Загрузка…</div>;
   if (matches.length === 0 && tours.length === 0) return <div className="pl-card pl-pop" style={{ padding: 28, textAlign: "center", color: "var(--mut)" }}>Пока нет сыгранных игр и турниров.</div>;
 
-  const selTable = sel ? detailedStandings((sel.players || []).map((p) => ({ id: p.id, name: p.name })), sel.matches || []) : [];
+  // Группировка матчей турнира по раунду
+  const groupRounds = (ms) => {
+    const r = {};
+    (ms || []).forEach((m) => { (r[m.round_number] = r[m.round_number] || []).push(m); });
+    return r;
+  };
 
   return (
     <div className="pl-pop">
+      {/* Модал детали турнира */}
       {sel && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(5,12,9,.7)", backdropFilter: "blur(4px)", zIndex: 60, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setSel(null)}>
-          <div className="pl-card pl-pop" style={{ width: "100%", maxWidth: 460, margin: 8, padding: 16, maxHeight: "85vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <div className="pl-display" style={{ fontSize: 18 }}>{sel.name || "Американо"}</div>
-              <button className="pl-ghost" style={{ padding: 8 }} onClick={() => setSel(null)}><X size={18} /></button>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            width: "100%", maxWidth: 460, margin: 8, maxHeight: "90vh",
+            background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 18,
+            overflowY: "auto", overflowX: "hidden", boxSizing: "border-box",
+          }}>
+            <div style={{ padding: "16px 16px 0", position: "sticky", top: 0, background: "var(--surface)", zIndex: 1, borderBottom: "1px solid var(--line)", paddingBottom: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div className="pl-display" style={{ fontSize: 18 }}>{sel.name || "Американо"}</div>
+                <button className="pl-ghost" style={{ padding: 8 }} onClick={() => setSel(null)}><X size={18} /></button>
+              </div>
+              <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>до {sel.points_per_game} очков · {sel.players?.length} игроков</div>
             </div>
-            <StandingsTable rows={selTable} />
+            <div style={{ padding: 16 }}>
+              {/* Раунды (readonly CourtViews) */}
+              {Object.entries(groupRounds(sel.matches)).map(([rn, rMatches]) => {
+                const tpNameOf = (id) => (sel.players || []).find((p) => p.id === id)?.name || "Игрок";
+                return (
+                  <div key={rn} style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 6, fontFamily: "'Anton',sans-serif", textTransform: "uppercase", letterSpacing: 1 }}>
+                      Раунд {rn}
+                    </div>
+                    {rMatches.map((m) => (
+                      <CourtView key={m.id} courtNumber={m.court}
+                        teamA={[tpNameOf(m.team_a[0]), tpNameOf(m.team_a[1])]}
+                        teamB={[tpNameOf(m.team_b[0]), tpNameOf(m.team_b[1])]}
+                        scoreA={m.score_a} scoreB={m.score_b}
+                        editable={false} mode="sum" points={sel.points_per_game} />
+                    ))}
+                  </div>
+                );
+              })}
+              {/* Итоговая таблица */}
+              <div style={{ fontSize: 13, color: "var(--mut)", fontFamily: "'Anton',sans-serif", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
+                🏆 Итоговая таблица
+              </div>
+              <div style={{ overflow: "hidden", minWidth: 0 }}>
+                <StandingsTable rows={detailedStandings((sel.players || []).map((p) => ({ id: p.id, name: p.name })), sel.matches || [])} />
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -469,11 +512,11 @@ function HistoryView({ groupId, players }) {
         return (
           <div key={t.id} className="pl-card" style={{ padding: 14, marginBottom: 8, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }} onClick={() => setSel(t)}>
             <Trophy size={18} color="#ffd23f" />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600 }}>{t.name || "Американо"}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name || "Американо"}</div>
               <div style={{ fontSize: 12, color: "var(--mut)" }}>{w ? `Победитель: ${w.name} · ${w.points} очк.` : "—"}</div>
             </div>
-            <span style={{ fontSize: 11, color: "var(--lime)" }}>детали →</span>
+            <span style={{ fontSize: 11, color: "var(--lime)", flexShrink: 0 }}>детали →</span>
           </div>
         );
       })}
@@ -481,11 +524,38 @@ function HistoryView({ groupId, players }) {
       {matches.length > 0 && head("Игры")}
       {matches.map((m) => {
         const aWon = m.sets_a > m.sets_b;
+        const detail = m.score_detail;
         return (
-          <div key={m.id} className="pl-card" style={{ padding: 14, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ flex: 1, fontWeight: aWon ? 700 : 400, color: aWon ? "var(--lime)" : "var(--ink)" }}>{(m.team_a || []).map(nameOf).join(" / ")}</div>
-            <div className="pl-display" style={{ fontSize: 20, padding: "0 12px" }}>{m.sets_a}:{m.sets_b}</div>
-            <div style={{ flex: 1, textAlign: "right", fontWeight: !aWon ? 700 : 400, color: !aWon ? "var(--lime)" : "var(--ink)" }}>{(m.team_b || []).map(nameOf).join(" / ")}</div>
+          <div key={m.id} className="pl-card" style={{ padding: 12, marginBottom: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {/* Команда A */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {(m.team_a || []).map((id) => (
+                  <div key={id} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                    {avatarOf(id) && <img src={avatarOf(id)} alt="" style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0 }} />}
+                    <span style={{ fontSize: 13, fontWeight: aWon ? 700 : 400, color: aWon ? "var(--lime)" : "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nameOf(id)}</span>
+                  </div>
+                ))}
+              </div>
+              {/* Счёт */}
+              <div style={{ textAlign: "center", flexShrink: 0 }}>
+                <div className="pl-display" style={{ fontSize: 22 }}>{m.sets_a}:{m.sets_b}</div>
+                {detail?.length === 3 && (
+                  <div style={{ fontSize: 10, color: "var(--mut)", marginTop: 2 }}>
+                    {detail.map((s, i) => <span key={i} style={{ marginRight: 4 }}>{s.a}-{s.b}</span>)}
+                  </div>
+                )}
+              </div>
+              {/* Команда B */}
+              <div style={{ flex: 1, minWidth: 0, textAlign: "right" }}>
+                {(m.team_b || []).map((id) => (
+                  <div key={id} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, justifyContent: "flex-end" }}>
+                    <span style={{ fontSize: 13, fontWeight: !aWon ? 700 : 400, color: !aWon ? "var(--lime)" : "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nameOf(id)}</span>
+                    {avatarOf(id) && <img src={avatarOf(id)} alt="" style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0 }} />}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         );
       })}

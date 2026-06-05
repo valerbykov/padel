@@ -144,6 +144,12 @@ function TournamentView({ id, players, back }) {
   if (t === false) return <div className="tr-root"><style>{css}</style><div className="tr-card" style={{ color: "var(--coral)" }}>Не удалось загрузить турнир.</div></div>;
 
   const nameOf = (tpId) => (t.players.find((p) => p.id === tpId)?.name) || "?";
+  // Аватарка турнирного игрока — ищем по profile_id в группе
+  const avatarOfTp = (tpId) => {
+    const tp = t.players.find((p) => p.id === tpId);
+    if (!tp?.profile_id) return null;
+    return (players || []).find((gp) => gp.id === tp.profile_id)?.avatar_url || null;
+  };
   const table = detailedStandings(t.players.map((p) => ({ id: p.id, name: p.name })), t.matches);
   const done = allMatchesPlayed(t.matches);
   const rmap = groupRounds(t.matches);
@@ -217,7 +223,10 @@ function TournamentView({ id, players, back }) {
 
           {curMatches.map((m) => (
             <CourtView key={m.id} courtNumber={m.court} points={t.points_per_game}
-              teamA={[nameOf(m.team_a[0]), nameOf(m.team_a[1])]} teamB={[nameOf(m.team_b[0]), nameOf(m.team_b[1])]}
+              teamA={[nameOf(m.team_a[0]), nameOf(m.team_a[1])]}
+              teamB={[nameOf(m.team_b[0]), nameOf(m.team_b[1])]}
+              teamAvatarsA={[avatarOfTp(m.team_a[0]), avatarOfTp(m.team_a[1])]}
+              teamAvatarsB={[avatarOfTp(m.team_b[0]), avatarOfTp(m.team_b[1])]}
               scoreA={m.score_a} scoreB={m.score_b} editable={t.status !== "finished"}
               onSave={(a, b) => saveScore(m.id, a, b)} />
           ))}
@@ -226,9 +235,9 @@ function TournamentView({ id, players, back }) {
           {curComplete && cur < N && <button className="tr-btn" style={{ width: "100%", padding: 12, marginBottom: 12 }} onClick={() => setCur(cur + 1)}>Следующий раунд →</button>}
           {done && t.status !== "finished" && <button className="tr-btn" style={{ width: "100%", padding: 13, marginBottom: 12 }} onClick={async () => { await finishTournament(t.id); load(); }}>Завершить турнир</button>}
 
-          <div className="tr-card">
+          <div className="tr-card" style={{ overflow: "hidden" }}>
             <div className="tr-d" style={{ fontSize: 15, marginBottom: 10 }}>{done ? "🏆 Итоговая таблица" : "Таблица"}</div>
-            <StandingsTable rows={table} />
+            <StandingsTable rows={table} avatarOf={(row) => ({ url: avatarOfTp(row.id) })} />
           </div>
         </>
       )}

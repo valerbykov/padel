@@ -88,7 +88,7 @@ export async function getRatingHistory(groupId, profileId) {
 
 const GAME_SELECT =
   "id, invite_code, title, starts_at, place, status, host_id, created_at, " +
-  "slots:game_slots(id, team, position, profile_id, guest_name, profile:profiles(name))";
+  "slots:game_slots(id, team, position, profile_id, guest_name, profile:profiles(name, avatar_url))";
 
 // Создать игру + 4 слота. slots: [A1, A2, B1, B2] — profileId или null (по ссылке).
 export async function createGame(groupId, { title, startsAt, place, slots = [], hostId } = {}) {
@@ -181,9 +181,10 @@ export async function joinSlot(gameId, { team, position }, { profileId, name } =
    ===================================================================== */
 
 // Возвращает { deltas: { [profileId]: number } } для анимации изменений.
-export async function submitResult(gameId, setsA, setsB) {
+// scoreDetail: [{a, b}, {a, b}, {a, b}] — счёт внутри каждого сета (опционально).
+export async function submitResult(gameId, setsA, setsB, scoreDetail = null) {
   const { data, error } = await supabase.functions.invoke("submit-result", {
-    body: { gameId, setsA, setsB },
+    body: { gameId, setsA, setsB, scoreDetail },
   });
   if (error) throw error;
   return data;
