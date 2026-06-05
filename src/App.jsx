@@ -8,9 +8,10 @@ import LoginScreen from "./components/LoginScreen";
 import GuestJoin from "./components/GuestJoin";
 import TournamentJoin from "./components/TournamentJoin";
 import PadelLeague from "./PadelLeague";
+import ProfileEditor from "./components/ProfileEditor";
 import { LogIn } from "lucide-react";
 
-const BOT_NAME = "padelacc_bot"; // имя твоего Telegram-бота без @
+const BOT_NAME = "padel_league_bot"; // имя твоего Telegram-бота без @
 
 function getInviteCode() {
   const m = window.location.pathname.match(/^\/j\/([A-Za-z0-9]{4})$/);
@@ -27,6 +28,8 @@ export default function App() {
   const [profile, setProfile] = useState(null);
   const [groupId, setGroupId] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [pNonce, setPNonce] = useState(0);
   const inviteCode = getInviteCode();
   const tournamentCode = getTournamentCode();
 
@@ -55,7 +58,7 @@ export default function App() {
       if (active) setProfile(data);
     })();
     return () => { active = false; };
-  }, [session]);
+  }, [session, pNonce]);
 
   // Группа пользователя (берём первую, где он состоит).
   useEffect(() => {
@@ -82,12 +85,18 @@ export default function App() {
     return <LoginScreen botName={BOT_NAME} onSuccess={() => setShowLogin(false)} />;
   }
 
+  if (showProfile && session) {
+    return <ProfileEditor onClose={() => setShowProfile(false)} onSaved={() => setPNonce((n) => n + 1)} />;
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: "#0a1612" }}>
       <TopBar
         session={session}
         name={profile?.name}
+        avatarUrl={profile?.avatar_url}
         onLogin={() => setShowLogin(true)}
+        onProfile={() => setShowProfile(true)}
         onSignOut={() => supabase.auth.signOut()}
       />
       <PadelLeague groupId={groupId} />
@@ -95,8 +104,9 @@ export default function App() {
   );
 }
 
-function TopBar({ session, name, onLogin, onSignOut }) {
+function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut }) {
   const base = { border: "1px solid #22382c", borderRadius: 10, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif" };
+  const initials = (name || "").trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -104,9 +114,16 @@ function TopBar({ session, name, onLogin, onSignOut }) {
       background: "rgba(10,22,18,.92)", position: "sticky", top: 0, zIndex: 60,
       fontFamily: "'Outfit',sans-serif",
     }}>
-      <span style={{ color: "#eef3ee", fontSize: 14, fontWeight: 600 }}>
-        {session ? `Привет, ${name || "игрок"}` : "Падел · Лига"}
-      </span>
+      {session ? (
+        <button onClick={onProfile} style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", color: "#eef3ee", padding: 0 }}>
+          {avatarUrl
+            ? <img src={avatarUrl} alt="" style={{ width: 30, height: 30, borderRadius: "50%", objectFit: "cover", border: "1px solid #2a4a3a" }} />
+            : <span style={{ width: 30, height: 30, borderRadius: "50%", background: "#16291f", border: "1px solid #22382c", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#c8ff2d" }}>{initials}</span>}
+          <span style={{ fontSize: 14, fontWeight: 600 }}>{name || "Профиль"}</span>
+        </button>
+      ) : (
+        <span style={{ color: "#eef3ee", fontSize: 14, fontWeight: 600 }}>Падел · Лига</span>
+      )}
       {session ? (
         <button onClick={onSignOut} style={{ ...base, background: "#16291f", color: "#7d9488" }}>Выйти</button>
       ) : (

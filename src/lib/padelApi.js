@@ -35,13 +35,14 @@ export async function ensureMyProfile(name) {
 export async function getLeaderboard(groupId) {
   const { data, error } = await supabase
     .from("group_members")
-    .select("rating, matches_played, wins, profile:profiles(id, name)")
+    .select("rating, matches_played, wins, profile:profiles(id, name, avatar_url)")
     .eq("group_id", groupId)
     .order("rating", { ascending: false });
   if (error) throw error;
   return data.map((r) => ({
     id: r.profile.id,
     name: r.profile.name,
+    avatar_url: r.profile.avatar_url,
     rating: r.rating,
     matches: r.matches_played,
     wins: r.wins,

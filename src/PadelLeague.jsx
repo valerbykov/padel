@@ -5,7 +5,8 @@ import { supabase } from "./lib/supabase";
 import { getLeaderboard, addMember, createGame, listGames, submitResult, linkFor } from "./lib/padelApi";
 import { getRatingHistory } from "./lib/statsApi";
 import { listTournaments } from "./lib/tournamentApi";
-import { standings } from "./lib/americano";
+import { standings, detailedStandings } from "./lib/americano";
+import StandingsTable from "./components/StandingsTable";
 import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, Calendar, MapPin, TrendingUp, LogIn, Award } from "lucide-react";
 import Tournaments from "./components/Tournaments";
 import CourtView from "./components/CourtView";
@@ -140,7 +141,10 @@ function Board({ groupId, players, reload }) {
       {ranked.length === 0 && <div className="pl-card" style={{ padding: 24, textAlign: "center", color: "var(--mut)", marginBottom: 8 }}>Игроков пока нет — добавь первого.</div>}
       {ranked.map((p, i) => (
         <div key={p.id} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }} onClick={() => setSelected(p)}>
-          <div className="pl-display" style={{ width: 30, fontSize: 22, color: ["#ffd23f", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)" }}>{i + 1}</div>
+          <div className="pl-display" style={{ width: 22, fontSize: 22, color: ["#ffd23f", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)" }}>{i + 1}</div>
+          {p.avatar_url
+            ? <img src={p.avatar_url} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
+            : <div style={{ width: 38, height: 38, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, color: "var(--lime)" }}>{(p.name || "?").trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase()}</div>}
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 600, fontSize: 16, display: "flex", alignItems: "center", gap: 6 }}>{p.name}<TrendingUp size={13} color="var(--mut)" /></div>
             <div style={{ fontSize: 12, color: "var(--mut)" }}>{p.matches} игр · {p.wins} побед</div>
@@ -424,6 +428,7 @@ function EnterScore({ gameId, reloadGames, reloadLeaderboard }) {
 function HistoryView({ groupId, players }) {
   const [matches, setMatches] = useState(null);
   const [tours, setTours] = useState([]);
+  const [sel, setSel] = useState(null);
   useEffect(() => {
     (async () => {
       const { data } = await supabase.from("matches")
@@ -441,19 +446,34 @@ function HistoryView({ groupId, players }) {
   if (matches === null) return <div className="pl-card pl-pop" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>Загрузка…</div>;
   if (matches.length === 0 && tours.length === 0) return <div className="pl-card pl-pop" style={{ padding: 28, textAlign: "center", color: "var(--mut)" }}>Пока нет сыгранных игр и турниров.</div>;
 
+  const selTable = sel ? detailedStandings((sel.players || []).map((p) => ({ id: p.id, name: p.name })), sel.matches || []) : [];
+
   return (
     <div className="pl-pop">
+      {sel && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(5,12,9,.7)", backdropFilter: "blur(4px)", zIndex: 60, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setSel(null)}>
+          <div className="pl-card pl-pop" style={{ width: "100%", maxWidth: 460, margin: 8, padding: 16, maxHeight: "85vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div className="pl-display" style={{ fontSize: 18 }}>{sel.name || "Американо"}</div>
+              <button className="pl-ghost" style={{ padding: 8 }} onClick={() => setSel(null)}><X size={18} /></button>
+            </div>
+            <StandingsTable rows={selTable} />
+          </div>
+        </div>
+      )}
+
       {tours.length > 0 && head("Турниры")}
       {tours.map((t) => {
         const table = standings((t.players || []).map((p) => ({ id: p.id, name: p.name })), t.matches || []);
         const w = table[0];
         return (
-          <div key={t.id} className="pl-card" style={{ padding: 14, marginBottom: 8, display: "flex", alignItems: "center", gap: 12 }}>
+          <div key={t.id} className="pl-card" style={{ padding: 14, marginBottom: 8, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }} onClick={() => setSel(t)}>
             <Trophy size={18} color="#ffd23f" />
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 600 }}>{t.name || "Американо"}</div>
               <div style={{ fontSize: 12, color: "var(--mut)" }}>{w ? `Победитель: ${w.name} · ${w.points} очк.` : "—"}</div>
             </div>
+            <span style={{ fontSize: 11, color: "var(--lime)" }}>детали →</span>
           </div>
         );
       })}
