@@ -33,9 +33,7 @@ Deno.serve(async (req) => {
     const { data: { user } } = await caller.auth.getUser();
     if (!user) return json({ error: "unauthorized" }, 401);
 
-    const { gameId, setsA, setsB } = await req.json();
-    if (setsA === setsB) return json({ error: "draw_not_allowed" }, 400);
-
+    const { gameId, setsA, setsB, scoreDetail } = await req.json();
     const admin = createClient(url, service);
 
     // 2. Игра + слоты.
@@ -109,11 +107,13 @@ Deno.serve(async (req) => {
       game_id: game.id, group_id: game.group_id,
       team_a: [a1.profileId, a2.profileId], team_b: [b1.profileId, b2.profileId],
       sets_a: setsA, sets_b: setsB,
+      score_detail: scoreDetail || null,
     }).select("id").single();
 
     // 7. Обновляем рейтинги + история + закрываем игру.
     await Promise.all(players.map((p) => {
-      const won = (winnerA && (p === a1 || p === a2)) || (!winnerA && (p === b1 || p === b2));
+      const isDraw = setsA === setsB;
+    const won = !isDraw && ((winnerA && (p === a1 || p === a2)) || (!winnerA && (p === b1 || p === b2)));
       return Promise.all([
         admin.from("group_members").update({
           rating: after[p.profileId],

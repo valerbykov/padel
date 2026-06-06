@@ -349,7 +349,7 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard }) {
   const [toast, setToast] = useState("");
   const slots = [...(game.slots || [])].sort((a, b) => (a.team + a.position).localeCompare(b.team + b.position));
   const nameOf = (s) => s.profile?.name || s.guest_name;
-  const avatarOf = (s) => playerAvatar(s.profile?.avatar_url, s.profile_id || s.guest_name);
+  const avatarOf = (s) => s.profile_id ? playerAvatar(s.profile?.avatar_url, s.profile_id) : null;
   const filled = slots.filter((s) => s.profile_id || s.guest_name).length;
   const slotsA = slots.filter((s) => s.team === "A");
   const slotsB = slots.filter((s) => s.team === "B");
@@ -479,7 +479,7 @@ function HistoryView({ groupId, players }) {
   }, [groupId]);
 
   const nameOf = (id) => players.find((p) => p.id === id)?.name || "Игрок";
-  const avatarOf = (id) => playerAvatar(players.find((p) => p.id === id)?.avatar_url, id);
+  const avatarOf = (id) => { const gp = players.find((p) => p.id === id); return gp ? playerAvatar(gp.avatar_url, id) : null; };
   const head = (txt) => <div className="pl-display" style={{ fontSize: 13, color: "var(--mut)", margin: "10px 2px 8px" }}>{txt}</div>;
 
   if (matches === null) return <div className="pl-card pl-pop" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>Загрузка…</div>;
