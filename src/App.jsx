@@ -131,3 +131,7 @@ function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut }) {
           <LogIn size={15} /> Войти
         </button>
       )}
+    </div>
+  );
+}
+
