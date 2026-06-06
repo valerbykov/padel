@@ -14,27 +14,30 @@ function Chip({ name, avatarUrl, x, y, team }) {
     <div style={{
       position: "absolute", left: `${x}%`, top: `${y}%`,
       transform: "translate(-50%,-50%)",
-      display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-      maxWidth: "34%",
+      display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+      maxWidth: "27%",
     }}>
       {avatarUrl ? (
         <img src={avatarUrl} alt="" style={{
-          width: 32, height: 32, borderRadius: "50%", objectFit: "cover",
+          width: "clamp(22px,7vw,32px)", height: "clamp(22px,7vw,32px)",
+          borderRadius: "50%", objectFit: "cover",
           border: `2px solid ${color}`, background: "#0a1612", flexShrink: 0,
         }} />
       ) : (
         <div style={{
-          width: 32, height: 32, borderRadius: "50%",
+          width: "clamp(22px,7vw,32px)", height: "clamp(22px,7vw,32px)",
+          borderRadius: "50%",
           background: "rgba(10,22,18,.82)", border: `2px solid ${color}`,
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 12, fontWeight: 700, color: "#eef3ee", flexShrink: 0,
+          fontSize: "clamp(9px,2.8vw,12px)", fontWeight: 700, color: "#eef3ee", flexShrink: 0,
         }}>
           {(name || "?").trim().charAt(0).toUpperCase()}
         </div>
       )}
       <div style={{
         background: "rgba(10,22,18,.82)", border: `1px solid ${color}`,
-        borderRadius: 8, padding: "2px 7px", fontSize: 11, fontWeight: 600, color: "#eef3ee",
+        borderRadius: 6, padding: "1px 5px",
+        fontSize: "clamp(8px,2.2vw,10px)", fontWeight: 600, color: "#eef3ee",
         whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
         maxWidth: "100%",
       }}>{name || "—"}</div>
@@ -46,8 +49,9 @@ function SetChip({ val, team, onClick, editable }) {
   const color = team === "A" ? "#c8ff2d" : "#5fd0ff";
   return (
     <div onClick={editable ? onClick : undefined} style={{
-      minWidth: 42, padding: "9px 12px", textAlign: "center",
-      fontFamily: "'Anton',sans-serif", fontSize: 22, lineHeight: 1,
+      minWidth: "clamp(32px,10vw,42px)", padding: "clamp(6px,2.5vw,9px) clamp(8px,3.5vw,12px)",
+      textAlign: "center", fontFamily: "'Anton',sans-serif",
+      fontSize: "clamp(16px,6vw,22px)", lineHeight: 1,
       background: val != null ? "rgba(10,22,18,.9)" : "#16291f",
       border: `1.5px solid ${val != null ? color : "#22382c"}`,
       borderRadius: 10, color: val != null ? "#eef3ee" : "#7d9488",
@@ -155,8 +159,10 @@ export default function CourtView({
     <div
       onClick={() => editable && mode !== "sets" && openPick(team)}
       style={{
-        fontFamily: "'Anton',sans-serif", fontSize: 30, minWidth: 54, textAlign: "center", padding: "8px 12px",
-        borderRadius: 12, lineHeight: 1, cursor: editable && mode !== "sets" ? "pointer" : "default",
+        fontFamily: "'Anton',sans-serif",
+        fontSize: "clamp(18px,7.5vw,30px)", minWidth: "clamp(38px,12vw,54px)",
+        textAlign: "center", padding: "clamp(5px,2vw,8px) clamp(7px,3vw,12px)",
+        borderRadius: 10, lineHeight: 1, cursor: editable && mode !== "sets" ? "pointer" : "default",
         background: win ? "#c8ff2d" : "rgba(10,22,18,.82)", color: win ? "#0a1612" : "#eef3ee",
         border: `2px solid ${win ? "#c8ff2d" : "rgba(255,255,255,.4)"}`,
         boxShadow: win ? "0 0 16px rgba(200,255,45,.5)" : "none",

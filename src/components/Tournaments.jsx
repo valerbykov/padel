@@ -22,6 +22,13 @@ const css = `
 .tr-input,.tr-select{background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Outfit';outline:none;width:100%;padding:10px 12px;box-sizing:border-box;}
 .tr-codebox{font-family:'Anton';letter-spacing:6px;font-size:28px;color:var(--lime);text-align:center;background:var(--surface2);border:1px dashed var(--line);border-radius:14px;padding:10px;}
 .tr-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;}
+.tr-root{padding-bottom:4px;}
+@media(max-width:400px){
+  .tr-card{padding:10px;}
+  .tr-d{letter-spacing:.3px;}
+  .tr-input,.tr-select{padding:8px 10px;}
+  .tr-codebox{font-size:22px;letter-spacing:4px;padding:8px;}
+}
 `;
 const statusLabel = { open: "набор", active: "идёт", finished: "завершён" };
 

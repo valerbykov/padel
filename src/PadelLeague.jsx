@@ -44,6 +44,13 @@ const css = `
 @keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .pl-codebox{font-family:'Anton';letter-spacing:6px;font-size:30px;color:var(--lime);text-align:center;background:var(--surface2);border:1px dashed var(--line);border-radius:14px;padding:12px;}
 .pl-slot{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--surface2);border:1px solid var(--line);}
+@media(max-width:400px){
+  .pl-card{border-radius:14px;}
+  .pl-display{letter-spacing:.3px;}
+  .pl-codebox{font-size:24px;letter-spacing:4px;}
+  .pl-tab{font-size:10px;padding:6px 0;}
+  .pl-slot{padding:8px 10px;gap:8px;}
+}
 `;
 
 function LineChart({ values }) {
@@ -468,20 +475,19 @@ function HistoryView({ groupId, players }) {
     <div className="pl-pop">
       {/* Модал детали турнира */}
       {sel && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(5,12,9,.7)", backdropFilter: "blur(4px)", zIndex: 60, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setSel(null)}>
+        /* Бэкдроп сам скроллится — надёжнее на мобильных */
+        <div style={{ position: "fixed", inset: 0, background: "rgba(5,12,9,.7)", backdropFilter: "blur(4px)", zIndex: 60, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "8px 8px 72px" }} onClick={() => setSel(null)}>
           <div onClick={(e) => e.stopPropagation()} style={{
-            width: "100%", maxWidth: 460,
-            margin: "0 8px 64px",  /* 64px — высота нижнего навбара */
-            maxHeight: "calc(90vh - 64px)",
+            width: "100%", maxWidth: 460, margin: "0 auto",
             background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 18,
-            overflowY: "auto", overflowX: "hidden", boxSizing: "border-box",
+            overflow: "hidden",
           }}>
-            <div style={{ padding: "16px 16px 0", position: "sticky", top: 0, background: "var(--surface)", zIndex: 1, borderBottom: "1px solid var(--line)", paddingBottom: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid var(--line)", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
                 <div className="pl-display" style={{ fontSize: 18 }}>{sel.name || "Американо"}</div>
-                <button className="pl-ghost" style={{ padding: 8 }} onClick={() => setSel(null)}><X size={18} /></button>
+                <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>до {sel.points_per_game} очков · {sel.players?.length} игроков</div>
               </div>
-              <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>до {sel.points_per_game} очков · {sel.players?.length} игроков</div>
+              <button className="pl-ghost" style={{ padding: 8, flexShrink: 0 }} onClick={() => setSel(null)}><X size={18} /></button>
             </div>
             <div style={{ padding: 16 }}>
               {/* Раунды (readonly CourtViews) */}
