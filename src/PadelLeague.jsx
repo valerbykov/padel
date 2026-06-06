@@ -203,7 +203,7 @@ function PlayerDetail({ groupId, player, close }) {
 /* --------------------------------- Games ---------------------------------- */
 function Games({ groupId, players, reloadLeaderboard }) {
   const [games, setGames] = useState([]);
-  const [mode, setMode] = useState("list"); // list | create | view
+  const [mode, setMode] = useState("list");
   const [selId, setSelId] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -467,9 +467,8 @@ function HistoryView({ groupId, players }) {
   const [sel, setSel] = useState(null);
   const [expanded, setExpanded] = useState(null);
 
-  // Все хуки до условного рендера
   useEffect(() => {
-    if (sel) return; // не перезагружаем, пока открыт турнир
+    if (sel) return;
     (async () => {
       const { data } = await supabase.from("matches")
         .select("id, team_a, team_b, sets_a, sets_b, score_detail, played_at")
@@ -480,7 +479,6 @@ function HistoryView({ groupId, players }) {
     })();
   }, [groupId, sel]);
 
-  // Показываем турнир inline (после всех хуков)
   if (sel) return <TournamentView id={sel.id} players={players} back={() => setSel(null)} />;
 
   const nameOf = (id) => players.find((p) => p.id === id)?.name || "Игрок";
@@ -501,7 +499,7 @@ function HistoryView({ groupId, players }) {
             <Trophy size={18} color="#ffd23f" />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name || "Американо"}</div>
-              <div style={{ fontSize: 12, color: "var(--mut)" }}>{w ? `Победитель: ${w.name} · ${w.points} очк.` : "—"}</div>
+              <div style={{ fontSize: 12, color: "var(--mut)" }}>{w ? `Победитель: ${w.name} · ${w.points} очк.` : "-"}</div>
             </div>
             <span style={{ fontSize: 16, color: "var(--lime)", flexShrink: 0 }}>→</span>
           </div>
@@ -511,13 +509,18 @@ function HistoryView({ groupId, players }) {
       {matches.length > 0 && head("Игры")}
       {matches.map((m) => {
         const aWon = m.sets_a > m.sets_b;
-        const detail = m.score_detail;
+        const rawDetail = m.score_detail;
+        const detail = (() => {
+          if (!rawDetail) return null;
+          if (Array.isArray(rawDetail) && rawDetail.length > 0) return rawDetail;
+          try { const p = typeof rawDetail === "string" ? JSON.parse(rawDetail) : rawDetail; return Array.isArray(p) && p.length > 0 ? p : null; }
+          catch (e) { return null; }
+        })();
         const isExpanded = expanded === m.id;
         return (
-          <div key={m.id} className="pl-card" style={{ padding: 12, marginBottom: 8, cursor: detail?.length > 0 ? "pointer" : "default" }}
-            onClick={() => detail?.length > 0 && setExpanded(isExpanded ? null : m.id)}>
+          <div key={m.id} className="pl-card" style={{ padding: 12, marginBottom: 8, cursor: detail ? "pointer" : "default" }}
+            onClick={() => detail && setExpanded(isExpanded ? null : m.id)}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {/* Команда A */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 {(m.team_a || []).map((id) => (
                   <div key={id} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
@@ -526,14 +529,10 @@ function HistoryView({ groupId, players }) {
                   </div>
                 ))}
               </div>
-              {/* Счёт */}
               <div style={{ textAlign: "center", flexShrink: 0 }}>
                 <div className="pl-display" style={{ fontSize: 22 }}>{m.sets_a}:{m.sets_b}</div>
-                {detail?.length > 0 && (
-                  <div style={{ fontSize: 10, color: "var(--lime)", marginTop: 2 }}>{isExpanded ? "▲" : "▼"}</div>
-                )}
+                {detail && <div style={{ fontSize: 10, color: "var(--lime)", marginTop: 2 }}>{isExpanded ? "▲" : "▼"}</div>}
               </div>
-              {/* Команда B */}
               <div style={{ flex: 1, minWidth: 0, textAlign: "right" }}>
                 {(m.team_b || []).map((id) => (
                   <div key={id} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, justifyContent: "flex-end" }}>
@@ -543,14 +542,13 @@ function HistoryView({ groupId, players }) {
                 ))}
               </div>
             </div>
-            {/* Детализация по сетам */}
-            {isExpanded && detail?.length > 0 && (
-              <div style={{ marginTop: 10, borderTop: "1px solid var(--line)", paddingTop: 8, display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap" }}>
+            {isExpanded && detail && (
+              <div style={{ marginTop: 10, borderTop: "1px solid #22382c", paddingTop: 8, display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
                 {detail.map((s, i) => (
-                  <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                  <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, minWidth: 52 }}>
                     <div style={{ fontSize: 10, color: "var(--mut)" }}>Сет {i + 1}</div>
-                    <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 16, color: s.a > s.b ? "var(--lime)" : s.b > s.a ? "var(--coral)" : "var(--ink)" }}>
-                      {s.a}<span style={{ color: "var(--mut)", margin: "0 2px" }}>:</span>{s.b}
+                    <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 18, color: s.a > s.b ? "var(--lime)" : s.b > s.a ? "var(--coral)" : "var(--ink)" }}>
+                      {s.a}<span style={{ color: "var(--mut)", fontSize: 14 }}>:</span>{s.b}
                     </div>
                   </div>
                 ))}

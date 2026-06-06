@@ -94,7 +94,7 @@ export default function CourtView({
   const setsWonA = setsDetail.filter((s) => s.a != null && s.b != null && s.a > s.b).length;
   const setsWonB = setsDetail.filter((s) => s.a != null && s.b != null && s.b > s.a).length;
   const allSetsEntered = setsDetail.every((s) => s.a != null && s.b != null);
-  const setsValid = allSetsEntered && setsWonA !== setsWonB;
+  const setsValid = allSetsEntered;  // ничья допустима
 
   // Ranges (ровно по 10: 0-9, 10-19, ...)
   const ranges = [];
@@ -227,7 +227,7 @@ export default function CourtView({
                   ))}
                 </div>
               ) : (
-                <div style={{ width: "100%", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+                <div style={{ width: "100%", display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
                   {(() => {
                     const lo = !pickSets && useRanges && range ? range[0] : 0;
                     const hi = !pickSets && useRanges && range ? range[1] : pickerMax;
@@ -237,7 +237,7 @@ export default function CourtView({
                       const cur = pickerCurVal === n;
                       return (
                         <button key={n} disabled={busy} onClick={() => pickSets ? pickSetScore(n) : pickSumFree(pickFor, n)} style={{
-                          padding: "14px 0", borderRadius: 12, cursor: "pointer",
+                          padding: "12px 0", borderRadius: 12, cursor: "pointer",
                           fontFamily: "'Anton',sans-serif", fontSize: 20,
                           background: cur ? "#c8ff2d" : "#16291f",
                           color: cur ? "#0a1612" : "#eef3ee",
@@ -304,7 +304,7 @@ export default function CourtView({
           fontFamily: "'Outfit',sans-serif", background: "#c8ff2d", color: "#0a1612",
           filter: (!setsValid || busy) ? "grayscale(.6) brightness(.7)" : "none",
         }}>
-          {busy ? "Записываю…" : !allSetsEntered ? "Введи счёт всех сетов" : setsWonA === setsWonB ? "Ничья по сетам недопустима" : "Записать результат"}
+          {busy ? "Записываю…" : !allSetsEntered ? "Введи счёт всех сетов" : "Записать результат"}
         </button>
       )}
 
