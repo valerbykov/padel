@@ -1,5 +1,4 @@
 // PadelLeague.jsx — основной экран на реальных данных Supabase.
-// Работает с группой пользователя (groupId): рейтинг, игры, история.
 import React, { useEffect, useState, useCallback } from "react";
 import { supabase } from "./lib/supabase";
 import { getLeaderboard, addMember, createGame, listGames, submitResult, linkFor } from "./lib/padelApi";
@@ -7,11 +6,10 @@ import { getRatingHistory } from "./lib/statsApi";
 import { listTournaments } from "./lib/tournamentApi";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
-import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, Calendar, MapPin, TrendingUp, LogIn, Award } from "lucide-react";
+import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft } from "lucide-react";
 import Tournaments, { TournamentView } from "./components/Tournaments";
 import CourtView from "./components/CourtView";
 
-// Детерминированная аватарка по ID/имени игрока (если avatar_url не задан)
 const DOG_COUNT = 15;
 const dogAvatar = (idOrName) => {
   if (!idOrName) return null;
@@ -84,6 +82,28 @@ function Step({ label, v, set }) {
   );
 }
 
+// Контакты: иконки-ссылки
+function ContactLinks({ contacts = {} }) {
+  if (!contacts || !Object.values(contacts).some(Boolean)) return null;
+  const links = [
+    contacts.whatsapp && { href: `https://wa.me/${contacts.whatsapp.replace(/\D/g, "")}`, label: "WA", color: "#25d366" },
+    contacts.telegram && { href: `https://t.me/${contacts.telegram.replace(/^@/, "")}`, label: "TG", color: "#229ed9" },
+    contacts.email    && { href: `mailto:${contacts.email}`, label: "✉", color: "var(--mut)" },
+    contacts.phone    && { href: `tel:${contacts.phone}`, label: "☎", color: "var(--mut)" },
+  ].filter(Boolean);
+  return (
+    <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 8, flexWrap: "wrap" }}>
+      {links.map((l) => (
+        <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer" style={{
+          padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700,
+          background: "rgba(255,255,255,.07)", border: `1px solid ${l.color}`,
+          color: l.color, textDecoration: "none",
+        }}>{l.label}</a>
+      ))}
+    </div>
+  );
+}
+
 /* --------------------------------- root ----------------------------------- */
 export default function PadelLeague({ groupId }) {
   const [tab, setTab] = useState("board");
@@ -115,11 +135,9 @@ export default function PadelLeague({ groupId }) {
     <div className="pl-root">
       <style>{css}</style>
       <div style={{ maxWidth: 460, margin: "0 auto", padding: "20px 16px 88px" }}>
-        <header className="flex items-center justify-between" style={{ marginBottom: 18 }}>
-          <div>
-            <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2 }}>PADEL · ЛИГА ДРУЗЕЙ</div>
-            <h1 className="pl-display" style={{ fontSize: 30, lineHeight: 1, marginTop: 2, color: "var(--ink)" }}>{titles[tab]}</h1>
-          </div>
+        <header style={{ marginBottom: 18 }}>
+          <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2 }}>PADEL · ЛИГА ДРУЗЕЙ</div>
+          <h1 className="pl-display" style={{ fontSize: 30, lineHeight: 1, marginTop: 2, color: "var(--ink)" }}>{titles[tab]}</h1>
         </header>
 
         {tab === "board" && <Board groupId={groupId} players={players} reload={loadLeaderboard} />}
@@ -142,34 +160,62 @@ export default function PadelLeague({ groupId }) {
 
 /* --------------------------------- Board ---------------------------------- */
 function Board({ groupId, players, reload }) {
-  const [name, setName] = useState(""), [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [contacts, setContacts] = useState({ whatsapp: "", telegram: "", email: "", phone: "" });
   const [selected, setSelected] = useState(null);
+  const [busy, setBusy] = useState(false);
   const ranked = [...players].sort((a, b) => b.rating - a.rating);
 
+  const resetForm = () => { setName(""); setContacts({ whatsapp: "", telegram: "", email: "", phone: "" }); };
+
   const add = async () => {
-    const n = name.trim(); if (!n) return;
-    try { await addMember(groupId, n); setName(""); setOpen(false); reload(); } catch (e) { alert("Не удалось добавить игрока"); }
+    const n = name.trim();
+    if (!n || busy) return;
+    setBusy(true);
+    try { await addMember(groupId, n, contacts); resetForm(); setOpen(false); reload(); }
+    catch (e) { alert("Не удалось добавить игрока"); }
+    finally { setBusy(false); }
   };
+
+  if (selected) return <PlayerDetail groupId={groupId} player={selected} players={players} close={() => setSelected(null)} />;
 
   return (
     <div className="pl-pop">
-      {selected && <PlayerDetail groupId={groupId} player={selected} close={() => setSelected(null)} />}
       {ranked.length === 0 && <div className="pl-card" style={{ padding: 24, textAlign: "center", color: "var(--mut)", marginBottom: 8 }}>Игроков пока нет — добавь первого.</div>}
       {ranked.map((p, i) => (
         <div key={p.id} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }} onClick={() => setSelected(p)}>
           <div className="pl-display" style={{ width: 22, fontSize: 22, color: ["#ffd23f", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)" }}>{i + 1}</div>
           <img src={playerAvatar(p.avatar_url, p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 600, fontSize: 16, display: "flex", alignItems: "center", gap: 6 }}>{p.name}<TrendingUp size={13} color="var(--mut)" /></div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
             <div style={{ fontSize: 12, color: "var(--mut)" }}>{p.matches} игр · {p.wins} побед</div>
           </div>
+          {p.contacts && Object.values(p.contacts).some(Boolean) && (
+            <div style={{ fontSize: 10, color: "var(--lime)", flexShrink: 0 }}>📞</div>
+          )}
         </div>
       ))}
+
       {open ? (
-        <div className="pl-card" style={{ padding: 12, marginTop: 8, display: "flex", gap: 8 }}>
-          <input className="pl-input" style={{ padding: "10px 12px" }} placeholder="Имя игрока" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} autoFocus />
-          <button className="pl-btn" style={{ padding: "0 16px" }} onClick={add}>OK</button>
-          <button className="pl-ghost" style={{ padding: "0 12px" }} onClick={() => setOpen(false)}><X size={16} /></button>
+        <div className="pl-card" style={{ padding: 14, marginTop: 8 }}>
+          <div style={{ fontWeight: 600, marginBottom: 10 }}>Добавить игрока</div>
+          <input className="pl-input" style={{ padding: "10px 12px", marginBottom: 8 }} placeholder="Имя *" value={name}
+            onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} autoFocus />
+          <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 6 }}>Контакты (опционально)</div>
+          {[
+            { key: "whatsapp", placeholder: "WhatsApp (+7…)" },
+            { key: "telegram", placeholder: "Telegram (@username)" },
+            { key: "email",    placeholder: "Email" },
+            { key: "phone",    placeholder: "Телефон" },
+          ].map(({ key, placeholder }) => (
+            <input key={key} className="pl-input" style={{ padding: "8px 12px", marginBottom: 6 }} placeholder={placeholder}
+              value={contacts[key]} onChange={(e) => setContacts(c => ({ ...c, [key]: e.target.value }))} />
+          ))}
+          <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+            <button className="pl-btn" style={{ flex: 1, padding: 11 }} disabled={!name.trim() || busy} onClick={add}>{busy ? "Добавляю…" : "Добавить"}</button>
+            <button className="pl-ghost" style={{ padding: "0 14px" }} onClick={() => { resetForm(); setOpen(false); }}><X size={16} /></button>
+          </div>
         </div>
       ) : (
         <button className="pl-ghost" style={{ width: "100%", padding: 12, marginTop: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontWeight: 600 }} onClick={() => setOpen(true)}>
@@ -180,22 +226,145 @@ function Board({ groupId, players, reload }) {
   );
 }
 
-function PlayerDetail({ groupId, player, close }) {
+/* ----------------------------- PlayerDetail ------------------------------- */
+function PlayerDetail({ groupId, player, players, close }) {
   const [hist, setHist] = useState(null);
-  useEffect(() => { getRatingHistory(groupId, player.id).then(setHist).catch(() => setHist([player.rating])); }, [groupId, player.id]);
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(5,12,9,.7)", backdropFilter: "blur(4px)", zIndex: 50, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={close}>
-      <div className="pl-card pl-pop" style={{ width: "100%", maxWidth: 460, margin: 8, padding: 18 }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-          <div>
-            <div className="pl-display" style={{ fontSize: 26 }}>{player.name}</div>
-            <div style={{ fontSize: 12, color: "var(--mut)" }}>{player.matches} игр · {player.wins} побед</div>
-          </div>
-          <button className="pl-ghost" style={{ padding: 8 }} onClick={close}><X size={18} /></button>
+  const [myId, setMyId] = useState(null);
+  const [allMatches, setAllMatches] = useState(null);
+
+  useEffect(() => {
+    getRatingHistory(groupId, player.id).then(setHist).catch(() => setHist([player.rating]));
+
+    // Определяем свой profile_id
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase.from("profiles").select("id").eq("user_id", user.id).maybeSingle()
+        .then(({ data }) => { if (data) setMyId(data.id); });
+    });
+
+    // Загружаем матчи группы для статистики
+    supabase.from("matches")
+      .select("id, team_a, team_b, sets_a, sets_b, played_at")
+      .eq("group_id", groupId)
+      .order("played_at", { ascending: false })
+      .limit(100)
+      .then(({ data }) => setAllMatches(data || []));
+  }, [groupId, player.id]);
+
+  const nameOf = (id) => players.find((p) => p.id === id)?.name || "Игрок";
+
+  // Матчи, в которых участвуют оба (я + выбранный игрок)
+  const withPlayer = !myId || !allMatches ? [] : allMatches.filter((m) => {
+    const all = [...(m.team_a || []), ...(m.team_b || [])];
+    return all.includes(myId) && all.includes(player.id);
+  });
+
+  // Разбиваем на "вместе" и "против"
+  let toWins = 0, toLosses = 0, toDraws = 0; // together
+  let vsWins = 0, vsLosses = 0, vsDraws = 0; // versus
+  withPlayer.forEach((m) => {
+    const myInA = (m.team_a || []).includes(myId);
+    const thInA = (m.team_a || []).includes(player.id);
+    const together = myInA === thInA;
+    const myTeamWon = myInA ? m.sets_a > m.sets_b : m.sets_b > m.sets_a;
+    const isDraw = m.sets_a === m.sets_b;
+    if (together) {
+      if (isDraw) toDraws++; else if (myTeamWon) toWins++; else toLosses++;
+    } else {
+      if (isDraw) vsDraws++; else if (myTeamWon) vsWins++; else vsLosses++;
+    }
+  });
+  const toTotal = toWins + toLosses + toDraws;
+  const vsTotal = vsWins + vsLosses + vsDraws;
+
+  const statRow = (label, w, d, l, total) => total === 0 ? null : (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 4 }}>{label}</div>
+      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+        <div style={{ textAlign: "center", flex: 1 }}>
+          <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 22, color: "#3ddc84" }}>{w}</div>
+          <div style={{ fontSize: 10, color: "var(--mut)" }}>победы</div>
         </div>
-        <div className="pl-display" style={{ fontSize: 40, color: "var(--lime)", lineHeight: 1, marginBottom: 12 }}>{player.rating}</div>
+        <div style={{ textAlign: "center", flex: 1 }}>
+          <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 22, color: "var(--ink)" }}>{d}</div>
+          <div style={{ fontSize: 10, color: "var(--mut)" }}>ничьи</div>
+        </div>
+        <div style={{ textAlign: "center", flex: 1 }}>
+          <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 22, color: "var(--coral)" }}>{l}</div>
+          <div style={{ fontSize: 10, color: "var(--mut)" }}>поражения</div>
+        </div>
+        <div style={{ flex: 2, height: 6, borderRadius: 3, overflow: "hidden", background: "#16291f", display: "flex" }}>
+          {w > 0 && <div style={{ flex: w, background: "#3ddc84" }} />}
+          {d > 0 && <div style={{ flex: d, background: "#7d9488" }} />}
+          {l > 0 && <div style={{ flex: l, background: "var(--coral)" }} />}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="pl-pop">
+      <button className="pl-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={close}>
+        <ArrowLeft size={14} style={{ display: "inline", marginRight: 4 }} />Назад
+      </button>
+
+      {/* Шапка игрока */}
+      <div className="pl-card" style={{ padding: 18, marginBottom: 10, textAlign: "center" }}>
+        <img src={playerAvatar(player.avatar_url, player.id)} alt="" style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--line)", marginBottom: 8 }} />
+        <div className="pl-display" style={{ fontSize: 24 }}>{player.name}</div>
+        <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 4 }}>{player.matches} игр · {player.wins} побед</div>
+        <ContactLinks contacts={player.contacts} />
+      </div>
+
+      {/* Рейтинг + график */}
+      <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
+          <div className="pl-display" style={{ fontSize: 36, color: "var(--lime)" }}>{player.rating}</div>
+          <div style={{ fontSize: 12, color: "var(--mut)" }}>рейтинг</div>
+        </div>
         <LineChart values={hist || [player.rating]} />
       </div>
+
+      {/* Статистика с этим игроком */}
+      {myId && myId !== player.id && withPlayer.length > 0 && (
+        <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Вместе сыграно {withPlayer.length} матчей</div>
+          {statRow("Играли в одной команде", toWins, toDraws, toLosses, toTotal)}
+          {statRow("Играли против друг друга", vsWins, vsDraws, vsLosses, vsTotal)}
+        </div>
+      )}
+
+      {/* Последние совместные игры */}
+      {myId && myId !== player.id && withPlayer.length > 0 && (
+        <div className="pl-card" style={{ padding: 14 }}>
+          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>Последние игры вместе</div>
+          {withPlayer.slice(0, 5).map((m) => {
+            const myInA = (m.team_a || []).includes(myId);
+            const thInA = (m.team_a || []).includes(player.id);
+            const together = myInA === thInA;
+            const myTeamWon = myInA ? m.sets_a > m.sets_b : m.sets_b > m.sets_a;
+            const isDraw = m.sets_a === m.sets_b;
+            const result = isDraw ? "Н" : myTeamWon ? "П" : "П";
+            const resultColor = isDraw ? "var(--mut)" : myTeamWon ? "#3ddc84" : "var(--coral)";
+            const teamA = (m.team_a || []).map(nameOf).join(" & ");
+            const teamB = (m.team_b || []).map(nameOf).join(" & ");
+            return (
+              <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderBottom: "1px solid var(--line)" }}>
+                <div style={{ width: 20, height: 20, borderRadius: "50%", background: isDraw ? "#22382c" : myTeamWon ? "rgba(61,220,132,.15)" : "rgba(255,106,82,.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: resultColor, flexShrink: 0 }}>
+                  {isDraw ? "Н" : myTeamWon ? "В" : "П"}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11, color: "var(--mut)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {teamA} <span style={{ color: "var(--line)" }}>vs</span> {teamB}
+                  </div>
+                  <div style={{ fontSize: 10, color: "var(--mut)" }}>{together ? "вместе" : "против"} · {fmtDate(m.played_at)}</div>
+                </div>
+                <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 14, flexShrink: 0 }}>{m.sets_a}:{m.sets_b}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -312,10 +481,8 @@ function CreateGame({ groupId, players, back, done }) {
 
   const create = async () => {
     setBusy(true);
-    try {
-      await createGame(groupId, { title, startsAt: date || null, place, slots });
-      done();
-    } catch (e) { alert("Не удалось создать игру"); setBusy(false); }
+    try { await createGame(groupId, { title, startsAt: date || null, place, slots }); done(); }
+    catch (e) { alert("Не удалось создать игру"); setBusy(false); }
   };
 
   return (

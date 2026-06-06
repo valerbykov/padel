@@ -35,7 +35,7 @@ export async function ensureMyProfile(name) {
 export async function getLeaderboard(groupId) {
   const { data, error } = await supabase
     .from("group_members")
-    .select("rating, matches_played, wins, profile:profiles(id, name, avatar_url)")
+    .select("rating, matches_played, wins, profile:profiles(id, name, avatar_url, contacts)")
     .eq("group_id", groupId)
     .order("rating", { ascending: false });
   if (error) throw error;
@@ -43,6 +43,7 @@ export async function getLeaderboard(groupId) {
     id: r.profile.id,
     name: r.profile.name,
     avatar_url: r.profile.avatar_url,
+    contacts: r.profile.contacts || {},
     rating: r.rating,
     matches: r.matches_played,
     wins: r.wins,
@@ -50,10 +51,14 @@ export async function getLeaderboard(groupId) {
 }
 
 // «Добавить игрока»: создаём профиль-гость + членство в группе.
-export async function addMember(groupId, name) {
+// contacts: { whatsapp?, telegram?, email?, phone? } — всё опционально.
+export async function addMember(groupId, name, contacts = {}) {
+  const cleanContacts = Object.fromEntries(
+    Object.entries(contacts).filter(([, v]) => v && String(v).trim())
+  );
   const { data: profile, error: pErr } = await supabase
     .from("profiles")
-    .insert({ name: name.trim() })
+    .insert({ name: name.trim(), contacts: Object.keys(cleanContacts).length ? cleanContacts : null })
     .select()
     .single();
   if (pErr) throw pErr;
