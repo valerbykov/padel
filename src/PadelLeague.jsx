@@ -105,8 +105,8 @@ function ContactLinks({ contacts = {} }) {
 }
 
 /* --------------------------------- root ----------------------------------- */
-export default function PadelLeague({ groupId }) {
-  const [tab, setTab] = useState("board");
+export default function PadelLeague({ groupId, session }) {
+  const [tab, setTab] = useState(session ? "board" : "games");
   const [players, setPlayers] = useState([]);
 
   const loadLeaderboard = useCallback(async () => {
@@ -140,20 +140,34 @@ export default function PadelLeague({ groupId }) {
           <h1 className="pl-display" style={{ fontSize: 30, lineHeight: 1, marginTop: 2, color: "var(--ink)" }}>{titles[tab]}</h1>
         </header>
 
-        {tab === "board" && <Board groupId={groupId} players={players} reload={loadLeaderboard} />}
-        {tab === "games" && <Games groupId={groupId} players={players} reloadLeaderboard={loadLeaderboard} />}
+        {tab === "board" && (session ? <Board groupId={groupId} players={players} reload={loadLeaderboard} /> : <GateScreen />)}
+        {tab === "games" && <Games groupId={groupId} players={players} reloadLeaderboard={loadLeaderboard} session={session} />}
         {tab === "tournaments" && <Tournaments groupId={groupId} players={players} />}
-        {tab === "history" && <HistoryView groupId={groupId} players={players} />}
+        {tab === "history" && (session ? <HistoryView groupId={groupId} players={players} /> : <GateScreen />)}
       </div>
 
       <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(10,22,18,.92)", borderTop: "1px solid var(--line)", backdropFilter: "blur(8px)" }}>
         <div style={{ maxWidth: 460, margin: "0 auto", display: "flex" }}>
-          <button className={`pl-tab ${tab === "board" ? "on" : ""}`} onClick={() => setTab("board")}><Trophy size={20} />Друзья</button>
+          {session && <button className={`pl-tab ${tab === "board" ? "on" : ""}`} onClick={() => setTab("board")}><Trophy size={20} />Друзья</button>}
           <button className={`pl-tab ${tab === "games" ? "on" : ""}`} onClick={() => setTab("games")}><Swords size={20} />Игры</button>
           <button className={`pl-tab ${tab === "tournaments" ? "on" : ""}`} onClick={() => setTab("tournaments")}><Award size={20} />Турниры</button>
-          <button className={`pl-tab ${tab === "history" ? "on" : ""}`} onClick={() => setTab("history")}><History size={20} />История</button>
+          {session && <button className={`pl-tab ${tab === "history" ? "on" : ""}`} onClick={() => setTab("history")}><History size={20} />История</button>}
         </div>
       </nav>
+    </div>
+  );
+}
+
+
+/* -------------------------------- GateScreen ------------------------------ */
+function GateScreen() {
+  return (
+    <div className="pl-pop" style={{ textAlign: "center", padding: "40px 16px" }}>
+      <div style={{ fontSize: 40, marginBottom: 12 }}>🔒</div>
+      <div className="pl-display" style={{ fontSize: 20, marginBottom: 8 }}>Только для участников лиги</div>
+      <div style={{ color: "var(--mut)", fontSize: 14, lineHeight: 1.5, maxWidth: 280, margin: "0 auto" }}>
+        Войди через кнопку наверху, чтобы видеть рейтинг друзей, историю игр и статистику.
+      </div>
     </div>
   );
 }
@@ -370,7 +384,7 @@ function PlayerDetail({ groupId, player, players, close }) {
 }
 
 /* --------------------------------- Games ---------------------------------- */
-function Games({ groupId, players, reloadLeaderboard }) {
+function Games({ groupId, players, reloadLeaderboard, session }) {
   const [games, setGames] = useState([]);
   const [mode, setMode] = useState("list");
   const [selId, setSelId] = useState(null);
@@ -394,9 +408,9 @@ function Games({ groupId, players, reloadLeaderboard }) {
   return (
     <div className="pl-pop">
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        <button className="pl-btn" style={{ flex: 1, padding: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={() => setMode("create")}>
+        {session && <button className="pl-btn" style={{ flex: 1, padding: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={() => setMode("create")}>
           <PlusCircle size={18} /> Создать игру
-        </button>
+        </button>}
         <button className="pl-ghost" style={{ padding: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontWeight: 600 }} onClick={loadGames}>
           <RefreshCw size={16} />
         </button>

@@ -99,7 +99,7 @@ export default function App() {
         onProfile={() => setShowProfile(true)}
         onSignOut={() => supabase.auth.signOut()}
       />
-      <PadelLeague groupId={groupId} />
+      <PadelLeague groupId={groupId} session={session} />
     </div>
   );
 }
@@ -131,6 +131,3 @@ function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut }) {
           <LogIn size={15} /> Войти
         </button>
       )}
-    </div>
-  );
-}
