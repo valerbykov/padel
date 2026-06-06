@@ -10,7 +10,7 @@ const PRESETS = Array.from({ length: 15 }, (_, i) => `/avatars/dog-${String(i + 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
 .pc-root{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;
- font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;}
+ font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;color-scheme:dark;}
 .pc-d{font-family:'Anton',sans-serif;text-transform:uppercase;letter-spacing:.5px;}
 .pc-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;}
 .pc-input{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Outfit';padding:11px 12px;outline:none;box-sizing:border-box;}

@@ -157,7 +157,7 @@ export function TournamentView({ id, players, back }) {
     const tp = t.players.find((p) => p.id === tpId);
     if (!tp) return null;
     const gp = (players || []).find((gp) => gp.id === tp.profile_id);
-    return gp?.avatar_url || _dogAv(tp.profile_id || tp.name || tpId);
+    return gp?.avatar_url || (tp.profile_id ? _dogAv(tp.profile_id) : null);
   };
   const table = detailedStandings(t.players.map((p) => ({ id: p.id, name: p.name })), t.matches);
   const done = allMatchesPlayed(t.matches);
