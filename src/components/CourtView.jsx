@@ -84,11 +84,12 @@ export default function CourtView({
 
   // sets state
   const initSets = (detail) =>
-    detail?.length === 3 ? detail.map((s) => ({ a: s.a ?? null, b: s.b ?? null }))
-    : [{ a: null, b: null }, { a: null, b: null }, { a: null, b: null }];
+    (detail?.length > 0)
+      ? detail.map((s) => ({ a: s.a ?? null, b: s.b ?? null }))
+      : [{ a: null, b: null }];  // по умолчанию 1 сет
   const [setsDetail, setSetsDetail] = useState(() => initSets(scoreDetail));
   const [pickSets, setPickSets] = useState(null); // {setIdx, team}
-  useEffect(() => { setSetsDetail(initSets(scoreDetail)); }, [JSON.stringify(scoreDetail)]);
+  useEffect(() => { setSetsDetail(initSets(scoreDetail)); }, [JSON.stringify(scoreDetail)]); // eslint-disable-line
 
   const setsWonA = setsDetail.filter((s) => s.a != null && s.b != null && s.a > s.b).length;
   const setsWonB = setsDetail.filter((s) => s.a != null && s.b != null && s.b > s.a).length;
@@ -127,6 +128,9 @@ export default function CourtView({
     setSetsDetail((prev) => prev.map((s, i) => i === setIdx ? { ...s, [team.toLowerCase()]: n } : s));
     setPickSets(null);
   };
+
+  const addSet = () => { if (setsDetail.length < 5) setSetsDetail(prev => [...prev, { a: null, b: null }]); };
+  const removeLastSet = () => { if (setsDetail.length > 1) setSetsDetail(prev => prev.slice(0, -1)); };
 
   const saveSets = async () => {
     if (!setsValid || busy) return;
@@ -271,6 +275,22 @@ export default function CourtView({
           {editable && !savedAlready && !allSetsEntered && (
             <div style={{ fontSize: 11, color: "#7d9488", textAlign: "center", paddingTop: 6 }}>
               нажми на счёт сета, чтобы ввести
+            </div>
+          )}
+          {editable && !savedAlready && (
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              {setsDetail.length < 5 && (
+                <button onClick={addSet} style={{
+                  flex: 1, padding: "7px 0", borderRadius: 10, border: "1px dashed #22382c",
+                  background: "transparent", color: "#7d9488", cursor: "pointer", fontSize: 13, fontFamily: "'Outfit',sans-serif",
+                }}>+ сет</button>
+              )}
+              {setsDetail.length > 1 && (
+                <button onClick={removeLastSet} style={{
+                  padding: "7px 14px", borderRadius: 10, border: "1px solid #22382c",
+                  background: "transparent", color: "#7d9488", cursor: "pointer", fontSize: 13,
+                }}>−</button>
+              )}
             </div>
           )}
         </div>

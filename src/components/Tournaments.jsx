@@ -129,7 +129,7 @@ function AddPlayer({ players, existing, onAdd, disabled }) {
   );
 }
 
-function TournamentView({ id, players, back }) {
+export function TournamentView({ id, players, back }) {
   const [t, setT] = useState(null);
   const [toast, setToast] = useState("");
   const [cur, setCur] = useState(1);
@@ -151,11 +151,13 @@ function TournamentView({ id, players, back }) {
   if (t === false) return <div className="tr-root"><style>{css}</style><div className="tr-card" style={{ color: "var(--coral)" }}>Не удалось загрузить турнир.</div></div>;
 
   const nameOf = (tpId) => (t.players.find((p) => p.id === tpId)?.name) || "?";
-  // Аватарка турнирного игрока — ищем по profile_id в группе
+  // Детерминированная аватарка-фоллбэк
+  const _dogAv = (id) => { if(!id) return null; const h=[...String(id)].reduce((a,c)=>a+c.charCodeAt(0),0); return `/avatars/dog-${String((h%15)+1).padStart(2,'0')}.png`; };
   const avatarOfTp = (tpId) => {
     const tp = t.players.find((p) => p.id === tpId);
-    if (!tp?.profile_id) return null;
-    return (players || []).find((gp) => gp.id === tp.profile_id)?.avatar_url || null;
+    if (!tp) return null;
+    const gp = (players || []).find((gp) => gp.id === tp.profile_id);
+    return gp?.avatar_url || _dogAv(tp.profile_id || tp.name || tpId);
   };
   const table = detailedStandings(t.players.map((p) => ({ id: p.id, name: p.name })), t.matches);
   const done = allMatchesPlayed(t.matches);

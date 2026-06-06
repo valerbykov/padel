@@ -69,7 +69,7 @@ export default function StandingsTable({ rows, highlightId, avatarOf }) {
             </div>
 
             {/* Очки за/против */}
-            <div style={{ textAlign: "center", fontSize: 11, fontVariantNumeric: "tabular-nums" }}>
+            <div style={{ textAlign: "center", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
               {p.points}<span style={{ color: "#5d7567" }}>-</span>{p.against}
             </div>
 

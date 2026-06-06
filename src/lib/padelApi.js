@@ -88,7 +88,8 @@ export async function getRatingHistory(groupId, profileId) {
 
 const GAME_SELECT =
   "id, invite_code, title, starts_at, place, status, host_id, created_at, " +
-  "slots:game_slots(id, team, position, profile_id, guest_name, profile:profiles(name, avatar_url))";
+  "slots:game_slots(id, team, position, profile_id, guest_name, profile:profiles(name, avatar_url))," +
+  "matches(id, sets_a, sets_b, score_detail)";
 
 // Создать игру + 4 слота. slots: [A1, A2, B1, B2] — profileId или null (по ссылке).
 export async function createGame(groupId, { title, startsAt, place, slots = [], hostId } = {}) {

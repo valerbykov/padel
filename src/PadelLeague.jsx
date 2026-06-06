@@ -8,7 +8,7 @@ import { listTournaments } from "./lib/tournamentApi";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
 import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, Calendar, MapPin, TrendingUp, LogIn, Award } from "lucide-react";
-import Tournaments from "./components/Tournaments";
+import Tournaments, { TournamentView } from "./components/Tournaments";
 import CourtView from "./components/CourtView";
 
 // Детерминированная аватарка по ID/имени игрока (если avatar_url не задан)
@@ -29,7 +29,7 @@ const fmtDate = (iso) => {
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
 .pl-root{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;
- font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;
+ font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;color-scheme:dark;
  background-image:radial-gradient(circle at 80% -10%,rgba(200,255,45,.10),transparent 45%),radial-gradient(circle at 0% 110%,rgba(40,120,90,.18),transparent 40%);}
 .pl-display{font-family:'Anton',sans-serif;letter-spacing:.5px;text-transform:uppercase;}
 .pl-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;}
@@ -96,7 +96,7 @@ export default function PadelLeague({ groupId }) {
 
   useEffect(() => { loadLeaderboard(); }, [loadLeaderboard]);
 
-  const titles = { board: "Таблица", games: "Игры", history: "История", tournaments: "Турниры" };
+  const titles = { board: "Друзья", games: "Игры", history: "История", tournaments: "Турниры" };
 
   if (!groupId) {
     return (
@@ -118,7 +118,7 @@ export default function PadelLeague({ groupId }) {
         <header className="flex items-center justify-between" style={{ marginBottom: 18 }}>
           <div>
             <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2 }}>PADEL · ЛИГА ДРУЗЕЙ</div>
-            <h1 className="pl-display" style={{ fontSize: 30, lineHeight: 1, marginTop: 2 }}>{titles[tab]}</h1>
+            <h1 className="pl-display" style={{ fontSize: 30, lineHeight: 1, marginTop: 2, color: "var(--ink)" }}>{titles[tab]}</h1>
           </div>
         </header>
 
@@ -130,7 +130,7 @@ export default function PadelLeague({ groupId }) {
 
       <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(10,22,18,.92)", borderTop: "1px solid var(--line)", backdropFilter: "blur(8px)" }}>
         <div style={{ maxWidth: 460, margin: "0 auto", display: "flex" }}>
-          <button className={`pl-tab ${tab === "board" ? "on" : ""}`} onClick={() => setTab("board")}><Trophy size={20} />Рейтинг</button>
+          <button className={`pl-tab ${tab === "board" ? "on" : ""}`} onClick={() => setTab("board")}><Trophy size={20} />Друзья</button>
           <button className={`pl-tab ${tab === "games" ? "on" : ""}`} onClick={() => setTab("games")}><Swords size={20} />Игры</button>
           <button className={`pl-tab ${tab === "tournaments" ? "on" : ""}`} onClick={() => setTab("tournaments")}><Award size={20} />Турниры</button>
           <button className={`pl-tab ${tab === "history" ? "on" : ""}`} onClick={() => setTab("history")}><History size={20} />История</button>
@@ -163,7 +163,6 @@ function Board({ groupId, players, reload }) {
             <div style={{ fontWeight: 600, fontSize: 16, display: "flex", alignItems: "center", gap: 6 }}>{p.name}<TrendingUp size={13} color="var(--mut)" /></div>
             <div style={{ fontSize: 12, color: "var(--mut)" }}>{p.matches} игр · {p.wins} побед</div>
           </div>
-          <div className="pl-display" style={{ fontSize: 24, color: "var(--lime)" }}>{p.rating}</div>
         </div>
       ))}
       {open ? (
@@ -235,20 +234,36 @@ function Games({ groupId, players, reloadLeaderboard }) {
       </div>
       {loading && <div className="pl-card" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>Загрузка…</div>}
       {!loading && games.length === 0 && <div className="pl-card" style={{ padding: 24, textAlign: "center", color: "var(--mut)" }}>Игр нет. Создай игру и отправь ссылку друзьям.</div>}
-      {!loading && games.map((g) => {
-        const filled = (g.slots || []).filter((s) => s.profile_id || s.guest_name).length;
-        const c = g.status === "played" ? "var(--mut)" : "var(--lime)";
-        return (
-          <div key={g.id} className="pl-card" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 12, cursor: "pointer", padding: "12px 14px" }} onClick={() => { setSelId(g.id); setMode("view"); }}>
-            <Swords size={18} color={c} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600 }}>{g.title || "Падел"}</div>
-              <div style={{ fontSize: 12, color: "var(--mut)" }}>{g.starts_at ? fmtDate(g.starts_at) + " · " : ""}{filled}/4 игроков</div>
-            </div>
-            <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: "rgba(255,255,255,.06)", color: c }}>{g.status === "played" ? "сыграна" : "открыта"}</span>
+      {!loading && (() => {
+        const upcoming = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length < 4);
+        const active   = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length === 4);
+        const played   = games.filter(g => g.status === "played");
+        const section = (label, color, items) => items.length === 0 ? null : (
+          <div key={label}>
+            <div style={{ fontSize: 12, color: "var(--mut)", fontFamily:"'Anton',sans-serif", textTransform:"uppercase", letterSpacing:1, margin:"12px 2px 6px" }}>{label}</div>
+            {items.map(g => {
+              const filled = (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length;
+              return (
+                <div key={g.id} className="pl-card" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 12, cursor: "pointer", padding: "12px 14px" }} onClick={() => { setSelId(g.id); setMode("view"); }}>
+                  <Swords size={18} color={color} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{g.title || "Падел"}</div>
+                    <div style={{ fontSize: 12, color: "var(--mut)" }}>{g.starts_at ? fmtDate(g.starts_at) + " · " : ""}{filled}/4</div>
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: "rgba(255,255,255,.06)", color, flexShrink:0 }}>
+                    {g.status === "played" ? "✓" : `${filled}/4`}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         );
-      })}
+        return [
+          section("Предстоящие", "var(--mut)", upcoming),
+          section("Активные", "var(--lime)", active),
+          section("Прошедшие", "#7d9488", played),
+        ];
+      })()}
     </div>
   );
 }
@@ -346,21 +361,25 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard }) {
     try { await navigator.clipboard.writeText(text); setToast("Скопировано ✓"); setTimeout(() => setToast(""), 1600); } catch (e) { setToast("Скопируй вручную"); }
   };
 
-  if (game.status === "played")
+  if (game.status === "played") {
+    const match = (game.matches || [])[0];
     return (
       <div className="pl-pop">
         {back && <button className="pl-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={back}>← К списку</button>}
         <div className="pl-card" style={{ padding: 14 }}>
           <div className="pl-display" style={{ fontSize: 18 }}>{game.title || "Падел"} · сыграна</div>
           <div style={{ marginTop: 10 }}>
-            <CourtView courtNumber={1}
+            <CourtView courtNumber={1} mode="sets"
               teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
               teamAvatarsA={slotsA.map(avatarOf)} teamAvatarsB={slotsB.map(avatarOf)}
+              scoreA={match?.sets_a ?? null} scoreB={match?.sets_b ?? null}
+              scoreDetail={match?.score_detail || null}
               editable={false} />
           </div>
         </div>
       </div>
     );
+  }
 
   return (
     <div className="pl-pop">
@@ -446,6 +465,8 @@ function HistoryView({ groupId, players }) {
   const [matches, setMatches] = useState(null);
   const [tours, setTours] = useState([]);
   const [sel, setSel] = useState(null);
+  // При клике на турнир — показываем TournamentView inline (как на вкладке Турниры)
+  if (sel) return <TournamentView id={sel.id} players={players} back={() => setSel(null)} />;
   useEffect(() => {
     (async () => {
       const { data } = await supabase.from("matches")
@@ -474,58 +495,6 @@ function HistoryView({ groupId, players }) {
   return (
     <div className="pl-pop">
       {/* Модал детали турнира */}
-      {sel && (
-        /* Бэкдроп сам скроллится — надёжнее на мобильных */
-        <div style={{ position: "fixed", inset: 0, background: "rgba(5,12,9,.7)", backdropFilter: "blur(4px)", zIndex: 60, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "8px 8px 72px" }} onClick={() => setSel(null)}>
-          <div onClick={(e) => e.stopPropagation()} style={{
-            width: "100%", maxWidth: 460, margin: "0 auto",
-            background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 18,
-            overflow: "hidden",
-          }}>
-            <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid var(--line)", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div>
-                <div className="pl-display" style={{ fontSize: 18 }}>{sel.name || "Американо"}</div>
-                <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>до {sel.points_per_game} очков · {sel.players?.length} игроков</div>
-              </div>
-              <button className="pl-ghost" style={{ padding: 8, flexShrink: 0 }} onClick={() => setSel(null)}><X size={18} /></button>
-            </div>
-            <div style={{ padding: 16 }}>
-              {/* Раунды (readonly CourtViews) */}
-              {Object.entries(groupRounds(sel.matches)).map(([rn, rMatches]) => {
-                const tpNameOf = (id) => (sel.players || []).find((p) => p.id === id)?.name || "Игрок";
-                return (
-                  <div key={rn} style={{ marginBottom: 12 }}>
-                    <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 6, fontFamily: "'Anton',sans-serif", textTransform: "uppercase", letterSpacing: 1 }}>
-                      Раунд {rn}
-                    </div>
-                    {rMatches.map((m) => (
-                      <CourtView key={m.id} courtNumber={m.court}
-                        teamA={[tpNameOf(m.team_a[0]), tpNameOf(m.team_a[1])]}
-                        teamB={[tpNameOf(m.team_b[0]), tpNameOf(m.team_b[1])]}
-                        scoreA={m.score_a} scoreB={m.score_b}
-                        editable={false} mode="sum" points={sel.points_per_game} />
-                    ))}
-                  </div>
-                );
-              })}
-              {/* Итоговая таблица */}
-              <div style={{ fontSize: 13, color: "var(--mut)", fontFamily: "'Anton',sans-serif", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
-                🏆 Итоговая таблица
-              </div>
-              <div style={{ overflow: "hidden", minWidth: 0 }}>
-                <StandingsTable
-                  rows={detailedStandings((sel.players || []).map((p) => ({ id: p.id, name: p.name })), sel.matches || [])}
-                  avatarOf={(row) => {
-                    const tp = (sel.players || []).find((p) => p.id === row.id);
-                    const gp = players.find((p) => p.id === tp?.profile_id);
-                    return { url: playerAvatar(gp?.avatar_url, tp?.profile_id || tp?.name || row.id) };
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {tours.length > 0 && head("Турниры")}
       {tours.map((t) => {
@@ -538,7 +507,7 @@ function HistoryView({ groupId, players }) {
               <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name || "Американо"}</div>
               <div style={{ fontSize: 12, color: "var(--mut)" }}>{w ? `Победитель: ${w.name} · ${w.points} очк.` : "—"}</div>
             </div>
-            <span style={{ fontSize: 11, color: "var(--lime)", flexShrink: 0 }}>детали →</span>
+            <span style={{ fontSize: 16, color: "var(--lime)", flexShrink: 0 }}>→</span>
           </div>
         );
       })}
@@ -562,7 +531,7 @@ function HistoryView({ groupId, players }) {
               {/* Счёт */}
               <div style={{ textAlign: "center", flexShrink: 0 }}>
                 <div className="pl-display" style={{ fontSize: 22 }}>{m.sets_a}:{m.sets_b}</div>
-                {detail?.length === 3 && (
+                {detail?.length > 0 && (
                   <div style={{ fontSize: 10, color: "var(--mut)", marginTop: 2 }}>
                     {detail.map((s, i) => <span key={i} style={{ marginRight: 4 }}>{s.a}-{s.b}</span>)}
                   </div>
