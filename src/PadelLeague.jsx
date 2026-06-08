@@ -118,19 +118,6 @@ export default function PadelLeague({ groupId, session }) {
 
   const titles = { board: "Друзья", games: "Игры", history: "История", tournaments: "Турниры" };
 
-  if (!groupId) {
-    return (
-      <div className="pl-root" style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}>
-        <style>{css}</style>
-        <div className="pl-card" style={{ padding: 28, maxWidth: 360 }}>
-          <LogIn size={28} color="var(--lime)" style={{ marginBottom: 10 }} />
-          <div className="pl-display" style={{ fontSize: 22, marginBottom: 8 }}>Войди в лигу</div>
-          <div style={{ color: "var(--mut)", fontSize: 14 }}>Нажми «Войти» наверху, чтобы увидеть рейтинг и игры своей компании.</div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="pl-root">
       <style>{css}</style>
@@ -139,6 +126,13 @@ export default function PadelLeague({ groupId, session }) {
           <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2 }}>PADEL · ЛИГА ДРУЗЕЙ</div>
           <h1 className="pl-display" style={{ fontSize: 30, lineHeight: 1, marginTop: 2, color: "var(--ink)" }}>{titles[tab]}</h1>
         </header>
+
+        {session && !groupId && (
+          <div className="pl-card" style={{ padding: "14px 16px", marginBottom: 12, borderColor: "rgba(200,255,45,.3)" }}>
+            <div style={{ fontWeight: 600, color: "var(--lime)", marginBottom: 4 }}>Ты не в лиге</div>
+            <div style={{ fontSize: 13, color: "var(--mut)" }}>Попроси организатора добавить тебя в лигу — тогда увидишь рейтинг, игры и историю.</div>
+          </div>
+        )}
 
         {tab === "board" && (session ? <Board groupId={groupId} players={players} reload={loadLeaderboard} /> : <GateScreen />)}
         {tab === "games" && <Games groupId={groupId} players={players} reloadLeaderboard={loadLeaderboard} session={session} />}

@@ -129,7 +129,7 @@ function AddPlayer({ players, existing, onAdd, disabled }) {
   );
 }
 
-export function TournamentView({ id, players, back }) {
+export function TournamentView({ id, players, back, readOnly = false }) {
   const [t, setT] = useState(null);
   const [toast, setToast] = useState("");
   const [cur, setCur] = useState(1);
@@ -179,14 +179,14 @@ export function TournamentView({ id, players, back }) {
   return (
     <div className="tr-root">
       <style>{css}</style>
-      <button className="tr-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={back}><ArrowLeft size={14} /> К списку</button>
+      {back && <button className="tr-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={back}><ArrowLeft size={14} /> К списку</button>}
 
       <div className="tr-card" style={{ marginBottom: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div className="tr-d" style={{ fontSize: 20 }}>{t.name || "Американо"}</div>
           <div style={{ display: "flex", gap: 6 }}>
             <button className="tr-ghost" style={{ padding: 8 }} onClick={load}><RefreshCw size={15} /></button>
-            <button className="tr-btn" style={{ padding: "8px 12px", display: "flex", gap: 6, alignItems: "center" }} onClick={share}><Share2 size={14} /> {toast || "Ссылка"}</button>
+            {!readOnly && <button className="tr-btn" style={{ padding: "8px 12px", display: "flex", gap: 6, alignItems: "center" }} onClick={share}><Share2 size={14} /> {toast || "Ссылка"}</button>}
           </div>
         </div>
         <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>{t.players.length}/{t.target_size} игроков · до {t.points_per_game} очков · {statusLabel[t.status]}</div>
@@ -195,29 +195,36 @@ export function TournamentView({ id, players, back }) {
       {/* ЛОББИ */}
       {t.status === "open" && (
         <>
+          {!readOnly && (
+            <div className="tr-card" style={{ marginBottom: 12 }}>
+              <div className="tr-codebox">{t.invite_code}</div>
+              <div style={{ fontSize: 12, color: "var(--mut)", margin: "8px 0", wordBreak: "break-all" }}>{tournamentLink(t.invite_code)}</div>
+              <button className="tr-btn" style={{ width: "100%", padding: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={share}>
+                <Copy size={15} /> {toast || "Поделиться приглашением"}
+              </button>
+            </div>
+          )}
           <div className="tr-card" style={{ marginBottom: 12 }}>
-            <div className="tr-codebox">{t.invite_code}</div>
-            <div style={{ fontSize: 12, color: "var(--mut)", margin: "8px 0", wordBreak: "break-all" }}>{tournamentLink(t.invite_code)}</div>
-            <button className="tr-btn" style={{ width: "100%", padding: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={share}>
-              <Copy size={15} /> {toast || "Поделиться приглашением"}
-            </button>
-          </div>
-          <div className="tr-card" style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>Участники</div>
-            {t.players.map((p) => (
-              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid var(--line)" }}>
-                <Users size={14} color="var(--mut)" /><span style={{ flex: 1 }}>{p.name}</span>
+            <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>Участники {t.players.length}/{t.target_size}</div>
+            <StandingsTable rows={detailedStandings(t.players.map((p) => ({ id: p.id, name: p.name })), [])} avatarOf={(row) => ({ url: avatarOfTp(row.id) })} />
+            {!readOnly && t.players.map((p) => (
+              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
+                <span style={{ flex: 1, fontSize: 13 }}>{p.name}</span>
                 <button style={{ padding: 4, border: "none", background: "none", color: "var(--mut)", cursor: "pointer" }} onClick={async () => { await removeTournamentPlayer(p.id); load(); }}><X size={14} /></button>
               </div>
             ))}
-            <AddPlayer players={players} existing={t.players} disabled={t.players.length >= t.target_size}
-              onAdd={async (entry) => { await addTournamentPlayer(t.id, entry); load(); }} />
+            {!readOnly && <AddPlayer players={players} existing={t.players} disabled={t.players.length >= t.target_size}
+              onAdd={async (entry) => { await addTournamentPlayer(t.id, entry); load(); }} />}
           </div>
-          <button className="tr-btn" style={{ width: "100%", padding: 14, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-            disabled={t.players.length < 4 || t.players.length % 4 !== 0} onClick={start}>
-            <Play size={18} /> Запустить турнир ({t.players.length})
-          </button>
-          {t.players.length % 4 !== 0 && <div style={{ textAlign: "center", color: "var(--coral)", fontSize: 12, marginTop: 8 }}>Нужно число игроков, кратное 4</div>}
+          {!readOnly && (
+            <>
+              <button className="tr-btn" style={{ width: "100%", padding: 14, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                disabled={t.players.length < 4 || t.players.length % 4 !== 0} onClick={start}>
+                <Play size={18} /> Запустить турнир ({t.players.length})
+              </button>
+              {t.players.length % 4 !== 0 && <div style={{ textAlign: "center", color: "var(--coral)", fontSize: 12, marginTop: 8 }}>Нужно число игроков, кратное 4</div>}
+            </>
+          )}
         </>
       )}
 
@@ -236,13 +243,13 @@ export function TournamentView({ id, players, back }) {
               teamB={[nameOf(m.team_b[0]), nameOf(m.team_b[1])]}
               teamAvatarsA={[avatarOfTp(m.team_a[0]), avatarOfTp(m.team_a[1])]}
               teamAvatarsB={[avatarOfTp(m.team_b[0]), avatarOfTp(m.team_b[1])]}
-              scoreA={m.score_a} scoreB={m.score_b} editable={t.status !== "finished"}
+              scoreA={m.score_a} scoreB={m.score_b} editable={!readOnly && t.status !== "finished"}
               onSave={(a, b) => saveScore(m.id, a, b)} />
           ))}
 
           {!curComplete && <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginBottom: 12 }}>Заполни счёт всех кортов, чтобы перейти к следующему раунду.</div>}
           {curComplete && cur < N && <button className="tr-btn" style={{ width: "100%", padding: 12, marginBottom: 12 }} onClick={() => setCur(cur + 1)}>Следующий раунд →</button>}
-          {done && t.status !== "finished" && <button className="tr-btn" style={{ width: "100%", padding: 13, marginBottom: 12 }} onClick={async () => { await finishTournament(t.id); load(); }}>Завершить турнир</button>}
+          {!readOnly && done && t.status !== "finished" && <button className="tr-btn" style={{ width: "100%", padding: 13, marginBottom: 12 }} onClick={async () => { await finishTournament(t.id); load(); }}>Завершить турнир</button>}
 
           <div className="tr-card" style={{ overflow: "hidden" }}>
             <div className="tr-d" style={{ fontSize: 15, marginBottom: 10 }}>{done ? "🏆 Итоговая таблица" : "Таблица"}</div>
