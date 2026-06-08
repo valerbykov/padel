@@ -69,30 +69,87 @@ function List({ groupId, create, open }) {
 }
 
 function Create({ groupId, back, open }) {
-  const [name, setName] = useState(""), [points, setPoints] = useState(32), [size, setSize] = useState(8), [busy, setBusy] = useState(false);
+  const [courts, setCourts] = useState(2);
+  const [points, setPoints] = useState(32);
+  const [date, setDate] = useState("");
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const POINTS_OPTS = [16, 24, 32, 48, 64];
+  const COURTS_OPTS = [
+    { v: 1, label: "1 корт", sub: "4 игрока" },
+    { v: 2, label: "2 корта", sub: "8 игроков" },
+    { v: 3, label: "3 корта", sub: "12 игроков" },
+  ];
+
+  // Авто-имя из даты и кортов
+  React.useEffect(() => {
+    if (date) {
+      try {
+        const d = new Date(date);
+        const day = d.toLocaleString("ru-RU", { day: "numeric", month: "short" });
+        const time = d.toLocaleString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+        const c = COURTS_OPTS.find(o => o.v === courts);
+        setName(`Американо · ${day} · ${time} · ${c.label}`);
+      } catch (e) {}
+    }
+  }, [date, courts]);
+
   const go = async () => {
     setBusy(true);
-    try { const t = await createTournament(groupId, { name, pointsPerGame: Number(points), targetSize: Number(size) }); open(t.id); }
+    try { const t = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize: courts * 4 }); open(t.id); }
     catch (e) { alert("Не удалось создать турнир"); setBusy(false); }
   };
+
+  const chip = (active) => ({
+    padding: "10px 0", textAlign: "center", borderRadius: 12, cursor: "pointer", fontWeight: 600, fontSize: 13, border: "none",
+    background: active ? "var(--lime)" : "var(--surface2)", color: active ? "#0a1612" : "var(--ink)",
+    outline: active ? "none" : "1px solid var(--line)",
+  });
+
   return (
     <div className="tr-root">
       <style>{css}</style>
       <button className="tr-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={back}><ArrowLeft size={14} /> Назад</button>
-      <div className="tr-card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div className="tr-card" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div className="tr-d" style={{ fontSize: 20 }}>Новый турнир</div>
-        <input className="tr-input" placeholder="Название: «Американо в субботу»" value={name} onChange={(e) => setName(e.target.value)} />
+
+        {/* Корты */}
         <div>
-          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>Игроков</div>
-          <select className="tr-select" value={size} onChange={(e) => setSize(e.target.value)}>
-            <option value={4}>4 (1 корт)</option><option value={8}>8 (2 корта)</option><option value={12}>12 (3 корта)</option>
-          </select>
+          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>Кортов</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+            {COURTS_OPTS.map(o => (
+              <button key={o.v} style={chip(courts === o.v)} onClick={() => setCourts(o.v)}>
+                <div>{o.label}</div>
+                <div style={{ fontSize: 11, fontWeight: 400, opacity: .7 }}>{o.sub}</div>
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Очки */}
         <div>
-          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>Очков в игре</div>
-          <input className="tr-input" type="number" min={8} max={64} value={points} onChange={(e) => setPoints(e.target.value)} />
+          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>Очков в раунде</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
+            {POINTS_OPTS.map(p => (
+              <button key={p} style={chip(points === p)} onClick={() => setPoints(p)}>{p}</button>
+            ))}
+          </div>
         </div>
-        <button className="tr-btn" style={{ padding: 13 }} disabled={busy} onClick={go}>{busy ? "Создаю…" : "Создать"}</button>
+
+        {/* Дата */}
+        <div>
+          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>Дата и время</div>
+          <input type="datetime-local" className="tr-input" value={date} onChange={(e) => setDate(e.target.value)} />
+        </div>
+
+        {/* Название (авто или ручное) */}
+        <div>
+          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>Название</div>
+          <input className="tr-input" placeholder="Американо · 15 июн · 18:00" value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+
+        <button className="tr-btn" style={{ padding: 13 }} disabled={busy} onClick={go}>{busy ? "Создаю…" : "Создать турнир"}</button>
       </div>
     </div>
   );
@@ -129,13 +186,14 @@ function AddPlayer({ players, existing, onAdd, disabled }) {
   );
 }
 
-export function TournamentView({ id, players, back, readOnly = false }) {
-  const [t, setT] = useState(null);
+export function TournamentView({ id, players, back, readOnly = false, initialT = null }) {
+  const hasInitRef = useRef(!!initialT);
+  const [t, setT] = useState(initialT ? { ...initialT, matches: initialT.matches || [], players: initialT.players || [] } : null);
   const [toast, setToast] = useState("");
   const [cur, setCur] = useState(1);
   const initRef = useRef(false);
 
-  const load = useCallback(async () => { try { setT(await getTournament(id)); } catch (e) { setT(false); } }, [id]);
+  const load = useCallback(async () => { try { setT(await getTournament(id)); } catch (e) { if (!hasInitRef.current) setT(false); } }, [id]);
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {

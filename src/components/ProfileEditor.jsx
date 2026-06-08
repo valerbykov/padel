@@ -40,6 +40,8 @@ export default function ProfileEditor({ onClose, onSaved }) {
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [telegram, setTelegram] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -53,6 +55,8 @@ export default function ProfileEditor({ onClose, onSaved }) {
         setLastName(data.last_name || "");
         setPhone(data.phone || "");
         setAvatarUrl(data.avatar_url || "");
+        setWhatsapp(data.contacts?.whatsapp || "");
+        setTelegram(data.contacts?.telegram || "");
       }
       setLoading(false);
     })();
@@ -82,6 +86,7 @@ export default function ProfileEditor({ onClose, onSaved }) {
       const { error } = await supabase.from("profiles").update({
         first_name: firstName || null, last_name: lastName || null,
         name: fullName || null, phone: phone || null, avatar_url: avatarUrl || null,
+        contacts: { whatsapp: whatsapp.trim() || undefined, telegram: telegram.trim() || undefined },
       }).eq("user_id", userId);
       if (error) throw error;
       setMsg("Сохранено ✓");
@@ -124,6 +129,26 @@ export default function ProfileEditor({ onClose, onSaved }) {
               <div><div className="pc-label">Имя</div><input className="pc-input" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Имя" /></div>
               <div><div className="pc-label">Фамилия</div><input className="pc-input" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Фамилия" /></div>
               <div><div className="pc-label">Телефон</div><input className="pc-input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+7…" inputMode="tel" /></div>
+              <div>
+                <div className="pc-label">WhatsApp</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input className="pc-input" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="+7 999 000-00-00" inputMode="tel" />
+                  {whatsapp.trim() && (
+                    <a href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
+                      style={{ flexShrink: 0, width: 36, height: 36, borderRadius: "50%", background: "#25d366", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", fontSize: 17 }}>💬</a>
+                  )}
+                </div>
+              </div>
+              <div>
+                <div className="pc-label">Telegram</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input className="pc-input" value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="@username" />
+                  {telegram.trim() && (
+                    <a href={`https://t.me/${telegram.replace(/^@/, "")}`} target="_blank" rel="noopener noreferrer"
+                      style={{ flexShrink: 0, width: 36, height: 36, borderRadius: "50%", background: "#229ed9", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", fontSize: 17 }}>✈️</a>
+                  )}
+                </div>
+              </div>
               <div><div className="pc-label">Почта</div><input className="pc-input" value={email} disabled /></div>
             </div>
 

@@ -144,7 +144,7 @@ export default function TournamentJoin({ code, botName }) {
             )}
 
             {/* Полный TournamentView: read-only для гостей, полный для залогиненных */}
-            <TournamentView id={t.id} players={[]} back={null} readOnly={!canWrite} />
+            <TournamentView id={t.id} players={[]} back={null} readOnly={!canWrite} initialT={t} />
           </>
         )}
       </div>
