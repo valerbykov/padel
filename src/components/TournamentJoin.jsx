@@ -33,6 +33,7 @@ export default function TournamentJoin({ code, botName }) {
   const [err, setErr] = useState("");
   const [session, setSession] = useState(null);
   const [profileName, setProfileName] = useState("");
+  const [profileId, setProfileId] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
 
   const load = async () => { try { setT(await getTournamentByCode(code)); } catch (e) { setT(null); } };
@@ -49,8 +50,9 @@ export default function TournamentJoin({ code, botName }) {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from("profiles").select("name").eq("user_id", user.id).maybeSingle();
+      const { data } = await supabase.from("profiles").select("id, name").eq("user_id", user.id).maybeSingle();
       setProfileName(data?.name || "");
+      setProfileId(data?.id || null);
     })();
   }, [session]);
 
@@ -68,7 +70,8 @@ export default function TournamentJoin({ code, botName }) {
     } finally { setBusy(false); }
   };
 
-  const canWrite = !!session; // только залогиненные могут вводить счёт
+  // Вводить счёт могут только участники турнира (profile_id совпадает) или если турнир ещё в наборе
+  const canEdit = !!session && !!profileId && (t?.players || []).some((p) => p.profile_id === profileId);
 
   return (
     <div className="tj-root">
@@ -144,7 +147,10 @@ export default function TournamentJoin({ code, botName }) {
             )}
 
             {/* Полный TournamentView: read-only для гостей, полный для залогиненных */}
-            <TournamentView id={t.id} players={[]} back={null} readOnly={!canWrite} initialT={t} />
+            <TournamentView id={t.id} players={[]} back={null} readOnly={!canEdit} initialT={t}
+              reloadFn={() => getTournamentByCode(code)}
+              isGroupMember={false}
+              currentProfileId={profileId} />
           </>
         )}
       </div>

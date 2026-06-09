@@ -1,7 +1,7 @@
 // PadelLeague.jsx — основной экран на реальных данных Supabase.
 import React, { useEffect, useState, useCallback } from "react";
 import { supabase } from "./lib/supabase";
-import { getLeaderboard, addMember, createGame, listGames, submitResult, linkFor } from "./lib/padelApi";
+import { getLeaderboard, addMember, createGame, listGames, submitResult, linkFor, deleteGame } from "./lib/padelApi";
 import { getRatingHistory } from "./lib/statsApi";
 import { listTournaments } from "./lib/tournamentApi";
 import { standings, detailedStandings } from "./lib/americano";
@@ -105,7 +105,7 @@ function ContactLinks({ contacts = {} }) {
 }
 
 /* --------------------------------- root ----------------------------------- */
-export default function PadelLeague({ groupId, session }) {
+export default function PadelLeague({ groupId, session, profileId }) {
   const [tab, setTab] = useState(session ? "board" : "games");
   const [players, setPlayers] = useState([]);
 
@@ -136,8 +136,8 @@ export default function PadelLeague({ groupId, session }) {
 
         {tab === "board" && (session ? <Board groupId={groupId} players={players} reload={loadLeaderboard} /> : <GateScreen />)}
         {tab === "games" && <Games groupId={groupId} players={players} reloadLeaderboard={loadLeaderboard} session={session} />}
-        {tab === "tournaments" && <Tournaments groupId={groupId} players={players} />}
-        {tab === "history" && (session ? <HistoryView groupId={groupId} players={players} /> : <GateScreen />)}
+        {tab === "tournaments" && <Tournaments groupId={groupId} players={players} profileId={profileId} />}
+        {tab === "history" && (session ? <HistoryView groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} /> : <GateScreen />)}
       </div>
 
       <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(10,22,18,.92)", borderTop: "1px solid var(--line)", backdropFilter: "blur(8px)" }}>
@@ -540,7 +540,10 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard }) {
     const match = (game.matches || [])[0];
     return (
       <div className="pl-pop">
-        {back && <button className="pl-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={back}>← К списку</button>}
+        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        {back && <button className="pl-ghost" style={{ padding: "6px 12px" }} onClick={back}>← К списку</button>}
+        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!confirm("Удалить эту игру?")) return; await deleteGame(game.id); back && back(); }} title="Удалить"><Trash2 size={14} /></button>
+      </div>
         <div className="pl-card" style={{ padding: 14 }}>
           <div className="pl-display" style={{ fontSize: 18 }}>{game.title || "Падел"} · сыграна</div>
           <div style={{ marginTop: 10 }}>
@@ -558,7 +561,10 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard }) {
 
   return (
     <div className="pl-pop">
-      {back && <button className="pl-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={back}>← К списку</button>}
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        {back && <button className="pl-ghost" style={{ padding: "6px 12px" }} onClick={back}>← К списку</button>}
+        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!confirm("Удалить эту игру?")) return; await deleteGame(game.id); back && back(); }} title="Удалить"><Trash2 size={14} /></button>
+      </div>
       <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
@@ -636,7 +642,7 @@ function EnterScore({ gameId, reloadGames, reloadLeaderboard }) {
 }
 
 /* ------------------------------- HistoryView ------------------------------ */
-function HistoryView({ groupId, players }) {
+function HistoryView({ groupId, players, profileId, isGroupMember }) {
   const [matches, setMatches] = useState(null);
   const [tours, setTours] = useState([]);
   const [sel, setSel] = useState(null);
@@ -654,7 +660,7 @@ function HistoryView({ groupId, players }) {
     })();
   }, [groupId, sel]);
 
-  if (sel) return <TournamentView id={sel.id} players={players} back={() => setSel(null)} />;
+  if (sel) return <TournamentView id={sel.id} players={players} back={() => setSel(null)} isGroupMember={isGroupMember} currentProfileId={profileId} />;
 
   const nameOf = (id) => players.find((p) => p.id === id)?.name || "Игрок";
   const avatarOf = (id) => { const gp = players.find((p) => p.id === id); return gp ? playerAvatar(gp.avatar_url, id) : null; };
@@ -704,9 +710,10 @@ function HistoryView({ groupId, players }) {
                   </div>
                 ))}
               </div>
-              <div style={{ textAlign: "center", flexShrink: 0 }}>
+              <div style={{ textAlign: "center", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
                 <div className="pl-display" style={{ fontSize: 22 }}>{m.sets_a}:{m.sets_b}</div>
-                {detail && <div style={{ fontSize: 10, color: "var(--lime)", marginTop: 2 }}>{isExpanded ? "▲" : "▼"}</div>}
+                {detail && <div style={{ fontSize: 10, color: "var(--lime)" }}>{isExpanded ? "▲" : "▼"}</div>}
+                {isGroupMember && <button style={{ padding: 3, border: "none", background: "none", color: "rgba(255,106,82,.5)", cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); if (!confirm("Удалить этот матч из истории?")) return; supabase.from("matches").delete().eq("id", m.id).then(() => setMatches((prev) => prev.filter((x) => x.id !== m.id))); }} title="Удалить"><Trash2 size={13} /></button>}
               </div>
               <div style={{ flex: 1, minWidth: 0, textAlign: "right" }}>
                 {(m.team_b || []).map((id) => (

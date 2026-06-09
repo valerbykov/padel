@@ -96,3 +96,8 @@ export async function finishTournament(tournamentId) {
   const { error } = await supabase.from("tournaments").update({ status: "finished" }).eq("id", tournamentId);
   if (error) throw error;
 }
+
+export async function deleteTournament(id) {
+  const { error } = await supabase.from("tournaments").delete().eq("id", id);
+  if (error) throw error;
+}

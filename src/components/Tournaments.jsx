@@ -2,14 +2,15 @@
 // Турниры Американо: создание, лобби с приглашением, ПОСЛЕДОВАТЕЛЬНЫЕ раунды
 // на кортах (CourtView), итоговая таблица. props: { groupId, players }.
 import React, { useEffect, useState, useCallback, useRef } from "react";
+import { supabase } from "../lib/supabase";
 import {
   createTournament, listTournaments, getTournament, addTournamentPlayer, removeTournamentPlayer,
-  startTournament, submitMatchScore, finishTournament, tournamentLink,
+  startTournament, submitMatchScore, finishTournament, tournamentLink, deleteTournament,
 } from "../lib/tournamentApi";
 import { standings, detailedStandings, allMatchesPlayed } from "../lib/americano";
 import CourtView from "./CourtView";
 import StandingsTable from "./StandingsTable";
-import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, Users, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
+import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, Users, ChevronLeft, ChevronRight, Share2, Trash2 } from "lucide-react";
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
@@ -32,11 +33,11 @@ const css = `
 `;
 const statusLabel = { open: "набор", active: "идёт", finished: "завершён" };
 
-export default function Tournaments({ groupId, players }) {
+export default function Tournaments({ groupId, players, profileId }) {
   const [mode, setMode] = useState("list");
   const [activeId, setActiveId] = useState(null);
   if (mode === "create") return <Create groupId={groupId} back={() => setMode("list")} open={(id) => { setActiveId(id); setMode("view"); }} />;
-  if (mode === "view") return <TournamentView id={activeId} players={players} back={() => setMode("list")} />;
+  if (mode === "view") return <TournamentView id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} />;
   return <List groupId={groupId} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
 }
 
@@ -223,15 +224,30 @@ function AddPlayer({ players, existing, onAdd, disabled }) {
   );
 }
 
-export function TournamentView({ id, players, back, readOnly = false, initialT = null }) {
+export function TournamentView({ id, players, back, readOnly = false, initialT = null, reloadFn = null, isGroupMember = false, currentProfileId = null }) {
   const hasInitRef = useRef(!!initialT);
   const [t, setT] = useState(initialT ? { ...initialT, matches: initialT.matches || [], players: initialT.players || [] } : null);
   const [toast, setToast] = useState("");
   const [cur, setCur] = useState(1);
   const initRef = useRef(false);
 
-  const load = useCallback(async () => { try { setT(await getTournament(id)); } catch (e) { if (!hasInitRef.current) setT(false); } }, [id]);
+  const load = useCallback(async () => {
+    try {
+      const data = reloadFn ? await reloadFn() : await getTournament(id);
+      setT({ ...data, matches: data.matches || [], players: data.players || [] });
+    } catch (e) { if (!hasInitRef.current) setT(false); }
+  }, [id, reloadFn]);
   useEffect(() => { load(); }, [load]);
+
+  // Realtime: автообновление таблицы лидеров при изменении счёта (для всех, включая гостей)
+  useEffect(() => {
+    if (!id) return;
+    const ch = supabase.channel(`t:${id}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "tournament_matches", filter: `tournament_id=eq.${id}` }, load)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "tournament_matches", filter: `tournament_id=eq.${id}` }, load)
+      .subscribe();
+    return () => supabase.removeChannel(ch);
+  }, [id, load]);
 
   useEffect(() => {
     if (!t || t.status === "open" || initRef.current) return;
@@ -282,6 +298,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
           <div style={{ display: "flex", gap: 6 }}>
             <button className="tr-ghost" style={{ padding: 8 }} onClick={load}><RefreshCw size={15} /></button>
             {!readOnly && <button className="tr-btn" style={{ padding: "8px 12px", display: "flex", gap: 6, alignItems: "center" }} onClick={share}><Share2 size={14} /> {toast || "Ссылка"}</button>}
+            {isGroupMember && <button className="tr-ghost" style={{ padding: 8, color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)" }} title="Удалить турнир" onClick={async () => { if (!confirm("Удалить турнир и все его данные?")) return; try { await deleteTournament(id); back && back(); } catch (e) { alert("Не удалось удалить"); } }}><Trash2 size={15} /></button>}
           </div>
         </div>
         <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>{t.players.length}/{t.target_size} игроков · до {t.points_per_game} очков · {statusLabel[t.status]}</div>

@@ -212,3 +212,8 @@ export function subscribeToGame(gameId, onChange) {
     .subscribe();
   return () => supabase.removeChannel(channel);
 }
+
+export async function deleteGame(gameId) {
+  const { error } = await supabase.from("games").delete().eq("id", gameId);
+  if (error) throw error;
+}
