@@ -542,7 +542,7 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard }) {
       <div className="pl-pop">
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         {back && <button className="pl-ghost" style={{ padding: "6px 12px" }} onClick={back}>← К списку</button>}
-        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!confirm("Удалить эту игру?")) return; await deleteGame(game.id); back && back(); }} title="Удалить"><Trash2 size={14} /></button>
+        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!confirm("Удалить эту игру?")) return; await deleteGame(game.id); reloadGames && reloadGames(); back && back(); }} title="Удалить"><Trash2 size={14} /></button>
       </div>
         <div className="pl-card" style={{ padding: 14 }}>
           <div className="pl-display" style={{ fontSize: 18 }}>{game.title || "Падел"} · сыграна</div>
@@ -563,7 +563,7 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard }) {
     <div className="pl-pop">
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         {back && <button className="pl-ghost" style={{ padding: "6px 12px" }} onClick={back}>← К списку</button>}
-        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!confirm("Удалить эту игру?")) return; await deleteGame(game.id); back && back(); }} title="Удалить"><Trash2 size={14} /></button>
+        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!confirm("Удалить эту игру?")) return; await deleteGame(game.id); reloadGames && reloadGames(); back && back(); }} title="Удалить"><Trash2 size={14} /></button>
       </div>
       <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

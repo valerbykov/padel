@@ -150,7 +150,8 @@ export default function TournamentJoin({ code, botName }) {
             <TournamentView id={t.id} players={[]} back={null} readOnly={!canEdit} initialT={t}
               reloadFn={() => getTournamentByCode(code)}
               isGroupMember={false}
-              currentProfileId={profileId} />
+              currentProfileId={profileId}
+              spectatorMode={!canEdit} />
           </>
         )}
       </div>

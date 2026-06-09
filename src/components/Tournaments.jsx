@@ -224,7 +224,7 @@ function AddPlayer({ players, existing, onAdd, disabled }) {
   );
 }
 
-export function TournamentView({ id, players, back, readOnly = false, initialT = null, reloadFn = null, isGroupMember = false, currentProfileId = null }) {
+export function TournamentView({ id, players, back, readOnly = false, initialT = null, reloadFn = null, isGroupMember = false, currentProfileId = null, spectatorMode = false }) {
   const hasInitRef = useRef(!!initialT);
   const [t, setT] = useState(initialT ? { ...initialT, matches: initialT.matches || [], players: initialT.players || [] } : null);
   const [toast, setToast] = useState("");
@@ -248,6 +248,13 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
       .subscribe();
     return () => supabase.removeChannel(ch);
   }, [id, load]);
+
+  // Для зрителей (не участников): поллинг каждые 20 сек (realtime не доступен без RLS)
+  useEffect(() => {
+    if (!spectatorMode || !reloadFn) return;
+    const timer = setInterval(load, 5000);
+    return () => clearInterval(timer);
+  }, [spectatorMode, load, reloadFn]);
 
   useEffect(() => {
     if (!t || t.status === "open" || initRef.current) return;
@@ -340,29 +347,33 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
         </>
       )}
 
-      {/* АКТИВНЫЙ / ЗАВЕРШЁН — раунды по одному */}
+      {/* АКТИВНЫЙ / ЗАВЕРШЁН */}
       {t.status !== "open" && (
         <>
-          <div className="tr-card" style={{ marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <button className="tr-ghost" style={{ padding: 8, opacity: cur > 1 ? 1 : .4 }} disabled={cur <= 1} onClick={() => setCur(cur - 1)}><ChevronLeft size={18} /></button>
-            <div className="tr-d" style={{ fontSize: 18 }}>Раунд {cur} <span style={{ color: "var(--mut)", fontSize: 14 }}>/ {N}</span></div>
-            <button className="tr-ghost" style={{ padding: 8, opacity: curComplete && cur < N ? 1 : .4 }} disabled={!curComplete || cur >= N} onClick={() => setCur(cur + 1)}><ChevronRight size={18} /></button>
-          </div>
+          {/* Раунды и корты — только для участников/членов группы */}
+          {!spectatorMode && (
+            <>
+              <div className="tr-card" style={{ marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <button className="tr-ghost" style={{ padding: 8, opacity: cur > 1 ? 1 : .4 }} disabled={cur <= 1} onClick={() => setCur(cur - 1)}><ChevronLeft size={18} /></button>
+                <div className="tr-d" style={{ fontSize: 18 }}>Раунд {cur} <span style={{ color: "var(--mut)", fontSize: 14 }}>/ {N}</span></div>
+                <button className="tr-ghost" style={{ padding: 8, opacity: curComplete && cur < N ? 1 : .4 }} disabled={!curComplete || cur >= N} onClick={() => setCur(cur + 1)}><ChevronRight size={18} /></button>
+              </div>
+              {curMatches.map((m) => (
+                <CourtView key={m.id} courtNumber={m.court} points={t.points_per_game}
+                  teamA={[nameOf(m.team_a[0]), nameOf(m.team_a[1])]}
+                  teamB={[nameOf(m.team_b[0]), nameOf(m.team_b[1])]}
+                  teamAvatarsA={[avatarOfTp(m.team_a[0]), avatarOfTp(m.team_a[1])]}
+                  teamAvatarsB={[avatarOfTp(m.team_b[0]), avatarOfTp(m.team_b[1])]}
+                  scoreA={m.score_a} scoreB={m.score_b} editable={!readOnly && t.status !== "finished"}
+                  onSave={(a, b) => saveScore(m.id, a, b)} />
+              ))}
+              {!curComplete && <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginBottom: 12 }}>Заполни счёт всех кортов, чтобы перейти к следующему раунду.</div>}
+              {curComplete && cur < N && <button className="tr-btn" style={{ width: "100%", padding: 12, marginBottom: 12 }} onClick={() => setCur(cur + 1)}>Следующий раунд →</button>}
+              {!readOnly && done && t.status !== "finished" && <button className="tr-btn" style={{ width: "100%", padding: 13, marginBottom: 12 }} onClick={async () => { await finishTournament(t.id); load(); }}>Завершить турнир</button>}
+            </>
+          )}
 
-          {curMatches.map((m) => (
-            <CourtView key={m.id} courtNumber={m.court} points={t.points_per_game}
-              teamA={[nameOf(m.team_a[0]), nameOf(m.team_a[1])]}
-              teamB={[nameOf(m.team_b[0]), nameOf(m.team_b[1])]}
-              teamAvatarsA={[avatarOfTp(m.team_a[0]), avatarOfTp(m.team_a[1])]}
-              teamAvatarsB={[avatarOfTp(m.team_b[0]), avatarOfTp(m.team_b[1])]}
-              scoreA={m.score_a} scoreB={m.score_b} editable={!readOnly && t.status !== "finished"}
-              onSave={(a, b) => saveScore(m.id, a, b)} />
-          ))}
-
-          {!curComplete && <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginBottom: 12 }}>Заполни счёт всех кортов, чтобы перейти к следующему раунду.</div>}
-          {curComplete && cur < N && <button className="tr-btn" style={{ width: "100%", padding: 12, marginBottom: 12 }} onClick={() => setCur(cur + 1)}>Следующий раунд →</button>}
-          {!readOnly && done && t.status !== "finished" && <button className="tr-btn" style={{ width: "100%", padding: 13, marginBottom: 12 }} onClick={async () => { await finishTournament(t.id); load(); }}>Завершить турнир</button>}
-
+          {/* Таблица лидеров — видна всем, обновляется через realtime/поллинг */}
           <div className="tr-card" style={{ overflow: "hidden" }}>
             <div className="tr-d" style={{ fontSize: 15, marginBottom: 10 }}>{done ? "🏆 Итоговая таблица" : "Таблица"}</div>
             <StandingsTable rows={table} avatarOf={(row) => ({ url: avatarOfTp(row.id) })} />
