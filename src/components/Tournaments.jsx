@@ -40,27 +40,64 @@ export default function Tournaments({ groupId, players }) {
   return <List groupId={groupId} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
 }
 
+const SECTIONS = [
+  { status: "active",   label: "Идёт",     color: "#ffd23f",      limit: null },
+  { status: "open",     label: "Набор",     color: "var(--lime)",  limit: null },
+  { status: "finished", label: "Завершён",  color: "var(--mut)",   limit: 5    },
+];
+
+function TournamentCard({ t, color, onClick }) {
+  return (
+    <div className="tr-card" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }} onClick={onClick}>
+      <Trophy size={20} color={color} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.name || "Американо"}</div>
+        <div style={{ fontSize: 12, color: "var(--mut)" }}>{(t.players || []).length} / {t.target_size} игроков · {t.points_per_game} очков</div>
+      </div>
+      <span className="tr-badge" style={{ background: "rgba(255,255,255,.06)", color, flexShrink: 0 }}>{statusLabel[t.status]}</span>
+    </div>
+  );
+}
+
 function List({ groupId, create, open }) {
   const [items, setItems] = useState(null);
-  useEffect(() => { listTournaments(groupId).then(setItems).catch(() => setItems([])); }, [groupId]);
+  const [showAll, setShowAll] = useState(false);
+  useEffect(() => {
+    setShowAll(false);
+    listTournaments(groupId).then(setItems).catch(() => setItems([]));
+  }, [groupId]);
+
+  const byStatus = {
+    active:   (items || []).filter((t) => t.status === "active"),
+    open:     (items || []).filter((t) => t.status === "open"),
+    finished: (items || []).filter((t) => t.status === "finished"),
+  };
+  const total = (items || []).length;
+
   return (
     <div className="tr-root">
       <style>{css}</style>
-      <button className="tr-btn" style={{ width: "100%", padding: 13, marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={create}>
+      <button className="tr-btn" style={{ width: "100%", padding: 13, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={create}>
         <PlusCircle size={18} /> Создать турнир
       </button>
       {items === null && <div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>Загрузка…</div>}
-      {items && items.length === 0 && <div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>Турниров пока нет.</div>}
-      {items && items.map((t) => {
-        const c = { open: "var(--lime)", active: "#ffd23f", finished: "var(--mut)" }[t.status];
+      {items !== null && total === 0 && <div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>Турниров пока нет.</div>}
+      {items !== null && SECTIONS.map((sec) => {
+        const list = byStatus[sec.status];
+        if (!list.length) return null;
+        const hidden = sec.limit && !showAll ? list.length - sec.limit : 0;
+        const visible = sec.limit && !showAll ? list.slice(0, sec.limit) : list;
         return (
-          <div key={t.id} className="tr-card" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }} onClick={() => open(t.id)}>
-            <Trophy size={20} color={c} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600 }}>{t.name || "Американо"}</div>
-              <div style={{ fontSize: 12, color: "var(--mut)" }}>{(t.players || []).length} игроков · до {t.points_per_game}</div>
+          <div key={sec.status} style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: sec.color, textTransform: "uppercase", marginBottom: 8, paddingLeft: 4 }}>
+              {sec.label}
             </div>
-            <span className="tr-badge" style={{ background: "rgba(255,255,255,.06)", color: c }}>{statusLabel[t.status]}</span>
+            {visible.map((t) => <TournamentCard key={t.id} t={t} color={sec.color} onClick={() => open(t.id)} />)}
+            {hidden > 0 && (
+              <button className="tr-ghost" style={{ width: "100%", padding: "8px 12px", fontSize: 12, marginTop: 4 }} onClick={() => setShowAll(true)}>
+                Показать ещё {hidden} завершённых
+              </button>
+            )}
           </div>
         );
       })}

@@ -26,10 +26,14 @@ export async function createTournament(groupId, { name, pointsPerGame = 32, targ
 }
 
 export async function listTournaments(groupId) {
-  const { data, error } = await supabase.from("tournaments")
-    .select(T_SELECT).eq("group_id", groupId).order("created_at", { ascending: false });
+  // groupId известен — фильтруем по группе (основной кейс).
+  // groupId нет — RLS вернёт турниры, где пользователь в tournament_players.profile_id
+  // (policy "participant view tournaments").
+  let q = supabase.from("tournaments").select(T_SELECT).order("created_at", { ascending: false }).limit(100);
+  if (groupId) q = q.eq("group_id", groupId);
+  const { data, error } = await q;
   if (error) throw error;
-  return data;
+  return data || [];
 }
 
 export async function getTournament(id) {
@@ -50,9 +54,18 @@ export async function removeTournamentPlayer(playerId) {
   if (error) throw error;
 }
 
-// Гость присоединяется по коду (без логина).
+// Гость/игрок присоединяется по коду.
+// Если залогинен — передаём profile_id, чтобы турнир был виден в разделе Турниры.
 export async function joinTournamentByCode(code, name) {
-  const { error } = await supabase.rpc("join_tournament", { p_code: code, p_name: name.trim() });
+  let profileId = null;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    const { data } = await supabase.from("profiles").select("id").eq("user_id", user.id).maybeSingle();
+    profileId = data?.id || null;
+  }
+  const { error } = await supabase.rpc("join_tournament", {
+    p_code: code, p_name: name.trim(), p_profile_id: profileId,
+  });
   if (error) throw error; // tournament_full / tournament_closed / tournament_not_found
 }
 
