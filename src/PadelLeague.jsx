@@ -240,6 +240,11 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
   if (selected) return (
     <PlayerDetail groupId={groupId} player={selected} players={players} close={() => setSelected(null)}
       isAdmin={isAdmin}
+      onAddToLeague={isAdmin ? async () => {
+        await supabase.from("group_members").insert({ group_id: groupId, profile_id: selected.id, rating: 1000 });
+        reload();
+        setSelected(null);
+      } : undefined}
       onDelete={isAdmin ? async (deleteGames) => {
         await removeMember(groupId, selected.id);
         if (deleteGames) {
@@ -502,7 +507,7 @@ function ClaimLinkButton({ claimCode }) {
 }
 
 /* ----------------------------- PlayerDetail ------------------------------- */
-function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin }) {
+function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAddToLeague }) {
   const [hist, setHist] = useState(null);
   const [myId, setMyId] = useState(null);
   const [allMatches, setAllMatches] = useState(null);
@@ -511,6 +516,17 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin }) {
   const [tourH2H, setTourH2H] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [playerLeagues, setPlayerLeagues] = useState(null);
+  const [localClaimCode, setLocalClaimCode] = useState(player.claim_code || null);
+  const [genBusy, setGenBusy] = useState(false);
+  const isInLeague = players.some((p) => p.id === player.id);
+
+  const generateClaimCode = async () => {
+    setGenBusy(true);
+    const code = crypto.randomUUID();
+    await supabase.from("profiles").update({ claim_code: code }).eq("id", player.id);
+    setLocalClaimCode(code);
+    setGenBusy(false);
+  };
 
   useEffect(() => {
     getRatingHistory(groupId, player.id).then(setHist).catch(() => setHist([player.rating]));
@@ -654,8 +670,22 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin }) {
         <div className="pl-display" style={{ fontSize: 24 }}>{player.name}</div>
         <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 4 }}>{player.matches} игр · {player.wins} побед</div>
         <ContactLinks contacts={player.contacts} />
-        {player.claim_code && <ClaimLinkButton claimCode={player.claim_code} />}
-        {onDelete && isAdmin && myId && myId !== player.id && (
+        {localClaimCode
+          ? <ClaimLinkButton claimCode={localClaimCode} />
+          : isAdmin && (
+            <button onClick={generateClaimCode} disabled={genBusy}
+              style={{ marginTop: 12, padding: "8px 16px", border: "1px solid rgba(200,255,45,.4)", borderRadius: 10, background: "rgba(200,255,45,.07)", color: "var(--lime)", fontSize: 12, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "'Outfit'" }}>
+              <Share2 size={13} /> {genBusy ? "…" : "Создать ссылку для регистрации"}
+            </button>
+          )
+        }
+        {onAddToLeague && !isInLeague && (
+          <button onClick={onAddToLeague}
+            style={{ marginTop: 10, padding: "8px 16px", border: "none", borderRadius: 10, background: "var(--lime)", color: "#111", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "'Outfit'" }}>
+            + Добавить в лигу
+          </button>
+        )}
+        {onDelete && isAdmin && myId && myId !== player.id && isInLeague && (
           <button onClick={() => setShowDeleteModal(true)}
             style={{ marginTop: 10, padding: "6px 14px", border: "1px solid rgba(255,106,82,.35)", borderRadius: 10, background: "none", color: "var(--coral)", fontSize: 12, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}>
             <Trash2 size={12} /> Удалить из лиги
