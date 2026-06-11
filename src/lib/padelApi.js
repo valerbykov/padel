@@ -35,7 +35,7 @@ export async function ensureMyProfile(name) {
 export async function getLeaderboard(groupId) {
   const { data, error } = await supabase
     .from("group_members")
-    .select("rating, matches_played, wins, profile:profiles(id, name, avatar_url, contacts)")
+    .select("rating, matches_played, wins, profile:profiles(id, name, avatar_url, contacts, claim_code)")
     .eq("group_id", groupId)
     .order("rating", { ascending: false });
   if (error) throw error;
@@ -44,6 +44,7 @@ export async function getLeaderboard(groupId) {
     name: r.profile.name,
     avatar_url: r.profile.avatar_url,
     contacts: r.profile.contacts || {},
+    claim_code: r.profile.claim_code || null,
     rating: r.rating,
     matches: r.matches_played,
     wins: r.wins,
@@ -58,7 +59,7 @@ export async function addMember(groupId, name, contacts = {}) {
   );
   const { data: profile, error: pErr } = await supabase
     .from("profiles")
-    .insert({ name: name.trim(), contacts: Object.keys(cleanContacts).length ? cleanContacts : null })
+    .insert({ name: name.trim(), contacts: Object.keys(cleanContacts).length ? cleanContacts : null, claim_code: crypto.randomUUID() })
     .select()
     .single();
   if (pErr) throw pErr;
@@ -216,4 +217,22 @@ export function subscribeToGame(gameId, onChange) {
 export async function deleteGame(gameId) {
   const { error } = await supabase.from("games").delete().eq("id", gameId);
   if (error) throw error;
+}
+
+export async function removeMember(groupId, profileId) {
+  const { error } = await supabase.from("group_members")
+    .delete().eq("group_id", groupId).eq("profile_id", profileId);
+  if (error) throw error;
+}
+
+export async function getProfileByClaimCode(code) {
+  const { data, error } = await supabase.rpc("get_profile_by_claim_code", { p_code: code });
+  if (error) throw error;
+  return data; // { id, name } or null
+}
+
+export async function claimProfile(code) {
+  const { data, error } = await supabase.rpc("claim_profile", { p_code: code });
+  if (error) throw error;
+  return data; // { ok: true, name }
 }

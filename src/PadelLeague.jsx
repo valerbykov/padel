@@ -1,7 +1,7 @@
 // PadelLeague.jsx — основной экран на реальных данных Supabase.
 import React, { useEffect, useState, useCallback } from "react";
 import { supabase } from "./lib/supabase";
-import { getLeaderboard, addMember, createGame, listGames, submitResult, linkFor, deleteGame } from "./lib/padelApi";
+import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame } from "./lib/padelApi";
 import { getRatingHistory } from "./lib/statsApi";
 import { listTournaments } from "./lib/tournamentApi";
 import { standings, detailedStandings } from "./lib/americano";
@@ -202,6 +202,14 @@ function Board({ groupId, players, reload }) {
           {p.contacts && Object.values(p.contacts).some(Boolean) && (
             <div style={{ fontSize: 10, color: "var(--lime)", flexShrink: 0 }}>📞</div>
           )}
+          <button style={{ padding: 4, border: "none", background: "none", color: "rgba(255,106,82,.4)", cursor: "pointer", flexShrink: 0 }}
+            title="Удалить из лиги"
+            onClick={async (e) => {
+              e.stopPropagation();
+              if (!confirm(`Удалить ${p.name} из лиги?`)) return;
+              try { await removeMember(groupId, p.id); reload(); }
+              catch (err) { alert("Не удалось удалить"); }
+            }}><Trash2 size={14} /></button>
         </div>
       ))}
 
@@ -231,6 +239,27 @@ function Board({ groupId, players, reload }) {
         </button>
       )}
     </div>
+  );
+}
+
+/* -------------------- ClaimLinkButton (admin helper) ---------------------- */
+function ClaimLinkButton({ claimCode }) {
+  const [toast, setToast] = useState("");
+  const link = `${window.location.origin}/r/${claimCode}`;
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(link); }
+    catch (e) { /* fallback: show link */ }
+    setToast("Скопировано ✓");
+    setTimeout(() => setToast(""), 2000);
+  };
+  return (
+    <button onClick={copy} style={{
+      marginTop: 10, background: "var(--surface2)", border: "1px dashed var(--line)",
+      borderRadius: 10, padding: "7px 14px", cursor: "pointer", color: "var(--mut)",
+      fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "'Outfit'",
+    }}>
+      <Share2 size={13} /> {toast || "Ссылка для регистрации"}
+    </button>
   );
 }
 
@@ -322,6 +351,7 @@ function PlayerDetail({ groupId, player, players, close }) {
         <div className="pl-display" style={{ fontSize: 24 }}>{player.name}</div>
         <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 4 }}>{player.matches} игр · {player.wins} побед</div>
         <ContactLinks contacts={player.contacts} />
+        {player.claim_code && <ClaimLinkButton claimCode={player.claim_code} />}
       </div>
 
       {/* Рейтинг + график */}
@@ -705,20 +735,6 @@ function HistoryView({ groupId, players, profileId, isGroupMember }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 {(m.team_a || []).map((id) => (
                   <div key={id} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                    {avatarOf(id) && <img src={avatarOf(id)} alt="" style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0 }} />}
-                    <span style={{ fontSize: 13, fontWeight: aWon ? 700 : 400, color: aWon ? "var(--lime)" : "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nameOf(id)}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{ textAlign: "center", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                <div className="pl-display" style={{ fontSize: 22 }}>{m.sets_a}:{m.sets_b}</div>
-                {detail && <div style={{ fontSize: 10, color: "var(--lime)" }}>{isExpanded ? "▲" : "▼"}</div>}
-                {isGroupMember && <button style={{ padding: 3, border: "none", background: "none", color: "rgba(255,106,82,.5)", cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); if (!confirm("Удалить этот матч из истории?")) return; supabase.from("matches").delete().eq("id", m.id).then(() => setMatches((prev) => prev.filter((x) => x.id !== m.id))); }} title="Удалить"><Trash2 size={13} /></button>}
-              </div>
-              <div style={{ flex: 1, minWidth: 0, textAlign: "right" }}>
-                {(m.team_b || []).map((id) => (
-                  <div key={id} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, justifyContent: "flex-end" }}>
-                    <span style={{ fontSize: 13, fontWeight: !aWon ? 700 : 400, color: !aWon ? "var(--lime)" : "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nameOf(id)}</span>
                     {avatarOf(id) && <img src={avatarOf(id)} alt="" style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0 }} />}
                   </div>
                 ))}
