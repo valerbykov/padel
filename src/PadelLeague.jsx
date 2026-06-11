@@ -279,6 +279,7 @@ function PlayerDetail({ groupId, player, players, close }) {
   const [hist, setHist] = useState(null);
   const [myId, setMyId] = useState(null);
   const [allMatches, setAllMatches] = useState(null);
+  const [playerTours, setPlayerTours] = useState(null);
 
   useEffect(() => {
     getRatingHistory(groupId, player.id).then(setHist).catch(() => setHist([player.rating]));
@@ -297,6 +298,30 @@ function PlayerDetail({ groupId, player, players, close }) {
       .order("played_at", { ascending: false })
       .limit(100)
       .then(({ data }) => setAllMatches(data || []));
+
+    // Загружаем турниры игрока
+    listTournaments(groupId).then((all) => {
+      const finished = all.filter((t) => t.status === "finished");
+      const participated = finished.filter((t) =>
+        (t.players || []).some((p) => p.profile_id === player.id)
+      );
+      const rows = participated.map((t) => {
+        const tPlayers = (t.players || []).map((p) => ({ id: p.id, name: p.name }));
+        const table = detailedStandings(tPlayers, t.matches || []);
+        const myTp = (t.players || []).find((p) => p.profile_id === player.id);
+        const pos = table.findIndex((r) => r.id === myTp?.id);
+        const row = table[pos] || {};
+        return {
+          id: t.id,
+          name: t.name,
+          position: pos + 1,
+          total: table.length,
+          points: row.points || 0,
+          played: row.played || 0,
+        };
+      });
+      setPlayerTours(rows);
+    }).catch(() => setPlayerTours([]));
   }, [groupId, player.id]);
 
   const nameOf = (id) => players.find((p) => p.id === id)?.name || "Удалён";
@@ -412,6 +437,26 @@ function PlayerDetail({ groupId, player, players, close }) {
               </div>
             );
           })}
+        </div>
+      )}
+      {/* Турниры */}
+      {playerTours && playerTours.length > 0 && (
+        <div className="pl-card" style={{ padding: 14, marginTop: 10 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>
+            Турниры ({playerTours.length})
+          </div>
+          {playerTours.map((t) => (
+            <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--line)" }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: t.position === 1 ? "rgba(200,255,45,.12)" : "var(--surface2)", border: `1px solid ${t.position === 1 ? "var(--lime)" : "var(--line)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <span style={{ fontFamily: "'Anton',sans-serif", fontSize: 13, color: t.position === 1 ? "var(--lime)" : t.position <= 3 ? "#ffd23f" : "var(--mut)" }}>{t.position}</span>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name || "Американо"}</div>
+                <div style={{ fontSize: 11, color: "var(--mut)" }}>{t.played} матч. · {t.points} очк.</div>
+              </div>
+              <div style={{ fontSize: 11, color: "var(--mut)", flexShrink: 0 }}>из {t.total}</div>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -754,7 +799,6 @@ function HistoryView({ groupId, players, profileId, isGroupMember }) {
               <div style={{ textAlign: "center", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
                 <div className="pl-display" style={{ fontSize: 22 }}>{m.sets_a}:{m.sets_b}</div>
                 {detail && <div style={{ fontSize: 10, color: "var(--lime)" }}>{isExpanded ? "▲" : "▼"}</div>}
-                {isGroupMember && <button style={{ padding: 3, border: "none", background: "none", color: "rgba(255,106,82,.5)", cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); if (!confirm("Удалить этот матч из истории?")) return; supabase.from("matches").delete().eq("id", m.id).then(() => setMatches((prev) => prev.filter((x) => x.id !== m.id))); }} title="Удалить"><Trash2 size={13} /></button>}
               </div>
               <div style={{ flex: 1, minWidth: 0, textAlign: "right" }}>
                 {(m.team_b || []).map((id) => (
@@ -764,6 +808,11 @@ function HistoryView({ groupId, players, profileId, isGroupMember }) {
                   </div>
                 ))}
               </div>
+              {isGroupMember && (
+                <button style={{ flexShrink: 0, padding: 8, border: "1px solid rgba(255,106,82,.2)", borderRadius: 8, background: "none", color: "rgba(255,106,82,.5)", cursor: "pointer", alignSelf: "center" }}
+                  onClick={(e) => { e.stopPropagation(); if (!confirm("Удалить этот матч из истории?")) return; supabase.from("matches").delete().eq("id", m.id).then(() => setMatches((prev) => prev.filter((x) => x.id !== m.id))); }}
+                  title="Удалить"><Trash2 size={14} /></button>
+              )}
             </div>
             {isExpanded && detail && (
               <div style={{ marginTop: 10, borderTop: "1px solid #22382c", paddingTop: 8, display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
