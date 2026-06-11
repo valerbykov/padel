@@ -345,12 +345,16 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         </div>
       )}
 
-      {/* Код приглашения для admin/owner */}
-      {isAdmin && activeLeague?.invite_code && (
-        <button onClick={copyInvite} style={{ width: "100%", marginBottom: 12, padding: "10px 14px", background: "rgba(200,255,45,.06)", border: "1px dashed rgba(200,255,45,.3)", borderRadius: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: "'Outfit'" }}>
-          <span style={{ fontSize: 12, color: "var(--mut)" }}>Код приглашения</span>
-          <span style={{ fontFamily: "'Anton'", fontSize: 18, letterSpacing: 4, color: "var(--lime)" }}>{activeLeague.invite_code}</span>
-          <span style={{ fontSize: 11, color: "var(--lime)" }}>{inviteCopied ? "✓" : <Copy size={13} />}</span>
+      {/* Код приглашения — виден всем участникам лиги */}
+      {activeLeague?.invite_code && (
+        <button onClick={copyInvite} style={{ width: "100%", marginBottom: 12, padding: "12px 16px", background: "rgba(200,255,45,.08)", border: "1px solid rgba(200,255,45,.4)", borderRadius: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: "'Outfit'" }}>
+          <div style={{ textAlign: "left" }}>
+            <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 2 }}>Пригласить в лигу</div>
+            <div style={{ fontFamily: "'Anton'", fontSize: 22, letterSpacing: 5, color: "var(--lime)" }}>{activeLeague.invite_code}</div>
+          </div>
+          <div style={{ fontSize: 12, color: "var(--lime)", display: "flex", alignItems: "center", gap: 5 }}>
+            {inviteCopied ? "Скопировано ✓" : <><Copy size={14} /> Скопировать</>}
+          </div>
         </button>
       )}
 
@@ -466,24 +470,34 @@ function DeletePlayerModal({ player, onConfirm, onCancel }) {
   );
 }
 
-/* -------------------- ClaimLinkButton (admin helper) ---------------------- */
+/* -------------------- ClaimLinkButton ------------------------------------ */
 function ClaimLinkButton({ claimCode }) {
   const [toast, setToast] = useState("");
   const link = `${window.location.origin}/r/${claimCode}`;
   const copy = async () => {
     try { await navigator.clipboard.writeText(link); }
-    catch (e) { /* fallback: show link */ }
+    catch (e) {}
     setToast("Скопировано ✓");
-    setTimeout(() => setToast(""), 2000);
+    setTimeout(() => setToast(""), 2200);
   };
   return (
-    <button onClick={copy} style={{
-      marginTop: 10, background: "var(--surface2)", border: "1px dashed var(--line)",
-      borderRadius: 10, padding: "7px 14px", cursor: "pointer", color: "var(--mut)",
-      fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "'Outfit'",
-    }}>
-      <Share2 size={13} /> {toast || "Ссылка для регистрации"}
-    </button>
+    <div style={{ marginTop: 12, width: "100%" }}>
+      <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 6, textAlign: "center" }}>
+        Ссылка для регистрации игрока
+      </div>
+      <button onClick={copy} style={{
+        width: "100%", padding: "10px 14px", background: "rgba(200,255,45,.08)",
+        border: "1px solid rgba(200,255,45,.45)", borderRadius: 12, cursor: "pointer",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        gap: 8, fontFamily: "'Outfit'", color: "var(--lime)", fontSize: 13, fontWeight: 600,
+      }}>
+        <Share2 size={15} />
+        {toast || "Скопировать ссылку"}
+      </button>
+      <div style={{ fontSize: 10, color: "var(--mut)", marginTop: 5, textAlign: "center", wordBreak: "break-all" }}>
+        {link}
+      </div>
+    </div>
   );
 }
 
