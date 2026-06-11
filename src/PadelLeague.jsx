@@ -1,7 +1,7 @@
 // PadelLeague.jsx — основной экран на реальных данных Supabase.
 import React, { useEffect, useState, useCallback } from "react";
 import { supabase } from "./lib/supabase";
-import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame } from "./lib/padelApi";
+import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague } from "./lib/padelApi";
 import { getRatingHistory } from "./lib/statsApi";
 import { listTournaments } from "./lib/tournamentApi";
 import { standings, detailedStandings } from "./lib/americano";
@@ -105,7 +105,7 @@ function ContactLinks({ contacts = {} }) {
 }
 
 /* --------------------------------- root ----------------------------------- */
-export default function PadelLeague({ groupId, session, profileId }) {
+export default function PadelLeague({ groupId, session, profileId, leagues = [], activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated }) {
   const [tab, setTab] = useState(session ? "board" : "games");
   const [players, setPlayers] = useState([]);
   const [archiveNonce, setArchiveNonce] = useState(0);
@@ -136,7 +136,7 @@ export default function PadelLeague({ groupId, session, profileId }) {
           </div>
         )}
 
-        {tab === "board" && (session ? <Board groupId={groupId} players={players} reload={loadLeaderboard} /> : <GateScreen />)}
+        {tab === "board" && (session ? <Board groupId={groupId} players={players} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} /> : <GateScreen />)}
         {tab === "games" && <Games groupId={groupId} players={players} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} />}
         {tab === "tournaments" && <Tournaments groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} />}
         {tab === "history" && (session ? <HistoryView groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} archiveNonce={archiveNonce} bumpArchive={bumpArchive} /> : <GateScreen />)}
@@ -169,26 +169,62 @@ function GateScreen() {
 }
 
 /* --------------------------------- Board ---------------------------------- */
-function Board({ groupId, players, reload }) {
+function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leagues, activeLeague, onLeagueChange, onLeagueCreated }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [contacts, setContacts] = useState({ whatsapp: "", telegram: "", email: "", phone: "" });
   const [selected, setSelected] = useState(null);
   const [busy, setBusy] = useState(false);
   const [tourCounts, setTourCounts] = useState({});
+  const [extraPlayers, setExtraPlayers] = useState([]);
+  const [showLeagueMenu, setShowLeagueMenu] = useState(false);
+  const [showNewLeague, setShowNewLeague] = useState(false); // "create" | "join" | false
+  const [newLeagueName, setNewLeagueName] = useState("");
+  const [joinCode, setJoinCode] = useState("");
+  const [leagueBusy, setLeagueBusy] = useState(false);
+  const [leagueErr, setLeagueErr] = useState("");
+  const [inviteCopied, setInviteCopied] = useState(false);
   const ranked = [...players].sort((a, b) => b.rating - a.rating);
 
   useEffect(() => {
-    listTournaments(groupId).then((all) => {
+    let active = true;
+    const memberIds = new Set(players.map((p) => p.id));
+    Promise.all([
+      listTournaments(groupId),
+      supabase.from("matches").select("team_a, team_b").eq("group_id", groupId).limit(500),
+    ]).then(async ([tours, { data: matchRows }]) => {
+      if (!active) return;
+      // tourCounts
       const counts = {};
-      all.filter((t) => t.status === "finished").forEach((t) => {
+      tours.filter((t) => t.status === "finished").forEach((t) => {
         (t.players || []).forEach((p) => {
           if (p.profile_id) counts[p.profile_id] = (counts[p.profile_id] || 0) + 1;
         });
       });
       setTourCounts(counts);
-    }).catch(() => {});
-  }, [groupId]);
+      // Extra (played in group, not member)
+      const extraIds = new Set();
+      tours.forEach((t) => {
+        (t.players || []).forEach((p) => {
+          if (p.profile_id && !memberIds.has(p.profile_id)) extraIds.add(p.profile_id);
+        });
+      });
+      (matchRows || []).forEach((m) => {
+        [...(m.team_a || []), ...(m.team_b || [])].forEach((id) => {
+          if (id && !memberIds.has(id)) extraIds.add(id);
+        });
+      });
+      if (extraIds.size > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles").select("id, name, avatar_url, contacts, claim_code")
+          .in("id", [...extraIds]);
+        if (active) setExtraPlayers((profiles || []).sort((a, b) => a.name.localeCompare(b.name)));
+      } else {
+        if (active) setExtraPlayers([]);
+      }
+    }).catch(() => { if (active) { setTourCounts({}); setExtraPlayers([]); } });
+    return () => { active = false; };
+  }, [groupId, players]);
 
   const resetForm = () => { setName(""); setContacts({ whatsapp: "", telegram: "", email: "", phone: "" }); };
 
@@ -201,10 +237,123 @@ function Board({ groupId, players, reload }) {
     finally { setBusy(false); }
   };
 
-  if (selected) return <PlayerDetail groupId={groupId} player={selected} players={players} close={() => setSelected(null)} />;
+  if (selected) return (
+    <PlayerDetail groupId={groupId} player={selected} players={players} close={() => setSelected(null)}
+      isAdmin={isAdmin}
+      onDelete={isAdmin ? async (deleteGames) => {
+        await removeMember(groupId, selected.id);
+        if (deleteGames) {
+          const { data: slots } = await supabase.from("game_slots").select("game_id").eq("profile_id", selected.id);
+          const gameIds = [...new Set((slots || []).map((s) => s.game_id))];
+          if (gameIds.length > 0) { await supabase.from("games").delete().in("id", gameIds); bumpArchive && bumpArchive(); }
+        }
+        reload();
+        setSelected(null);
+      } : undefined}
+    />
+  );
+
+  const copyInvite = async () => {
+    if (!activeLeague?.invite_code) return;
+    const text = `Вступай в лигу «${activeLeague.name}» — код: ${activeLeague.invite_code}`;
+    try { await navigator.clipboard.writeText(text); } catch (e) {}
+    setInviteCopied(true); setTimeout(() => setInviteCopied(false), 1800);
+  };
+
+  const handleCreateLeague = async () => {
+    if (!newLeagueName.trim() || leagueBusy) return;
+    setLeagueBusy(true); setLeagueErr("");
+    try {
+      const lg = await createLeague(newLeagueName.trim());
+      onLeagueCreated && onLeagueCreated(lg);
+      setShowNewLeague(false); setNewLeagueName("");
+    } catch (e) { setLeagueErr(e.message || "Ошибка"); }
+    finally { setLeagueBusy(false); }
+  };
+
+  const handleJoinLeague = async () => {
+    if (joinCode.trim().length < 4 || leagueBusy) return;
+    setLeagueBusy(true); setLeagueErr("");
+    try {
+      const lg = await joinLeague(joinCode.trim());
+      onLeagueCreated && onLeagueCreated(lg);
+      setShowNewLeague(false); setJoinCode("");
+    } catch (e) {
+      const msg = e.message || "";
+      if (msg.includes("league_not_found")) setLeagueErr("Лига не найдена");
+      else if (msg.includes("already_member")) setLeagueErr("Вы уже в этой лиге");
+      else setLeagueErr(msg || "Ошибка");
+    } finally { setLeagueBusy(false); }
+  };
 
   return (
     <div className="pl-pop">
+      {/* Переключатель лиг */}
+      {leagues && leagues.length > 0 && (
+        <div style={{ marginBottom: 12, position: "relative" }}>
+          <button
+            onClick={() => { setShowLeagueMenu((v) => !v); setShowNewLeague(false); setLeagueErr(""); }}
+            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 14, cursor: "pointer", color: "var(--ink)", fontFamily: "'Outfit'", fontSize: 14 }}>
+            <span style={{ fontWeight: 600 }}>{activeLeague?.name || "Лига"}</span>
+            <span style={{ color: "var(--mut)", fontSize: 11 }}>{isAdmin ? "admin" : "участник"} {showLeagueMenu ? "▲" : "▼"}</span>
+          </button>
+
+          {showLeagueMenu && (
+            <div className="pl-pop" style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 14, zIndex: 30, overflow: "hidden" }}>
+              {leagues.map((lg) => (
+                <button key={lg.id} onClick={() => { onLeagueChange && onLeagueChange(lg.id); setShowLeagueMenu(false); }}
+                  style={{ width: "100%", padding: "11px 14px", textAlign: "left", background: lg.id === activeLeague?.id ? "var(--surface2)" : "none", border: "none", color: lg.id === activeLeague?.id ? "var(--lime)" : "var(--ink)", fontFamily: "'Outfit'", fontSize: 14, cursor: "pointer", display: "block" }}>
+                  {lg.name}
+                  {lg.role !== "member" && <span style={{ fontSize: 10, color: "var(--mut)", marginLeft: 6 }}>{lg.role}</span>}
+                </button>
+              ))}
+              <div style={{ borderTop: "1px solid var(--line)", display: "flex" }}>
+                <button onClick={() => { setShowNewLeague("create"); setShowLeagueMenu(false); setLeagueErr(""); }}
+                  style={{ flex: 1, padding: "10px 0", background: "none", border: "none", color: "var(--lime)", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit'" }}>+ Создать</button>
+                <button onClick={() => { setShowNewLeague("join"); setShowLeagueMenu(false); setLeagueErr(""); }}
+                  style={{ flex: 1, padding: "10px 0", background: "none", border: "none", color: "var(--mut)", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit'" }}>По коду</button>
+              </div>
+            </div>
+          )}
+
+          {/* Инлайн-форма создания/вступления */}
+          {showNewLeague && (
+            <div className="pl-card pl-pop" style={{ padding: 14, marginTop: 6 }}>
+              {showNewLeague === "create" ? (
+                <>
+                  <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14 }}>Новая лига</div>
+                  <input className="pl-input" style={{ padding: "9px 12px", marginBottom: 8 }} placeholder="Название" value={newLeagueName} onChange={(e) => setNewLeagueName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleCreateLeague()} autoFocus />
+                  {leagueErr && <div style={{ fontSize: 12, color: "var(--coral)", marginBottom: 6 }}>{leagueErr}</div>}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button className="pl-btn" style={{ flex: 1, padding: 10 }} disabled={leagueBusy || !newLeagueName.trim()} onClick={handleCreateLeague}>{leagueBusy ? "…" : "Создать"}</button>
+                    <button className="pl-ghost" style={{ padding: "0 12px" }} onClick={() => { setShowNewLeague(false); setLeagueErr(""); }}><X size={14} /></button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14 }}>Вступить по коду</div>
+                  <input className="pl-input" style={{ padding: "9px 12px", marginBottom: 8, textTransform: "uppercase", letterSpacing: 3, textAlign: "center" }} placeholder="XXXXXX" value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))} onKeyDown={(e) => e.key === "Enter" && handleJoinLeague()} autoFocus />
+                  {leagueErr && <div style={{ fontSize: 12, color: "var(--coral)", marginBottom: 6 }}>{leagueErr}</div>}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button className="pl-btn" style={{ flex: 1, padding: 10 }} disabled={leagueBusy || joinCode.length < 4} onClick={handleJoinLeague}>{leagueBusy ? "…" : "Вступить"}</button>
+                    <button className="pl-ghost" style={{ padding: "0 12px" }} onClick={() => { setShowNewLeague(false); setLeagueErr(""); }}><X size={14} /></button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Код приглашения для admin/owner */}
+      {isAdmin && activeLeague?.invite_code && (
+        <button onClick={copyInvite} style={{ width: "100%", marginBottom: 12, padding: "10px 14px", background: "rgba(200,255,45,.06)", border: "1px dashed rgba(200,255,45,.3)", borderRadius: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: "'Outfit'" }}>
+          <span style={{ fontSize: 12, color: "var(--mut)" }}>Код приглашения</span>
+          <span style={{ fontFamily: "'Anton'", fontSize: 18, letterSpacing: 4, color: "var(--lime)" }}>{activeLeague.invite_code}</span>
+          <span style={{ fontSize: 11, color: "var(--lime)" }}>{inviteCopied ? "✓" : <Copy size={13} />}</span>
+        </button>
+      )}
+
       {ranked.length === 0 && <div className="pl-card" style={{ padding: 24, textAlign: "center", color: "var(--mut)", marginBottom: 8 }}>Игроков пока нет — добавь первого.</div>}
       {ranked.map((p, i) => (
         <div key={p.id} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }} onClick={() => setSelected(p)}>
@@ -218,27 +367,27 @@ function Board({ groupId, players, reload }) {
             <div style={{ fontSize: 10, color: "var(--lime)", flexShrink: 0 }}>📞</div>
           )}
           <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />
-          <button style={{ padding: 4, border: "none", background: "none", color: "rgba(255,106,82,.4)", cursor: "pointer", flexShrink: 0 }}
-            title="Удалить из лиги"
-            onClick={async (e) => {
-              e.stopPropagation();
-              if (!confirm(`Удалить ${p.name} из лиги?\nЕго история игр останется в архиве — можно удалить отдельно.`)) return;
-              try {
-                await removeMember(groupId, p.id);
-                reload();
-                // Предложить удалить игры с участием этого игрока
-                const { data: slots } = await supabase
-                  .from("game_slots").select("game_id").eq("profile_id", p.id);
-                const gameIds = [...new Set((slots || []).map((s) => s.game_id))];
-                if (gameIds.length > 0 &&
-                    confirm(`Игрок удалён. Он участвовал в ${gameIds.length} игр(е). Удалить эти игры из архива?`)) {
-                  await supabase.from("games").delete().in("id", gameIds);
-                  reload();
-                }
-              } catch (err) { alert("Не удалось удалить"); }
-            }}><Trash2 size={14} /></button>
         </div>
       ))}
+
+      {extraPlayers.length > 0 && (
+        <>
+          <div className="pl-display" style={{ fontSize: 12, color: "var(--mut)", margin: "14px 2px 8px", letterSpacing: 1 }}>ИГРАЛИ ВМЕСТЕ</div>
+          {extraPlayers.map((p) => (
+            <div key={p.id} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", marginBottom: 8, cursor: "pointer" }} onClick={() => setSelected(p)}>
+              <img src={playerAvatar(p.avatar_url, p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
+                <div style={{ fontSize: 12, color: "var(--mut)" }}>Не в лиге</div>
+              </div>
+              {p.contacts && Object.values(p.contacts).some(Boolean) && (
+                <div style={{ fontSize: 10, color: "var(--lime)", flexShrink: 0 }}>📞</div>
+              )}
+              <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />
+            </div>
+          ))}
+        </>
+      )}
 
       {open ? (
         <div className="pl-card" style={{ padding: 14, marginTop: 8 }}>
@@ -269,6 +418,54 @@ function Board({ groupId, players, reload }) {
   );
 }
 
+/* -------------------- DeletePlayerModal ---------------------------------- */
+function DeletePlayerModal({ player, onConfirm, onCancel }) {
+  const [deleteGames, setDeleteGames] = useState(false);
+  const [gameCount, setGameCount] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    supabase.from("game_slots").select("game_id").eq("profile_id", player.id)
+      .then(({ data }) => setGameCount(new Set((data || []).map((s) => s.game_id)).size))
+      .catch(() => setGameCount(0));
+  }, [player.id]);
+
+  const go = async () => {
+    setBusy(true);
+    try { await onConfirm(deleteGames); }
+    catch (e) { alert("Не удалось удалить"); setBusy(false); }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }}>
+      <div className="pl-card" style={{ padding: 20, width: "100%", maxWidth: 360 }}>
+        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Удалить {player.name}?</div>
+        <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 14 }}>
+          Игрок будет удалён из лиги. В истории отобразится как «Удалён».
+        </div>
+        {gameCount === null && <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 12 }}>Проверяю игры…</div>}
+        {gameCount > 0 && (
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 16, cursor: "pointer" }}>
+            <input type="checkbox" checked={deleteGames} onChange={(e) => setDeleteGames(e.target.checked)}
+              style={{ marginTop: 2, width: 16, height: 16, accentColor: "var(--coral)", flexShrink: 0 }} />
+            <span style={{ fontSize: 13 }}>
+              Удалить <strong>{gameCount} игр(ы)</strong> с участием этого игрока из архива
+            </span>
+          </label>
+        )}
+        {gameCount === 0 && <div style={{ height: 4 }} />}
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="pl-ghost" style={{ flex: 1, padding: 11 }} onClick={onCancel} disabled={busy}>Отмена</button>
+          <button style={{ flex: 1, padding: 11, border: "none", borderRadius: 12, background: "var(--coral)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", opacity: (busy || gameCount === null) ? .6 : 1 }}
+            onClick={go} disabled={busy || gameCount === null}>
+            {busy ? "Удаляю…" : "Удалить"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* -------------------- ClaimLinkButton (admin helper) ---------------------- */
 function ClaimLinkButton({ claimCode }) {
   const [toast, setToast] = useState("");
@@ -291,13 +488,15 @@ function ClaimLinkButton({ claimCode }) {
 }
 
 /* ----------------------------- PlayerDetail ------------------------------- */
-function PlayerDetail({ groupId, player, players, close }) {
+function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin }) {
   const [hist, setHist] = useState(null);
   const [myId, setMyId] = useState(null);
   const [allMatches, setAllMatches] = useState(null);
   const [playerTours, setPlayerTours] = useState(null);
   const [rawTours, setRawTours] = useState(null);
   const [tourH2H, setTourH2H] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [playerLeagues, setPlayerLeagues] = useState(null);
 
   useEffect(() => {
     getRatingHistory(groupId, player.id).then(setHist).catch(() => setHist([player.rating]));
@@ -316,6 +515,12 @@ function PlayerDetail({ groupId, player, players, close }) {
       .order("played_at", { ascending: false })
       .limit(100)
       .then(({ data }) => setAllMatches(data || []));
+
+    // Лиги игрока
+    supabase.from("group_members")
+      .select("role, group:groups(id, name)")
+      .eq("profile_id", player.id)
+      .then(({ data }) => setPlayerLeagues((data || []).map((r) => ({ id: r.group.id, name: r.group.name, role: r.role }))));
 
     // Загружаем турниры игрока
     listTournaments(groupId).then((all) => {
@@ -436,6 +641,12 @@ function PlayerDetail({ groupId, player, players, close }) {
         <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 4 }}>{player.matches} игр · {player.wins} побед</div>
         <ContactLinks contacts={player.contacts} />
         {player.claim_code && <ClaimLinkButton claimCode={player.claim_code} />}
+        {onDelete && isAdmin && myId && myId !== player.id && (
+          <button onClick={() => setShowDeleteModal(true)}
+            style={{ marginTop: 10, padding: "6px 14px", border: "1px solid rgba(255,106,82,.35)", borderRadius: 10, background: "none", color: "var(--coral)", fontSize: 12, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Trash2 size={12} /> Удалить из лиги
+          </button>
+        )}
       </div>
 
       {/* Рейтинг + график */}
@@ -518,6 +729,23 @@ function PlayerDetail({ groupId, player, players, close }) {
             </div>
           ))}
         </div>
+      )}
+      {/* Лиги игрока */}
+      {playerLeagues && playerLeagues.length > 0 && (
+        <div className="pl-card" style={{ padding: 14, marginTop: 10 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Лиги ({playerLeagues.length})</div>
+          {playerLeagues.map((lg) => (
+            <div key={lg.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: "1px solid var(--line)" }}>
+              <Trophy size={13} color="var(--mut)" style={{ flexShrink: 0 }} />
+              <div style={{ flex: 1, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lg.name}</div>
+              {lg.role !== "member" && <span style={{ fontSize: 10, color: "var(--lime)", flexShrink: 0, padding: "2px 6px", border: "1px solid rgba(200,255,45,.3)", borderRadius: 8 }}>{lg.role}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showDeleteModal && onDelete && (
+        <DeletePlayerModal player={player} onConfirm={onDelete} onCancel={() => setShowDeleteModal(false)} />
       )}
     </div>
   );

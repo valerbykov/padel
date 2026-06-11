@@ -236,3 +236,36 @@ export async function claimProfile(code) {
   if (error) throw error;
   return data; // { ok: true, name }
 }
+
+/* =====================================================================
+   ЛИГИ
+   ===================================================================== */
+
+// Создать новую лигу. Возвращает { id, name, invite_code, role }.
+export async function createLeague(name) {
+  const { data, error } = await supabase.rpc("create_league", { p_name: name.trim() });
+  if (error) throw error;
+  return data;
+}
+
+// Вступить в лигу по 6-символьному коду. Возвращает { id, name, role }.
+export async function joinLeague(code) {
+  const { data, error } = await supabase.rpc("join_league", { p_code: code.trim().toUpperCase() });
+  if (error) throw error;
+  return data;
+}
+
+// Все лиги, в которых состоит профиль. Возвращает массив { id, name, invite_code, role }.
+export async function getMyLeagues(profileId) {
+  const { data, error } = await supabase
+    .from("group_members")
+    .select("role, group:groups(id, name, invite_code)")
+    .eq("profile_id", profileId);
+  if (error) throw error;
+  return (data || []).map((r) => ({
+    id: r.group.id,
+    name: r.group.name,
+    invite_code: r.group.invite_code,
+    role: r.role,
+  }));
+}
