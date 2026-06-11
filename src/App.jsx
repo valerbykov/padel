@@ -153,4 +153,33 @@ export default function App() {
   );
 }
 
-function TopBar({ ses
+function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut }) {
+  const base = { border: "1px solid #22382c", borderRadius: 10, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif" };
+  const initials = (name || "").trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      padding: "10px 16px", borderBottom: "1px solid #22382c",
+      background: "rgba(10,22,18,.92)", position: "sticky", top: 0, zIndex: 60,
+      fontFamily: "'Outfit',sans-serif",
+    }}>
+      {session ? (
+        <button onClick={onProfile} style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", color: "#eef3ee", padding: 0 }}>
+          {avatarUrl
+            ? <img src={avatarUrl} alt="" style={{ width: 30, height: 30, borderRadius: "50%", objectFit: "cover", border: "1px solid #2a4a3a" }} />
+            : <span style={{ width: 30, height: 30, borderRadius: "50%", background: "#16291f", border: "1px solid #22382c", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#c8ff2d" }}>{initials}</span>}
+          <span style={{ fontSize: 14, fontWeight: 600 }}>{name || "Профиль"}</span>
+        </button>
+      ) : (
+        <span style={{ color: "#eef3ee", fontSize: 14, fontWeight: 600 }}>Падел · Лига</span>
+      )}
+      {session ? (
+        <button onClick={onSignOut} style={{ ...base, background: "#16291f", color: "#7d9488" }}>Выйти</button>
+      ) : (
+        <button onClick={onLogin} style={{ ...base, background: "#c8ff2d", color: "#0a1612", border: "none", fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+          <LogIn size={15} /> Войти
+        </button>
+      )}
+    </div>
+  );
+}
