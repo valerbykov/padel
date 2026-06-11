@@ -206,9 +206,20 @@ function Board({ groupId, players, reload }) {
             title="Удалить из лиги"
             onClick={async (e) => {
               e.stopPropagation();
-              if (!confirm(`Удалить ${p.name} из лиги?`)) return;
-              try { await removeMember(groupId, p.id); reload(); }
-              catch (err) { alert("Не удалось удалить"); }
+              if (!confirm(`Удалить ${p.name} из лиги?\nЕго история игр останется в архиве — можно удалить отдельно.`)) return;
+              try {
+                await removeMember(groupId, p.id);
+                reload();
+                // Предложить удалить игры с участием этого игрока
+                const { data: slots } = await supabase
+                  .from("game_slots").select("game_id").eq("profile_id", p.id);
+                const gameIds = [...new Set((slots || []).map((s) => s.game_id))];
+                if (gameIds.length > 0 &&
+                    confirm(`Игрок удалён. Он участвовал в ${gameIds.length} игр(е). Удалить эти игры из архива?`)) {
+                  await supabase.from("games").delete().in("id", gameIds);
+                  reload();
+                }
+              } catch (err) { alert("Не удалось удалить"); }
             }}><Trash2 size={14} /></button>
         </div>
       ))}
@@ -288,7 +299,7 @@ function PlayerDetail({ groupId, player, players, close }) {
       .then(({ data }) => setAllMatches(data || []));
   }, [groupId, player.id]);
 
-  const nameOf = (id) => players.find((p) => p.id === id)?.name || "Игрок";
+  const nameOf = (id) => players.find((p) => p.id === id)?.name || "Удалён";
 
   // Матчи, в которых участвуют оба (я + выбранный игрок)
   const withPlayer = !myId || !allMatches ? [] : allMatches.filter((m) => {
@@ -692,7 +703,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember }) {
 
   if (sel) return <TournamentView id={sel.id} players={players} back={() => setSel(null)} isGroupMember={isGroupMember} currentProfileId={profileId} />;
 
-  const nameOf = (id) => players.find((p) => p.id === id)?.name || "Игрок";
+  const nameOf = (id) => players.find((p) => p.id === id)?.name || "Удалён";
   const avatarOf = (id) => { const gp = players.find((p) => p.id === id); return gp ? playerAvatar(gp.avatar_url, id) : null; };
   const head = (txt) => <div className="pl-display" style={{ fontSize: 13, color: "var(--mut)", margin: "10px 2px 8px" }}>{txt}</div>;
 
