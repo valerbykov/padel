@@ -33,11 +33,11 @@ const css = `
 `;
 const statusLabel = { open: "набор", active: "идёт", finished: "завершён" };
 
-export default function Tournaments({ groupId, players, profileId }) {
+export default function Tournaments({ groupId, players, profileId, bumpArchive }) {
   const [mode, setMode] = useState("list");
   const [activeId, setActiveId] = useState(null);
   if (mode === "create") return <Create groupId={groupId} back={() => setMode("list")} open={(id) => { setActiveId(id); setMode("view"); }} />;
-  if (mode === "view") return <TournamentView id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} />;
+  if (mode === "view") return <TournamentView id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} onArchiveChange={bumpArchive} />;
   return <List groupId={groupId} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
 }
 
@@ -224,7 +224,7 @@ function AddPlayer({ players, existing, onAdd, disabled }) {
   );
 }
 
-export function TournamentView({ id, players, back, readOnly = false, initialT = null, reloadFn = null, isGroupMember = false, currentProfileId = null, spectatorMode = false }) {
+export function TournamentView({ id, players, back, readOnly = false, initialT = null, reloadFn = null, isGroupMember = false, currentProfileId = null, spectatorMode = false, onArchiveChange = null }) {
   const hasInitRef = useRef(!!initialT);
   const [t, setT] = useState(initialT ? { ...initialT, matches: initialT.matches || [], players: initialT.players || [] } : null);
   const [toast, setToast] = useState("");
@@ -305,7 +305,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
           <div style={{ display: "flex", gap: 6 }}>
             <button className="tr-ghost" style={{ padding: 8 }} onClick={load}><RefreshCw size={15} /></button>
             {!readOnly && <button className="tr-btn" style={{ padding: "8px 12px", display: "flex", gap: 6, alignItems: "center" }} onClick={share}><Share2 size={14} /> {toast || "Ссылка"}</button>}
-            {isGroupMember && <button className="tr-ghost" style={{ padding: 8, color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)" }} title="Удалить турнир" onClick={async () => { if (!confirm("Удалить турнир и все его данные?")) return; try { await deleteTournament(id); back && back(); } catch (e) { alert("Не удалось удалить"); } }}><Trash2 size={15} /></button>}
+            {isGroupMember && <button className="tr-ghost" style={{ padding: 8, color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)" }} title="Удалить турнир" onClick={async () => { if (!confirm("Удалить турнир и все его данные?")) return; try { await deleteTournament(id); onArchiveChange && onArchiveChange(); back && back(); } catch (e) { alert("Не удалось удалить"); } }}><Trash2 size={15} /></button>}
           </div>
         </div>
         <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>{t.players.length}/{t.target_size} игроков · до {t.points_per_game} очков · {statusLabel[t.status]}</div>

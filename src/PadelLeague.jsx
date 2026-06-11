@@ -6,7 +6,7 @@ import { getRatingHistory } from "./lib/statsApi";
 import { listTournaments } from "./lib/tournamentApi";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
-import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2 } from "lucide-react";
+import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2 } from "lucide-react";
 import Tournaments, { TournamentView } from "./components/Tournaments";
 import CourtView from "./components/CourtView";
 
@@ -108,6 +108,8 @@ function ContactLinks({ contacts = {} }) {
 export default function PadelLeague({ groupId, session, profileId }) {
   const [tab, setTab] = useState(session ? "board" : "games");
   const [players, setPlayers] = useState([]);
+  const [archiveNonce, setArchiveNonce] = useState(0);
+  const bumpArchive = useCallback(() => setArchiveNonce((n) => n + 1), []);
 
   const loadLeaderboard = useCallback(async () => {
     if (!groupId) return;
@@ -135,9 +137,9 @@ export default function PadelLeague({ groupId, session, profileId }) {
         )}
 
         {tab === "board" && (session ? <Board groupId={groupId} players={players} reload={loadLeaderboard} /> : <GateScreen />)}
-        {tab === "games" && <Games groupId={groupId} players={players} reloadLeaderboard={loadLeaderboard} session={session} />}
-        {tab === "tournaments" && <Tournaments groupId={groupId} players={players} profileId={profileId} />}
-        {tab === "history" && (session ? <HistoryView groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} /> : <GateScreen />)}
+        {tab === "games" && <Games groupId={groupId} players={players} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} />}
+        {tab === "tournaments" && <Tournaments groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} />}
+        {tab === "history" && (session ? <HistoryView groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} archiveNonce={archiveNonce} bumpArchive={bumpArchive} /> : <GateScreen />)}
       </div>
 
       <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(10,22,18,.92)", borderTop: "1px solid var(--line)", backdropFilter: "blur(8px)" }}>
@@ -173,7 +175,20 @@ function Board({ groupId, players, reload }) {
   const [contacts, setContacts] = useState({ whatsapp: "", telegram: "", email: "", phone: "" });
   const [selected, setSelected] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [tourCounts, setTourCounts] = useState({});
   const ranked = [...players].sort((a, b) => b.rating - a.rating);
+
+  useEffect(() => {
+    listTournaments(groupId).then((all) => {
+      const counts = {};
+      all.filter((t) => t.status === "finished").forEach((t) => {
+        (t.players || []).forEach((p) => {
+          if (p.profile_id) counts[p.profile_id] = (counts[p.profile_id] || 0) + 1;
+        });
+      });
+      setTourCounts(counts);
+    }).catch(() => {});
+  }, [groupId]);
 
   const resetForm = () => { setName(""); setContacts({ whatsapp: "", telegram: "", email: "", phone: "" }); };
 
@@ -197,11 +212,12 @@ function Board({ groupId, players, reload }) {
           <img src={playerAvatar(p.avatar_url, p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
-            <div style={{ fontSize: 12, color: "var(--mut)" }}>{p.matches} игр · {p.wins} побед</div>
+            <div style={{ fontSize: 12, color: "var(--mut)" }}>{p.matches} игр · {tourCounts[p.id] || 0} турниров</div>
           </div>
           {p.contacts && Object.values(p.contacts).some(Boolean) && (
             <div style={{ fontSize: 10, color: "var(--lime)", flexShrink: 0 }}>📞</div>
           )}
+          <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />
           <button style={{ padding: 4, border: "none", background: "none", color: "rgba(255,106,82,.4)", cursor: "pointer", flexShrink: 0 }}
             title="Удалить из лиги"
             onClick={async (e) => {
@@ -280,6 +296,8 @@ function PlayerDetail({ groupId, player, players, close }) {
   const [myId, setMyId] = useState(null);
   const [allMatches, setAllMatches] = useState(null);
   const [playerTours, setPlayerTours] = useState(null);
+  const [rawTours, setRawTours] = useState(null);
+  const [tourH2H, setTourH2H] = useState(null);
 
   useEffect(() => {
     getRatingHistory(groupId, player.id).then(setHist).catch(() => setHist([player.rating]));
@@ -305,6 +323,7 @@ function PlayerDetail({ groupId, player, players, close }) {
       const participated = finished.filter((t) =>
         (t.players || []).some((p) => p.profile_id === player.id)
       );
+      setRawTours(participated);
       const rows = participated.map((t) => {
         const tPlayers = (t.players || []).map((p) => ({ id: p.id, name: p.name }));
         const table = detailedStandings(tPlayers, t.matches || []);
@@ -323,6 +342,35 @@ function PlayerDetail({ groupId, player, players, close }) {
       setPlayerTours(rows);
     }).catch(() => setPlayerTours([]));
   }, [groupId, player.id]);
+
+  // Турнирный H2H — пересчитываем когда оба (rawTours и myId) готовы
+  useEffect(() => {
+    if (!rawTours || !myId || myId === player.id) { setTourH2H(null); return; }
+    let toWins = 0, toLosses = 0, toDraws = 0;
+    let vsWins = 0, vsLosses = 0, vsDraws = 0;
+    rawTours.forEach((t) => {
+      const myTp = (t.players || []).find((p) => p.profile_id === myId);
+      const theirTp = (t.players || []).find((p) => p.profile_id === player.id);
+      if (!myTp || !theirTp) return;
+      (t.matches || []).forEach((m) => {
+        if (m.score_a == null) return; // незавершённый
+        const myInA = (m.team_a || []).includes(myTp.id);
+        const myInB = (m.team_b || []).includes(myTp.id);
+        const thInA = (m.team_a || []).includes(theirTp.id);
+        const thInB = (m.team_b || []).includes(theirTp.id);
+        if (!myInA && !myInB) return;
+        if (!thInA && !thInB) return;
+        const together = (myInA && thInA) || (myInB && thInB);
+        const myTeamWon = myInA ? m.score_a > m.score_b : m.score_b > m.score_a;
+        const isDraw = m.score_a === m.score_b;
+        if (together) { if (isDraw) toDraws++; else if (myTeamWon) toWins++; else toLosses++; }
+        else          { if (isDraw) vsDraws++; else if (myTeamWon) vsWins++; else vsLosses++; }
+      });
+    });
+    const toTotal = toWins + toLosses + toDraws;
+    const vsTotal = vsWins + vsLosses + vsDraws;
+    setTourH2H(toTotal + vsTotal > 0 ? { toWins, toLosses, toDraws, toTotal, vsWins, vsLosses, vsDraws, vsTotal } : null);
+  }, [rawTours, myId, player.id]);
 
   const nameOf = (id) => players.find((p) => p.id === id)?.name || "Удалён";
 
@@ -408,6 +456,18 @@ function PlayerDetail({ groupId, player, players, close }) {
         </div>
       )}
 
+      {/* H2H в турнирах */}
+      {tourH2H && (
+        <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+            <Trophy size={13} color="var(--lime)" />
+            <div style={{ fontSize: 13, fontWeight: 600 }}>В турнирах вместе</div>
+          </div>
+          {statRow("В одной команде", tourH2H.toWins, tourH2H.toDraws, tourH2H.toLosses, tourH2H.toTotal)}
+          {statRow("Против друг друга", tourH2H.vsWins, tourH2H.vsDraws, tourH2H.vsLosses, tourH2H.vsTotal)}
+        </div>
+      )}
+
       {/* Последние совместные игры */}
       {myId && myId !== player.id && withPlayer.length > 0 && (
         <div className="pl-card" style={{ padding: 14 }}>
@@ -464,7 +524,7 @@ function PlayerDetail({ groupId, player, players, close }) {
 }
 
 /* --------------------------------- Games ---------------------------------- */
-function Games({ groupId, players, reloadLeaderboard, session }) {
+function Games({ groupId, players, reloadLeaderboard, session, archiveNonce, bumpArchive }) {
   const [games, setGames] = useState([]);
   const [mode, setMode] = useState("list");
   const [selId, setSelId] = useState(null);
@@ -474,7 +534,7 @@ function Games({ groupId, players, reloadLeaderboard, session }) {
     setLoading(true);
     try { setGames(await listGames(groupId)); } catch (e) { /* noop */ } finally { setLoading(false); }
   }, [groupId]);
-  useEffect(() => { loadGames(); }, [loadGames]);
+  useEffect(() => { loadGames(); }, [loadGames, archiveNonce]);
 
   if (mode === "create")
     return <CreateGame groupId={groupId} players={players} back={() => setMode("list")} done={() => { setMode("list"); loadGames(); }} />;
@@ -482,7 +542,7 @@ function Games({ groupId, players, reloadLeaderboard, session }) {
   if (mode === "view") {
     const g = games.find((x) => x.id === selId);
     if (!g) { setMode("list"); return null; }
-    return <GameCard game={g} back={() => setMode("list")} reloadGames={loadGames} reloadLeaderboard={reloadLeaderboard} />;
+    return <GameCard game={g} back={() => setMode("list")} reloadGames={loadGames} reloadLeaderboard={reloadLeaderboard} bumpArchive={bumpArchive} />;
   }
 
   return (
@@ -605,7 +665,7 @@ function CreateGame({ groupId, players, back, done }) {
   );
 }
 
-function GameCard({ game, back, reloadGames, reloadLeaderboard }) {
+function GameCard({ game, back, reloadGames, reloadLeaderboard, bumpArchive }) {
   const [showShare, setShowShare] = useState(false);
   const [toast, setToast] = useState("");
   const slots = [...(game.slots || [])].sort((a, b) => (a.team + a.position).localeCompare(b.team + b.position));
@@ -628,7 +688,7 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard }) {
       <div className="pl-pop">
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         {back && <button className="pl-ghost" style={{ padding: "6px 12px" }} onClick={back}>← К списку</button>}
-        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!confirm("Удалить эту игру?")) return; await deleteGame(game.id); reloadGames && reloadGames(); back && back(); }} title="Удалить"><Trash2 size={14} /></button>
+        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!confirm("Удалить эту игру?")) return; await deleteGame(game.id); bumpArchive && bumpArchive(); reloadGames && reloadGames(); back && back(); }} title="Удалить"><Trash2 size={14} /></button>
       </div>
         <div className="pl-card" style={{ padding: 14 }}>
           <div className="pl-display" style={{ fontSize: 18 }}>{game.title || "Падел"} · сыграна</div>
@@ -649,7 +709,7 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard }) {
     <div className="pl-pop">
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         {back && <button className="pl-ghost" style={{ padding: "6px 12px" }} onClick={back}>← К списку</button>}
-        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!confirm("Удалить эту игру?")) return; await deleteGame(game.id); reloadGames && reloadGames(); back && back(); }} title="Удалить"><Trash2 size={14} /></button>
+        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!confirm("Удалить эту игру?")) return; await deleteGame(game.id); bumpArchive && bumpArchive(); reloadGames && reloadGames(); back && back(); }} title="Удалить"><Trash2 size={14} /></button>
       </div>
       <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -728,7 +788,7 @@ function EnterScore({ gameId, reloadGames, reloadLeaderboard }) {
 }
 
 /* ------------------------------- HistoryView ------------------------------ */
-function HistoryView({ groupId, players, profileId, isGroupMember }) {
+function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce, bumpArchive }) {
   const [matches, setMatches] = useState(null);
   const [tours, setTours] = useState([]);
   const [sel, setSel] = useState(null);
@@ -744,7 +804,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember }) {
       try { const all = await listTournaments(groupId); setTours(all.filter((t) => t.status === "finished")); }
       catch (e) { setTours([]); }
     })();
-  }, [groupId, sel]);
+  }, [groupId, sel, archiveNonce]);
 
   if (sel) return <TournamentView id={sel.id} players={players} back={() => setSel(null)} isGroupMember={isGroupMember} currentProfileId={profileId} />;
 
@@ -810,7 +870,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember }) {
               </div>
               {isGroupMember && (
                 <button style={{ flexShrink: 0, padding: 8, border: "1px solid rgba(255,106,82,.2)", borderRadius: 8, background: "none", color: "rgba(255,106,82,.5)", cursor: "pointer", alignSelf: "center" }}
-                  onClick={(e) => { e.stopPropagation(); if (!confirm("Удалить этот матч из истории?")) return; supabase.from("matches").delete().eq("id", m.id).then(() => setMatches((prev) => prev.filter((x) => x.id !== m.id))); }}
+                  onClick={(e) => { e.stopPropagation(); if (!confirm("Удалить этот матч из истории?")) return; supabase.from("matches").delete().eq("id", m.id).then(() => { setMatches((prev) => prev.filter((x) => x.id !== m.id)); bumpArchive && bumpArchive(); }); }}
                   title="Удалить"><Trash2 size={14} /></button>
               )}
             </div>
