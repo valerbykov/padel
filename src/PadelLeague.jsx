@@ -747,6 +747,20 @@ function HistoryView({ groupId, players, profileId, isGroupMember }) {
                 {(m.team_a || []).map((id) => (
                   <div key={id} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
                     {avatarOf(id) && <img src={avatarOf(id)} alt="" style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0 }} />}
+                    <span style={{ fontSize: 13, fontWeight: aWon ? 700 : 400, color: aWon ? "var(--lime)" : "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nameOf(id)}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ textAlign: "center", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                <div className="pl-display" style={{ fontSize: 22 }}>{m.sets_a}:{m.sets_b}</div>
+                {detail && <div style={{ fontSize: 10, color: "var(--lime)" }}>{isExpanded ? "▲" : "▼"}</div>}
+                {isGroupMember && <button style={{ padding: 3, border: "none", background: "none", color: "rgba(255,106,82,.5)", cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); if (!confirm("Удалить этот матч из истории?")) return; supabase.from("matches").delete().eq("id", m.id).then(() => setMatches((prev) => prev.filter((x) => x.id !== m.id))); }} title="Удалить"><Trash2 size={13} /></button>}
+              </div>
+              <div style={{ flex: 1, minWidth: 0, textAlign: "right" }}>
+                {(m.team_b || []).map((id) => (
+                  <div key={id} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, justifyContent: "flex-end" }}>
+                    <span style={{ fontSize: 13, fontWeight: !aWon ? 700 : 400, color: !aWon ? "var(--lime)" : "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nameOf(id)}</span>
+                    {avatarOf(id) && <img src={avatarOf(id)} alt="" style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0 }} />}
                   </div>
                 ))}
               </div>
