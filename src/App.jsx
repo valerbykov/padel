@@ -11,6 +11,7 @@ import ClaimProfile from "./components/ClaimProfile";
 import PadelLeague from "./PadelLeague";
 import ProfileEditor from "./components/ProfileEditor";
 import LeagueSetup from "./components/LeagueSetup";
+import LeaguePublicPage from "./components/LeaguePublicPage";
 import { LogIn, Sun, Moon } from "lucide-react";
 import { getMyLeagues } from "./lib/padelApi";
 
@@ -31,6 +32,11 @@ function getClaimCode() {
   return m ? m[1].toLowerCase() : null;
 }
 
+function getLeaguePublicCode() {
+  const m = window.location.pathname.match(/^\/l\/([A-Za-z0-9]{6})$/i);
+  return m ? m[1].toUpperCase() : null;
+}
+
 export default function App() {
   const [session,      setSession]      = useState(null);
   const [profile,      setProfile]      = useState(null);
@@ -49,9 +55,17 @@ export default function App() {
     });
   }, []);
 
-  const inviteCode    = getInviteCode();
-  const tournamentCode = getTournamentCode();
-  const claimCode     = getClaimCode();
+  const inviteCode       = getInviteCode();
+  const tournamentCode  = getTournamentCode();
+  const claimCode       = getClaimCode();
+  const leaguePublicCode = getLeaguePublicCode();
+
+  // ?join=CODE — автозаполнение формы вступления в лигу
+  const [pendingJoin, setPendingJoin] = useState(() => {
+    const p = new URLSearchParams(window.location.search).get("join")?.toUpperCase();
+    if (p) window.history.replaceState({}, "", window.location.pathname);
+    return p || null;
+  });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -112,6 +126,9 @@ export default function App() {
 
   const isAdmin = !!(activeLeague && (activeLeague.role === "owner" || activeLeague.role === "admin"));
 
+  // Публичная страница лиги — без логина.
+  if (leaguePublicCode) return <LeaguePublicPage code={leaguePublicCode} />;
+
   // Гость по ссылке-приглашению — без логина.
   if (inviteCode)    return <GuestJoin code={inviteCode} botName={BOT_NAME} />;
   if (tournamentCode) return <TournamentJoin code={tournamentCode} botName={BOT_NAME} />;
@@ -123,6 +140,27 @@ export default function App() {
 
   if (showProfile && session)
     return <ProfileEditor onClose={() => setShowProfile(false)} onSaved={() => setPNonce((n) => n + 1)} />;
+
+  // Переход по ?join=CODE — показываем экран вступления с предзаполненным кодом.
+  if (pendingJoin && session && profile && leagues !== null) {
+    return (
+      <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
+        <TopBar
+          session={session} name={profile?.name} avatarUrl={profile?.avatar_url}
+          onLogin={() => setShowLogin(true)}
+          onProfile={() => setShowProfile(true)}
+          onSignOut={() => supabase.auth.signOut()}
+          theme={theme} onThemeToggle={toggleTheme}
+        />
+        <LeagueSetup
+          onDone={(league) => { setPendingJoin(null); handleLeagueDone(league); }}
+          onCancel={() => setPendingJoin(null)}
+          initialMode="join"
+          initialCode={pendingJoin}
+        />
+      </div>
+    );
+  }
 
   // Залогинен, профиль загружен, но ни одной лиги нет.
   if (session && profile && leagues !== null && leagues.length === 0)

@@ -6,10 +6,10 @@ import { createLeague, joinLeague } from "../lib/padelApi";
  * Показывается, когда у залогиненного пользователя нет ни одной лиги.
  * onDone(league) — вызывается после создания/присоединения.
  */
-export default function LeagueSetup({ onDone }) {
-  const [mode, setMode]       = useState(null); // "create" | "join" | null
+export default function LeagueSetup({ onDone, initialMode = null, initialCode = "", onCancel = null }) {
+  const [mode, setMode]       = useState(initialMode); // "create" | "join" | null
   const [name, setName]       = useState("");
-  const [code, setCode]       = useState("");
+  const [code, setCode]       = useState(initialCode);
   const [busy, setBusy]       = useState(false);
   const [err,  setErr]        = useState("");
 
@@ -84,6 +84,9 @@ export default function LeagueSetup({ onDone }) {
         <button style={s.btnPrimary}  onClick={() => setMode("create")}>Создать лигу</button>
         <button style={s.btnSecondary} onClick={() => setMode("join")}>По коду</button>
       </div>
+      {onCancel && (
+        <button style={s.back} onClick={onCancel}>Пропустить →</button>
+      )}
     </div>
   );
 

@@ -83,7 +83,7 @@ export default function GuestJoin({ code, botName }) {
   };
 
   return (
-    <div className="gj-root">
+    <div className="gj-root" style={{ flexDirection: "column", gap: 20 }}>
       <style>{css}</style>
       <div className="gj-card">
         <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2 }}>ПРИГЛАШЕНИЕ В ИГРУ</div>
@@ -132,6 +132,12 @@ export default function GuestJoin({ code, botName }) {
             )}
           </>
         )}
+      </div>
+      <div style={{ textAlign: "center", color: "#7d9488", fontSize: 12, maxWidth: 400 }}>
+        🎾 Хочешь организовать свои игры?{" "}
+        <a href="/" style={{ color: "#c8ff2d", fontWeight: 700, textDecoration: "none" }}>
+          Создать лигу бесплатно →
+        </a>
       </div>
     </div>
   );

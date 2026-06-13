@@ -270,3 +270,10 @@ export async function getMyLeagues(profileId) {
     role: r.role,
   }));
 }
+
+// Публичный профиль лиги — без авторизации (используется на /l/CODE).
+export async function getPublicLeague(code) {
+  const { data, error } = await supabase.rpc("get_public_league", { p_code: code.trim().toUpperCase() });
+  if (error) throw error;
+  return data;
+}

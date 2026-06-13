@@ -155,6 +155,12 @@ export default function TournamentJoin({ code, botName }) {
           </>
         )}
       </div>
+      <div style={{ textAlign: "center", color: "#7d9488", fontSize: 12, padding: "0 16px 8px" }}>
+        🎾 Хочешь организовать свои игры?{" "}
+        <a href="/" style={{ color: "#c8ff2d", fontWeight: 700, textDecoration: "none" }}>
+          Создать лигу бесплатно →
+        </a>
+      </div>
     </div>
   );
 }
