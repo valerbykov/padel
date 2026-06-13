@@ -26,12 +26,14 @@ const fmtDate = (iso) => {
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
-.pl-root{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;
- font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;color-scheme:dark;
+body{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;--lime-fg:#0a1612;--topbar-bg:rgba(10,22,18,.92);--border:var(--line);--card:var(--surface);--fg:var(--ink);background:var(--bg);}
+body.pl-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;--ink:#0d1f18;--mut:#4a7060;--lime:#2a7a00;--coral:#d93a1f;--lime-fg:#ffffff;--topbar-bg:rgba(242,247,244,.95);}
+.pl-root{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;color-scheme:dark;
  background-image:radial-gradient(circle at 80% -10%,rgba(200,255,45,.10),transparent 45%),radial-gradient(circle at 0% 110%,rgba(40,120,90,.18),transparent 40%);}
+.pl-root.pl-light{color-scheme:light;background-image:radial-gradient(circle at 80% -10%,rgba(42,122,0,.06),transparent 45%),radial-gradient(circle at 0% 110%,rgba(40,120,90,.08),transparent 40%);}
 .pl-display{font-family:'Anton',sans-serif;letter-spacing:.5px;text-transform:uppercase;}
 .pl-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;}
-.pl-btn{background:var(--lime);color:#0a1612;font-weight:700;border:none;border-radius:14px;cursor:pointer;transition:transform .12s,filter .12s;}
+.pl-btn{background:var(--lime);color:var(--lime-fg);font-weight:700;border:none;border-radius:14px;cursor:pointer;transition:transform .12s,filter .12s;}
 .pl-btn:active{transform:scale(.97);}.pl-btn:disabled{filter:grayscale(.6) brightness(.7);cursor:not-allowed;}
 .pl-ghost{background:var(--surface2);color:var(--ink);border:1px solid var(--line);border-radius:14px;cursor:pointer;}
 .pl-input,.pl-select{background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Outfit';outline:none;width:100%;}
@@ -105,7 +107,7 @@ function ContactLinks({ contacts = {} }) {
 }
 
 /* --------------------------------- root ----------------------------------- */
-export default function PadelLeague({ groupId, session, profileId, leagues = [], activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated }) {
+export default function PadelLeague({ groupId, session, profileId, leagues = [], activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark" }) {
   const [tab, setTab] = useState(session ? "board" : "games");
   const [players, setPlayers] = useState([]);
   const [archiveNonce, setArchiveNonce] = useState(0);
@@ -118,10 +120,15 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
 
   useEffect(() => { loadLeaderboard(); }, [loadLeaderboard]);
 
+  useEffect(() => {
+    document.body.classList.toggle("pl-light", theme === "light");
+    return () => document.body.classList.remove("pl-light");
+  }, [theme]);
+
   const titles = { board: "Друзья", games: "Игры", history: "История", tournaments: "Турниры" };
 
   return (
-    <div className="pl-root">
+    <div className={`pl-root${theme === "light" ? " pl-light" : ""}`}>
       <style>{css}</style>
       <div style={{ maxWidth: 460, margin: "0 auto", padding: "20px 16px 88px" }}>
         <header style={{ marginBottom: 18 }}>
@@ -142,7 +149,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
         {tab === "history" && (session ? <HistoryView groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} archiveNonce={archiveNonce} bumpArchive={bumpArchive} /> : <GateScreen />)}
       </div>
 
-      <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(10,22,18,.92)", borderTop: "1px solid var(--line)", backdropFilter: "blur(8px)" }}>
+      <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--topbar-bg)", borderTop: "1px solid var(--line)", backdropFilter: "blur(8px)" }}>
         <div style={{ maxWidth: 460, margin: "0 auto", display: "flex" }}>
           {session && <button className={`pl-tab ${tab === "board" ? "on" : ""}`} onClick={() => setTab("board")}><Trophy size={20} />Друзья</button>}
           <button className={`pl-tab ${tab === "games" ? "on" : ""}`} onClick={() => setTab("games")}><Swords size={20} />Игры</button>
@@ -216,7 +223,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
       });
       if (extraIds.size > 0) {
         const { data: profiles } = await supabase
-          .from("profiles").select("id, name, avatar_url, contacts, claim_code")
+          .from("profiles").select("id, name, avatar_url, contacts, claim_code, user_id")
           .in("id", [...extraIds]);
         if (active) setExtraPlayers((profiles || []).sort((a, b) => a.name.localeCompare(b.name)));
       } else {
@@ -670,7 +677,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
         <div className="pl-display" style={{ fontSize: 24 }}>{player.name}</div>
         <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 4 }}>{player.matches} игр · {player.wins} побед</div>
         <ContactLinks contacts={player.contacts} />
-        {localClaimCode
+        {!player.user_id && (localClaimCode
           ? <ClaimLinkButton claimCode={localClaimCode} />
           : isAdmin && (
             <button onClick={generateClaimCode} disabled={genBusy}
@@ -678,7 +685,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
               <Share2 size={13} /> {genBusy ? "…" : "Создать ссылку для регистрации"}
             </button>
           )
-        }
+        )}
         {onAddToLeague && !isInLeague && (
           <button onClick={onAddToLeague}
             style={{ marginTop: 10, padding: "8px 16px", border: "none", borderRadius: 10, background: "var(--lime)", color: "#111", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "'Outfit'" }}>

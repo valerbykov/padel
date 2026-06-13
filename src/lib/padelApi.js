@@ -35,7 +35,7 @@ export async function ensureMyProfile(name) {
 export async function getLeaderboard(groupId) {
   const { data, error } = await supabase
     .from("group_members")
-    .select("rating, matches_played, wins, profile:profiles(id, name, avatar_url, contacts, claim_code)")
+    .select("rating, matches_played, wins, profile:profiles(id, name, avatar_url, contacts, claim_code, user_id)")
     .eq("group_id", groupId)
     .order("rating", { ascending: false });
   if (error) throw error;
@@ -48,6 +48,7 @@ export async function getLeaderboard(groupId) {
     rating: r.rating,
     matches: r.matches_played,
     wins: r.wins,
+    user_id: r.profile.user_id || null,
   }));
 }
 

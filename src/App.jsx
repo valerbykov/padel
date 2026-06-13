@@ -11,7 +11,7 @@ import ClaimProfile from "./components/ClaimProfile";
 import PadelLeague from "./PadelLeague";
 import ProfileEditor from "./components/ProfileEditor";
 import LeagueSetup from "./components/LeagueSetup";
-import { LogIn } from "lucide-react";
+import { LogIn, Sun, Moon } from "lucide-react";
 import { getMyLeagues } from "./lib/padelApi";
 
 const BOT_NAME = "padel_league_bot"; // имя твоего Telegram-бота без @
@@ -39,6 +39,15 @@ export default function App() {
   const [showLogin,    setShowLogin]    = useState(false);
   const [showProfile,  setShowProfile]  = useState(false);
   const [pNonce,       setPNonce]       = useState(0);
+  const [theme,        setTheme]        = useState(() => localStorage.getItem("plTheme") || "dark");
+
+  const toggleTheme = useCallback(() => {
+    setTheme((t) => {
+      const next = t === "dark" ? "light" : "dark";
+      localStorage.setItem("plTheme", next);
+      return next;
+    });
+  }, []);
 
   const inviteCode    = getInviteCode();
   const tournamentCode = getTournamentCode();
@@ -118,19 +127,20 @@ export default function App() {
   // Залогинен, профиль загружен, но ни одной лиги нет.
   if (session && profile && leagues !== null && leagues.length === 0)
     return (
-      <div style={{ minHeight: "100vh", background: "#0a1612" }}>
+      <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
         <TopBar
           session={session} name={profile?.name} avatarUrl={profile?.avatar_url}
           onLogin={() => setShowLogin(true)}
           onProfile={() => setShowProfile(true)}
           onSignOut={() => supabase.auth.signOut()}
+          theme={theme} onThemeToggle={toggleTheme}
         />
         <LeagueSetup onDone={handleLeagueDone} />
       </div>
     );
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0a1612" }}>
+    <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
       <TopBar
         session={session}
         name={profile?.name}
@@ -138,6 +148,8 @@ export default function App() {
         onLogin={() => setShowLogin(true)}
         onProfile={() => setShowProfile(true)}
         onSignOut={() => supabase.auth.signOut()}
+        theme={theme}
+        onThemeToggle={toggleTheme}
       />
       <PadelLeague
         groupId={activeLeague?.id ?? null}
@@ -148,38 +160,45 @@ export default function App() {
         isAdmin={isAdmin}
         onLeagueChange={handleLeagueChange}
         onLeagueCreated={handleLeagueDone}
+        theme={theme}
       />
     </div>
   );
 }
 
-function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut }) {
-  const base = { border: "1px solid #22382c", borderRadius: 10, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif" };
+function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme, onThemeToggle }) {
+  const base = { border: "1px solid var(--line)", borderRadius: 10, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif" };
   const initials = (name || "").trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
-      padding: "10px 16px", borderBottom: "1px solid #22382c",
-      background: "rgba(10,22,18,.92)", position: "sticky", top: 0, zIndex: 60,
+      padding: "10px 16px", borderBottom: "1px solid var(--line)",
+      background: "var(--topbar-bg)", position: "sticky", top: 0, zIndex: 60,
       fontFamily: "'Outfit',sans-serif",
     }}>
       {session ? (
-        <button onClick={onProfile} style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", color: "#eef3ee", padding: 0 }}>
+        <button onClick={onProfile} style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", color: "var(--ink)", padding: 0 }}>
           {avatarUrl
-            ? <img src={avatarUrl} alt="" style={{ width: 30, height: 30, borderRadius: "50%", objectFit: "cover", border: "1px solid #2a4a3a" }} />
-            : <span style={{ width: 30, height: 30, borderRadius: "50%", background: "#16291f", border: "1px solid #22382c", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#c8ff2d" }}>{initials}</span>}
+            ? <img src={avatarUrl} alt="" style={{ width: 30, height: 30, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
+            : <span style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "var(--lime)" }}>{initials}</span>}
           <span style={{ fontSize: 14, fontWeight: 600 }}>{name || "Профиль"}</span>
         </button>
       ) : (
-        <span style={{ color: "#eef3ee", fontSize: 14, fontWeight: 600 }}>Падел · Лига</span>
+        <span style={{ color: "var(--ink)", fontSize: 14, fontWeight: 600 }}>Падел · Лига</span>
       )}
-      {session ? (
-        <button onClick={onSignOut} style={{ ...base, background: "#16291f", color: "#7d9488" }}>Выйти</button>
-      ) : (
-        <button onClick={onLogin} style={{ ...base, background: "#c8ff2d", color: "#0a1612", border: "none", fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
-          <LogIn size={15} /> Войти
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <button onClick={onThemeToggle} title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
+          style={{ ...base, background: "var(--surface2)", color: "var(--mut)", display: "flex", alignItems: "center", padding: "6px 9px" }}>
+          {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
         </button>
-      )}
+        {session ? (
+          <button onClick={onSignOut} style={{ ...base, background: "var(--surface2)", color: "var(--mut)" }}>Выйти</button>
+        ) : (
+          <button onClick={onLogin} style={{ ...base, background: "var(--lime)", color: "var(--lime-fg)", border: "none", fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+            <LogIn size={15} /> Войти
+          </button>
+        )}
+      </div>
     </div>
   );
 }
