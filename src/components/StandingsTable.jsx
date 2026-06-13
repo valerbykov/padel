@@ -9,7 +9,7 @@ const colorOf = (name = "") => `hsl(${[...name].reduce((a, c) => a + c.charCodeA
 
 function Avatar({ name, url, size = 34 }) {
   return url ? (
-    <img src={url} alt="" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", border: "1px solid #2a4a3a", flexShrink: 0 }} />
+    <img src={url} alt="" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
   ) : (
     <div style={{ width: size, height: size, borderRadius: "50%", background: colorOf(name), color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: size * 0.36, border: "1px solid rgba(255,255,255,.15)", flexShrink: 0 }}>
       {initials(name)}
@@ -22,8 +22,8 @@ export default function StandingsTable({ rows, highlightId, avatarOf }) {
   const deltaColor = (d) => (d > 0 ? "#3ddc84" : d < 0 ? "#ff6a52" : "#7d9488");
 
   return (
-    <div style={{ fontFamily: "'Outfit',sans-serif", color: "#eef3ee", minWidth: 0, overflow: "hidden" }}>
-      <div style={{ display: "grid", gridTemplateColumns: grid, gap: 6, padding: "0 4px 8px", fontSize: 10, color: "#7d9488", borderBottom: "1px solid #22382c" }}>
+    <div style={{ fontFamily: "'Outfit',sans-serif", color: "var(--ink)", minWidth: 0, overflow: "hidden" }}>
+      <div style={{ display: "grid", gridTemplateColumns: grid, gap: 6, padding: "0 4px 8px", fontSize: 10, color: "var(--mut)", borderBottom: "1px solid var(--line)" }}>
         <span>Игрок</span>
         <span style={{ textAlign: "center" }}>+/-</span>
         <span style={{ textAlign: "center" }}>Очки</span>
@@ -38,7 +38,7 @@ export default function StandingsTable({ rows, highlightId, avatarOf }) {
         return (
           <div key={p.id} style={{
             display: "grid", gridTemplateColumns: grid, gap: 6, alignItems: "center",
-            padding: "8px 4px", borderBottom: "1px solid #22382c",
+            padding: "8px 4px", borderBottom: "1px solid var(--line)",
             background: hl ? "rgba(95,160,255,.14)" : "transparent",
             borderRadius: hl ? 10 : 0,
           }}>
@@ -52,7 +52,7 @@ export default function StandingsTable({ rows, highlightId, avatarOf }) {
                 <span style={{
                   fontSize: 10, lineHeight: 1.2, textAlign: "center",
                   wordBreak: "break-word", hyphens: "auto",
-                  fontWeight: hl ? 700 : 500, color: "#eef3ee",
+                  fontWeight: hl ? 700 : 500, color: "var(--ink)",
                   maxWidth: "100%",
                 }}>
                   {p.name}
@@ -64,13 +64,13 @@ export default function StandingsTable({ rows, highlightId, avatarOf }) {
             <div style={{ textAlign: "center", fontSize: 11, fontVariantNumeric: "tabular-nums", lineHeight: 1.5 }}>
               <span style={{ color: "#3ddc84" }}>{p.wins}</span>
               
-              <span style={{ color: "#5d7567" }}>-{p.draws}-</span>
-              <span style={{ color: "#ff6a52" }}>{p.losses}</span>
+              <span style={{ color: "var(--mut)" }}>-{p.draws}-</span>
+              <span style={{ color: "var(--coral)" }}>{p.losses}</span>
             </div>
 
             {/* Очки за/против */}
             <div style={{ textAlign: "center", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
-              {p.points}<span style={{ color: "#5d7567" }}>-</span>{p.against}
+              {p.points}<span style={{ color: "var(--mut)" }}>-</span>{p.against}
             </div>
 
             {/* Дельта */}

@@ -63,10 +63,10 @@ function LineChart({ values }) {
   const pts = values.map((v, i) => `${x(i)},${y(v)}`).join(" ");
   return (
     <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: "auto" }}>
-      <defs><linearGradient id="plg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#c8ff2d" stopOpacity="0.32" /><stop offset="100%" stopColor="#c8ff2d" stopOpacity="0" /></linearGradient></defs>
+      <defs><linearGradient id="plg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style={{ stopColor: "var(--lime)", stopOpacity: 0.32 }} /><stop offset="100%" style={{ stopColor: "var(--lime)", stopOpacity: 0 }} /></linearGradient></defs>
       <polygon points={`${pad},${h - pad} ${pts} ${w - pad},${h - pad}`} fill="url(#plg)" />
-      <polyline points={pts} fill="none" stroke="#c8ff2d" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-      {values.map((v, i) => <circle key={i} cx={x(i)} cy={y(v)} r="2.5" fill="#0a1612" stroke="#c8ff2d" strokeWidth="2" />)}
+      <polyline points={pts} fill="none" strokeWidth="2.5" style={{ stroke: "var(--lime)" }} strokeLinejoin="round" strokeLinecap="round" />
+      {values.map((v, i) => <circle key={i} cx={x(i)} cy={y(v)} r="2.5" strokeWidth="2" style={{ fill: "var(--bg)", stroke: "var(--lime)" }} />)}
     </svg>
   );
 }
@@ -359,7 +359,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
 
       {/* Код приглашения — виден всем участникам лиги */}
       {activeLeague?.invite_code && (
-        <button onClick={copyInvite} style={{ width: "100%", marginBottom: 12, padding: "12px 16px", background: "rgba(200,255,45,.08)", border: "1px solid rgba(200,255,45,.4)", borderRadius: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: "'Outfit'" }}>
+        <button onClick={copyInvite} style={{ width: "100%", marginBottom: 12, padding: "12px 16px", background: "color-mix(in srgb, var(--lime) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", borderRadius: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: "'Outfit'" }}>
           <div style={{ textAlign: "left" }}>
             <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 2 }}>Пригласить в лигу</div>
             <div style={{ fontFamily: "'Anton'", fontSize: 22, letterSpacing: 5, color: "var(--lime)" }}>{activeLeague.invite_code}</div>
@@ -386,25 +386,6 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         </div>
       ))}
 
-      {extraPlayers.length > 0 && (
-        <>
-          <div className="pl-display" style={{ fontSize: 12, color: "var(--mut)", margin: "14px 2px 8px", letterSpacing: 1 }}>ИГРАЛИ ВМЕСТЕ</div>
-          {extraPlayers.map((p) => (
-            <div key={p.id} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", marginBottom: 8, cursor: "pointer" }} onClick={() => setSelected(p)}>
-              <img src={playerAvatar(p.avatar_url, p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
-                <div style={{ fontSize: 12, color: "var(--mut)" }}>Не в лиге</div>
-              </div>
-              {p.contacts && Object.values(p.contacts).some(Boolean) && (
-                <div style={{ fontSize: 10, color: "var(--lime)", flexShrink: 0 }}>📞</div>
-              )}
-              <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />
-            </div>
-          ))}
-        </>
-      )}
-
       {open ? (
         <div className="pl-card" style={{ padding: 14, marginTop: 8 }}>
           <div style={{ fontWeight: 600, marginBottom: 10 }}>Добавить игрока</div>
@@ -429,6 +410,25 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         <button className="pl-ghost" style={{ width: "100%", padding: 12, marginTop: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontWeight: 600 }} onClick={() => setOpen(true)}>
           <Users size={18} /> Добавить игрока
         </button>
+      )}
+
+      {extraPlayers.length > 0 && (
+        <>
+          <div className="pl-display" style={{ fontSize: 12, color: "var(--mut)", margin: "14px 2px 8px", letterSpacing: 1 }}>ИГРАЛИ ВМЕСТЕ</div>
+          {extraPlayers.map((p) => (
+            <div key={p.id} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", marginBottom: 8, cursor: "pointer" }} onClick={() => setSelected(p)}>
+              <img src={playerAvatar(p.avatar_url, p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
+                <div style={{ fontSize: 12, color: "var(--mut)" }}>Не в лиге</div>
+              </div>
+              {p.contacts && Object.values(p.contacts).some(Boolean) && (
+                <div style={{ fontSize: 10, color: "var(--lime)", flexShrink: 0 }}>📞</div>
+              )}
+              <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />
+            </div>
+          ))}
+        </>
       )}
     </div>
   );
@@ -656,7 +656,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
           <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 22, color: "var(--coral)" }}>{l}</div>
           <div style={{ fontSize: 10, color: "var(--mut)" }}>поражения</div>
         </div>
-        <div style={{ flex: 2, height: 6, borderRadius: 3, overflow: "hidden", background: "#16291f", display: "flex" }}>
+        <div style={{ flex: 2, height: 6, borderRadius: 3, overflow: "hidden", background: "var(--surface2)", display: "flex" }}>
           {w > 0 && <div style={{ flex: w, background: "#3ddc84" }} />}
           {d > 0 && <div style={{ flex: d, background: "#7d9488" }} />}
           {l > 0 && <div style={{ flex: l, background: "var(--coral)" }} />}
@@ -746,7 +746,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
             const teamB = (m.team_b || []).map(nameOf).join(" & ");
             return (
               <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderBottom: "1px solid var(--line)" }}>
-                <div style={{ width: 20, height: 20, borderRadius: "50%", background: isDraw ? "#22382c" : myTeamWon ? "rgba(61,220,132,.15)" : "rgba(255,106,82,.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: resultColor, flexShrink: 0 }}>
+                <div style={{ width: 20, height: 20, borderRadius: "50%", background: isDraw ? "var(--surface2)" : myTeamWon ? "rgba(61,220,132,.15)" : "rgba(255,106,82,.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: resultColor, flexShrink: 0 }}>
                   {isDraw ? "Н" : myTeamWon ? "В" : "П"}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -1154,7 +1154,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
               )}
             </div>
             {isExpanded && detail && (
-              <div style={{ marginTop: 10, borderTop: "1px solid #22382c", paddingTop: 8, display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+              <div style={{ marginTop: 10, borderTop: "1px solid var(--line)", paddingTop: 8, display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
                 {detail.map((s, i) => (
                   <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, minWidth: 52 }}>
                     <div style={{ fontSize: 10, color: "var(--mut)" }}>Сет {i + 1}</div>
