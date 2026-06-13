@@ -191,6 +191,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
   const [leagueBusy, setLeagueBusy] = useState(false);
   const [leagueErr, setLeagueErr] = useState("");
   const [inviteCopied, setInviteCopied] = useState(false);
+  const [publicLinkCopied, setPublicLinkCopied] = useState(false);
   const ranked = [...players].sort((a, b) => b.rating - a.rating);
 
   useEffect(() => {
@@ -270,6 +271,13 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
     const text = `Вступай в лигу «${activeLeague.name}» — код: ${activeLeague.invite_code}`;
     try { await navigator.clipboard.writeText(text); } catch (e) {}
     setInviteCopied(true); setTimeout(() => setInviteCopied(false), 1800);
+  };
+
+  const copyPublicLink = async () => {
+    if (!activeLeague?.invite_code) return;
+    const url = `${window.location.origin}/l/${activeLeague.invite_code}`;
+    try { await navigator.clipboard.writeText(url); } catch (e) {}
+    setPublicLinkCopied(true); setTimeout(() => setPublicLinkCopied(false), 1800);
   };
 
   const handleCreateLeague = async () => {
@@ -357,20 +365,40 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         </div>
       )}
 
-      {/* Код приглашения — виден всем участникам лиги */}
+      {/* Код приглашения + публичная страница */}
       {activeLeague?.invite_code && (
-        <button onClick={copyInvite} style={{ width: "100%", marginBottom: 12, padding: "12px 16px", background: "color-mix(in srgb, var(--lime) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", borderRadius: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: "'Outfit'" }}>
-          <div style={{ textAlign: "left" }}>
-            <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 2 }}>Пригласить в лигу</div>
-            <div style={{ fontFamily: "'Anton'", fontSize: 22, letterSpacing: 5, color: "var(--lime)" }}>{activeLeague.invite_code}</div>
+        <div style={{ width: "100%", marginBottom: 12, padding: "12px 16px", background: "color-mix(in srgb, var(--lime) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", borderRadius: 14, fontFamily: "'Outfit'" }}>
+          <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 4 }}>Пригласить в лигу</div>
+          <div style={{ fontFamily: "'Anton'", fontSize: 24, letterSpacing: 5, color: "var(--lime)", marginBottom: 10 }}>{activeLeague.invite_code}</div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={copyInvite} style={{ flex: 1, padding: "7px 0", background: "color-mix(in srgb, var(--lime) 18%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", borderRadius: 10, color: "var(--lime)", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, fontFamily: "'Outfit'" }}>
+              {inviteCopied ? "✓ Код скопирован" : <><Copy size={12} /> Копировать код</>}
+            </button>
+            <button onClick={copyPublicLink} style={{ flex: 1, padding: "7px 0", background: "color-mix(in srgb, var(--lime) 18%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", borderRadius: 10, color: "var(--lime)", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, fontFamily: "'Outfit'" }}>
+              {publicLinkCopied ? "✓ Страница скопирована" : <><Share2 size={12} /> Страница лиги</>}
+            </button>
           </div>
-          <div style={{ fontSize: 12, color: "var(--lime)", display: "flex", alignItems: "center", gap: 5 }}>
-            {inviteCopied ? "Скопировано ✓" : <><Copy size={14} /> Скопировать</>}
-          </div>
-        </button>
+        </div>
       )}
 
-      {ranked.length === 0 && <div className="pl-card" style={{ padding: 24, textAlign: "center", color: "var(--mut)", marginBottom: 8 }}>Игроков пока нет — добавь первого.</div>}
+      {ranked.length === 0 && (
+        <div className="pl-card" style={{ padding: 20, marginBottom: 12 }}>
+          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}>🚀 Начни свою лигу</div>
+          {[
+            { n: 1, icon: "👤", text: "Добавь первых игроков", sub: isAdmin ? "Нажми «Добавить игрока» ниже" : "Попроси организатора добавить тебя" },
+            { n: 2, icon: "🎾", text: "Создайте первую игру", sub: "Вкладка «Игры» → «Новая игра»" },
+            { n: 3, icon: "📣", text: "Пригласи друзей", sub: activeLeague?.invite_code ? `Код: ${activeLeague.invite_code} · или скопируй страницу лиги` : "Скопируй код приглашения выше" },
+          ].map(({ n, icon, text, sub }) => (
+            <div key={n} style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 12 }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "var(--lime)", flexShrink: 0 }}>{n}</div>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{icon} {text}</div>
+                <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>{sub}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       {ranked.map((p, i) => (
         <div key={p.id} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }} onClick={() => setSelected(p)}>
           <div className="pl-display" style={{ width: 22, fontSize: 22, color: ["#ffd23f", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)" }}>{i + 1}</div>
@@ -640,6 +668,23 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
   const toTotal = toWins + toLosses + toDraws;
   const vsTotal = vsWins + vsLosses + vsDraws;
 
+  // Ачивки
+  const badges = (() => {
+    const result = [];
+    const rankedAll = [...players].sort((a, b) => b.rating - a.rating);
+    if (rankedAll.length > 0 && rankedAll[0].id === player.id)
+      result.push({ id: "leader", icon: "👑", label: "Лидер лиги", title: "Первое место по рейтингу" });
+    if (player.matches >= 5 && player.wins / player.matches >= 0.7)
+      result.push({ id: "sniper", icon: "🎯", label: "Снайпер", title: "70%+ побед в матчах" });
+    if (player.matches >= 20)
+      result.push({ id: "veteran", icon: "⚡", label: "Ветеран", title: "20+ сыгранных матчей" });
+    if (hist && hist.length >= 4 && hist[hist.length - 1] > hist[hist.length - 2] && hist[hist.length - 2] > hist[hist.length - 3])
+      result.push({ id: "rising", icon: "🔥", label: "На подъёме", title: "Рейтинг растёт 3 матча подряд" });
+    if (playerTours && playerTours.length >= 3)
+      result.push({ id: "tourney", icon: "🏆", label: "Турнирный", title: "3+ турниров сыграно" });
+    return result;
+  })();
+
   const statRow = (label, w, d, l, total) => total === 0 ? null : (
     <div style={{ marginBottom: 10 }}>
       <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 4 }}>{label}</div>
@@ -676,6 +721,21 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
         <img src={playerAvatar(player.avatar_url, player.id)} alt="" style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--line)", marginBottom: 8 }} />
         <div className="pl-display" style={{ fontSize: 24 }}>{player.name}</div>
         <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 4 }}>{player.matches} игр · {player.wins} побед</div>
+        {badges.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", marginTop: 10 }}>
+            {badges.map((b) => (
+              <span key={b.id} title={b.title} style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                padding: "3px 10px", borderRadius: 20,
+                background: "color-mix(in srgb, var(--lime) 10%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--lime) 30%, transparent)",
+                fontSize: 11, fontWeight: 600, color: "var(--lime)",
+              }}>
+                {b.icon} {b.label}
+              </span>
+            ))}
+          </div>
+        )}
         <ContactLinks contacts={player.contacts} />
         {!player.user_id && (localClaimCode
           ? <ClaimLinkButton claimCode={localClaimCode} />
