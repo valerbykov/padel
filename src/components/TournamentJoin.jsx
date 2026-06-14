@@ -142,7 +142,7 @@ export default function TournamentJoin({ code, botName }) {
             {/* Гостю объясняем ограничение */}
             {!session && t.status !== "open" && (
               <div style={{ fontSize: 12, color: "var(--mut)", textAlign: "center", marginBottom: 8 }}>
-                Режим просмотра · <button className="tj-loginlink" style={{ display: "inline", fontSize: 12 }} onClick={() => setShowLogin(true)}>Войди</button> для ввода счёта
+                Режим просмотра · счёт вводят только участники турнира
               </div>
             )}
 

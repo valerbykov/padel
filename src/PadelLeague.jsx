@@ -198,7 +198,36 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments }) {
     <div className="pl-pop">
       {/* Hero */}
       <div style={{ textAlign: "center", padding: "28px 0 22px" }}>
-        <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 10 }}>🏓</div>
+        <svg width="80" height="74" viewBox="0 0 80 74" fill="none" style={{ marginBottom: 8 }}>
+          <g transform="translate(40,38) rotate(-32)">
+            <rect x="-12" y="-36" width="24" height="30" rx="6" fill="var(--lime)"/>
+            <circle cx="-6" cy="-30" r="2" fill="var(--bg)" opacity="0.35"/>
+            <circle cx="0" cy="-30" r="2" fill="var(--bg)" opacity="0.35"/>
+            <circle cx="6" cy="-30" r="2" fill="var(--bg)" opacity="0.35"/>
+            <circle cx="-6" cy="-22" r="2" fill="var(--bg)" opacity="0.35"/>
+            <circle cx="0" cy="-22" r="2" fill="var(--bg)" opacity="0.35"/>
+            <circle cx="6" cy="-22" r="2" fill="var(--bg)" opacity="0.35"/>
+            <circle cx="-6" cy="-14" r="2" fill="var(--bg)" opacity="0.35"/>
+            <circle cx="0" cy="-14" r="2" fill="var(--bg)" opacity="0.35"/>
+            <circle cx="6" cy="-14" r="2" fill="var(--bg)" opacity="0.35"/>
+            <rect x="-5" y="-6" width="10" height="26" rx="5" fill="var(--mut)"/>
+          </g>
+          <g transform="translate(40,38) rotate(32)">
+            <rect x="-12" y="-36" width="24" height="30" rx="6" fill="var(--lime)" opacity="0.7"/>
+            <circle cx="-6" cy="-30" r="2" fill="var(--bg)" opacity="0.35"/>
+            <circle cx="0" cy="-30" r="2" fill="var(--bg)" opacity="0.35"/>
+            <circle cx="6" cy="-30" r="2" fill="var(--bg)" opacity="0.35"/>
+            <circle cx="-6" cy="-22" r="2" fill="var(--bg)" opacity="0.35"/>
+            <circle cx="0" cy="-22" r="2" fill="var(--bg)" opacity="0.35"/>
+            <circle cx="6" cy="-22" r="2" fill="var(--bg)" opacity="0.35"/>
+            <circle cx="-6" cy="-14" r="2" fill="var(--bg)" opacity="0.35"/>
+            <circle cx="0" cy="-14" r="2" fill="var(--bg)" opacity="0.35"/>
+            <circle cx="6" cy="-14" r="2" fill="var(--bg)" opacity="0.35"/>
+            <rect x="-5" y="-6" width="10" height="26" rx="5" fill="var(--mut)"/>
+          </g>
+          <circle cx="40" cy="38" r="8" fill="#ffd23f"/>
+          <circle cx="37" cy="34" r="2.5" fill="white" opacity="0.35"/>
+        </svg>
         <div className="pl-display" style={{ fontSize: 36, color: "var(--lime)", lineHeight: 1 }}>ПАДЕЛ</div>
         <div className="pl-display" style={{ fontSize: 22, color: "var(--ink)", marginTop: 2 }}>ЛИГА ДРУЗЕЙ</div>
         <div style={{ fontSize: 14, color: "var(--mut)", lineHeight: 1.6, maxWidth: 270, margin: "10px auto 0" }}>
@@ -224,10 +253,7 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments }) {
         🚀 Войти и начать
       </button>
       <div style={{ textAlign: "center", marginTop: 12, fontSize: 12, color: "var(--mut)" }}>
-        Посмотри без входа:&nbsp;
-        <button onClick={onBrowseGames} style={{ background: "none", border: "none", color: "var(--lime)", cursor: "pointer", fontSize: 12, padding: 0, fontFamily: "'Outfit',sans-serif" }}>Игры</button>
-        &nbsp;·&nbsp;
-        <button onClick={onBrowseTournaments} style={{ background: "none", border: "none", color: "var(--lime)", cursor: "pointer", fontSize: 12, padding: 0, fontFamily: "'Outfit',sans-serif" }}>Турниры</button>
+        Попроси организатора прислать код приглашения лиги
       </div>
     </div>
   );
@@ -1041,7 +1067,7 @@ function Games({ groupId, players, reloadLeaderboard, session, archiveNonce, bum
         </button>
       </div>
       {loading && <div className="pl-card" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>Загрузка…</div>}
-      {!loading && games.length === 0 && <div className="pl-card" style={{ padding: 24, textAlign: "center", color: "var(--mut)" }}>Игр нет. Создай игру и отправь ссылку друзьям.</div>}
+      {!loading && games.length === 0 && <div className="pl-card" style={{ padding: 24, textAlign: "center", color: "var(--mut)" }}>{session ? "Игр нет. Создай игру и отправь ссылку друзьям." : "Здесь будут игры твоей лиги. Войди и вступи в лигу."}</div>}
       {!loading && (() => {
         const upcoming = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length < 4);
         const active   = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length === 4);

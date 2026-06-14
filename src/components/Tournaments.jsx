@@ -90,7 +90,7 @@ function List({ groupId, create, open, session, onLogin }) {
         </div>
       )}
       {items === null && <div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>Загрузка…</div>}
-      {items !== null && total === 0 && <div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>Турниров пока нет.</div>}
+      {items !== null && total === 0 && <div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>{session ? "Турниров пока нет." : "Здесь будут турниры твоей лиги. Войди и вступи в лигу."}</div>}
       {items !== null && SECTIONS.map((sec) => {
         const list = byStatus[sec.status];
         if (!list.length) return null;
@@ -358,8 +358,8 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
       {/* АКТИВНЫЙ / ЗАВЕРШЁН */}
       {t.status !== "open" && (
         <>
-          {/* Раунды и корты — только для участников/членов группы */}
-          {!spectatorMode && (
+          {/* Раунды и корты — для участников и для завершённых турниров в режиме просмотра */}
+          {(!spectatorMode || t.status === "finished") && (
             <>
               <div className="tr-card" style={{ marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <button className="tr-ghost" style={{ padding: 8, opacity: cur > 1 ? 1 : .4 }} disabled={cur <= 1} onClick={() => setCur(cur - 1)}><ChevronLeft size={18} /></button>
