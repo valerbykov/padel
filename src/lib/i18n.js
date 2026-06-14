@@ -27,6 +27,17 @@ const T = {
     wins_short: 'П', losses_short: 'Пор',
     games_of: 'из',
     creating: '…',
+    login_title: 'Вход',
+    login_google: 'Войти через Google',
+    login_via_tg: 'Войди одним нажатием через свой Telegram-аккаунт.',
+    login_get_link: 'Получить ссылку',
+    login_get_code: 'Получить код',
+    login_verify_code: 'Войти',
+    login_change_phone: 'Изменить номер',
+    login_link_sent: 'Ссылка для входа отправлена на почту',
+    login_sms_sent: 'Код отправлен по SMS',
+    login_sending: 'Отправляю…',
+    login_checking: 'Проверяю…',
   },
   en: {
     tab_friends: 'Friends', tab_games: 'Games', tab_history: 'History', tab_tournaments: 'Cups',
@@ -52,42 +63,20 @@ const T = {
     wins_short: 'W', losses_short: 'L',
     games_of: 'of',
     creating: '…',
+    login_title: 'Sign In',
+    login_google: 'Sign in with Google',
+    login_via_tg: 'Sign in with one tap via your Telegram account.',
+    login_get_link: 'Get magic link',
+    login_get_code: 'Get code',
+    login_verify_code: 'Sign in',
+    login_change_phone: 'Change number',
+    login_link_sent: 'Login link sent to your email',
+    login_sms_sent: 'Code sent by SMS',
+    login_sending: 'Sending…',
+    login_checking: 'Checking…',
   },
   es: {
     tab_friends: 'Amigos', tab_games: 'Partidas', tab_history: 'Historial', tab_tournaments: 'Copas',
     league_title: 'LIGA DE AMIGOS',
     level_beginner: 'Principiante', level_amateur: 'Amateur', level_experienced: 'Experimentado',
-    level_master: 'Maestro', level_legend: 'Leyenda',
-    matches: 'partidas', tournaments: 'torneos',
-    best_partner: 'Mejor compañero',
-    wins: 'victorias', draws: 'empates', losses: 'derrotas',
-    rating: 'puntos', level: 'nivel',
-    add_player: 'Añadir jugador',
-    sign_in: 'Entrar', sign_out: 'Salir',
-    profile_label: 'Perfil',
-    back: 'Atrás',
-    loading: 'Cargando…',
-    install_app: 'Instalar app',
-    install_sub: 'Se abre como nativa · Funciona sin conexión',
-    install_btn: 'Instalar',
-    gate_title: 'Solo para miembros',
-    gate_sub: 'Entra para ver el ranking, historial de partidas y estadísticas.',
-    together: 'juntos', versus: 'contra',
-    not_in_league: 'No en liga',
-    wins_short: 'G', losses_short: 'D',
-    games_of: 'de',
-    creating: '…',
-  },
-};
-
-export let currentLang = localStorage.getItem('plLang') || 'ru';
-
-export function setLang(lang) {
-  if (!LANGS.includes(lang)) return;
-  currentLang = lang;
-  localStorage.setItem('plLang', lang);
-}
-
-export function t(key) {
-  return T[currentLang]?.[key] ?? T.ru[key] ?? key;
-}
+    level_master: 'Maestro', 

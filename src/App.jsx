@@ -161,7 +161,7 @@ export default function App() {
 
   // Явно открыли экран входа.
   if (showLogin && !session)
-    return <LoginScreen botName={BOT_NAME} onSuccess={() => setShowLogin(false)} />;
+    return <LoginScreen botName={BOT_NAME} onSuccess={() => setShowLogin(false)} onBack={() => setShowLogin(false)} theme={theme} lang={lang} onThemeToggle={toggleTheme} onLangChange={handleLangChange} />;
 
   if (showProfile && session)
     return <ProfileEditor onClose={() => setShowProfile(false)} onSaved={() => setPNonce((n) => n + 1)} />;
@@ -254,6 +254,8 @@ export default function App() {
         onLeagueCreated={handleLeagueDone}
         theme={theme}
         lang={lang}
+        onThemeToggle={toggleTheme}
+        onLangChange={handleLangChange}
         onLogin={() => setShowLogin(true)}
       />
     </div>

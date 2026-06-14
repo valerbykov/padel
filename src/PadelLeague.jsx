@@ -116,7 +116,7 @@ function ContactLinks({ contacts = {} }) {
 }
 
 /* --------------------------------- root ----------------------------------- */
-export default function PadelLeague({ groupId, session, profileId, leagues = [], activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onLogin }) {
+export default function PadelLeague({ groupId, session, profileId, leagues = [], activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin }) {
   const [tab, setTab] = useState(session ? "board" : "welcome");
   const [players, setPlayers] = useState([]);
   const [archiveNonce, setArchiveNonce] = useState(0);
@@ -152,7 +152,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
           </div>
         )}
 
-        {tab === "welcome" && !session && <WelcomeScreen onLogin={onLogin} onBrowseGames={() => setTab("games")} onBrowseTournaments={() => setTab("tournaments")} />}
+        {tab === "welcome" && !session && <WelcomeScreen onLogin={onLogin} onBrowseGames={() => setTab("games")} onBrowseTournaments={() => setTab("tournaments")} theme={theme} lang={lang} onThemeToggle={onThemeToggle} onLangChange={onLangChange} />}
         {tab === "board" && (session ? <Board groupId={groupId} players={players} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} /> : <GateScreen />)}
         {tab === "games" && <Games groupId={groupId} players={players} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} />}
         {tab === "tournaments" && <Tournaments groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} />}
@@ -187,7 +187,7 @@ function GateScreen() {
 }
 
 /* ------------------------------ WelcomeScreen ----------------------------- */
-function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments }) {
+function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, theme = "dark", lang = "ru", onThemeToggle, onLangChange }) {
   const features = [
     { icon: "🏆", title: "Рейтинговая таблица", sub: "Следи за прогрессом и уровнем каждого игрока" },
     { icon: "📊", title: "Статистика и бейджи", sub: "Серии побед, лучший партнёр, ачивки и уровни" },
@@ -254,6 +254,25 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments }) {
       </button>
       <div style={{ textAlign: "center", marginTop: 12, fontSize: 12, color: "var(--mut)" }}>
         Попроси организатора прислать код приглашения лиги
+      </div>
+
+      {/* Lang + theme controls */}
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 6, marginTop: 18, flexWrap: "wrap" }}>
+        {["ru", "en", "es"].map((l) => (
+          <button key={l} onClick={() => onLangChange?.(l)} style={{
+            border: `1px solid ${lang === l ? "color-mix(in srgb, var(--lime) 40%, transparent)" : "var(--line)"}`,
+            borderRadius: 10, padding: "5px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer",
+            background: lang === l ? "color-mix(in srgb, var(--lime) 18%, transparent)" : "var(--surface2)",
+            color: lang === l ? "var(--lime)" : "var(--mut)", fontFamily: "'Outfit',sans-serif",
+          }}>{l.toUpperCase()}</button>
+        ))}
+        <button onClick={onThemeToggle} style={{
+          border: "1px solid var(--line)", borderRadius: 10, padding: "5px 9px",
+          background: "var(--surface2)", color: "var(--mut)", cursor: "pointer",
+          display: "flex", alignItems: "center", fontFamily: "'Outfit',sans-serif",
+        }}>
+          {theme === "dark" ? "☀️" : "🌙"}
+        </button>
       </div>
     </div>
   );

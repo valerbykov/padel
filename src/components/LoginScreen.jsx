@@ -1,34 +1,43 @@
 // components/LoginScreen.jsx
 // Единый экран входа: Telegram + Email (magic-link) + SMS (код).
-// Требует lib/supabase.js и components/TelegramLogin.jsx.
+// Поддерживает светлую/тёмную тему и переключение языка.
 import React, { useState } from "react";
 import { supabase } from "../lib/supabase";
 import TelegramLogin from "./TelegramLogin";
-import { Send, Mail, Phone, Check, AlertCircle } from "lucide-react";
+import { Send, Mail, Phone, Check, AlertCircle, Sun, Moon, ArrowLeft } from "lucide-react";
+import { t, setLang } from "../lib/i18n";
 
-const css = `
+const darkVars = "--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;--lime-fg:#0a1612;";
+const lightVars = "--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;--ink:#0d1f18;--mut:#4a7060;--lime:#2a7a00;--coral:#d93a1f;--lime-fg:#ffffff;";
+
+const mkCss = (isLight) => `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
-.lg-root{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;
- font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
- background-image:radial-gradient(circle at 80% -10%,rgba(200,255,45,.10),transparent 45%),radial-gradient(circle at 0% 110%,rgba(40,120,90,.18),transparent 40%);}
+.lg-root{${isLight ? lightVars : darkVars}
+ font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;flex-direction:column;
+ background-image:radial-gradient(circle at 80% -10%,${isLight ? "rgba(42,122,0,.06)" : "rgba(200,255,45,.10)"},transparent 45%),radial-gradient(circle at 0% 110%,${isLight ? "rgba(40,120,90,.08)" : "rgba(40,120,90,.18)"},transparent 40%);}
+.lg-body{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;}
+.lg-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--bg) 85%,transparent);}
 .lg-card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:24px;width:100%;max-width:400px;}
 .lg-display{font-family:'Anton',sans-serif;text-transform:uppercase;letter-spacing:.5px;}
 .lg-seg{display:flex;background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:4px;margin:18px 0;}
 .lg-seg button{flex:1;border:none;background:none;color:var(--mut);font-family:'Outfit';font-weight:600;font-size:13px;
  padding:9px 0;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;}
-.lg-seg button.on{background:var(--lime);color:#0a1612;}
+.lg-seg button.on{background:var(--lime);color:var(--lime-fg);}
 .lg-input{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);
- font-family:'Outfit';padding:12px;outline:none;box-sizing:border-box;}
+ font-family:'Outfit';padding:12px;outline:none;box-sizing:border-box;font-size:15px;}
 .lg-input:focus{border-color:var(--lime);}
-.lg-btn{width:100%;background:var(--lime);color:#0a1612;font-weight:700;border:none;border-radius:14px;padding:13px;
- cursor:pointer;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.lg-btn{width:100%;background:var(--lime);color:var(--lime-fg);font-weight:700;border:none;border-radius:14px;padding:13px;
+ cursor:pointer;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px;font-family:'Outfit';font-size:15px;}
 .lg-btn:disabled{filter:grayscale(.6) brightness(.7);cursor:not-allowed;}
+.lg-btn-sec{background:var(--surface2);color:var(--ink);border:1px solid var(--line);}
 .lg-msg{display:flex;align-items:center;gap:8px;font-size:13px;margin-top:12px;padding:10px 12px;border-radius:12px;}
+.lg-iconbtn{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:6px 10px;cursor:pointer;color:var(--mut);display:flex;align-items:center;gap:4px;font-family:'Outfit';font-size:11px;font-weight:700;}
+.lg-iconbtn.active{background:color-mix(in srgb,var(--lime) 18%,transparent);color:var(--lime);border-color:color-mix(in srgb,var(--lime) 40%,transparent);}
 `;
 
 const emailOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
-export default function LoginScreen({ botName, onSuccess }) {
+export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark", lang = "ru", onThemeToggle, onLangChange }) {
   const [method, setMethod] = useState("telegram"); // telegram | email | sms
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -38,6 +47,8 @@ export default function LoginScreen({ botName, onSuccess }) {
   const [msg, setMsg] = useState({ kind: "", text: "" });
 
   const reset = () => { setMsg({ kind: "", text: "" }); };
+
+  const handleLang = (l) => { setLang(l); onLangChange?.(l); };
 
   // ----- Google OAuth -----
   const signInGoogle = async () => {
@@ -61,7 +72,7 @@ export default function LoginScreen({ botName, onSuccess }) {
         options: { emailRedirectTo: window.location.href },
       });
       if (error) throw error;
-      setMsg({ kind: "ok", text: "Ссылка для входа отправлена на почту" });
+      setMsg({ kind: "ok", text: t("login_link_sent") });
     } catch (e) { setMsg({ kind: "err", text: e.message }); }
     finally { setBusy(false); }
   };
@@ -74,7 +85,7 @@ export default function LoginScreen({ botName, onSuccess }) {
       const { error } = await supabase.auth.signInWithOtp({ phone: phone.trim() });
       if (error) throw error;
       setSmsSent(true);
-      setMsg({ kind: "ok", text: "Код отправлен по SMS" });
+      setMsg({ kind: "ok", text: t("login_sms_sent") });
     } catch (e) { setMsg({ kind: "err", text: e.message }); }
     finally { setBusy(false); }
   };
@@ -103,73 +114,93 @@ export default function LoginScreen({ botName, onSuccess }) {
 
   return (
     <div className="lg-root">
-      <style>{css}</style>
-      <div className="lg-card">
-        <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2 }}>PADEL · ЛИГА ДРУЗЕЙ</div>
-        <div className="lg-display" style={{ fontSize: 28, marginTop: 4 }}>Вход</div>
+      <style>{mkCss(theme === "light")}</style>
 
-        <button onClick={signInGoogle} style={{
-          width: "100%", marginTop: 16, padding: 12, borderRadius: 14, cursor: "pointer",
-          background: "#fff", color: "#1f1f1f", border: "none", fontWeight: 700, fontFamily: "'Outfit',sans-serif",
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-        }}>
-          <span style={{ fontFamily: "Arial, sans-serif", fontWeight: 700, fontSize: 16 }}>
-            <span style={{ color: "#4285F4" }}>G</span><span style={{ color: "#EA4335" }}>o</span><span style={{ color: "#FBBC05" }}>o</span><span style={{ color: "#4285F4" }}>g</span><span style={{ color: "#34A853" }}>l</span><span style={{ color: "#EA4335" }}>e</span>
-          </span>
-          Войти через Google
+      {/* Top bar */}
+      <div className="lg-topbar">
+        <button className="lg-iconbtn" onClick={onBack} style={{ fontSize: 13, padding: "6px 12px" }}>
+          <ArrowLeft size={14} /> {t("back")}
         </button>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "16px 0 4px", color: "var(--mut)", fontSize: 12 }}>
-          <div style={{ flex: 1, height: 1, background: "var(--line)" }} /> или <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-        </div>
-
-        <div className="lg-seg">
-          <button className={method === "telegram" ? "on" : ""} onClick={() => { setMethod("telegram"); reset(); }}><Send size={14} />Telegram</button>
-          <button className={method === "email" ? "on" : ""} onClick={() => { setMethod("email"); reset(); }}><Mail size={14} />Email</button>
-          <button className={method === "sms" ? "on" : ""} onClick={() => { setMethod("sms"); reset(); }}><Phone size={14} />SMS</button>
-        </div>
-
-        {method === "telegram" && (
-          <div>
-            <p style={{ fontSize: 13, color: "var(--mut)", marginBottom: 12 }}>Войди одним нажатием через свой Telegram-аккаунт.</p>
-            <TelegramLogin botName={botName} onSuccess={onSuccess} />
-          </div>
-        )}
-
-        {method === "email" && (
-          <div>
-            <input className="lg-input" type="email" placeholder="you@mail.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <button className="lg-btn" disabled={!emailOk(email) || busy} onClick={sendEmail}>
-              <Mail size={16} /> {busy ? "Отправляю…" : "Получить ссылку"}
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          {["ru", "en", "es"].map((l) => (
+            <button key={l} className={`lg-iconbtn${lang === l ? " active" : ""}`} onClick={() => handleLang(l)}>
+              {l.toUpperCase()}
             </button>
-            <Msg />
-          </div>
-        )}
+          ))}
+          <button className="lg-iconbtn" onClick={onThemeToggle} style={{ padding: "6px 9px" }}>
+            {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
+          </button>
+        </div>
+      </div>
 
-        {method === "sms" && (
-          <div>
-            {!smsSent ? (
-              <>
-                <input className="lg-input" type="tel" placeholder="+7 900 000-00-00" value={phone} onChange={(e) => setPhone(e.target.value)} />
-                <button className="lg-btn" disabled={!phone.trim() || busy} onClick={sendSms}>
-                  <Phone size={16} /> {busy ? "Отправляю…" : "Получить код"}
-                </button>
-              </>
-            ) : (
-              <>
-                <input className="lg-input" inputMode="numeric" placeholder="Код из SMS" value={code} onChange={(e) => setCode(e.target.value)} />
-                <button className="lg-btn" disabled={!code.trim() || busy} onClick={verifySms}>
-                  <Check size={16} /> {busy ? "Проверяю…" : "Войти"}
-                </button>
-                <button className="lg-btn" style={{ background: "var(--surface2)", color: "var(--ink)", border: "1px solid var(--line)" }}
-                  onClick={() => { setSmsSent(false); setCode(""); reset(); }}>
-                  Изменить номер
-                </button>
-              </>
-            )}
-            <Msg />
+      {/* Main content */}
+      <div className="lg-body">
+        <div className="lg-card">
+          <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2 }}>PADEL · ЛИГА ДРУЗЕЙ</div>
+          <div className="lg-display" style={{ fontSize: 28, marginTop: 4 }}>{t("login_title")}</div>
+
+          <button onClick={signInGoogle} style={{
+            width: "100%", marginTop: 16, padding: 12, borderRadius: 14, cursor: "pointer",
+            background: "#fff", color: "#1f1f1f", border: "none", fontWeight: 700, fontFamily: "'Outfit',sans-serif",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+          }}>
+            <span style={{ fontFamily: "Arial, sans-serif", fontWeight: 700, fontSize: 16 }}>
+              <span style={{ color: "#4285F4" }}>G</span><span style={{ color: "#EA4335" }}>o</span><span style={{ color: "#FBBC05" }}>o</span><span style={{ color: "#4285F4" }}>g</span><span style={{ color: "#34A853" }}>l</span><span style={{ color: "#EA4335" }}>e</span>
+            </span>
+            {t("login_google")}
+          </button>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "16px 0 4px", color: "var(--mut)", fontSize: 12 }}>
+            <div style={{ flex: 1, height: 1, background: "var(--line)" }} /> или <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
           </div>
-        )}
+
+          <div className="lg-seg">
+            <button className={method === "telegram" ? "on" : ""} onClick={() => { setMethod("telegram"); reset(); }}><Send size={14} />Telegram</button>
+            <button className={method === "email" ? "on" : ""} onClick={() => { setMethod("email"); reset(); }}><Mail size={14} />Email</button>
+            <button className={method === "sms" ? "on" : ""} onClick={() => { setMethod("sms"); reset(); }}><Phone size={14} />SMS</button>
+          </div>
+
+          {method === "telegram" && (
+            <div>
+              <p style={{ fontSize: 13, color: "var(--mut)", marginBottom: 12 }}>{t("login_via_tg")}</p>
+              <TelegramLogin botName={botName} onSuccess={onSuccess} />
+            </div>
+          )}
+
+          {method === "email" && (
+            <div>
+              <input className="lg-input" type="email" placeholder="you@mail.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <button className="lg-btn" disabled={!emailOk(email) || busy} onClick={sendEmail}>
+                <Mail size={16} /> {busy ? t("login_sending") : t("login_get_link")}
+              </button>
+              <Msg />
+            </div>
+          )}
+
+          {method === "sms" && (
+            <div>
+              {!smsSent ? (
+                <>
+                  <input className="lg-input" type="tel" placeholder="+7 900 000-00-00" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  <button className="lg-btn" disabled={!phone.trim() || busy} onClick={sendSms}>
+                    <Phone size={16} /> {busy ? t("login_sending") : t("login_get_code")}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <input className="lg-input" inputMode="numeric" placeholder="Код из SMS" value={code} onChange={(e) => setCode(e.target.value)} />
+                  <button className="lg-btn" disabled={!code.trim() || busy} onClick={verifySms}>
+                    <Check size={16} /> {busy ? t("login_checking") : t("login_verify_code")}
+                  </button>
+                  <button className="lg-btn lg-btn-sec" onClick={() => { setSmsSent(false); setCode(""); reset(); }}>
+                    {t("login_change_phone")}
+                  </button>
+                </>
+              )}
+              <Msg />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
