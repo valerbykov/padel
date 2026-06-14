@@ -183,6 +183,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
   const [selected, setSelected] = useState(null);
   const [busy, setBusy] = useState(false);
   const [tourCounts, setTourCounts] = useState({});
+  const [streaks, setStreaks] = useState({});
   const [extraPlayers, setExtraPlayers] = useState([]);
   const [showLeagueMenu, setShowLeagueMenu] = useState(false);
   const [showNewLeague, setShowNewLeague] = useState(false); // "create" | "join" | false
@@ -199,7 +200,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
     const memberIds = new Set(players.map((p) => p.id));
     Promise.all([
       listTournaments(groupId),
-      supabase.from("matches").select("team_a, team_b").eq("group_id", groupId).limit(500),
+      supabase.from("matches").select("team_a, team_b, sets_a, sets_b, played_at").eq("group_id", groupId).order("played_at", { ascending: true }).limit(500),
     ]).then(async ([tours, { data: matchRows }]) => {
       if (!active) return;
       // tourCounts
@@ -210,6 +211,24 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         });
       });
       setTourCounts(counts);
+      // Win streaks: traverse matches newest-first per player
+      const rows = (matchRows || []);
+      const sk = {};
+      const memberIds = [...new Set(rows.flatMap((m) => [...(m.team_a || []), ...(m.team_b || [])]))];
+      memberIds.forEach((id) => {
+        let streak = 0;
+        for (let i = rows.length - 1; i >= 0; i--) {
+          const m = rows[i];
+          const inA = (m.team_a || []).includes(id);
+          const inB = (m.team_b || []).includes(id);
+          if (!inA && !inB) continue;
+          if (m.sets_a === m.sets_b) break; // ничья прерывает серию
+          const won = inA ? m.sets_a > m.sets_b : m.sets_b > m.sets_a;
+          if (won) streak++; else break;
+        }
+        if (streak >= 2) sk[id] = streak;
+      });
+      if (active) setStreaks(sk);
       // Extra (played in group, not member)
       const extraIds = new Set();
       tours.forEach((t) => {
@@ -399,20 +418,31 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
           ))}
         </div>
       )}
-      {ranked.map((p, i) => (
-        <div key={p.id} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }} onClick={() => setSelected(p)}>
-          <div className="pl-display" style={{ width: 22, fontSize: 22, color: ["#ffd23f", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)" }}>{i + 1}</div>
-          <img src={playerAvatar(p.avatar_url, p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
-            <div style={{ fontSize: 12, color: "var(--mut)" }}>{p.matches} игр · {tourCounts[p.id] || 0} турниров</div>
+      {ranked.map((p, i) => {
+        const qb = [];
+        if (i === 0) qb.push("👑");
+        if (p.matches >= 5 && p.wins / p.matches >= 0.7) qb.push("🎯");
+        if (p.matches >= 20) qb.push("⚡");
+        if ((tourCounts[p.id] || 0) >= 3) qb.push("🏆");
+        return (
+          <div key={p.id} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }} onClick={() => setSelected(p)}>
+            <div className="pl-display" style={{ width: 22, fontSize: 22, color: ["#ffd23f", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)" }}>{i + 1}</div>
+            <img src={playerAvatar(p.avatar_url, p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
+              <div style={{ fontSize: 12, color: "var(--mut)" }}>
+                {p.matches} игр · {tourCounts[p.id] || 0} турниров
+                {qb.length > 0 && <span style={{ marginLeft: 6, letterSpacing: 2 }}>{qb.join("")}</span>}
+                {streaks[p.id] && <span style={{ marginLeft: 6, color: "var(--coral)", fontWeight: 600 }}>🔥{streaks[p.id]}</span>}
+              </div>
+            </div>
+            {p.contacts && Object.values(p.contacts).some(Boolean) && (
+              <div style={{ fontSize: 10, color: "var(--lime)", flexShrink: 0 }}>📞</div>
+            )}
+            <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />
           </div>
-          {p.contacts && Object.values(p.contacts).some(Boolean) && (
-            <div style={{ fontSize: 10, color: "var(--lime)", flexShrink: 0 }}>📞</div>
-          )}
-          <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />
-        </div>
-      ))}
+        );
+      })}
 
       {open ? (
         <div className="pl-card" style={{ padding: 14, marginTop: 8 }}>
@@ -1202,6 +1232,12 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
               <div style={{ flex: 1, minWidth: 0, textAlign: "right" }}>
                 {(m.team_b || []).map((id) => (
                   <div key={id} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, justifyContent: "flex-end" }}>
+                    <span style={{ fontSize: 13, fontWeight: !aWon ? 700 : 400, color: !aWon ? "var(--lime)" : "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nameOf(id)}</span>
+                    {avatarOf(id) && <img src={avatarOf(id)} alt="" style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0 }} />}
+                  </div>
+                ))}
+              </div>
+              {isGroupMember && (
                     <span style={{ fontSize: 13, fontWeight: !aWon ? 700 : 400, color: !aWon ? "var(--lime)" : "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nameOf(id)}</span>
                     {avatarOf(id) && <img src={avatarOf(id)} alt="" style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0 }} />}
                   </div>

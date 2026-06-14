@@ -46,6 +46,28 @@ export default function App() {
   const [showProfile,  setShowProfile]  = useState(false);
   const [pNonce,       setPNonce]       = useState(0);
   const [theme,        setTheme]        = useState(() => localStorage.getItem("plTheme") || "dark");
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [showInstall,   setShowInstall]   = useState(false);
+
+  // PWA install prompt (Android/Desktop Chrome)
+  useEffect(() => {
+    if (localStorage.getItem("plInstallDismissed")) return;
+    const handler = (e) => { e.preventDefault(); setInstallPrompt(e); setShowInstall(true); };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    setInstallPrompt(null); setShowInstall(false);
+  };
+
+  const dismissInstall = () => {
+    localStorage.setItem("plInstallDismissed", "1");
+    setShowInstall(false);
+  };
 
   const toggleTheme = useCallback(() => {
     setTheme((t) => {
@@ -189,6 +211,31 @@ export default function App() {
         theme={theme}
         onThemeToggle={toggleTheme}
       />
+      {showInstall && (
+        <div style={{
+          position: "fixed", bottom: 74, left: 12, right: 12, zIndex: 90,
+          background: "var(--surface)", borderRadius: 16, padding: "12px 14px",
+          border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)",
+          boxShadow: "0 4px 24px rgba(0,0,0,.55)",
+          display: "flex", alignItems: "center", gap: 12,
+          animation: "pop .3s both", fontFamily: "'Outfit',sans-serif",
+        }}>
+          <div style={{ fontSize: 28, flexShrink: 0 }}>📲</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>Установить приложение</div>
+            <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>Открывается как нативное · Работает офлайн</div>
+          </div>
+          <button onClick={handleInstall} style={{
+            background: "var(--lime)", color: "var(--lime-fg)", border: "none",
+            borderRadius: 10, padding: "7px 14px", fontWeight: 700, fontSize: 13,
+            cursor: "pointer", flexShrink: 0, fontFamily: "'Outfit',sans-serif",
+          }}>Установить</button>
+          <button onClick={dismissInstall} style={{
+            background: "none", border: "none", color: "var(--mut)",
+            cursor: "pointer", fontSize: 18, padding: "0 2px", flexShrink: 0,
+          }}>✕</button>
+        </div>
+      )}
       <PadelLeague
         groupId={activeLeague?.id ?? null}
         session={session}
