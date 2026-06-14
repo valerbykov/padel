@@ -116,8 +116,8 @@ function ContactLinks({ contacts = {} }) {
 }
 
 /* --------------------------------- root ----------------------------------- */
-export default function PadelLeague({ groupId, session, profileId, leagues = [], activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru" }) {
-  const [tab, setTab] = useState(session ? "board" : "games");
+export default function PadelLeague({ groupId, session, profileId, leagues = [], activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onLogin }) {
+  const [tab, setTab] = useState(session ? "board" : "welcome");
   const [players, setPlayers] = useState([]);
   const [archiveNonce, setArchiveNonce] = useState(0);
   const bumpArchive = useCallback(() => setArchiveNonce((n) => n + 1), []);
@@ -152,14 +152,16 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
           </div>
         )}
 
+        {tab === "welcome" && !session && <WelcomeScreen onLogin={onLogin} onBrowseGames={() => setTab("games")} onBrowseTournaments={() => setTab("tournaments")} />}
         {tab === "board" && (session ? <Board groupId={groupId} players={players} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} /> : <GateScreen />)}
-        {tab === "games" && <Games groupId={groupId} players={players} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} />}
-        {tab === "tournaments" && <Tournaments groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} />}
+        {tab === "games" && <Games groupId={groupId} players={players} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} />}
+        {tab === "tournaments" && <Tournaments groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} />}
         {tab === "history" && (session ? <HistoryView groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} archiveNonce={archiveNonce} bumpArchive={bumpArchive} /> : <GateScreen />)}
       </div>
 
       <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--topbar-bg)", borderTop: "1px solid var(--line)", backdropFilter: "blur(8px)" }}>
         <div style={{ maxWidth: 460, margin: "0 auto", display: "flex" }}>
+          {!session && <button className={`pl-tab ${tab === "welcome" ? "on" : ""}`} onClick={() => setTab("welcome")}><LogIn size={20} />Начало</button>}
           {session && <button className={`pl-tab ${tab === "board" ? "on" : ""}`} onClick={() => setTab("board")}><Trophy size={20} />{t("tab_friends")}</button>}
           <button className={`pl-tab ${tab === "games" ? "on" : ""}`} onClick={() => setTab("games")}><Swords size={20} />{t("tab_games")}</button>
           <button className={`pl-tab ${tab === "tournaments" ? "on" : ""}`} onClick={() => setTab("tournaments")}><Award size={20} />{t("tab_tournaments")}</button>
@@ -179,6 +181,53 @@ function GateScreen() {
       <div className="pl-display" style={{ fontSize: 20, marginBottom: 8 }}>{t("gate_title")}</div>
       <div style={{ color: "var(--mut)", fontSize: 14, lineHeight: 1.5, maxWidth: 280, margin: "0 auto" }}>
         {t("gate_sub")}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------ WelcomeScreen ----------------------------- */
+function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments }) {
+  const features = [
+    { icon: "🏆", title: "Рейтинговая таблица", sub: "Следи за прогрессом и уровнем каждого игрока" },
+    { icon: "📊", title: "Статистика и бейджи", sub: "Серии побед, лучший партнёр, ачивки и уровни" },
+    { icon: "🎾", title: "Турниры Американо", sub: "Организуй и играй прямо в приложении" },
+    { icon: "📲", title: "PWA — как нативное", sub: "Установи на экран и работает офлайн" },
+  ];
+  return (
+    <div className="pl-pop">
+      {/* Hero */}
+      <div style={{ textAlign: "center", padding: "28px 0 22px" }}>
+        <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 10 }}>🏓</div>
+        <div className="pl-display" style={{ fontSize: 36, color: "var(--lime)", lineHeight: 1 }}>ПАДЕЛ</div>
+        <div className="pl-display" style={{ fontSize: 22, color: "var(--ink)", marginTop: 2 }}>ЛИГА ДРУЗЕЙ</div>
+        <div style={{ fontSize: 14, color: "var(--mut)", lineHeight: 1.6, maxWidth: 270, margin: "10px auto 0" }}>
+          Рейтинг, матчи и статистика<br />для твоей падел-компании
+        </div>
+      </div>
+
+      {/* Feature cards */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 22 }}>
+        {features.map(({ icon, title, sub }) => (
+          <div key={title} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px" }}>
+            <div style={{ fontSize: 24, flexShrink: 0, width: 32, textAlign: "center" }}>{icon}</div>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 14 }}>{title}</div>
+              <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>{sub}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* CTA */}
+      <button className="pl-btn" style={{ width: "100%", padding: 15, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={onLogin}>
+        🚀 Войти и начать
+      </button>
+      <div style={{ textAlign: "center", marginTop: 12, fontSize: 12, color: "var(--mut)" }}>
+        Посмотри без входа:&nbsp;
+        <button onClick={onBrowseGames} style={{ background: "none", border: "none", color: "var(--lime)", cursor: "pointer", fontSize: 12, padding: 0, fontFamily: "'Outfit',sans-serif" }}>Игры</button>
+        &nbsp;·&nbsp;
+        <button onClick={onBrowseTournaments} style={{ background: "none", border: "none", color: "var(--lime)", cursor: "pointer", fontSize: 12, padding: 0, fontFamily: "'Outfit',sans-serif" }}>Турниры</button>
       </div>
     </div>
   );
@@ -953,7 +1002,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
 }
 
 /* --------------------------------- Games ---------------------------------- */
-function Games({ groupId, players, reloadLeaderboard, session, archiveNonce, bumpArchive }) {
+function Games({ groupId, players, reloadLeaderboard, session, archiveNonce, bumpArchive, onLogin }) {
   const [games, setGames] = useState([]);
   const [mode, setMode] = useState("list");
   const [selId, setSelId] = useState(null);
@@ -976,6 +1025,13 @@ function Games({ groupId, players, reloadLeaderboard, session, archiveNonce, bum
 
   return (
     <div className="pl-pop">
+      {!session && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "color-mix(in srgb, var(--lime) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 30%, transparent)", borderRadius: 12, marginBottom: 12 }}>
+          <div style={{ fontSize: 18 }}>🔐</div>
+          <div style={{ flex: 1, fontSize: 13, color: "var(--mut)", lineHeight: 1.4 }}>Войди, чтобы создавать игры и фиксировать результаты</div>
+          <button className="pl-btn" style={{ padding: "7px 14px", fontSize: 12, flexShrink: 0 }} onClick={onLogin}>Войти</button>
+        </div>
+      )}
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         {session && <button className="pl-btn" style={{ flex: 1, padding: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={() => setMode("create")}>
           <PlusCircle size={18} /> Создать игру

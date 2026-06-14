@@ -33,12 +33,12 @@ const css = `
 `;
 const statusLabel = { open: "набор", active: "идёт", finished: "завершён" };
 
-export default function Tournaments({ groupId, players, profileId, bumpArchive }) {
+export default function Tournaments({ groupId, players, profileId, bumpArchive, session, onLogin }) {
   const [mode, setMode] = useState("list");
   const [activeId, setActiveId] = useState(null);
   if (mode === "create") return <Create groupId={groupId} back={() => setMode("list")} open={(id) => { setActiveId(id); setMode("view"); }} />;
   if (mode === "view") return <TournamentView id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} onArchiveChange={bumpArchive} />;
-  return <List groupId={groupId} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
+  return <List groupId={groupId} session={session} onLogin={onLogin} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
 }
 
 const SECTIONS = [
@@ -60,7 +60,7 @@ function TournamentCard({ t, color, onClick }) {
   );
 }
 
-function List({ groupId, create, open }) {
+function List({ groupId, create, open, session, onLogin }) {
   const [items, setItems] = useState(null);
   const [showAll, setShowAll] = useState(false);
   useEffect(() => {
@@ -78,9 +78,17 @@ function List({ groupId, create, open }) {
   return (
     <div className="tr-root">
       <style>{css}</style>
-      <button className="tr-btn" style={{ width: "100%", padding: 13, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={create}>
-        <PlusCircle size={18} /> Создать турнир
-      </button>
+      {session ? (
+        <button className="tr-btn" style={{ width: "100%", padding: 13, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={create}>
+          <PlusCircle size={18} /> Создать турнир
+        </button>
+      ) : (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "color-mix(in srgb, var(--lime) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 30%, transparent)", borderRadius: 12, marginBottom: 16 }}>
+          <div style={{ fontSize: 18 }}>🔐</div>
+          <div style={{ flex: 1, fontSize: 13, color: "var(--mut)", lineHeight: 1.4 }}>Войди, чтобы организовать турнир</div>
+          <button className="tr-btn" style={{ padding: "7px 14px", fontSize: 12, flexShrink: 0, borderRadius: 10 }} onClick={onLogin}>Войти</button>
+        </div>
+      )}
       {items === null && <div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>Загрузка…</div>}
       {items !== null && total === 0 && <div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>Турниров пока нет.</div>}
       {items !== null && SECTIONS.map((sec) => {

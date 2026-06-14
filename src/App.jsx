@@ -254,6 +254,7 @@ export default function App() {
         onLeagueCreated={handleLeagueDone}
         theme={theme}
         lang={lang}
+        onLogin={() => setShowLogin(true)}
       />
     </div>
   );
