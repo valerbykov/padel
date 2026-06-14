@@ -14,6 +14,7 @@ import LeagueSetup from "./components/LeagueSetup";
 import LeaguePublicPage from "./components/LeaguePublicPage";
 import { LogIn, Sun, Moon } from "lucide-react";
 import { getMyLeagues } from "./lib/padelApi";
+import { t, setLang, LANGS, LANG_LABELS, currentLang } from "./lib/i18n";
 
 const BOT_NAME = "padel_league_bot"; // имя твоего Telegram-бота без @
 
@@ -46,6 +47,8 @@ export default function App() {
   const [showProfile,  setShowProfile]  = useState(false);
   const [pNonce,       setPNonce]       = useState(0);
   const [theme,        setTheme]        = useState(() => localStorage.getItem("plTheme") || "dark");
+  const [lang,         setLangState]    = useState(() => localStorage.getItem("plLang") || "ru");
+  const handleLangChange = useCallback((l) => { setLang(l); setLangState(l); }, []);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showInstall,   setShowInstall]   = useState(false);
 
@@ -173,6 +176,7 @@ export default function App() {
           onProfile={() => setShowProfile(true)}
           onSignOut={() => supabase.auth.signOut()}
           theme={theme} onThemeToggle={toggleTheme}
+          lang={lang} onLangChange={handleLangChange}
         />
         <LeagueSetup
           onDone={(league) => { setPendingJoin(null); handleLeagueDone(league); }}
@@ -194,6 +198,7 @@ export default function App() {
           onProfile={() => setShowProfile(true)}
           onSignOut={() => supabase.auth.signOut()}
           theme={theme} onThemeToggle={toggleTheme}
+          lang={lang} onLangChange={handleLangChange}
         />
         <LeagueSetup onDone={handleLeagueDone} />
       </div>
@@ -210,6 +215,8 @@ export default function App() {
         onSignOut={() => supabase.auth.signOut()}
         theme={theme}
         onThemeToggle={toggleTheme}
+        lang={lang}
+        onLangChange={handleLangChange}
       />
       {showInstall && (
         <div style={{
@@ -222,14 +229,14 @@ export default function App() {
         }}>
           <div style={{ fontSize: 28, flexShrink: 0 }}>📲</div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>Установить приложение</div>
-            <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>Открывается как нативное · Работает офлайн</div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>{t("install_app")}</div>
+            <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>{t("install_sub")}</div>
           </div>
           <button onClick={handleInstall} style={{
             background: "var(--lime)", color: "var(--lime-fg)", border: "none",
             borderRadius: 10, padding: "7px 14px", fontWeight: 700, fontSize: 13,
             cursor: "pointer", flexShrink: 0, fontFamily: "'Outfit',sans-serif",
-          }}>Установить</button>
+          }}>{t("install_btn")}</button>
           <button onClick={dismissInstall} style={{
             background: "none", border: "none", color: "var(--mut)",
             cursor: "pointer", fontSize: 18, padding: "0 2px", flexShrink: 0,
@@ -246,12 +253,13 @@ export default function App() {
         onLeagueChange={handleLeagueChange}
         onLeagueCreated={handleLeagueDone}
         theme={theme}
+        lang={lang}
       />
     </div>
   );
 }
 
-function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme, onThemeToggle }) {
+function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme, onThemeToggle, lang = "ru", onLangChange }) {
   const base = { border: "1px solid var(--line)", borderRadius: 10, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif" };
   const initials = (name || "").trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
   return (
@@ -272,15 +280,21 @@ function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme
         <span style={{ color: "var(--ink)", fontSize: 14, fontWeight: 600 }}>Падел · Лига</span>
       )}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {["ru","en","es"].map((l) => (
+          <button key={l} onClick={() => onLangChange?.(l)}
+            style={{ ...base, background: lang === l ? "color-mix(in srgb, var(--lime) 18%, transparent)" : "var(--surface2)", color: lang === l ? "var(--lime)" : "var(--mut)", padding: "6px 8px", fontSize: 11, fontWeight: 700, minWidth: 32, border: lang === l ? "1px solid color-mix(in srgb, var(--lime) 40%, transparent)" : "1px solid var(--line)" }}>
+            {l.toUpperCase()}
+          </button>
+        ))}
         <button onClick={onThemeToggle} title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
           style={{ ...base, background: "var(--surface2)", color: "var(--mut)", display: "flex", alignItems: "center", padding: "6px 9px" }}>
           {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
         </button>
         {session ? (
-          <button onClick={onSignOut} style={{ ...base, background: "var(--surface2)", color: "var(--mut)" }}>Выйти</button>
+          <button onClick={onSignOut} style={{ ...base, background: "var(--surface2)", color: "var(--mut)" }}>{t("sign_out")}</button>
         ) : (
           <button onClick={onLogin} style={{ ...base, background: "var(--lime)", color: "var(--lime-fg)", border: "none", fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
-            <LogIn size={15} /> Войти
+            <LogIn size={15} /> {t("sign_in")}
           </button>
         )}
       </div>

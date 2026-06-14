@@ -4,6 +4,7 @@ import { supabase } from "./lib/supabase";
 import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague } from "./lib/padelApi";
 import { getRatingHistory } from "./lib/statsApi";
 import { listTournaments } from "./lib/tournamentApi";
+import { t } from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
 import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2 } from "lucide-react";
@@ -17,6 +18,14 @@ const dogAvatar = (idOrName) => {
   return `/avatars/dog-${String((hash % DOG_COUNT) + 1).padStart(2, "0")}.png`;
 };
 const playerAvatar = (url, idOrName) => url || dogAvatar(idOrName);
+
+function playerLevel(matches, rating) {
+  if (rating >= 1200) return { label: t("level_legend"), color: "#ffd23f" };
+  if (matches >= 50)  return { label: t("level_master"), color: "var(--lime)" };
+  if (matches >= 20)  return { label: t("level_experienced"), color: "#7ec8e3" };
+  if (matches >= 5)   return { label: t("level_amateur"), color: "#a0d890" };
+  return { label: t("level_beginner"), color: "var(--mut)" };
+}
 
 const fmtDate = (iso) => {
   if (!iso) return "";
@@ -107,7 +116,7 @@ function ContactLinks({ contacts = {} }) {
 }
 
 /* --------------------------------- root ----------------------------------- */
-export default function PadelLeague({ groupId, session, profileId, leagues = [], activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark" }) {
+export default function PadelLeague({ groupId, session, profileId, leagues = [], activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru" }) {
   const [tab, setTab] = useState(session ? "board" : "games");
   const [players, setPlayers] = useState([]);
   const [archiveNonce, setArchiveNonce] = useState(0);
@@ -125,14 +134,14 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
     return () => document.body.classList.remove("pl-light");
   }, [theme]);
 
-  const titles = { board: "Друзья", games: "Игры", history: "История", tournaments: "Турниры" };
+  const titles = { board: t("tab_friends"), games: t("tab_games"), history: t("tab_history"), tournaments: t("tab_tournaments") };
 
   return (
     <div className={`pl-root${theme === "light" ? " pl-light" : ""}`}>
       <style>{css}</style>
       <div style={{ maxWidth: 460, margin: "0 auto", padding: "20px 16px 88px" }}>
         <header style={{ marginBottom: 18 }}>
-          <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2 }}>PADEL · ЛИГА ДРУЗЕЙ</div>
+          <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2 }}>PADEL · {t("league_title")}</div>
           <h1 className="pl-display" style={{ fontSize: 30, lineHeight: 1, marginTop: 2, color: "var(--ink)" }}>{titles[tab]}</h1>
         </header>
 
@@ -151,10 +160,10 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
 
       <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--topbar-bg)", borderTop: "1px solid var(--line)", backdropFilter: "blur(8px)" }}>
         <div style={{ maxWidth: 460, margin: "0 auto", display: "flex" }}>
-          {session && <button className={`pl-tab ${tab === "board" ? "on" : ""}`} onClick={() => setTab("board")}><Trophy size={20} />Друзья</button>}
-          <button className={`pl-tab ${tab === "games" ? "on" : ""}`} onClick={() => setTab("games")}><Swords size={20} />Игры</button>
-          <button className={`pl-tab ${tab === "tournaments" ? "on" : ""}`} onClick={() => setTab("tournaments")}><Award size={20} />Турниры</button>
-          {session && <button className={`pl-tab ${tab === "history" ? "on" : ""}`} onClick={() => setTab("history")}><History size={20} />История</button>}
+          {session && <button className={`pl-tab ${tab === "board" ? "on" : ""}`} onClick={() => setTab("board")}><Trophy size={20} />{t("tab_friends")}</button>}
+          <button className={`pl-tab ${tab === "games" ? "on" : ""}`} onClick={() => setTab("games")}><Swords size={20} />{t("tab_games")}</button>
+          <button className={`pl-tab ${tab === "tournaments" ? "on" : ""}`} onClick={() => setTab("tournaments")}><Award size={20} />{t("tab_tournaments")}</button>
+          {session && <button className={`pl-tab ${tab === "history" ? "on" : ""}`} onClick={() => setTab("history")}><History size={20} />{t("tab_history")}</button>}
         </div>
       </nav>
     </div>
@@ -167,9 +176,9 @@ function GateScreen() {
   return (
     <div className="pl-pop" style={{ textAlign: "center", padding: "40px 16px" }}>
       <div style={{ fontSize: 40, marginBottom: 12 }}>🔒</div>
-      <div className="pl-display" style={{ fontSize: 20, marginBottom: 8 }}>Только для участников лиги</div>
+      <div className="pl-display" style={{ fontSize: 20, marginBottom: 8 }}>{t("gate_title")}</div>
       <div style={{ color: "var(--mut)", fontSize: 14, lineHeight: 1.5, maxWidth: 280, margin: "0 auto" }}>
-        Войди через кнопку наверху, чтобы видеть рейтинг друзей, историю игр и статистику.
+        {t("gate_sub")}
       </div>
     </div>
   );
@@ -430,10 +439,11 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
             <img src={playerAvatar(p.avatar_url, p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
-              <div style={{ fontSize: 12, color: "var(--mut)" }}>
-                {p.matches} игр · {tourCounts[p.id] || 0} турниров
-                {qb.length > 0 && <span style={{ marginLeft: 6, letterSpacing: 2 }}>{qb.join("")}</span>}
-                {streaks[p.id] && <span style={{ marginLeft: 6, color: "var(--coral)", fontWeight: 600 }}>🔥{streaks[p.id]}</span>}
+              <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 4, fontSize: 12, color: "var(--mut)" }}>
+                <span>{p.matches} {t("matches")} · {tourCounts[p.id] || 0} {t("tournaments")}</span>
+                {(() => { const lv = playerLevel(p.matches, p.rating); return <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 8, background: `color-mix(in srgb, ${lv.color} 15%, transparent)`, color: lv.color, border: `1px solid color-mix(in srgb, ${lv.color} 35%, transparent)` }}>{lv.label}</span>; })()}
+                {qb.length > 0 && <span style={{ letterSpacing: 2 }}>{qb.join("")}</span>}
+                {streaks[p.id] && <span style={{ color: "var(--coral)", fontWeight: 600 }}>🔥{streaks[p.id]}</span>}
               </div>
             </div>
             {p.contacts && Object.values(p.contacts).some(Boolean) && (
@@ -478,7 +488,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
               <img src={playerAvatar(p.avatar_url, p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
-                <div style={{ fontSize: 12, color: "var(--mut)" }}>Не в лиге</div>
+                <div style={{ fontSize: 12, color: "var(--mut)" }}>{t("not_in_league")}</div>
               </div>
               {p.contacts && Object.values(p.contacts).some(Boolean) && (
                 <div style={{ fontSize: 10, color: "var(--lime)", flexShrink: 0 }}>📞</div>
@@ -698,6 +708,33 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
   const toTotal = toWins + toLosses + toDraws;
   const vsTotal = vsWins + vsLosses + vsDraws;
 
+  // Best partner (most wins when teamed together)
+  const bestPartner = (() => {
+    if (!allMatches) return null;
+    const stats = {};
+    allMatches.forEach((m) => {
+      const pInA = (m.team_a || []).includes(player.id);
+      const pInB = (m.team_b || []).includes(player.id);
+      if (!pInA && !pInB) return;
+      const teammates = pInA ? (m.team_a || []) : (m.team_b || []);
+      const pWon = pInA ? m.sets_a > m.sets_b : m.sets_b > m.sets_a;
+      const isDraw = m.sets_a === m.sets_b;
+      teammates.forEach((tid) => {
+        if (tid === player.id) return;
+        if (!stats[tid]) stats[tid] = { w: 0, l: 0, d: 0 };
+        if (isDraw) stats[tid].d++; else if (pWon) stats[tid].w++; else stats[tid].l++;
+      });
+    });
+    let best = null, bestRate = -1;
+    Object.entries(stats).forEach(([id, s]) => {
+      const total = s.w + s.l + s.d;
+      if (total < 2) return;
+      const rate = s.w / total;
+      if (rate > bestRate) { bestRate = rate; best = { id, w: s.w, l: s.l, d: s.d, total, rate }; }
+    });
+    return best;
+  })();
+
   // Ачивки
   const badges = (() => {
     const result = [];
@@ -766,6 +803,11 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
             ))}
           </div>
         )}
+        {(() => { const lv = playerLevel(player.matches, player.rating); return (
+          <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 12px", borderRadius: 20, background: `color-mix(in srgb, ${lv.color} 12%, transparent)`, border: `1px solid color-mix(in srgb, ${lv.color} 35%, transparent)`, color: lv.color, fontSize: 12, fontWeight: 700 }}>
+            ⭐ {lv.label}
+          </div>
+        ); })()}
         <ContactLinks contacts={player.contacts} />
         {!player.user_id && (localClaimCode
           ? <ClaimLinkButton claimCode={localClaimCode} />
@@ -794,10 +836,28 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
       <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
           <div className="pl-display" style={{ fontSize: 36, color: "var(--lime)" }}>{player.rating}</div>
-          <div style={{ fontSize: 12, color: "var(--mut)" }}>рейтинг</div>
+          <div style={{ fontSize: 12, color: "var(--mut)" }}>{t("rating")}</div>
         </div>
         <LineChart values={hist || [player.rating]} />
       </div>
+
+      {/* Лучший партнёр */}
+      {bestPartner && (() => {
+        const bp = players.find((p) => p.id === bestPartner.id);
+        return (
+          <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
+            <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{t("best_partner")}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <img src={playerAvatar(bp?.avatar_url, bestPartner.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{bp?.name || "?"}</div>
+                <div style={{ fontSize: 12, color: "var(--mut)" }}>{bestPartner.w} {t("wins_short")} · {bestPartner.l} {t("losses_short")} · {bestPartner.total} {t("matches")}</div>
+              </div>
+              <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 22, color: "var(--lime)", flexShrink: 0 }}>{Math.round(bestPartner.rate * 100)}%</div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Статистика с этим игроком */}
       {myId && myId !== player.id && withPlayer.length > 0 && (
