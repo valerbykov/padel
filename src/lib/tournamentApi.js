@@ -1,7 +1,7 @@
 // lib/tournamentApi.js
 import { supabase } from "./supabase";
 import { buildMatches, standings } from "./americano";
-import { buildFirstRound, buildMexicanoRound } from "./mexicano";
+import { buildFirstRound, buildMexicanoRound, buildKotHStart, buildKotHNextMatch } from "./mexicano";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const genCode = () => Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join("");
@@ -70,7 +70,7 @@ export async function getTournamentByCode(code) {
   if (error) throw error;
   if (!data) return data;
 
-  const hasScores = (data.matches || []).some(m => m.score_a != null || m.score_b != null);
+  const hasScores = (data.matches || []).some((m) => m.score_a != null || m.score_b != null);
   const noMatches = !data.matches || data.matches.length === 0;
   if ((noMatches || !hasScores) && data.id) {
     const { data: matches } = await supabase
@@ -79,30 +79,55 @@ export async function getTournamentByCode(code) {
       .eq("tournament_id", data.id);
     if (matches && matches.length > 0) return { ...data, matches };
   }
-
   return data;
 }
 
-// Старт: жеребьёвка + запись матчей + статус active.
-// Для americano: все раунды сразу. Для mexicano: только первый раунд.
+/**
+ * Старт турнира: жеребьёвка + запись матчей + статус active.
+ * americano:    все раунды сразу.
+ * mexicano:     только первый раунд.
+ * king_of_hill / beat_the_box: round_0 команды + round_1 первый матч.
+ */
 export async function startTournament(tournamentId, players, format = "americano") {
   const ids = players.map((p) => p.id);
-  if (ids.length < 4 || ids.length % 4 !== 0) throw new Error("Нужно число игроков, кратное 4 (минимум 4)");
-  const matches = (format === "mexicano" ? buildFirstRound(ids) : buildMatches(ids))
-    .map((m) => ({ ...m, tournament_id: tournamentId }));
+  const isKothBtB = format === "king_of_hill" || format === "beat_the_box";
+
+  if (isKothBtB) {
+    if (ids.length < 4 || ids.length % 2 !== 0)
+      throw new Error("Нужно чётное число игроков (минимум 4)");
+  } else {
+    if (ids.length < 4 || ids.length % 4 !== 0)
+      throw new Error("Нужно число игроков, кратное 4 (минимум 4)");
+  }
+
+  let rawMatches;
+  if (isKothBtB) rawMatches = buildKotHStart(ids);
+  else if (format === "mexicano") rawMatches = buildFirstRound(ids);
+  else rawMatches = buildMatches(ids);
+
+  const matches = rawMatches.map((m) => ({ ...m, tournament_id: tournamentId }));
   const { error: mErr } = await supabase.from("tournament_matches").insert(matches);
   if (mErr) throw mErr;
   const { error: tErr } = await supabase.from("tournaments").update({ status: "active" }).eq("id", tournamentId);
   if (tErr) throw tErr;
 }
 
-// Мексикано: генерировать следующий раунд по текущим очкам.
+/** Мексикано: следующий раунд по текущим очкам. */
 export async function generateMexicanoRound(tournamentId, players, matches) {
   const sorted = standings(players.map((p) => ({ id: p.id, name: p.name })), matches);
   const nextRound = Math.max(...matches.map((m) => m.round_number), 0) + 1;
   const newMatches = buildMexicanoRound(sorted, nextRound)
     .map((m) => ({ ...m, tournament_id: tournamentId }));
   const { error } = await supabase.from("tournament_matches").insert(newMatches);
+  if (error) throw error;
+}
+
+/** KotH/BtB: следующий матч — победитель vs. следующий из очереди. */
+export async function generateKotHRound(tournamentId, matches) {
+  const nextMatch = buildKotHNextMatch(matches);
+  if (!nextMatch) throw new Error("Нет завершённых матчей для генерации следующего");
+  const { error } = await supabase.from("tournament_matches")
+    .insert({ ...nextMatch, tournament_id: tournamentId });
   if (error) throw error;
 }
 
