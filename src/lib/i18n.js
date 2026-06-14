@@ -79,4 +79,48 @@ const T = {
     tab_friends: 'Amigos', tab_games: 'Partidas', tab_history: 'Historial', tab_tournaments: 'Copas',
     league_title: 'LIGA DE AMIGOS',
     level_beginner: 'Principiante', level_amateur: 'Amateur', level_experienced: 'Experimentado',
-    level_master: 'Maestro', 
+    level_master: 'Maestro', level_legend: 'Leyenda',
+    matches: 'partidas', tournaments: 'torneos',
+    best_partner: 'Mejor compañero',
+    wins: 'victorias', draws: 'empates', losses: 'derrotas',
+    rating: 'puntos', level: 'nivel',
+    add_player: 'Añadir jugador',
+    sign_in: 'Entrar', sign_out: 'Salir',
+    profile_label: 'Perfil',
+    back: 'Atrás',
+    loading: 'Cargando…',
+    install_app: 'Instalar app',
+    install_sub: 'Se abre como nativa · Funciona sin conexión',
+    install_btn: 'Instalar',
+    gate_title: 'Solo para miembros',
+    gate_sub: 'Entra para ver el ranking, historial de partidas y estadísticas.',
+    together: 'juntos', versus: 'contra',
+    not_in_league: 'No en liga',
+    wins_short: 'G', losses_short: 'D',
+    games_of: 'de',
+    creating: '…',
+    login_title: 'Acceder',
+    login_google: 'Entrar con Google',
+    login_via_tg: 'Entra con un toque desde tu cuenta de Telegram.',
+    login_get_link: 'Obtener enlace',
+    login_get_code: 'Obtener código',
+    login_verify_code: 'Entrar',
+    login_change_phone: 'Cambiar número',
+    login_link_sent: 'Enlace de acceso enviado a tu correo',
+    login_sms_sent: 'Código enviado por SMS',
+    login_sending: 'Enviando…',
+    login_checking: 'Verificando…',
+  },
+};
+
+export let currentLang = localStorage.getItem('plLang') || 'ru';
+
+export function setLang(lang) {
+  if (!LANGS.includes(lang)) return;
+  currentLang = lang;
+  localStorage.setItem('plLang', lang);
+}
+
+export function t(key) {
+  return T[currentLang]?.[key] ?? T.ru[key] ?? key;
+}
