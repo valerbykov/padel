@@ -4,7 +4,7 @@
 // Кнопка «Присоединиться» видна только при status=open и ещё не зарегистрировался.
 import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import { getTournamentByCode, joinTournamentByCode } from "../lib/tournamentApi";
+import { getTournamentByCode, getTournament, joinTournamentByCode } from "../lib/tournamentApi";
 import { TournamentView } from "./Tournaments";
 import LoginScreen from "./LoginScreen";
 import { Trophy, AlertCircle, Check, LogIn, UserCheck } from "lucide-react";
@@ -36,7 +36,15 @@ export default function TournamentJoin({ code, botName }) {
   const [profileId, setProfileId] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
 
-  const load = async () => { try { setT(await getTournamentByCode(code)); } catch (e) { setT(null); } };
+  const load = async () => {
+    try {
+      const base = await getTournamentByCode(code);
+      if (!base) { setT(null); return; }
+      // Enrich with direct query that includes score_a/score_b (getTournamentByCode uses RPC that may omit scores)
+      const rich = await getTournament(base.id).catch(() => null);
+      setT(rich || base);
+    } catch (e) { setT(null); }
+  };
   useEffect(() => { load(); }, [code]);
 
   useEffect(() => {
@@ -148,7 +156,7 @@ export default function TournamentJoin({ code, botName }) {
 
             {/* Полный TournamentView: read-only для гостей, полный для залогиненных */}
             <TournamentView id={t.id} players={[]} back={null} readOnly={!canEdit} initialT={t}
-              reloadFn={() => getTournamentByCode(code)}
+              reloadFn={() => getTournament(t.id).catch(() => getTournamentByCode(code))}
               isGroupMember={false}
               currentProfileId={profileId}
               spectatorMode={!canEdit} />

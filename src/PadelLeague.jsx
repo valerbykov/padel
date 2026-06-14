@@ -199,34 +199,34 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments }) {
       {/* Hero */}
       <div style={{ textAlign: "center", padding: "28px 0 22px" }}>
         <svg width="80" height="74" viewBox="0 0 80 74" fill="none" style={{ marginBottom: 8 }}>
-          <g transform="translate(40,38) rotate(-32)">
-            <rect x="-12" y="-36" width="24" height="30" rx="6" fill="var(--lime)"/>
-            <circle cx="-6" cy="-30" r="2" fill="var(--bg)" opacity="0.35"/>
-            <circle cx="0" cy="-30" r="2" fill="var(--bg)" opacity="0.35"/>
-            <circle cx="6" cy="-30" r="2" fill="var(--bg)" opacity="0.35"/>
-            <circle cx="-6" cy="-22" r="2" fill="var(--bg)" opacity="0.35"/>
-            <circle cx="0" cy="-22" r="2" fill="var(--bg)" opacity="0.35"/>
-            <circle cx="6" cy="-22" r="2" fill="var(--bg)" opacity="0.35"/>
-            <circle cx="-6" cy="-14" r="2" fill="var(--bg)" opacity="0.35"/>
-            <circle cx="0" cy="-14" r="2" fill="var(--bg)" opacity="0.35"/>
-            <circle cx="6" cy="-14" r="2" fill="var(--bg)" opacity="0.35"/>
-            <rect x="-5" y="-6" width="10" height="26" rx="5" fill="var(--mut)"/>
+          <g transform="translate(40,44) rotate(-33)">
+            <path d="M0,-6 C8,-6 18,-14 18,-24 A18,14 0 0 0 -18,-24 C-18,-14 -8,-6 0,-6 Z" fill="var(--lime)"/>
+            <circle cx="-6" cy="-32" r="1.8" fill="var(--bg)" opacity="0.4"/>
+            <circle cx="0" cy="-32" r="1.8" fill="var(--bg)" opacity="0.4"/>
+            <circle cx="6" cy="-32" r="1.8" fill="var(--bg)" opacity="0.4"/>
+            <circle cx="-9" cy="-24" r="1.8" fill="var(--bg)" opacity="0.4"/>
+            <circle cx="0" cy="-24" r="1.8" fill="var(--bg)" opacity="0.4"/>
+            <circle cx="9" cy="-24" r="1.8" fill="var(--bg)" opacity="0.4"/>
+            <circle cx="-7" cy="-16" r="1.8" fill="var(--bg)" opacity="0.4"/>
+            <circle cx="0" cy="-16" r="1.8" fill="var(--bg)" opacity="0.4"/>
+            <circle cx="7" cy="-16" r="1.8" fill="var(--bg)" opacity="0.4"/>
+            <rect x="-5" y="2" width="10" height="26" rx="5" fill="var(--mut)"/>
           </g>
-          <g transform="translate(40,38) rotate(32)">
-            <rect x="-12" y="-36" width="24" height="30" rx="6" fill="var(--lime)" opacity="0.7"/>
-            <circle cx="-6" cy="-30" r="2" fill="var(--bg)" opacity="0.35"/>
-            <circle cx="0" cy="-30" r="2" fill="var(--bg)" opacity="0.35"/>
-            <circle cx="6" cy="-30" r="2" fill="var(--bg)" opacity="0.35"/>
-            <circle cx="-6" cy="-22" r="2" fill="var(--bg)" opacity="0.35"/>
-            <circle cx="0" cy="-22" r="2" fill="var(--bg)" opacity="0.35"/>
-            <circle cx="6" cy="-22" r="2" fill="var(--bg)" opacity="0.35"/>
-            <circle cx="-6" cy="-14" r="2" fill="var(--bg)" opacity="0.35"/>
-            <circle cx="0" cy="-14" r="2" fill="var(--bg)" opacity="0.35"/>
-            <circle cx="6" cy="-14" r="2" fill="var(--bg)" opacity="0.35"/>
-            <rect x="-5" y="-6" width="10" height="26" rx="5" fill="var(--mut)"/>
+          <g transform="translate(40,44) rotate(33)">
+            <path d="M0,-6 C8,-6 18,-14 18,-24 A18,14 0 0 0 -18,-24 C-18,-14 -8,-6 0,-6 Z" fill="var(--lime)" opacity="0.75"/>
+            <circle cx="-6" cy="-32" r="1.8" fill="var(--bg)" opacity="0.4"/>
+            <circle cx="0" cy="-32" r="1.8" fill="var(--bg)" opacity="0.4"/>
+            <circle cx="6" cy="-32" r="1.8" fill="var(--bg)" opacity="0.4"/>
+            <circle cx="-9" cy="-24" r="1.8" fill="var(--bg)" opacity="0.4"/>
+            <circle cx="0" cy="-24" r="1.8" fill="var(--bg)" opacity="0.4"/>
+            <circle cx="9" cy="-24" r="1.8" fill="var(--bg)" opacity="0.4"/>
+            <circle cx="-7" cy="-16" r="1.8" fill="var(--bg)" opacity="0.4"/>
+            <circle cx="0" cy="-16" r="1.8" fill="var(--bg)" opacity="0.4"/>
+            <circle cx="7" cy="-16" r="1.8" fill="var(--bg)" opacity="0.4"/>
+            <rect x="-5" y="2" width="10" height="26" rx="5" fill="var(--mut)"/>
           </g>
-          <circle cx="40" cy="38" r="8" fill="#ffd23f"/>
-          <circle cx="37" cy="34" r="2.5" fill="white" opacity="0.35"/>
+          <circle cx="40" cy="20" r="8" fill="#ffd23f"/>
+          <circle cx="37" cy="16" r="2.5" fill="white" opacity="0.35"/>
         </svg>
         <div className="pl-display" style={{ fontSize: 36, color: "var(--lime)", lineHeight: 1 }}>ПАДЕЛ</div>
         <div className="pl-display" style={{ fontSize: 22, color: "var(--ink)", marginTop: 2 }}>ЛИГА ДРУЗЕЙ</div>
