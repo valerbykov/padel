@@ -280,7 +280,7 @@ function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme
           <span style={{ fontSize: 14, fontWeight: 600 }}>{name || "Профиль"}</span>
         </button>
       ) : (
-        <span style={{ color: "var(--ink)", fontSize: 14, fontWeight: 600 }}>Падел · Лига</span>
+        <span style={{ color: "var(--ink)", fontSize: 14, fontWeight: 600 }}>Padel · {t("league_title")}</span>
       )}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {["ru","en","es"].map((l) => (
@@ -294,7 +294,7 @@ function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme
           {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
         </button>
         {session ? (
-          <button onClick={onSignOut} style={{ ...base, background: "var(--surface2)", color: "var(--mut)" }}>{t("sign_out")}</button>
+          <button onClick={onSignOut} style={{ ...base, background: "var(--surface2)", color: "var(--mut)", whiteSpace: "nowrap" }}>{t("sign_out")}</button>
         ) : (
           <button onClick={onLogin} style={{ ...base, background: "var(--lime)", color: "var(--lime-fg)", border: "none", fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
             <LogIn size={15} /> {t("sign_in")}

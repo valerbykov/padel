@@ -13,6 +13,7 @@ import { getAllKotHTeams } from "../lib/mexicano";
 import CourtView from "./CourtView";
 import StandingsTable from "./StandingsTable";
 import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, Share2, Trash2, Plus } from "lucide-react";
+import { t as tr } from "../lib/i18n";
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
@@ -34,53 +35,42 @@ const css = `
 }
 `;
 
-// ─── Метаданные форматов ───────────────────────────────────────────────────────
+// ─── Format metadata (non-translatable) ───────────────────────────────────────
+const FORMAT_META = {
+  americano:    { emoji: "🔄", color: "#b8ef28", multiOf: 4 },
+  mexicano:     { emoji: "📊", color: "var(--yellow)", multiOf: 4 },
+  king_of_hill: { emoji: "👑", color: "#ff9d3f", multiOf: 2 },
+  beat_the_box: { emoji: "📦", color: "#ff6a52", multiOf: 2 },
+};
 
-const FORMATS = [
-  {
-    id: "americano",
-    emoji: "🔄",
-    color: "#b8ef28",
-    name: "Американо",
-    tagline: "Идеально для дебюта",
-    desc: "За (N−1) раундов каждый сыграет с каждым в роли партнёра. Все раунды расписаны заранее — просто играй и наслаждайся.",
-    tags: ["Все раунды сразу", "Случайные пары", "Классика"],
-    multiOf: 4,
-  },
-  {
-    id: "mexicano",
-    emoji: "📊",
-    color: "#ffd23f",
-    name: "Мексикано",
-    tagline: "Умный подбор соперников",
-    desc: "Как Американо, но пары составляются по текущим очкам. Лидеры играют вместе против лидеров — конкуренция максимальная.",
-    tags: ["Динамичные пары", "Лидеры vs лидеров", "Больше борьбы"],
-    multiOf: 4,
-  },
-  {
-    id: "king_of_hill",
-    emoji: "👑",
-    color: "#ff9d3f",
-    name: "King of the Hill",
-    tagline: "Держи корт!",
-    desc: "Победившая пара не уходит — остаётся на корте и принимает следующий вызов. Проигравшие уходят в конец очереди. Кто дольше всех удержит корт — тот Король.",
-    tags: ["1 корт", "Победители остаются", "Очередь претендентов"],
-    multiOf: 2,
-  },
-  {
-    id: "beat_the_box",
-    emoji: "📦",
-    color: "#ff6a52",
-    name: "Beat the Box",
-    tagline: "Вызови чемпиона!",
-    desc: "Одна пара — «Box». Все по очереди бросают вызов. Победишь Box — сам становишься им. Защищай позицию как можно дольше.",
-    tags: ["1 корт", "Один чемпион", "Смена ролей"],
-    multiOf: 2,
-  },
-];
+function getFormats() {
+  return [
+    { id: "americano",    ...FORMAT_META.americano,
+      name: tr("fmt_americano_name"), tagline: tr("fmt_americano_tagline"), desc: tr("fmt_americano_desc"),
+      tags: [tr("fmt_americano_t1"), tr("fmt_americano_t2"), tr("fmt_americano_t3")] },
+    { id: "mexicano",     ...FORMAT_META.mexicano,
+      name: tr("fmt_mexicano_name"), tagline: tr("fmt_mexicano_tagline"), desc: tr("fmt_mexicano_desc"),
+      tags: [tr("fmt_mexicano_t1"), tr("fmt_mexicano_t2"), tr("fmt_mexicano_t3")] },
+    { id: "king_of_hill", ...FORMAT_META.king_of_hill,
+      name: tr("fmt_koth_name"), tagline: tr("fmt_koth_tagline"), desc: tr("fmt_koth_desc"),
+      tags: [tr("fmt_koth_t1"), tr("fmt_koth_t2"), tr("fmt_koth_t3")] },
+    { id: "beat_the_box", ...FORMAT_META.beat_the_box,
+      name: tr("fmt_btb_name"), tagline: tr("fmt_btb_tagline"), desc: tr("fmt_btb_desc"),
+      tags: [tr("fmt_btb_t1"), tr("fmt_btb_t2"), tr("fmt_btb_t3")] },
+  ];
+}
 
-const fmtById = (id) => FORMATS.find((f) => f.id === id) || FORMATS[0];
-const statusLabel = { open: "набор", active: "идёт", finished: "завершён" };
+const fmtById = (id) => getFormats().find((f) => f.id === id) || getFormats()[0];
+
+function getSections() {
+  return [
+    { status: "active",   label: tr("trn_sec_active"),   color: "var(--yellow)", limit: null },
+    { status: "open",     label: tr("trn_sec_open"),     color: "var(--lime)",   limit: null },
+    { status: "finished", label: tr("trn_sec_finished"), color: "var(--mut)",    limit: 5 },
+  ];
+}
+
+const statusLabel = (s) => ({ open: tr("trn_sec_open"), active: tr("trn_sec_active"), finished: tr("trn_sec_finished") }[s] || s);
 
 // ─── Root ──────────────────────────────────────────────────────────────────────
 
@@ -94,22 +84,16 @@ export default function Tournaments({ groupId, players, profileId, bumpArchive, 
 
 // ─── TournamentCard ────────────────────────────────────────────────────────────
 
-const SECTIONS = [
-  { status: "active",   label: "Идёт",    color: "#ffd23f",     limit: null },
-  { status: "open",     label: "Набор",    color: "var(--lime)", limit: null },
-  { status: "finished", label: "Завершён", color: "var(--mut)",  limit: 5 },
-];
-
-function TournamentCard({ t, color, onClick }) {
-  const fmt = fmtById(t.format);
+function TournamentCard({ trn, color, onClick }) {
+  const fmt = fmtById(trn.format);
   return (
     <div className="tr-card" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }} onClick={onClick}>
       <Trophy size={20} color={color} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.name || fmt.name}</div>
-        <div style={{ fontSize: 12, color: "var(--mut)" }}>{(t.players || []).length}/{t.target_size} игр. · {t.points_per_game} оч. · {fmt.emoji} {fmt.name}</div>
+        <div style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{trn.name || fmt.name}</div>
+        <div style={{ fontSize: 12, color: "var(--mut)" }}>{(trn.players || []).length}/{trn.target_size} {tr("trn_players_label").toLowerCase()} · {trn.points_per_game} {tr("trn_winner_points")} · {fmt.emoji} {fmt.name}</div>
       </div>
-      <span className="tr-badge" style={{ background: "rgba(255,255,255,.06)", color, flexShrink: 0 }}>{statusLabel[t.status]}</span>
+      <span className="tr-badge" style={{ background: "rgba(255,255,255,.06)", color, flexShrink: 0 }}>{statusLabel(trn.status)}</span>
     </div>
   );
 }
@@ -125,9 +109,9 @@ function List({ groupId, create, open, session, onLogin }) {
   }, [groupId]);
 
   const byStatus = {
-    active:   (items || []).filter((t) => t.status === "active"),
-    open:     (items || []).filter((t) => t.status === "open"),
-    finished: (items || []).filter((t) => t.status === "finished"),
+    active:   (items || []).filter((trn) => trn.status === "active"),
+    open:     (items || []).filter((trn) => trn.status === "open"),
+    finished: (items || []).filter((trn) => trn.status === "finished"),
   };
 
   return (
@@ -135,22 +119,22 @@ function List({ groupId, create, open, session, onLogin }) {
       <style>{css}</style>
       {session ? (
         <button className="tr-btn" style={{ width: "100%", padding: 13, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={create}>
-          <PlusCircle size={18} /> Создать турнир
+          <PlusCircle size={18} /> {tr("trn_create_btn")}
         </button>
       ) : (
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "color-mix(in srgb, var(--lime) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 30%, transparent)", borderRadius: 12, marginBottom: 16 }}>
           <div style={{ fontSize: 18 }}>🔐</div>
-          <div style={{ flex: 1, fontSize: 13, color: "var(--mut)", lineHeight: 1.4 }}>Войди, чтобы организовать турнир</div>
-          <button className="tr-btn" style={{ padding: "7px 14px", fontSize: 12, flexShrink: 0, borderRadius: 10 }} onClick={onLogin}>Войти</button>
+          <div style={{ flex: 1, fontSize: 13, color: "var(--mut)", lineHeight: 1.4 }}>{tr("trn_sign_in_hint")}</div>
+          <button className="tr-btn" style={{ padding: "7px 14px", fontSize: 12, flexShrink: 0, borderRadius: 10 }} onClick={onLogin}>{tr("sign_in")}</button>
         </div>
       )}
-      {items === null && <div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>Загрузка…</div>}
+      {items === null && <div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>{tr("loading")}</div>}
       {items !== null && items.length === 0 && (
         <div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>
-          {session ? "Турниров пока нет." : "Здесь будут турниры лиги. Войди и вступи в лигу."}
+          {session ? tr("trn_empty_session") : tr("trn_empty_guest")}
         </div>
       )}
-      {items !== null && SECTIONS.map((sec) => {
+      {items !== null && getSections().map((sec) => {
         const list = byStatus[sec.status];
         if (!list.length) return null;
         const hidden = sec.limit && !showAll ? list.length - sec.limit : 0;
@@ -160,10 +144,10 @@ function List({ groupId, create, open, session, onLogin }) {
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: sec.color, textTransform: "uppercase", marginBottom: 8, paddingLeft: 4 }}>
               {sec.label}
             </div>
-            {visible.map((t) => <TournamentCard key={t.id} t={t} color={sec.color} onClick={() => open(t.id)} />)}
+            {visible.map((trn) => <TournamentCard key={trn.id} trn={trn} color={sec.color} onClick={() => open(trn.id)} />)}
             {hidden > 0 && (
               <button className="tr-ghost" style={{ width: "100%", padding: "8px 12px", fontSize: 12, marginTop: 4 }} onClick={() => setShowAll(true)}>
-                Показать ещё {hidden} завершённых
+                {tr("trn_show_more_pre")} {hidden} {tr("trn_show_more_suf")}
               </button>
             )}
           </div>
@@ -178,7 +162,7 @@ function List({ groupId, create, open, session, onLogin }) {
 function FormatPicker({ selected, onSelect }) {
   return (
     <div>
-      {FORMATS.map((f) => {
+      {getFormats().map((f) => {
         const isSelected = selected === f.id;
         return (
           <div
@@ -225,7 +209,7 @@ function FormatPicker({ selected, onSelect }) {
                 <span key={tag} style={{
                   fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 20,
                   background: `color-mix(in srgb, ${f.color} 14%, transparent)`,
-                  color: f.color === "#b8ef28" ? "var(--mut)" : f.color,
+                  color: f.id === "americano" ? "var(--mut)" : f.color,
                   border: `1px solid color-mix(in srgb, ${f.color} 28%, transparent)`,
                 }}>{tag}</span>
               ))}
@@ -242,8 +226,8 @@ function FormatPicker({ selected, onSelect }) {
 function Create({ groupId, back, open }) {
   const [step, setStep] = useState("format");
   const [format, setFormat] = useState(null);
-  const [courts, setCourts] = useState(2);        // для americano/mexicano
-  const [playerCount, setPlayerCount] = useState(8); // для koth/btb
+  const [courts, setCourts] = useState(2);
+  const [playerCount, setPlayerCount] = useState(8);
   const [points, setPoints] = useState(32);
   const [date, setDate] = useState("");
   const [name, setName] = useState("");
@@ -254,16 +238,16 @@ function Create({ groupId, back, open }) {
 
   const POINTS_OPTS = [16, 24, 32, 48, 64];
   const COURTS_OPTS = [
-    { v: 1, label: "1 корт", sub: "4 игрока" },
-    { v: 2, label: "2 корта", sub: "8 игроков" },
-    { v: 3, label: "3 корта", sub: "12 игроков" },
+    { v: 1, label: tr("trn_court1"), sub: tr("trn_4players") },
+    { v: 2, label: tr("trn_court2"), sub: tr("trn_8players") },
+    { v: 3, label: tr("trn_court3"), sub: tr("trn_12players") },
   ];
   const KOTH_PLAYER_OPTS = [
-    { v: 4,  label: "4",  sub: "2 команды" },
-    { v: 6,  label: "6",  sub: "3 команды" },
-    { v: 8,  label: "8",  sub: "4 команды" },
-    { v: 10, label: "10", sub: "5 команд" },
-    { v: 12, label: "12", sub: "6 команд" },
+    { v: 4,  label: "4",  sub: tr("trn_teams_2") },
+    { v: 6,  label: "6",  sub: tr("trn_teams_3") },
+    { v: 8,  label: "8",  sub: tr("trn_teams_4") },
+    { v: 10, label: "10", sub: tr("trn_teams_5") },
+    { v: 12, label: "12", sub: tr("trn_teams_6") },
   ];
 
   React.useEffect(() => {
@@ -274,7 +258,8 @@ function Create({ groupId, back, open }) {
       const time = d.toLocaleString("ru-RU", { hour: "2-digit", minute: "2-digit" });
       if (isKothBtB) {
         const teams = playerCount / 2;
-        setName(`${fmt.name} · ${day} · ${time} · ${teams} команд`);
+        const co = COURTS_OPTS.find((o) => o.v === courts);
+        setName(`${fmt.name} · ${day} · ${time} · ${teams} ${tr("trn_teams_" + teams).split(" ")[1] || "teams"}`);
       } else {
         const c = COURTS_OPTS.find((o) => o.v === courts);
         setName(`${fmt.name} · ${day} · ${time} · ${c.label}`);
@@ -286,8 +271,8 @@ function Create({ groupId, back, open }) {
     setBusy(true);
     try {
       const targetSize = isKothBtB ? playerCount : courts * 4;
-      const t = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format });
-      open(t.id);
+      const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format });
+      open(trn.id);
     } catch (e) { alert("Не удалось создать турнир"); setBusy(false); }
   };
 
@@ -299,17 +284,17 @@ function Create({ groupId, back, open }) {
     outline: active ? "none" : "1px solid var(--line)",
   });
 
-  // ── Шаг 1: выбор формата ──────────────────────────────────────────────────
+  // ── Step 1: format picker ──────────────────────────────────────────────
   if (step === "format") {
     return (
       <div className="tr-root">
         <style>{css}</style>
         <button className="tr-ghost" style={{ padding: "6px 12px", marginBottom: 14 }} onClick={back}>
-          <ArrowLeft size={14} /> Назад
+          <ArrowLeft size={14} /> {tr("back")}
         </button>
-        <div className="tr-d" style={{ fontSize: 22, marginBottom: 4 }}>Выбери формат</div>
+        <div className="tr-d" style={{ fontSize: 22, marginBottom: 4 }}>{tr("trn_pick_format")}</div>
         <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 16, lineHeight: 1.5 }}>
-          Каждый формат — разный опыт. Выбери подходящий для своей компании.
+          {tr("trn_pick_format_sub")}
         </div>
         <FormatPicker
           selected={format}
@@ -319,16 +304,16 @@ function Create({ groupId, back, open }) {
     );
   }
 
-  // ── Шаг 2: конфигурация ───────────────────────────────────────────────────
+  // ── Step 2: config ────────────────────────────────────────────────────
   return (
     <div className="tr-root">
       <style>{css}</style>
       <button className="tr-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={() => setStep("format")}>
-        <ArrowLeft size={14} /> Изменить формат
+        <ArrowLeft size={14} /> {tr("trn_change_format")}
       </button>
 
       <div className="tr-card" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {/* Выбранный формат */}
+        {/* Selected format badge */}
         <div style={{
           display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
           background: `color-mix(in srgb, ${fmt.color} 10%, transparent)`,
@@ -342,12 +327,12 @@ function Create({ groupId, back, open }) {
           </div>
         </div>
 
-        <div className="tr-d" style={{ fontSize: 18 }}>Настройки</div>
+        <div className="tr-d" style={{ fontSize: 18 }}>{tr("trn_settings_title")}</div>
 
-        {/* Корты / Игроки */}
+        {/* Courts / Players */}
         {!isKothBtB ? (
           <div>
-            <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>Кортов</div>
+            <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{tr("trn_courts_label")}</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
               {COURTS_OPTS.map((o) => (
                 <button key={o.v} style={chip(courts === o.v)} onClick={() => setCourts(o.v)}>
@@ -359,7 +344,7 @@ function Create({ groupId, back, open }) {
           </div>
         ) : (
           <div>
-            <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>Игроков</div>
+            <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{tr("trn_players_label")}</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
               {KOTH_PLAYER_OPTS.map((o) => (
                 <button key={o.v} style={chip(playerCount === o.v)} onClick={() => setPlayerCount(o.v)}>
@@ -371,9 +356,9 @@ function Create({ groupId, back, open }) {
           </div>
         )}
 
-        {/* Очки */}
+        {/* Points */}
         <div>
-          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>Очков в матче</div>
+          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{tr("trn_points_label")}</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
             {POINTS_OPTS.map((p) => (
               <button key={p} style={chip(points === p)} onClick={() => setPoints(p)}>{p}</button>
@@ -381,20 +366,20 @@ function Create({ groupId, back, open }) {
           </div>
         </div>
 
-        {/* Дата */}
+        {/* Date */}
         <div>
-          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>Дата и время</div>
+          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_date_label")}</div>
           <input type="datetime-local" className="tr-input" value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
 
-        {/* Название */}
+        {/* Name */}
         <div>
-          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>Название</div>
-          <input className="tr-input" placeholder={`${fmt.name} · 15 июн · 18:00`} value={name} onChange={(e) => setName(e.target.value)} />
+          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_name_label")}</div>
+          <input className="tr-input" placeholder={`${fmt.name} · 15 jun · 18:00`} value={name} onChange={(e) => setName(e.target.value)} />
         </div>
 
         <button className="tr-btn" style={{ padding: 13 }} disabled={busy} onClick={go}>
-          {busy ? "Создаю…" : "Создать турнир"}
+          {busy ? tr("trn_creating") : tr("trn_create_go")}
         </button>
       </div>
     </div>
@@ -418,10 +403,10 @@ function AddPlayer({ players, existing, onAdd, disabled }) {
     : [];
   const add = async (entry) => { setBusy(true); try { await onAdd(entry); setQ(""); } finally { setBusy(false); } };
 
-  if (disabled) return <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 10 }}>Набрано максимум игроков.</div>;
+  if (disabled) return <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 10 }}>{tr("trn_max_players")}</div>;
   return (
     <div style={{ marginTop: 10 }}>
-      <input className="tr-input" placeholder="Имя / поиск — игрок или гость" value={q} onChange={(e) => setQ(e.target.value)} />
+      <input className="tr-input" placeholder={tr("trn_search_placeholder")} value={q} onChange={(e) => setQ(e.target.value)} />
       {q.trim() && (
         <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 4 }}>
           {matches.map((p) => (
@@ -429,7 +414,7 @@ function AddPlayer({ players, existing, onAdd, disabled }) {
               onClick={() => add({ profileId: p.id, name: p.name })}>{p.name}</button>
           ))}
           <button className="tr-btn" disabled={busy} style={{ padding: "8px 10px", textAlign: "left" }}
-            onClick={() => add({ name: q.trim() })}>+ Гость: {q.trim()}</button>
+            onClick={() => add({ name: q.trim() })}>{tr("trn_guest_add")}{q.trim()}</button>
         </div>
       )}
     </div>
@@ -440,7 +425,7 @@ function AddPlayer({ players, existing, onAdd, disabled }) {
 
 export function TournamentView({ id, players, back, readOnly = false, initialT = null, reloadFn = null, isGroupMember = false, currentProfileId = null, spectatorMode = false, onArchiveChange = null }) {
   const hasInitRef = useRef(!!initialT);
-  const [t, setT] = useState(initialT ? { ...initialT, matches: initialT.matches || [], players: initialT.players || [] } : null);
+  const [trnData, setTrnData] = useState(initialT ? { ...initialT, matches: initialT.matches || [], players: initialT.players || [] } : null);
   const [toast, setToast] = useState("");
   const [cur, setCur] = useState(1);
   const [addingRound, setAddingRound] = useState(false);
@@ -449,8 +434,8 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   const load = useCallback(async () => {
     try {
       const data = reloadFn ? await reloadFn() : await getTournament(id);
-      setT({ ...data, matches: data.matches || [], players: data.players || [] });
-    } catch (e) { if (!hasInitRef.current) setT(false); }
+      setTrnData({ ...data, matches: data.matches || [], players: data.players || [] });
+    } catch (e) { if (!hasInitRef.current) setTrnData(false); }
   }, [id, reloadFn]);
   useEffect(() => { load(); }, [load]);
 
@@ -469,36 +454,34 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     return () => clearInterval(timer);
   }, [spectatorMode, load, reloadFn]);
 
-  // Формат
-  const isKothBtB = t ? (t.format === "king_of_hill" || t.format === "beat_the_box") : false;
-  const isMexicano = t?.format === "mexicano";
+  const isKothBtB = trnData ? (trnData.format === "king_of_hill" || trnData.format === "beat_the_box") : false;
+  const isMexicano = trnData?.format === "mexicano";
 
-  // Фильтрация: для KotH/BtB показываем только round > 0
-  const displayMatches = t ? (isKothBtB ? t.matches.filter((m) => m.round_number > 0) : t.matches) : [];
+  const displayMatches = trnData ? (isKothBtB ? trnData.matches.filter((m) => m.round_number > 0) : trnData.matches) : [];
 
   useEffect(() => {
-    if (!t || t.status === "open" || initRef.current) return;
+    if (!trnData || trnData.status === "open" || initRef.current) return;
     const rmap = groupRounds(displayMatches);
     const nums = Object.keys(rmap).map(Number).sort((a, b) => a - b);
     const firstUnplayed = nums.find((n) => rmap[n].some((m) => m.score_a == null));
     setCur(firstUnplayed || nums[nums.length - 1] || 1);
     initRef.current = true;
-  }, [t]);
+  }, [trnData]);
 
-  if (t === null) return <div className="tr-root"><style>{css}</style><div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>Загрузка…</div></div>;
-  if (t === false) return <div className="tr-root"><style>{css}</style><div className="tr-card" style={{ color: "var(--coral)" }}>Не удалось загрузить турнир.</div></div>;
+  if (trnData === null) return <div className="tr-root"><style>{css}</style><div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>{tr("loading")}</div></div>;
+  if (trnData === false) return <div className="tr-root"><style>{css}</style><div className="tr-card" style={{ color: "var(--coral)" }}>{tr("trn_loading_fail")}</div></div>;
 
-  const fmt = fmtById(t.format);
-  const nameOf = (tpId) => t.players.find((p) => p.id === tpId)?.name || "?";
+  const fmt = fmtById(trnData.format);
+  const nameOf = (tpId) => trnData.players.find((p) => p.id === tpId)?.name || "?";
   const _dogAv = (pid) => { if (!pid) return null; const h = [...String(pid)].reduce((a, c) => a + c.charCodeAt(0), 0); return `/avatars/dog-${String((h % 15) + 1).padStart(2, "0")}.png`; };
   const avatarOfTp = (tpId) => {
-    const tp = t.players.find((p) => p.id === tpId);
+    const tp = trnData.players.find((p) => p.id === tpId);
     if (!tp) return null;
     const gp = (players || []).find((gp) => gp.id === tp.profile_id);
     return gp?.avatar_url || (tp.profile_id ? _dogAv(tp.profile_id) : null);
   };
 
-  const table = detailedStandings(t.players.map((p) => ({ id: p.id, name: p.name })), t.matches.filter((m) => m.round_number > 0));
+  const table = detailedStandings(trnData.players.map((p) => ({ id: p.id, name: p.name })), trnData.matches.filter((m) => m.round_number > 0));
   const done = allMatchesPlayed(displayMatches);
   const rmap = groupRounds(displayMatches);
   const roundNums = Object.keys(rmap).map(Number).sort((a, b) => a - b);
@@ -507,17 +490,17 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   const curComplete = curMatches.length > 0 && curMatches.every((m) => m.score_a != null);
   const isLastRound = cur === N;
 
-  // KotH/BtB: вычислить очередь (команды не на корте, по порядку ожидания)
+  // KotH/BtB queue
   let kotHQueue = [];
-  if (isKothBtB && t.status !== "open") {
-    const allTeams = getAllKotHTeams(t.matches);
+  if (isKothBtB && trnData.status !== "open") {
+    const allTeams = getAllKotHTeams(trnData.matches);
     const onCourtKeys = new Set(curMatches.flatMap((m) => [
       [...m.team_a].sort().join(","),
       [...m.team_b].sort().join(","),
     ]));
     const lastPlayed = {};
     allTeams.forEach((tm) => { lastPlayed[[...tm].sort().join(",")] = 0; });
-    t.matches.filter((m) => m.round_number > 0).forEach((m) => {
+    trnData.matches.filter((m) => m.round_number > 0).forEach((m) => {
       const a = [...m.team_a].sort().join(",");
       const b = [...m.team_b].sort().join(",");
       lastPlayed[a] = Math.max(lastPlayed[a] || 0, m.round_number);
@@ -528,74 +511,69 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
       .sort((a, b) => (lastPlayed[[...a].sort().join(",")] || 0) - (lastPlayed[[...b].sort().join(",")] || 0));
   }
 
-  // Лобби: условие старта
   const canStart = isKothBtB
-    ? t.players.length >= 4 && t.players.length % 2 === 0
-    : t.players.length >= 4 && t.players.length % 4 === 0;
+    ? trnData.players.length >= 4 && trnData.players.length % 2 === 0
+    : trnData.players.length >= 4 && trnData.players.length % 4 === 0;
   const startHint = isKothBtB
-    ? (t.players.length % 2 !== 0 ? "Нужно чётное число игроков" : null)
-    : (t.players.length % 4 !== 0 ? "Нужно число игроков, кратное 4" : null);
+    ? (trnData.players.length % 2 !== 0 ? tr("trn_need_even") : null)
+    : (trnData.players.length % 4 !== 0 ? tr("trn_need_mult4") : null);
 
-  // Мексикано: добавить раунд
   const addMexicanoRound = async () => {
     setAddingRound(true);
-    try { await generateMexicanoRound(t.id, t.players, t.matches); await load(); setCur(N + 1); }
+    try { await generateMexicanoRound(trnData.id, trnData.players, trnData.matches); await load(); setCur(N + 1); }
     catch (e) { alert(e.message || "Не удалось создать раунд"); }
     finally { setAddingRound(false); }
   };
 
-  // KotH/BtB: следующий матч
   const addKotHMatch = async () => {
     setAddingRound(true);
-    try { await generateKotHRound(t.id, t.matches); await load(); setCur(N + 1); }
+    try { await generateKotHRound(trnData.id, trnData.matches); await load(); setCur(N + 1); }
     catch (e) { alert(e.message || "Не удалось создать матч"); }
     finally { setAddingRound(false); }
   };
 
   const share = async () => {
-    const url = tournamentLink(t.invite_code);
-    const text = `Турнир по паделю${t.name ? ` «${t.name}»` : ""}: ${url} (код ${t.invite_code})`;
-    try { if (navigator.share) { await navigator.share({ title: "Турнир", text, url }); return; } } catch (e) {}
-    try { await navigator.clipboard.writeText(text); setToast("Скопировано ✓"); setTimeout(() => setToast(""), 1500); } catch (e) {}
+    const url = tournamentLink(trnData.invite_code);
+    const text = `${tr("trn_share_text")}${trnData.name ? ` «${trnData.name}»` : ""}: ${url} (${tr("code_label")} ${trnData.invite_code})`;
+    try { if (navigator.share) { await navigator.share({ title: tr("tab_tournaments"), text, url }); return; } } catch (e) {}
+    try { await navigator.clipboard.writeText(text); setToast(tr("copied")); setTimeout(() => setToast(""), 1500); } catch (e) {}
   };
-  const start = async () => { try { await startTournament(t.id, t.players, t.format); load(); } catch (e) { alert(e.message || "Не удалось запустить"); } };
+  const start = async () => { try { await startTournament(trnData.id, trnData.players, trnData.format); load(); } catch (e) { alert(e.message || "Не удалось запустить"); } };
   const saveScore = async (matchId, a, b) => { await submitMatchScore(matchId, a, b); await load(); };
 
-  // Заголовок раунда/матча
   const roundLabel = isKothBtB
-    ? `Матч ${cur}`
-    : `Раунд ${cur}`;
+    ? `${tr("trn_match_label")} ${cur}`
+    : `${tr("trn_round_label")} ${cur}`;
   const roundSub = isKothBtB
     ? null
     : isMexicano ? ` · ${fmt.name}` : ` / ${N}`;
 
-  // Роль защитника для KotH/BtB
-  const defenderLabel = t.format === "king_of_hill" ? "👑 Король" : "📦 Box";
+  const defenderLabel = trnData.format === "king_of_hill" ? tr("trn_defender_koth") : tr("trn_defender_btb");
 
   return (
     <div className="tr-root">
       <style>{css}</style>
       {back && (
         <button className="tr-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={back}>
-          <ArrowLeft size={14} /> К списку
+          <ArrowLeft size={14} /> {tr("trn_to_list")}
         </button>
       )}
 
-      {/* Шапка */}
+      {/* Header */}
       <div className="tr-card" style={{ marginBottom: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div className="tr-d" style={{ fontSize: 20 }}>{t.name || fmt.name}</div>
+          <div className="tr-d" style={{ fontSize: 20 }}>{trnData.name || fmt.name}</div>
           <div style={{ display: "flex", gap: 6 }}>
             <button className="tr-ghost" style={{ padding: 8 }} onClick={load}><RefreshCw size={15} /></button>
             {!readOnly && (
               <button className="tr-btn" style={{ padding: "8px 12px", display: "flex", gap: 6, alignItems: "center" }} onClick={share}>
-                <Share2 size={14} /> {toast || "Ссылка"}
+                <Share2 size={14} /> {toast || tr("trn_share_btn") || tr("share_btn")}
               </button>
             )}
             {isGroupMember && (
-              <button className="tr-ghost" style={{ padding: 8, color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)" }} title="Удалить"
+              <button className="tr-ghost" style={{ padding: 8, color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)" }} title={tr("delete_btn")}
                 onClick={async () => {
-                  if (!confirm("Удалить турнир и все его данные?")) return;
+                  if (!confirm(tr("trn_delete_confirm"))) return;
                   try { await deleteTournament(id); onArchiveChange?.(); back?.(); } catch (e) { alert("Не удалось удалить"); }
                 }}>
                 <Trash2 size={15} />
@@ -604,26 +582,26 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
           </div>
         </div>
         <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>
-          {t.players.length}/{t.target_size} игр. · до {t.points_per_game} оч. · {fmt.emoji} {fmt.name} · {statusLabel[t.status]}
+          {trnData.players.length}/{trnData.target_size} {tr("trn_players_label").toLowerCase()} · {trnData.points_per_game} {tr("trn_winner_points")} · {fmt.emoji} {fmt.name} · {statusLabel(trnData.status)}
         </div>
       </div>
 
-      {/* ── ЛОББИ ─────────────────────────────────────────────────────────── */}
-      {t.status === "open" && (
+      {/* ── LOBBY ─────────────────────────────────────────────────────────── */}
+      {trnData.status === "open" && (
         <>
           {!readOnly && (
             <div className="tr-card" style={{ marginBottom: 12 }}>
-              <div className="tr-codebox">{t.invite_code}</div>
-              <div style={{ fontSize: 12, color: "var(--mut)", margin: "8px 0", wordBreak: "break-all" }}>{tournamentLink(t.invite_code)}</div>
+              <div className="tr-codebox">{trnData.invite_code}</div>
+              <div style={{ fontSize: 12, color: "var(--mut)", margin: "8px 0", wordBreak: "break-all" }}>{tournamentLink(trnData.invite_code)}</div>
               <button className="tr-btn" style={{ width: "100%", padding: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={share}>
-                <Copy size={15} /> {toast || "Поделиться приглашением"}
+                <Copy size={15} /> {toast || tr("share_invite")}
               </button>
             </div>
           )}
           <div className="tr-card" style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>Участники {t.players.length}/{t.target_size}</div>
-            <StandingsTable rows={detailedStandings(t.players.map((p) => ({ id: p.id, name: p.name })), [])} avatarOf={(row) => ({ url: avatarOfTp(row.id) })} />
-            {!readOnly && t.players.map((p) => (
+            <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{tr("trn_participants")} {trnData.players.length}/{trnData.target_size}</div>
+            <StandingsTable rows={detailedStandings(trnData.players.map((p) => ({ id: p.id, name: p.name })), [])} avatarOf={(row) => ({ url: avatarOfTp(row.id) })} />
+            {!readOnly && trnData.players.map((p) => (
               <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
                 <span style={{ flex: 1, fontSize: 13 }}>{p.name}</span>
                 <button style={{ padding: 4, border: "none", background: "none", color: "var(--mut)", cursor: "pointer" }}
@@ -631,8 +609,8 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
               </div>
             ))}
             {!readOnly && (
-              <AddPlayer players={players} existing={t.players} disabled={t.players.length >= t.target_size}
-                onAdd={async (entry) => { await addTournamentPlayer(t.id, entry); load(); }} />
+              <AddPlayer players={players} existing={trnData.players} disabled={trnData.players.length >= trnData.target_size}
+                onAdd={async (entry) => { await addTournamentPlayer(trnData.id, entry); load(); }} />
             )}
           </div>
           {!readOnly && (
@@ -640,22 +618,22 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
               <button className="tr-btn"
                 style={{ width: "100%", padding: 14, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
                 disabled={!canStart} onClick={start}>
-                <Play size={18} /> Запустить {fmt.emoji} {fmt.name} ({t.players.length})
+                <Play size={18} /> {tr("trn_start_btn")} {fmt.emoji} {fmt.name} ({trnData.players.length})
               </button>
               {startHint && <div style={{ textAlign: "center", color: "var(--coral)", fontSize: 12, marginTop: 8 }}>{startHint}</div>}
-              {isMexicano && <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginTop: 6 }}>Раунды генерируются поочерёдно по текущим очкам</div>}
-              {isKothBtB && <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginTop: 6 }}>Команды фиксируются при старте — пары не меняются</div>}
+              {isMexicano && <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginTop: 6 }}>{tr("trn_mexicano_hint")}</div>}
+              {isKothBtB && <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginTop: 6 }}>{tr("trn_koth_hint")}</div>}
             </>
           )}
         </>
       )}
 
-      {/* ── АКТИВНЫЙ / ЗАВЕРШЁН ───────────────────────────────────────────── */}
-      {t.status !== "open" && (
+      {/* ── ACTIVE / FINISHED ─────────────────────────────────────────── */}
+      {trnData.status !== "open" && (
         <>
-          {(!spectatorMode || t.status === "finished") && (
+          {(!spectatorMode || trnData.status === "finished") && (
             <>
-              {/* Навигация раунд/матч */}
+              {/* Round/match navigation */}
               <div className="tr-card" style={{ marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <button className="tr-ghost" style={{ padding: 8, opacity: cur > 1 ? 1 : .4 }} disabled={cur <= 1} onClick={() => setCur(cur - 1)}>
                   <ChevronLeft size={18} />
@@ -669,30 +647,30 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                 </button>
               </div>
 
-              {/* Подпись роли для KotH/BtB */}
+              {/* Role labels for KotH/BtB */}
               {isKothBtB && curMatches.length > 0 && (
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "0 4px 8px", fontSize: 12, fontWeight: 700 }}>
                   <span style={{ color: fmt.color }}>{defenderLabel}</span>
-                  <span style={{ color: "var(--mut)" }}>⚔️ Претендент</span>
+                  <span style={{ color: "var(--mut)" }}>{tr("trn_challenger")}</span>
                 </div>
               )}
 
-              {/* Корты текущего раунда */}
+              {/* Courts for current round */}
               {curMatches.map((m) => (
-                <CourtView key={m.id} courtNumber={isKothBtB ? null : m.court} points={t.points_per_game}
+                <CourtView key={m.id} courtNumber={isKothBtB ? null : m.court} points={trnData.points_per_game}
                   teamA={[nameOf(m.team_a[0]), nameOf(m.team_a[1])]}
                   teamB={[nameOf(m.team_b[0]), nameOf(m.team_b[1])]}
                   teamAvatarsA={[avatarOfTp(m.team_a[0]), avatarOfTp(m.team_a[1])]}
                   teamAvatarsB={[avatarOfTp(m.team_b[0]), avatarOfTp(m.team_b[1])]}
                   scoreA={m.score_a} scoreB={m.score_b}
-                  editable={!readOnly && t.status !== "finished"}
+                  editable={!readOnly && trnData.status !== "finished"}
                   onSave={(a, b) => saveScore(m.id, a, b)} />
               ))}
 
-              {/* Очередь KotH/BtB */}
+              {/* KotH/BtB queue */}
               {isKothBtB && kotHQueue.length > 0 && (
                 <div className="tr-card" style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 12, color: "var(--mut)", fontWeight: 700, letterSpacing: .5, marginBottom: 8 }}>В ОЧЕРЕДИ</div>
+                  <div style={{ fontSize: 12, color: "var(--mut)", fontWeight: 700, letterSpacing: .5, marginBottom: 8 }}>{tr("trn_queue_label")}</div>
                   {kotHQueue.map((team, i) => (
                     <div key={i} style={{
                       display: "flex", gap: 10, alignItems: "center",
@@ -706,51 +684,51 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                 </div>
               )}
 
-              {/* Подсказка незаполненный счёт */}
+              {/* Score hint */}
               {!curComplete && (
                 <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginBottom: 12 }}>
-                  {isKothBtB ? "Введи счёт матча." : "Заполни счёт всех кортов, чтобы перейти к следующему раунду."}
+                  {isKothBtB ? tr("trn_enter_score") : tr("trn_enter_all_scores")}
                 </div>
               )}
 
-              {/* Американо: кнопка «следующий» (навигация по уже созданным) */}
+              {/* Americano: next round nav */}
               {!isKothBtB && !isMexicano && curComplete && cur < N && (
                 <button className="tr-btn" style={{ width: "100%", padding: 12, marginBottom: 12 }} onClick={() => setCur(cur + 1)}>
-                  Следующий раунд →
+                  {tr("trn_next_round")}
                 </button>
               )}
 
-              {/* Мексикано: добавить новый раунд */}
-              {!readOnly && isMexicano && curComplete && isLastRound && t.status !== "finished" && (
+              {/* Mexicano: generate next round */}
+              {!readOnly && isMexicano && curComplete && isLastRound && trnData.status !== "finished" && (
                 <button className="tr-btn" style={{ width: "100%", padding: 12, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
                   disabled={addingRound} onClick={addMexicanoRound}>
-                  <Plus size={16} /> {addingRound ? "Жеребьёвка…" : "Следующий раунд (Мексикано)"}
+                  <Plus size={16} /> {addingRound ? tr("trn_drawing") : tr("trn_next_round_mex")}
                 </button>
               )}
 
-              {/* KotH/BtB: следующий матч */}
-              {!readOnly && isKothBtB && curComplete && isLastRound && t.status !== "finished" && (
+              {/* KotH/BtB: next match */}
+              {!readOnly && isKothBtB && curComplete && isLastRound && trnData.status !== "finished" && (
                 <button className="tr-btn" style={{ width: "100%", padding: 12, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
                   disabled={addingRound} onClick={addKotHMatch}>
-                  <Plus size={16} /> {addingRound ? "Жеребьёвка…" : `Следующий матч (${defenderLabel} защищает)`}
+                  <Plus size={16} /> {addingRound ? tr("trn_drawing") : `${tr("trn_next_match")} (${defenderLabel})`}
                 </button>
               )}
 
-              {/* Завершить турнир */}
-              {!readOnly && t.status !== "finished" && (
+              {/* Finish tournament */}
+              {!readOnly && trnData.status !== "finished" && (
                 ((isMexicano || isKothBtB) && curComplete && isLastRound) || (!isMexicano && !isKothBtB && done)
               ) && (
                 <button className="tr-ghost" style={{ width: "100%", padding: 12, marginBottom: 12, color: "var(--mut)" }}
-                  onClick={async () => { await finishTournament(t.id); load(); }}>
-                  Завершить турнир
+                  onClick={async () => { await finishTournament(trnData.id); load(); }}>
+                  {tr("trn_finish_tournament")}
                 </button>
               )}
             </>
           )}
 
-          {/* Таблица */}
+          {/* Standings table */}
           <div className="tr-card" style={{ overflow: "hidden" }}>
-            <div className="tr-d" style={{ fontSize: 15, marginBottom: 10 }}>{done ? "🏆 Итоговая таблица" : "Таблица"}</div>
+            <div className="tr-d" style={{ fontSize: 15, marginBottom: 10 }}>{done ? tr("trn_final_table") : tr("trn_table")}</div>
             <StandingsTable rows={table} avatarOf={(row) => ({ url: avatarOfTp(row.id) })} />
           </div>
         </>

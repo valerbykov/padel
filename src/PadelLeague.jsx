@@ -20,7 +20,7 @@ const dogAvatar = (idOrName) => {
 const playerAvatar = (url, idOrName) => url || dogAvatar(idOrName);
 
 function playerLevel(matches, rating) {
-  if (rating >= 1200) return { label: t("level_legend"), color: "#ffd23f" };
+  if (rating >= 1200) return { label: t("level_legend"), color: "var(--yellow)" };
   if (matches >= 50)  return { label: t("level_master"), color: "var(--lime)" };
   if (matches >= 20)  return { label: t("level_experienced"), color: "#7ec8e3" };
   if (matches >= 5)   return { label: t("level_amateur"), color: "#a0d890" };
@@ -35,8 +35,8 @@ const fmtDate = (iso) => {
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
-body{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;--lime-fg:#0a1612;--topbar-bg:rgba(10,22,18,.92);--border:var(--line);--card:var(--surface);--fg:var(--ink);background:var(--bg);}
-body.pl-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;--ink:#0d1f18;--mut:#4a7060;--lime:#2a7a00;--coral:#d93a1f;--lime-fg:#ffffff;--topbar-bg:rgba(242,247,244,.95);}
+body{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;--lime-fg:#0a1612;--topbar-bg:rgba(10,22,18,.92);--yellow:#ffd23f;--border:var(--line);--card:var(--surface);--fg:var(--ink);background:var(--bg);}
+body.pl-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;--ink:#0d1f18;--mut:#4a7060;--lime:#2a7a00;--coral:#d93a1f;--lime-fg:#ffffff;--topbar-bg:rgba(242,247,244,.95);--yellow:#9a6800;}
 .pl-root{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;color-scheme:dark;
  background-image:radial-gradient(circle at 80% -10%,rgba(200,255,45,.10),transparent 45%),radial-gradient(circle at 0% 110%,rgba(40,120,90,.18),transparent 40%);}
 .pl-root.pl-light{color-scheme:light;background-image:radial-gradient(circle at 80% -10%,rgba(42,122,0,.06),transparent 45%),radial-gradient(circle at 0% 110%,rgba(40,120,90,.08),transparent 40%);}
@@ -65,7 +65,7 @@ body.pl-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;-
 function LineChart({ values }) {
   const w = 300, h = 120, pad = 10;
   if (!values || values.length < 2)
-    return <div style={{ color: "var(--mut)", fontSize: 13, textAlign: "center", padding: "26px 0" }}>Сыграй матч — появится динамика рейтинга.</div>;
+    return <div style={{ color: "var(--mut)", fontSize: 13, textAlign: "center", padding: "26px 0" }}>{t("chart_empty")}</div>;
   const min = Math.min(...values), max = Math.max(...values), span = max - min || 1;
   const x = (i) => pad + (i * (w - 2 * pad)) / (values.length - 1);
   const y = (v) => h - pad - ((v - min) / span) * (h - 2 * pad);
@@ -147,8 +147,8 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
 
         {session && !groupId && (
           <div className="pl-card" style={{ padding: "14px 16px", marginBottom: 12, borderColor: "rgba(200,255,45,.3)" }}>
-            <div style={{ fontWeight: 600, color: "var(--lime)", marginBottom: 4 }}>Ты не в лиге</div>
-            <div style={{ fontSize: 13, color: "var(--mut)" }}>Попроси организатора добавить тебя в лигу — тогда увидишь рейтинг, игры и историю.</div>
+            <div style={{ fontWeight: 600, color: "var(--lime)", marginBottom: 4 }}>{t("not_in_league_title")}</div>
+            <div style={{ fontSize: 13, color: "var(--mut)" }}>{t("not_in_league_sub")}</div>
           </div>
         )}
 
@@ -161,7 +161,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
 
       <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--topbar-bg)", borderTop: "1px solid var(--line)", backdropFilter: "blur(8px)" }}>
         <div style={{ maxWidth: 460, margin: "0 auto", display: "flex" }}>
-          {!session && <button className={`pl-tab ${tab === "welcome" ? "on" : ""}`} onClick={() => setTab("welcome")}><LogIn size={20} />Начало</button>}
+          {!session && <button className={`pl-tab ${tab === "welcome" ? "on" : ""}`} onClick={() => setTab("welcome")}><LogIn size={20} />{t("tab_start")}</button>}
           {session && <button className={`pl-tab ${tab === "board" ? "on" : ""}`} onClick={() => setTab("board")}><Trophy size={20} />{t("tab_friends")}</button>}
           <button className={`pl-tab ${tab === "games" ? "on" : ""}`} onClick={() => setTab("games")}><Swords size={20} />{t("tab_games")}</button>
           <button className={`pl-tab ${tab === "tournaments" ? "on" : ""}`} onClick={() => setTab("tournaments")}><Award size={20} />{t("tab_tournaments")}</button>
@@ -189,10 +189,10 @@ function GateScreen() {
 /* ------------------------------ WelcomeScreen ----------------------------- */
 function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, theme = "dark", lang = "ru", onThemeToggle, onLangChange }) {
   const features = [
-    { icon: "🏆", title: "Рейтинговая таблица", sub: "Следи за прогрессом и уровнем каждого игрока" },
-    { icon: "📊", title: "Статистика и бейджи", sub: "Серии побед, лучший партнёр, ачивки и уровни" },
-    { icon: "🎾", title: "Турниры Американо", sub: "Организуй и играй прямо в приложении" },
-    { icon: "📲", title: "PWA — как нативное", sub: "Установи на экран и работает офлайн" },
+    { icon: "🏆", title: t("feat_board_title"), sub: t("feat_board_sub") },
+    { icon: "📊", title: t("feat_stats_title"), sub: t("feat_stats_sub") },
+    { icon: "🎾", title: t("feat_tour_title"), sub: t("feat_tour_sub") },
+    { icon: "📲", title: t("feat_pwa_title"), sub: t("feat_pwa_sub") },
   ];
   return (
     <div className="pl-pop">
@@ -225,13 +225,13 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, theme = "d
             <circle cx="7" cy="-16" r="1.8" fill="var(--bg)" opacity="0.4"/>
             <rect x="-5" y="2" width="10" height="26" rx="5" fill="var(--mut)"/>
           </g>
-          <circle cx="40" cy="20" r="8" fill="#ffd23f"/>
+          <circle cx="40" cy="20" r="8" fill="var(--yellow)"/>
           <circle cx="37" cy="16" r="2.5" fill="white" opacity="0.35"/>
         </svg>
-        <div className="pl-display" style={{ fontSize: 36, color: "var(--lime)", lineHeight: 1 }}>ПАДЕЛ</div>
-        <div className="pl-display" style={{ fontSize: 22, color: "var(--ink)", marginTop: 2 }}>ЛИГА ДРУЗЕЙ</div>
+        <div className="pl-display" style={{ fontSize: 36, color: "var(--lime)", lineHeight: 1 }}>PADEL</div>
+        <div className="pl-display" style={{ fontSize: 22, color: "var(--ink)", marginTop: 2 }}>{t("league_title")}</div>
         <div style={{ fontSize: 14, color: "var(--mut)", lineHeight: 1.6, maxWidth: 270, margin: "10px auto 0" }}>
-          Рейтинг, матчи и статистика<br />для твоей падел-компании
+          {t("welcome_tagline")}
         </div>
       </div>
 
@@ -250,10 +250,10 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, theme = "d
 
       {/* CTA */}
       <button className="pl-btn" style={{ width: "100%", padding: 15, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={onLogin}>
-        🚀 Войти и начать
+        {t("welcome_cta")}
       </button>
       <div style={{ textAlign: "center", marginTop: 12, fontSize: 12, color: "var(--mut)" }}>
-        Попроси организатора прислать код приглашения лиги
+        {t("welcome_code_hint")}
       </div>
 
       {/* Lang + theme controls */}
@@ -308,8 +308,8 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
       if (!active) return;
       // tourCounts
       const counts = {};
-      tours.filter((t) => t.status === "finished").forEach((t) => {
-        (t.players || []).forEach((p) => {
+      tours.filter((tour) => tour.status === "finished").forEach((tour) => {
+        (tour.players || []).forEach((p) => {
           if (p.profile_id) counts[p.profile_id] = (counts[p.profile_id] || 0) + 1;
         });
       });
@@ -334,8 +334,8 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
       if (active) setStreaks(sk);
       // Extra (played in group, not member)
       const extraIds = new Set();
-      tours.forEach((t) => {
-        (t.players || []).forEach((p) => {
+      tours.forEach((tour) => {
+        (tour.players || []).forEach((p) => {
           if (p.profile_id && !memberIds.has(p.profile_id)) extraIds.add(p.profile_id);
         });
       });
@@ -437,7 +437,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
             onClick={() => { setShowLeagueMenu((v) => !v); setShowNewLeague(false); setLeagueErr(""); }}
             style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 14, cursor: "pointer", color: "var(--ink)", fontFamily: "'Outfit'", fontSize: 14 }}>
             <span style={{ fontWeight: 600 }}>{activeLeague?.name || "Лига"}</span>
-            <span style={{ color: "var(--mut)", fontSize: 11 }}>{isAdmin ? "admin" : "участник"} {showLeagueMenu ? "▲" : "▼"}</span>
+            <span style={{ color: "var(--mut)", fontSize: 11 }}>{isAdmin ? t("league_admin") : t("league_member")} {showLeagueMenu ? "▲" : "▼"}</span>
           </button>
 
           {showLeagueMenu && (
@@ -451,9 +451,9 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
               ))}
               <div style={{ borderTop: "1px solid var(--line)", display: "flex" }}>
                 <button onClick={() => { setShowNewLeague("create"); setShowLeagueMenu(false); setLeagueErr(""); }}
-                  style={{ flex: 1, padding: "10px 0", background: "none", border: "none", color: "var(--lime)", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit'" }}>+ Создать</button>
+                  style={{ flex: 1, padding: "10px 0", background: "none", border: "none", color: "var(--lime)", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit'" }}>{t("league_create")}</button>
                 <button onClick={() => { setShowNewLeague("join"); setShowLeagueMenu(false); setLeagueErr(""); }}
-                  style={{ flex: 1, padding: "10px 0", background: "none", border: "none", color: "var(--mut)", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit'" }}>По коду</button>
+                  style={{ flex: 1, padding: "10px 0", background: "none", border: "none", color: "var(--mut)", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit'" }}>{t("league_join_code")}</button>
               </div>
             </div>
           )}
@@ -463,21 +463,21 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
             <div className="pl-card pl-pop" style={{ padding: 14, marginTop: 6 }}>
               {showNewLeague === "create" ? (
                 <>
-                  <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14 }}>Новая лига</div>
-                  <input className="pl-input" style={{ padding: "9px 12px", marginBottom: 8 }} placeholder="Название" value={newLeagueName} onChange={(e) => setNewLeagueName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleCreateLeague()} autoFocus />
+                  <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14 }}>{t("league_new_title")}</div>
+                  <input className="pl-input" style={{ padding: "9px 12px", marginBottom: 8 }} placeholder={t("league_name_placeholder")} value={newLeagueName} onChange={(e) => setNewLeagueName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleCreateLeague()} autoFocus />
                   {leagueErr && <div style={{ fontSize: 12, color: "var(--coral)", marginBottom: 6 }}>{leagueErr}</div>}
                   <div style={{ display: "flex", gap: 8 }}>
-                    <button className="pl-btn" style={{ flex: 1, padding: 10 }} disabled={leagueBusy || !newLeagueName.trim()} onClick={handleCreateLeague}>{leagueBusy ? "…" : "Создать"}</button>
+                    <button className="pl-btn" style={{ flex: 1, padding: 10 }} disabled={leagueBusy || !newLeagueName.trim()} onClick={handleCreateLeague}>{leagueBusy ? t("creating") : t("league_create")}</button>
                     <button className="pl-ghost" style={{ padding: "0 12px" }} onClick={() => { setShowNewLeague(false); setLeagueErr(""); }}><X size={14} /></button>
                   </div>
                 </>
               ) : (
                 <>
-                  <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14 }}>Вступить по коду</div>
+                  <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14 }}>{t("league_join_title")}</div>
                   <input className="pl-input" style={{ padding: "9px 12px", marginBottom: 8, textTransform: "uppercase", letterSpacing: 3, textAlign: "center" }} placeholder="XXXXXX" value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))} onKeyDown={(e) => e.key === "Enter" && handleJoinLeague()} autoFocus />
                   {leagueErr && <div style={{ fontSize: 12, color: "var(--coral)", marginBottom: 6 }}>{leagueErr}</div>}
                   <div style={{ display: "flex", gap: 8 }}>
-                    <button className="pl-btn" style={{ flex: 1, padding: 10 }} disabled={leagueBusy || joinCode.length < 4} onClick={handleJoinLeague}>{leagueBusy ? "…" : "Вступить"}</button>
+                    <button className="pl-btn" style={{ flex: 1, padding: 10 }} disabled={leagueBusy || joinCode.length < 4} onClick={handleJoinLeague}>{leagueBusy ? t("creating") : t("league_join_btn")}</button>
                     <button className="pl-ghost" style={{ padding: "0 12px" }} onClick={() => { setShowNewLeague(false); setLeagueErr(""); }}><X size={14} /></button>
                   </div>
                 </>
@@ -490,14 +490,14 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
       {/* Код приглашения + публичная страница */}
       {activeLeague?.invite_code && (
         <div style={{ width: "100%", marginBottom: 12, padding: "12px 16px", background: "color-mix(in srgb, var(--lime) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", borderRadius: 14, fontFamily: "'Outfit'" }}>
-          <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 4 }}>Пригласить в лигу</div>
+          <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 4 }}>{t("league_invite_label")}</div>
           <div style={{ fontFamily: "'Anton'", fontSize: 24, letterSpacing: 5, color: "var(--lime)", marginBottom: 10 }}>{activeLeague.invite_code}</div>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={copyInvite} style={{ flex: 1, padding: "7px 0", background: "color-mix(in srgb, var(--lime) 18%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", borderRadius: 10, color: "var(--lime)", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, fontFamily: "'Outfit'" }}>
-              {inviteCopied ? "✓ Код скопирован" : <><Copy size={12} /> Копировать код</>}
+              {inviteCopied ? t("code_copied") : <><Copy size={12} /> {t("copy_code")}</>}
             </button>
             <button onClick={copyPublicLink} style={{ flex: 1, padding: "7px 0", background: "color-mix(in srgb, var(--lime) 18%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", borderRadius: 10, color: "var(--lime)", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, fontFamily: "'Outfit'" }}>
-              {publicLinkCopied ? "✓ Страница скопирована" : <><Share2 size={12} /> Страница лиги</>}
+              {publicLinkCopied ? t("page_copied") : <><Share2 size={12} /> {t("league_page")}</>}
             </button>
           </div>
         </div>
@@ -505,11 +505,11 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
 
       {ranked.length === 0 && (
         <div className="pl-card" style={{ padding: 20, marginBottom: 12 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}>🚀 Начни свою лигу</div>
+          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}>{t("onboarding_title")}</div>
           {[
-            { n: 1, icon: "👤", text: "Добавь первых игроков", sub: isAdmin ? "Нажми «Добавить игрока» ниже" : "Попроси организатора добавить тебя" },
-            { n: 2, icon: "🎾", text: "Создайте первую игру", sub: "Вкладка «Игры» → «Новая игра»" },
-            { n: 3, icon: "📣", text: "Пригласи друзей", sub: activeLeague?.invite_code ? `Код: ${activeLeague.invite_code} · или скопируй страницу лиги` : "Скопируй код приглашения выше" },
+            { n: 1, icon: "👤", text: t("onboarding_1_text"), sub: isAdmin ? t("onboarding_1_sub_admin") : t("onboarding_1_sub_member") },
+            { n: 2, icon: "🎾", text: t("onboarding_2_text"), sub: t("onboarding_2_sub") },
+            { n: 3, icon: "📣", text: t("onboarding_3_text"), sub: activeLeague?.invite_code ? t("onboarding_3_sub_code").replace("{code}", activeLeague.invite_code) : t("onboarding_3_sub_no_code") },
           ].map(({ n, icon, text, sub }) => (
             <div key={n} style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 12 }}>
               <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "var(--lime)", flexShrink: 0 }}>{n}</div>
@@ -529,7 +529,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         if ((tourCounts[p.id] || 0) >= 3) qb.push("🏆");
         return (
           <div key={p.id} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }} onClick={() => setSelected(p)}>
-            <div className="pl-display" style={{ width: 22, fontSize: 22, color: ["#ffd23f", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)" }}>{i + 1}</div>
+            <div className="pl-display" style={{ width: 22, fontSize: 22, color: ["var(--yellow)", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)" }}>{i + 1}</div>
             <img src={playerAvatar(p.avatar_url, p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
@@ -550,10 +550,10 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
 
       {open ? (
         <div className="pl-card" style={{ padding: 14, marginTop: 8 }}>
-          <div style={{ fontWeight: 600, marginBottom: 10 }}>Добавить игрока</div>
-          <input className="pl-input" style={{ padding: "10px 12px", marginBottom: 8 }} placeholder="Имя *" value={name}
+          <div style={{ fontWeight: 600, marginBottom: 10 }}>{t("add_player_form_title")}</div>
+          <input className="pl-input" style={{ padding: "10px 12px", marginBottom: 8 }} placeholder={t("player_name_placeholder")} value={name}
             onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} autoFocus />
-          <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 6 }}>Контакты (опционально)</div>
+          <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 6 }}>{t("contacts_optional")}</div>
           {[
             { key: "whatsapp", placeholder: "WhatsApp (+7…)" },
             { key: "telegram", placeholder: "Telegram (@username)" },
@@ -564,19 +564,19 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
               value={contacts[key]} onChange={(e) => setContacts(c => ({ ...c, [key]: e.target.value }))} />
           ))}
           <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-            <button className="pl-btn" style={{ flex: 1, padding: 11 }} disabled={!name.trim() || busy} onClick={add}>{busy ? "Добавляю…" : "Добавить"}</button>
+            <button className="pl-btn" style={{ flex: 1, padding: 11 }} disabled={!name.trim() || busy} onClick={add}>{busy ? t("adding") : t("add_player_btn")}</button>
             <button className="pl-ghost" style={{ padding: "0 14px" }} onClick={() => { resetForm(); setOpen(false); }}><X size={16} /></button>
           </div>
         </div>
       ) : (
         <button className="pl-ghost" style={{ width: "100%", padding: 12, marginTop: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontWeight: 600 }} onClick={() => setOpen(true)}>
-          <Users size={18} /> Добавить игрока
+          <Users size={18} /> {t("add_player")}
         </button>
       )}
 
       {extraPlayers.length > 0 && (
         <>
-          <div className="pl-display" style={{ fontSize: 12, color: "var(--mut)", margin: "14px 2px 8px", letterSpacing: 1 }}>ИГРАЛИ ВМЕСТЕ</div>
+          <div className="pl-display" style={{ fontSize: 12, color: "var(--mut)", margin: "14px 2px 8px", letterSpacing: 1 }}>{t("played_together_label")}</div>
           {extraPlayers.map((p) => (
             <div key={p.id} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", marginBottom: 8, cursor: "pointer" }} onClick={() => setSelected(p)}>
               <img src={playerAvatar(p.avatar_url, p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
@@ -617,26 +617,26 @@ function DeletePlayerModal({ player, onConfirm, onCancel }) {
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }}>
       <div className="pl-card" style={{ padding: 20, width: "100%", maxWidth: 360 }}>
-        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Удалить {player.name}?</div>
+        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>{t("delete_player_prefix")} {player.name}?</div>
         <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 14 }}>
-          Игрок будет удалён из лиги. В истории отобразится как «Удалён».
+          {t("delete_player_sub")}
         </div>
-        {gameCount === null && <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 12 }}>Проверяю игры…</div>}
+        {gameCount === null && <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 12 }}>{t("checking_games")}</div>}
         {gameCount > 0 && (
           <label style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 16, cursor: "pointer" }}>
             <input type="checkbox" checked={deleteGames} onChange={(e) => setDeleteGames(e.target.checked)}
               style={{ marginTop: 2, width: 16, height: 16, accentColor: "var(--coral)", flexShrink: 0 }} />
             <span style={{ fontSize: 13 }}>
-              Удалить <strong>{gameCount} игр(ы)</strong> с участием этого игрока из архива
+              {t("delete_games_label_pre")} <strong>{gameCount} {t("delete_games_count_suffix")}</strong> {t("delete_games_label_post")}
             </span>
           </label>
         )}
         {gameCount === 0 && <div style={{ height: 4 }} />}
         <div style={{ display: "flex", gap: 8 }}>
-          <button className="pl-ghost" style={{ flex: 1, padding: 11 }} onClick={onCancel} disabled={busy}>Отмена</button>
+          <button className="pl-ghost" style={{ flex: 1, padding: 11 }} onClick={onCancel} disabled={busy}>{t("cancel")}</button>
           <button style={{ flex: 1, padding: 11, border: "none", borderRadius: 12, background: "var(--coral)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", opacity: (busy || gameCount === null) ? .6 : 1 }}
             onClick={go} disabled={busy || gameCount === null}>
-            {busy ? "Удаляю…" : "Удалить"}
+            {busy ? t("deleting") : t("delete_btn")}
           </button>
         </div>
       </div>
@@ -651,13 +651,13 @@ function ClaimLinkButton({ claimCode }) {
   const copy = async () => {
     try { await navigator.clipboard.writeText(link); }
     catch (e) {}
-    setToast("Скопировано ✓");
+    setToast(t("copied"));
     setTimeout(() => setToast(""), 2200);
   };
   return (
     <div style={{ marginTop: 12, width: "100%" }}>
       <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 6, textAlign: "center" }}>
-        Ссылка для регистрации игрока
+        {t("claim_link_label")}
       </div>
       <button onClick={copy} style={{
         width: "100%", padding: "10px 14px", background: "rgba(200,255,45,.08)",
@@ -666,7 +666,7 @@ function ClaimLinkButton({ claimCode }) {
         gap: 8, fontFamily: "'Outfit'", color: "var(--lime)", fontSize: 13, fontWeight: 600,
       }}>
         <Share2 size={15} />
-        {toast || "Скопировать ссылку"}
+        {toast || t("copy_link")}
       </button>
       <div style={{ fontSize: 10, color: "var(--mut)", marginTop: 5, textAlign: "center", wordBreak: "break-all" }}>
         {link}
@@ -723,20 +723,20 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
 
     // Загружаем турниры игрока
     listTournaments(groupId).then((all) => {
-      const finished = all.filter((t) => t.status === "finished");
-      const participated = finished.filter((t) =>
-        (t.players || []).some((p) => p.profile_id === player.id)
+      const finished = all.filter((tour) => tour.status === "finished");
+      const participated = finished.filter((tour) =>
+        (tour.players || []).some((p) => p.profile_id === player.id)
       );
       setRawTours(participated);
-      const rows = participated.map((t) => {
-        const tPlayers = (t.players || []).map((p) => ({ id: p.id, name: p.name }));
-        const table = detailedStandings(tPlayers, t.matches || []);
-        const myTp = (t.players || []).find((p) => p.profile_id === player.id);
+      const rows = participated.map((tour) => {
+        const tPlayers = (tour.players || []).map((p) => ({ id: p.id, name: p.name }));
+        const table = detailedStandings(tPlayers, tour.matches || []);
+        const myTp = (tour.players || []).find((p) => p.profile_id === player.id);
         const pos = table.findIndex((r) => r.id === myTp?.id);
         const row = table[pos] || {};
         return {
-          id: t.id,
-          name: t.name,
+          id: tour.id,
+          name: tour.name,
           position: pos + 1,
           total: table.length,
           points: row.points || 0,
@@ -776,7 +776,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
     setTourH2H(toTotal + vsTotal > 0 ? { toWins, toLosses, toDraws, toTotal, vsWins, vsLosses, vsDraws, vsTotal } : null);
   }, [rawTours, myId, player.id]);
 
-  const nameOf = (id) => players.find((p) => p.id === id)?.name || "Удалён";
+  const nameOf = (id) => players.find((p) => p.id === id)?.name || t("player_deleted");
 
   // Матчи, в которых участвуют оба (я + выбранный игрок)
   const withPlayer = !myId || !allMatches ? [] : allMatches.filter((m) => {
@@ -834,15 +834,15 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
     const result = [];
     const rankedAll = [...players].sort((a, b) => b.rating - a.rating);
     if (rankedAll.length > 0 && rankedAll[0].id === player.id)
-      result.push({ id: "leader", icon: "👑", label: "Лидер лиги", title: "Первое место по рейтингу" });
+      result.push({ id: "leader", icon: "👑", label: t("badge_leader"), title: t("badge_leader_title") });
     if (player.matches >= 5 && player.wins / player.matches >= 0.7)
-      result.push({ id: "sniper", icon: "🎯", label: "Снайпер", title: "70%+ побед в матчах" });
+      result.push({ id: "sniper", icon: "🎯", label: t("badge_sniper"), title: t("badge_sniper_title") });
     if (player.matches >= 20)
-      result.push({ id: "veteran", icon: "⚡", label: "Ветеран", title: "20+ сыгранных матчей" });
+      result.push({ id: "veteran", icon: "⚡", label: t("badge_veteran"), title: t("badge_veteran_title") });
     if (hist && hist.length >= 4 && hist[hist.length - 1] > hist[hist.length - 2] && hist[hist.length - 2] > hist[hist.length - 3])
-      result.push({ id: "rising", icon: "🔥", label: "На подъёме", title: "Рейтинг растёт 3 матча подряд" });
+      result.push({ id: "rising", icon: "🔥", label: t("badge_rising"), title: t("badge_rising_title") });
     if (playerTours && playerTours.length >= 3)
-      result.push({ id: "tourney", icon: "🏆", label: "Турнирный", title: "3+ турниров сыграно" });
+      result.push({ id: "tourney", icon: "🏆", label: t("badge_tourney"), title: t("badge_tourney_title") });
     return result;
   })();
 
@@ -852,15 +852,15 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
       <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
         <div style={{ textAlign: "center", flex: 1 }}>
           <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 22, color: "#3ddc84" }}>{w}</div>
-          <div style={{ fontSize: 10, color: "var(--mut)" }}>победы</div>
+          <div style={{ fontSize: 10, color: "var(--mut)" }}>{t("stat_wins")}</div>
         </div>
         <div style={{ textAlign: "center", flex: 1 }}>
           <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 22, color: "var(--ink)" }}>{d}</div>
-          <div style={{ fontSize: 10, color: "var(--mut)" }}>ничьи</div>
+          <div style={{ fontSize: 10, color: "var(--mut)" }}>{t("stat_draws")}</div>
         </div>
         <div style={{ textAlign: "center", flex: 1 }}>
           <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 22, color: "var(--coral)" }}>{l}</div>
-          <div style={{ fontSize: 10, color: "var(--mut)" }}>поражения</div>
+          <div style={{ fontSize: 10, color: "var(--mut)" }}>{t("stat_losses")}</div>
         </div>
         <div style={{ flex: 2, height: 6, borderRadius: 3, overflow: "hidden", background: "var(--surface2)", display: "flex" }}>
           {w > 0 && <div style={{ flex: w, background: "#3ddc84" }} />}
@@ -874,14 +874,14 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
   return (
     <div className="pl-pop">
       <button className="pl-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={close}>
-        <ArrowLeft size={14} style={{ display: "inline", marginRight: 4 }} />Назад
+        <ArrowLeft size={14} style={{ display: "inline", marginRight: 4 }} />{t("back")}
       </button>
 
       {/* Шапка игрока */}
       <div className="pl-card" style={{ padding: 18, marginBottom: 10, textAlign: "center" }}>
         <img src={playerAvatar(player.avatar_url, player.id)} alt="" style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--line)", marginBottom: 8 }} />
         <div className="pl-display" style={{ fontSize: 24 }}>{player.name}</div>
-        <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 4 }}>{player.matches} игр · {player.wins} побед</div>
+        <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 4 }}>{player.matches} {t("matches")} · {player.wins} {t("stat_wins")}</div>
         {badges.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", marginTop: 10 }}>
             {badges.map((b) => (
@@ -908,20 +908,20 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
           : isAdmin && (
             <button onClick={generateClaimCode} disabled={genBusy}
               style={{ marginTop: 12, padding: "8px 16px", border: "1px solid rgba(200,255,45,.4)", borderRadius: 10, background: "rgba(200,255,45,.07)", color: "var(--lime)", fontSize: 12, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "'Outfit'" }}>
-              <Share2 size={13} /> {genBusy ? "…" : "Создать ссылку для регистрации"}
+              <Share2 size={13} /> {genBusy ? t("creating") : t("create_claim_link")}
             </button>
           )
         )}
         {onAddToLeague && !isInLeague && (
           <button onClick={onAddToLeague}
             style={{ marginTop: 10, padding: "8px 16px", border: "none", borderRadius: 10, background: "var(--lime)", color: "#111", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "'Outfit'" }}>
-            + Добавить в лигу
+            {t("add_to_league")}
           </button>
         )}
         {onDelete && isAdmin && myId && myId !== player.id && isInLeague && (
           <button onClick={() => setShowDeleteModal(true)}
             style={{ marginTop: 10, padding: "6px 14px", border: "1px solid rgba(255,106,82,.35)", borderRadius: 10, background: "none", color: "var(--coral)", fontSize: 12, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <Trash2 size={12} /> Удалить из лиги
+            <Trash2 size={12} /> {t("remove_from_league")}
           </button>
         )}
       </div>
@@ -956,9 +956,9 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
       {/* Статистика с этим игроком */}
       {myId && myId !== player.id && withPlayer.length > 0 && (
         <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Вместе сыграно {withPlayer.length} матчей</div>
-          {statRow("Играли в одной команде", toWins, toDraws, toLosses, toTotal)}
-          {statRow("Играли против друг друга", vsWins, vsDraws, vsLosses, vsTotal)}
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>{t("stat_with_matches_pre")} {withPlayer.length} {t("matches")}</div>
+          {statRow(t("stat_same_team"), toWins, toDraws, toLosses, toTotal)}
+          {statRow(t("stat_vs_each_other"), vsWins, vsDraws, vsLosses, vsTotal)}
         </div>
       )}
 
@@ -967,37 +967,37 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
         <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
             <Trophy size={13} color="var(--lime)" />
-            <div style={{ fontSize: 13, fontWeight: 600 }}>В турнирах вместе</div>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>{t("tour_h2h_header")}</div>
           </div>
-          {statRow("В одной команде", tourH2H.toWins, tourH2H.toDraws, tourH2H.toLosses, tourH2H.toTotal)}
-          {statRow("Против друг друга", tourH2H.vsWins, tourH2H.vsDraws, tourH2H.vsLosses, tourH2H.vsTotal)}
+          {statRow(t("stat_same_team_tour"), tourH2H.toWins, tourH2H.toDraws, tourH2H.toLosses, tourH2H.toTotal)}
+          {statRow(t("stat_vs_each_other_tour"), tourH2H.vsWins, tourH2H.vsDraws, tourH2H.vsLosses, tourH2H.vsTotal)}
         </div>
       )}
 
       {/* Последние совместные игры */}
       {myId && myId !== player.id && withPlayer.length > 0 && (
         <div className="pl-card" style={{ padding: 14 }}>
-          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>Последние игры вместе</div>
+          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{t("recent_games_together")}</div>
           {withPlayer.slice(0, 5).map((m) => {
             const myInA = (m.team_a || []).includes(myId);
             const thInA = (m.team_a || []).includes(player.id);
             const together = myInA === thInA;
             const myTeamWon = myInA ? m.sets_a > m.sets_b : m.sets_b > m.sets_a;
             const isDraw = m.sets_a === m.sets_b;
-            const result = isDraw ? "Н" : myTeamWon ? "П" : "П";
+            const result = isDraw ? t("result_draw") : myTeamWon ? t("result_win") : t("result_loss");
             const resultColor = isDraw ? "var(--mut)" : myTeamWon ? "#3ddc84" : "var(--coral)";
             const teamA = (m.team_a || []).map(nameOf).join(" & ");
             const teamB = (m.team_b || []).map(nameOf).join(" & ");
             return (
               <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderBottom: "1px solid var(--line)" }}>
                 <div style={{ width: 20, height: 20, borderRadius: "50%", background: isDraw ? "var(--surface2)" : myTeamWon ? "rgba(61,220,132,.15)" : "rgba(255,106,82,.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: resultColor, flexShrink: 0 }}>
-                  {isDraw ? "Н" : myTeamWon ? "В" : "П"}
+                  {isDraw ? t("result_draw") : myTeamWon ? t("result_win") : t("result_loss")}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 11, color: "var(--mut)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {teamA} <span style={{ color: "var(--line)" }}>vs</span> {teamB}
                   </div>
-                  <div style={{ fontSize: 10, color: "var(--mut)" }}>{together ? "вместе" : "против"} · {fmtDate(m.played_at)}</div>
+                  <div style={{ fontSize: 10, color: "var(--mut)" }}>{together ? t("together") : t("versus")} · {fmtDate(m.played_at)}</div>
                 </div>
                 <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 14, flexShrink: 0 }}>{m.sets_a}:{m.sets_b}</div>
               </div>
@@ -1009,18 +1009,18 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
       {playerTours && playerTours.length > 0 && (
         <div className="pl-card" style={{ padding: 14, marginTop: 10 }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>
-            Турниры ({playerTours.length})
+            {t("tours_heading")} ({playerTours.length})
           </div>
-          {playerTours.map((t) => (
-            <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--line)" }}>
-              <div style={{ width: 28, height: 28, borderRadius: "50%", background: t.position === 1 ? "rgba(200,255,45,.12)" : "var(--surface2)", border: `1px solid ${t.position === 1 ? "var(--lime)" : "var(--line)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span style={{ fontFamily: "'Anton',sans-serif", fontSize: 13, color: t.position === 1 ? "var(--lime)" : t.position <= 3 ? "#ffd23f" : "var(--mut)" }}>{t.position}</span>
+          {playerTours.map((tour) => (
+            <div key={tour.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--line)" }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: tour.position === 1 ? "rgba(200,255,45,.12)" : "var(--surface2)", border: `1px solid ${tour.position === 1 ? "var(--lime)" : "var(--line)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <span style={{ fontFamily: "'Anton',sans-serif", fontSize: 13, color: tour.position === 1 ? "var(--lime)" : tour.position <= 3 ? "var(--yellow)" : "var(--mut)" }}>{tour.position}</span>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name || "Американо"}</div>
-                <div style={{ fontSize: 11, color: "var(--mut)" }}>{t.played} матч. · {t.points} очк.</div>
+                <div style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tour.name || t("fmt_americano_name")}</div>
+                <div style={{ fontSize: 11, color: "var(--mut)" }}>{tour.played} {t("matches_abbr")} · {tour.points} {t("points_abbr")}</div>
               </div>
-              <div style={{ fontSize: 11, color: "var(--mut)", flexShrink: 0 }}>из {t.total}</div>
+              <div style={{ fontSize: 11, color: "var(--mut)", flexShrink: 0 }}>{t("games_of")} {tour.total}</div>
             </div>
           ))}
         </div>
@@ -1028,7 +1028,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
       {/* Лиги игрока */}
       {playerLeagues && playerLeagues.length > 0 && (
         <div className="pl-card" style={{ padding: 14, marginTop: 10 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Лиги ({playerLeagues.length})</div>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>{t("leagues_heading")} ({playerLeagues.length})</div>
           {playerLeagues.map((lg) => (
             <div key={lg.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: "1px solid var(--line)" }}>
               <Trophy size={13} color="var(--mut)" style={{ flexShrink: 0 }} />
@@ -1073,20 +1073,20 @@ function Games({ groupId, players, reloadLeaderboard, session, archiveNonce, bum
       {!session && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "color-mix(in srgb, var(--lime) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 30%, transparent)", borderRadius: 12, marginBottom: 12 }}>
           <div style={{ fontSize: 18 }}>🔐</div>
-          <div style={{ flex: 1, fontSize: 13, color: "var(--mut)", lineHeight: 1.4 }}>Войди, чтобы создавать игры и фиксировать результаты</div>
-          <button className="pl-btn" style={{ padding: "7px 14px", fontSize: 12, flexShrink: 0 }} onClick={onLogin}>Войти</button>
+          <div style={{ flex: 1, fontSize: 13, color: "var(--mut)", lineHeight: 1.4 }}>{t("sign_in_to_create_games")}</div>
+          <button className="pl-btn" style={{ padding: "7px 14px", fontSize: 12, flexShrink: 0 }} onClick={onLogin}>{t("sign_in")}</button>
         </div>
       )}
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         {session && <button className="pl-btn" style={{ flex: 1, padding: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={() => setMode("create")}>
-          <PlusCircle size={18} /> Создать игру
+          <PlusCircle size={18} /> {t("create_game")}
         </button>}
         <button className="pl-ghost" style={{ padding: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontWeight: 600 }} onClick={loadGames}>
           <RefreshCw size={16} />
         </button>
       </div>
-      {loading && <div className="pl-card" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>Загрузка…</div>}
-      {!loading && games.length === 0 && <div className="pl-card" style={{ padding: 24, textAlign: "center", color: "var(--mut)" }}>{session ? "Игр нет. Создай игру и отправь ссылку друзьям." : "Здесь будут игры твоей лиги. Войди и вступи в лигу."}</div>}
+      {loading && <div className="pl-card" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>{t("loading")}</div>}
+      {!loading && games.length === 0 && <div className="pl-card" style={{ padding: 24, textAlign: "center", color: "var(--mut)" }}>{session ? t("games_empty_session") : t("games_empty_guest")}</div>}
       {!loading && (() => {
         const upcoming = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length < 4);
         const active   = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length === 4);
@@ -1100,7 +1100,7 @@ function Games({ groupId, players, reloadLeaderboard, session, archiveNonce, bum
                 <div key={g.id} className="pl-card" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 12, cursor: "pointer", padding: "12px 14px" }} onClick={() => { setSelId(g.id); setMode("view"); }}>
                   <Swords size={18} color={color} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{g.title || "Падел"}</div>
+                    <div style={{ fontWeight: 600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{g.title || "Padel"}</div>
                     <div style={{ fontSize: 12, color: "var(--mut)" }}>{g.starts_at ? fmtDate(g.starts_at) + " · " : ""}{filled}/4</div>
                   </div>
                   <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: "rgba(255,255,255,.06)", color, flexShrink:0 }}>
@@ -1112,9 +1112,9 @@ function Games({ groupId, players, reloadLeaderboard, session, archiveNonce, bum
           </div>
         );
         return [
-          section("Предстоящие", "var(--mut)", upcoming),
-          section("Активные", "var(--lime)", active),
-          section("Прошедшие", "#7d9488", played),
+          section(t("upcoming_section"), "var(--mut)", upcoming),
+          section(t("active_section"), "var(--lime)", active),
+          section(t("played_section"), "#7d9488", played),
         ];
       })()}
     </div>
@@ -1142,14 +1142,14 @@ function SlotPicker({ value, players, taken, onChange, teamLabel }) {
     <div style={{ marginBottom: 8 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span className="pl-display" style={{ width: 24, fontSize: 12, color }}>{teamLabel}</span>
-        <input className="pl-input" style={{ padding: "9px 10px" }} placeholder="Имя / поиск (пусто = по ссылке)" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="pl-input" style={{ padding: "9px 10px" }} placeholder={t("slot_search_placeholder")} value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       {q.trim() && (
         <div style={{ marginTop: 6, marginLeft: 32, display: "flex", flexDirection: "column", gap: 4 }}>
           {matches.map((p) => (
             <button key={p.id} className="pl-ghost" style={{ padding: "8px 10px", textAlign: "left" }} onClick={() => { onChange({ profileId: p.id, label: p.name }); setQ(""); }}>{p.name}</button>
           ))}
-          <button className="pl-btn" style={{ padding: "8px 10px", textAlign: "left" }} onClick={() => { onChange({ guestName: q.trim(), label: q.trim() + " (гость)" }); setQ(""); }}>+ Гость: {q.trim()}</button>
+          <button className="pl-btn" style={{ padding: "8px 10px", textAlign: "left" }} onClick={() => { onChange({ guestName: q.trim(), label: q.trim() + " " + t("guest_label") }); setQ(""); }}>{t("add_guest_prefix")}{q.trim()}</button>
         </div>
       )}
     </div>
@@ -1171,26 +1171,26 @@ function CreateGame({ groupId, players, back, done }) {
 
   return (
     <div className="pl-pop">
-      <button className="pl-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={back}>← Назад</button>
+      <button className="pl-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={back}>← {t("back")}</button>
       <div className="pl-card" style={{ padding: 14, marginBottom: 12, display: "flex", flexDirection: "column", gap: 10 }}>
-        <input className="pl-input" style={{ padding: "10px 12px" }} placeholder="Название: «Вторник вечер»" value={title} onChange={(e) => setTitle(e.target.value)} />
+        <input className="pl-input" style={{ padding: "10px 12px" }} placeholder={t("game_name_placeholder")} value={title} onChange={(e) => setTitle(e.target.value)} />
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Calendar size={18} color="var(--mut)" />
           <input type="datetime-local" className="pl-input" style={{ padding: "9px 12px" }} value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <MapPin size={18} color="var(--mut)" />
-          <input className="pl-input" style={{ padding: "10px 12px" }} placeholder="Корт / клуб" value={place} onChange={(e) => setPlace(e.target.value)} />
+          <input className="pl-input" style={{ padding: "10px 12px" }} placeholder={t("court_club_placeholder")} value={place} onChange={(e) => setPlace(e.target.value)} />
         </div>
       </div>
       <div className="pl-card" style={{ padding: 14, marginBottom: 12 }}>
-        <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 10 }}>Слоты — выбери из состава, впиши гостя или оставь пустым (займут по ссылке)</div>
+        <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 10 }}>{t("slots_label")}</div>
         {[0, 1, 2, 3].map((i) => (
           <SlotPicker key={i} value={slots[i]} players={players} taken={chosenIds}
             onChange={(v) => setSlot(i, v)} teamLabel={i < 2 ? "A" : "B"} />
         ))}
       </div>
-      <button className="pl-btn" style={{ width: "100%", padding: 14, fontSize: 16 }} disabled={busy} onClick={create}>{busy ? "Создаю…" : "Создать и получить ссылку"}</button>
+      <button className="pl-btn" style={{ width: "100%", padding: 14, fontSize: 16 }} disabled={busy} onClick={create}>{busy ? t("creating_game") : t("create_and_get_link")}</button>
     </div>
   );
 }
@@ -1207,9 +1207,9 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard, bumpArchive }) {
 
   const share = async () => {
     const url = linkFor(game.invite_code);
-    const text = `Зову на падел${game.title ? ` «${game.title}»` : ""}! Присоединяйся: ${url} (код ${game.invite_code})`;
+    const text = `${t("game_share_text")}${game.title ? ` «${game.title}»` : ""}! ${t("game_share_join")}: ${url} (${t("code_label")} ${game.invite_code})`;
     try { if (navigator.share) { await navigator.share({ title: "Падел", text, url }); return; } } catch (e) {}
-    try { await navigator.clipboard.writeText(text); setToast("Скопировано ✓"); setTimeout(() => setToast(""), 1600); } catch (e) { setToast("Скопируй вручную"); }
+    try { await navigator.clipboard.writeText(text); setToast(t("copied")); setTimeout(() => setToast(""), 1600); } catch (e) { setToast("Скопируй вручную"); }
   };
 
   if (game.status === "played") {
@@ -1217,11 +1217,11 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard, bumpArchive }) {
     return (
       <div className="pl-pop">
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        {back && <button className="pl-ghost" style={{ padding: "6px 12px" }} onClick={back}>← К списку</button>}
-        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!confirm("Удалить эту игру?")) return; await deleteGame(game.id); bumpArchive && bumpArchive(); reloadGames && reloadGames(); back && back(); }} title="Удалить"><Trash2 size={14} /></button>
+        {back && <button className="pl-ghost" style={{ padding: "6px 12px" }} onClick={back}>{t("to_list")}</button>}
+        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(game.id); bumpArchive && bumpArchive(); reloadGames && reloadGames(); back && back(); }} title="Удалить"><Trash2 size={14} /></button>
       </div>
         <div className="pl-card" style={{ padding: 14 }}>
-          <div className="pl-display" style={{ fontSize: 18 }}>{game.title || "Падел"} · сыграна</div>
+          <div className="pl-display" style={{ fontSize: 18 }}>{game.title || "Padel"} · {t("game_played_label")}</div>
           <div style={{ marginTop: 10 }}>
             <CourtView courtNumber={1} mode="sets"
               teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
@@ -1238,8 +1238,8 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard, bumpArchive }) {
   return (
     <div className="pl-pop">
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        {back && <button className="pl-ghost" style={{ padding: "6px 12px" }} onClick={back}>← К списку</button>}
-        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!confirm("Удалить эту игру?")) return; await deleteGame(game.id); bumpArchive && bumpArchive(); reloadGames && reloadGames(); back && back(); }} title="Удалить"><Trash2 size={14} /></button>
+        {back && <button className="pl-ghost" style={{ padding: "6px 12px" }} onClick={back}>{t("to_list")}</button>}
+        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(game.id); bumpArchive && bumpArchive(); reloadGames && reloadGames(); back && back(); }} title="Удалить"><Trash2 size={14} /></button>
       </div>
       <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1252,7 +1252,7 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard, bumpArchive }) {
             </div>
           )}
         </div>
-        <button className="pl-btn" style={{ padding: "8px 12px", display: "flex", gap: 6, alignItems: "center" }} onClick={() => setShowShare((v) => !v)}><Share2 size={15} /> Ссылка</button>
+        <button className="pl-btn" style={{ padding: "8px 12px", display: "flex", gap: 6, alignItems: "center" }} onClick={() => setShowShare((v) => !v)}><Share2 size={15} /> {t("share_btn")}</button>
       </div>
 
       {showShare && (
@@ -1260,7 +1260,7 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard, bumpArchive }) {
           <div className="pl-codebox">{game.invite_code}</div>
           <div style={{ fontSize: 12, color: "var(--mut)", margin: "8px 0 4px", wordBreak: "break-all" }}>{linkFor(game.invite_code)}</div>
           <button className="pl-btn" style={{ width: "100%", padding: 12, marginTop: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={share}>
-            <Copy size={16} /> {toast || "Поделиться приглашением"}
+            <Copy size={16} /> {toast || t("share_invite")}
           </button>
         </div>
       )}
@@ -1269,7 +1269,7 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard, bumpArchive }) {
         {slots.map((s, i) => (
           <div key={i} className="pl-slot">
             <span className="pl-display" style={{ fontSize: 11, color: s.team === "A" ? "var(--lime)" : "var(--coral)", width: 30 }}>{s.team}</span>
-            <span style={{ flex: 1, color: nameOf(s) ? "var(--ink)" : "var(--mut)" }}>{nameOf(s) || "🔗 свободно — ждёт по ссылке"}</span>
+            <span style={{ flex: 1, color: nameOf(s) ? "var(--ink)" : "var(--mut)" }}>{nameOf(s) || t("slot_free")}</span>
             {nameOf(s) && <Check size={15} color="var(--lime)" />}
           </div>
         ))}
@@ -1287,7 +1287,7 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard, bumpArchive }) {
               teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
               teamAvatarsA={slotsA.map(avatarOf)} teamAvatarsB={slotsB.map(avatarOf)}
               editable={false} />
-            <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginTop: 6 }}>{filled}/4 — обнови список, когда друзья зайдут по ссылке</div>
+            <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginTop: 6 }}>{filled}/4 — {t("waiting_via_link")}</div>
           </>
         )}
       </div>
@@ -1308,11 +1308,11 @@ function EnterScore({ gameId, reloadGames, reloadLeaderboard }) {
   return (
     <div style={{ marginTop: 12, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
       <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "center" }}>
-        <Step label="Сеты A" v={sA} set={setSA} />
+        <Step label={t("sets_a_label")} v={sA} set={setSA} />
         <span className="pl-display" style={{ fontSize: 20 }}>:</span>
-        <Step label="Сеты B" v={sB} set={setSB} />
+        <Step label={t("sets_b_label")} v={sB} set={setSB} />
       </div>
-      <button className="pl-btn" style={{ width: "100%", padding: 12, marginTop: 12 }} disabled={!valid || busy} onClick={record}>{busy ? "Записываю…" : "Записать результат"}</button>
+      <button className="pl-btn" style={{ width: "100%", padding: 12, marginTop: 12 }} disabled={!valid || busy} onClick={record}>{busy ? t("recording") : t("record_score")}</button>
     </div>
   );
 }
@@ -1331,39 +1331,39 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
         .select("id, team_a, team_b, sets_a, sets_b, score_detail, played_at")
         .eq("group_id", groupId).order("played_at", { ascending: false }).limit(30);
       setMatches(data || []);
-      try { const all = await listTournaments(groupId); setTours(all.filter((t) => t.status === "finished")); }
+      try { const all = await listTournaments(groupId); setTours(all.filter((tour) => tour.status === "finished")); }
       catch (e) { setTours([]); }
     })();
   }, [groupId, sel, archiveNonce]);
 
   if (sel) return <TournamentView id={sel.id} players={players} back={() => setSel(null)} isGroupMember={isGroupMember} currentProfileId={profileId} />;
 
-  const nameOf = (id) => players.find((p) => p.id === id)?.name || "Удалён";
+  const nameOf = (id) => players.find((p) => p.id === id)?.name || t("player_deleted");
   const avatarOf = (id) => { const gp = players.find((p) => p.id === id); return gp ? playerAvatar(gp.avatar_url, id) : null; };
   const head = (txt) => <div className="pl-display" style={{ fontSize: 13, color: "var(--mut)", margin: "10px 2px 8px" }}>{txt}</div>;
 
-  if (matches === null) return <div className="pl-card pl-pop" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>Загрузка…</div>;
-  if (matches.length === 0 && tours.length === 0) return <div className="pl-card pl-pop" style={{ padding: 28, textAlign: "center", color: "var(--mut)" }}>Пока нет сыгранных игр и турниров.</div>;
+  if (matches === null) return <div className="pl-card pl-pop" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>{t("loading")}</div>;
+  if (matches.length === 0 && tours.length === 0) return <div className="pl-card pl-pop" style={{ padding: 28, textAlign: "center", color: "var(--mut)" }}>{t("history_empty")}</div>;
 
   return (
     <div className="pl-pop">
-      {tours.length > 0 && head("Турниры")}
-      {tours.map((t) => {
-        const table = standings((t.players || []).map((p) => ({ id: p.id, name: p.name })), t.matches || []);
+      {tours.length > 0 && head(t("tours_history_heading"))}
+      {tours.map((tour) => {
+        const table = standings((tour.players || []).map((p) => ({ id: p.id, name: p.name })), tour.matches || []);
         const w = table[0];
         return (
-          <div key={t.id} className="pl-card" style={{ padding: 14, marginBottom: 8, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }} onClick={() => setSel(t)}>
-            <Trophy size={18} color="#ffd23f" />
+          <div key={tour.id} className="pl-card" style={{ padding: 14, marginBottom: 8, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }} onClick={() => setSel(tour)}>
+            <Trophy size={18} color="var(--yellow)" />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name || "Американо"}</div>
-              <div style={{ fontSize: 12, color: "var(--mut)" }}>{w ? `Победитель: ${w.name} · ${w.points} очк.` : "-"}</div>
+              <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tour.name || t("fmt_americano_name")}</div>
+              <div style={{ fontSize: 12, color: "var(--mut)" }}>{w ? `${t("winner_label")}: ${w.name} · ${w.points} ${t("points_abbr")}` : "-"}</div>
             </div>
             <span style={{ fontSize: 16, color: "var(--lime)", flexShrink: 0 }}>→</span>
           </div>
         );
       })}
 
-      {matches.length > 0 && head("Игры")}
+      {matches.length > 0 && head(t("games_history_heading"))}
       {matches.map((m) => {
         const aWon = m.sets_a > m.sets_b;
         const rawDetail = m.score_detail;
@@ -1400,7 +1400,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
               </div>
               {isGroupMember && (
                 <button style={{ flexShrink: 0, padding: 8, border: "1px solid rgba(255,106,82,.2)", borderRadius: 8, background: "none", color: "rgba(255,106,82,.5)", cursor: "pointer", alignSelf: "center" }}
-                  onClick={(e) => { e.stopPropagation(); if (!confirm("Удалить этот матч из истории?")) return; supabase.from("matches").delete().eq("id", m.id).then(() => { setMatches((prev) => prev.filter((x) => x.id !== m.id)); bumpArchive && bumpArchive(); }); }}
+                  onClick={(e) => { e.stopPropagation(); if (!confirm(t("delete_match_confirm"))) return; supabase.from("matches").delete().eq("id", m.id).then(() => { setMatches((prev) => prev.filter((x) => x.id !== m.id)); bumpArchive && bumpArchive(); }); }}
                   title="Удалить"><Trash2 size={14} /></button>
               )}
             </div>
@@ -1408,7 +1408,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
               <div style={{ marginTop: 10, borderTop: "1px solid var(--line)", paddingTop: 8, display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
                 {detail.map((s, i) => (
                   <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, minWidth: 52 }}>
-                    <div style={{ fontSize: 10, color: "var(--mut)" }}>Сет {i + 1}</div>
+                    <div style={{ fontSize: 10, color: "var(--mut)" }}>{t("set_label")} {i + 1}</div>
                     <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 18, color: s.a > s.b ? "var(--lime)" : s.b > s.a ? "var(--coral)" : "var(--ink)" }}>
                       {s.a}<span style={{ color: "var(--mut)", fontSize: 14 }}>:</span>{s.b}
                     </div>
