@@ -1238,12 +1238,6 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
                 ))}
               </div>
               {isGroupMember && (
-                    <span style={{ fontSize: 13, fontWeight: !aWon ? 700 : 400, color: !aWon ? "var(--lime)" : "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nameOf(id)}</span>
-                    {avatarOf(id) && <img src={avatarOf(id)} alt="" style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0 }} />}
-                  </div>
-                ))}
-              </div>
-              {isGroupMember && (
                 <button style={{ flexShrink: 0, padding: 8, border: "1px solid rgba(255,106,82,.2)", borderRadius: 8, background: "none", color: "rgba(255,106,82,.5)", cursor: "pointer", alignSelf: "center" }}
                   onClick={(e) => { e.stopPropagation(); if (!confirm("Удалить этот матч из истории?")) return; supabase.from("matches").delete().eq("id", m.id).then(() => { setMatches((prev) => prev.filter((x) => x.id !== m.id)); bumpArchive && bumpArchive(); }); }}
                   title="Удалить"><Trash2 size={14} /></button>
