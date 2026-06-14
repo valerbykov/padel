@@ -1,16 +1,17 @@
 // components/Tournaments.jsx
-// Турниры Американо: создание, лобби с приглашением, ПОСЛЕДОВАТЕЛЬНЫЕ раунды
-// на кортах (CourtView), итоговая таблица. props: { groupId, players }.
+// Турниры Американо и Мексикано: создание, лобби с приглашением,
+// последовательные раунды на кортах (CourtView), итоговая таблица.
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import {
   createTournament, listTournaments, getTournament, addTournamentPlayer, removeTournamentPlayer,
   startTournament, submitMatchScore, finishTournament, tournamentLink, deleteTournament,
+  generateMexicanoRound,
 } from "../lib/tournamentApi";
 import { standings, detailedStandings, allMatchesPlayed } from "../lib/americano";
 import CourtView from "./CourtView";
 import StandingsTable from "./StandingsTable";
-import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, Users, ChevronLeft, ChevronRight, Share2, Trash2 } from "lucide-react";
+import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, Users, ChevronLeft, ChevronRight, Share2, Trash2, Plus } from "lucide-react";
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
@@ -31,6 +32,8 @@ const css = `
   .tr-codebox{font-size:22px;letter-spacing:4px;padding:8px;}
 }
 `;
+
+const FORMAT_NAMES = { americano: "Американо", mexicano: "Мексикано" };
 const statusLabel = { open: "набор", active: "идёт", finished: "завершён" };
 
 export default function Tournaments({ groupId, players, profileId, bumpArchive, session, onLogin }) {
@@ -48,12 +51,13 @@ const SECTIONS = [
 ];
 
 function TournamentCard({ t, color, onClick }) {
+  const fmtName = FORMAT_NAMES[t.format] || "Американо";
   return (
     <div className="tr-card" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }} onClick={onClick}>
       <Trophy size={20} color={color} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.name || "Американо"}</div>
-        <div style={{ fontSize: 12, color: "var(--mut)" }}>{(t.players || []).length} / {t.target_size} игроков · {t.points_per_game} очков</div>
+        <div style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.name || fmtName}</div>
+        <div style={{ fontSize: 12, color: "var(--mut)" }}>{(t.players || []).length} / {t.target_size} игроков · {t.points_per_game} очков · {fmtName}</div>
       </div>
       <span className="tr-badge" style={{ background: "rgba(255,255,255,.06)", color, flexShrink: 0 }}>{statusLabel[t.status]}</span>
     </div>
@@ -117,6 +121,7 @@ function List({ groupId, create, open, session, onLogin }) {
 function Create({ groupId, back, open }) {
   const [courts, setCourts] = useState(2);
   const [points, setPoints] = useState(32);
+  const [format, setFormat] = useState("americano");
   const [date, setDate] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -127,8 +132,11 @@ function Create({ groupId, back, open }) {
     { v: 2, label: "2 корта", sub: "8 игроков" },
     { v: 3, label: "3 корта", sub: "12 игроков" },
   ];
+  const FORMAT_OPTS = [
+    { v: "americano", label: "Американо", sub: "партнёры меняются по схеме" },
+    { v: "mexicano",  label: "Мексикано", sub: "партнёры по текущим очкам" },
+  ];
 
-  // Авто-имя из даты и кортов
   React.useEffect(() => {
     if (date) {
       try {
@@ -136,20 +144,22 @@ function Create({ groupId, back, open }) {
         const day = d.toLocaleString("ru-RU", { day: "numeric", month: "short" });
         const time = d.toLocaleString("ru-RU", { hour: "2-digit", minute: "2-digit" });
         const c = COURTS_OPTS.find(o => o.v === courts);
-        setName(`Американо · ${day} · ${time} · ${c.label}`);
+        setName(`${FORMAT_NAMES[format]} · ${day} · ${time} · ${c.label}`);
       } catch (e) {}
     }
-  }, [date, courts]);
+  }, [date, courts, format]);
 
   const go = async () => {
     setBusy(true);
-    try { const t = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize: courts * 4 }); open(t.id); }
-    catch (e) { alert("Не удалось создать турнир"); setBusy(false); }
+    try {
+      const t = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize: courts * 4, format });
+      open(t.id);
+    } catch (e) { alert("Не удалось создать турнир"); setBusy(false); }
   };
 
   const chip = (active) => ({
     padding: "10px 0", textAlign: "center", borderRadius: 12, cursor: "pointer", fontWeight: 600, fontSize: 13, border: "none",
-    background: active ? "var(--lime)" : "var(--surface2)", color: active ? "#0a1612" : "var(--ink)",
+    background: active ? "var(--lime)" : "var(--surface2)", color: active ? "var(--lime-fg)" : "var(--ink)",
     outline: active ? "none" : "1px solid var(--line)",
   });
 
@@ -159,6 +169,19 @@ function Create({ groupId, back, open }) {
       <button className="tr-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={back}><ArrowLeft size={14} /> Назад</button>
       <div className="tr-card" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div className="tr-d" style={{ fontSize: 20 }}>Новый турнир</div>
+
+        {/* Формат */}
+        <div>
+          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>Формат</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {FORMAT_OPTS.map(o => (
+              <button key={o.v} style={chip(format === o.v)} onClick={() => setFormat(o.v)}>
+                <div>{o.label}</div>
+                <div style={{ fontSize: 11, fontWeight: 400, opacity: .7 }}>{o.sub}</div>
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Корты */}
         <div>
@@ -189,10 +212,10 @@ function Create({ groupId, back, open }) {
           <input type="datetime-local" className="tr-input" value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
 
-        {/* Название (авто или ручное) */}
+        {/* Название */}
         <div>
           <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>Название</div>
-          <input className="tr-input" placeholder="Американо · 15 июн · 18:00" value={name} onChange={(e) => setName(e.target.value)} />
+          <input className="tr-input" placeholder={`${FORMAT_NAMES[format]} · 15 июн · 18:00`} value={name} onChange={(e) => setName(e.target.value)} />
         </div>
 
         <button className="tr-btn" style={{ padding: 13 }} disabled={busy} onClick={go}>{busy ? "Создаю…" : "Создать турнир"}</button>
@@ -237,6 +260,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   const [t, setT] = useState(initialT ? { ...initialT, matches: initialT.matches || [], players: initialT.players || [] } : null);
   const [toast, setToast] = useState("");
   const [cur, setCur] = useState(1);
+  const [addingRound, setAddingRound] = useState(false);
   const initRef = useRef(false);
 
   const load = useCallback(async () => {
@@ -247,7 +271,6 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   }, [id, reloadFn]);
   useEffect(() => { load(); }, [load]);
 
-  // Realtime: автообновление таблицы лидеров при изменении счёта (для всех, включая гостей)
   useEffect(() => {
     if (!id) return;
     const ch = supabase.channel(`t:${id}`)
@@ -257,7 +280,6 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     return () => supabase.removeChannel(ch);
   }, [id, load]);
 
-  // Для зрителей (не участников): поллинг каждые 20 сек (realtime не доступен без RLS)
   useEffect(() => {
     if (!spectatorMode || !reloadFn) return;
     const timer = setInterval(load, 5000);
@@ -276,9 +298,10 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   if (t === null) return <div className="tr-root"><style>{css}</style><div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>Загрузка…</div></div>;
   if (t === false) return <div className="tr-root"><style>{css}</style><div className="tr-card" style={{ color: "var(--coral)" }}>Не удалось загрузить турнир.</div></div>;
 
+  const isMexicano = t.format === "mexicano";
+  const fmtName = FORMAT_NAMES[t.format] || "Американо";
   const nameOf = (tpId) => (t.players.find((p) => p.id === tpId)?.name) || "?";
-  // Детерминированная аватарка-фоллбэк
-  const _dogAv = (id) => { if(!id) return null; const h=[...String(id)].reduce((a,c)=>a+c.charCodeAt(0),0); return `/avatars/dog-${String((h%15)+1).padStart(2,'0')}.png`; };
+  const _dogAv = (id) => { if (!id) return null; const h = [...String(id)].reduce((a, c) => a + c.charCodeAt(0), 0); return `/avatars/dog-${String((h % 15) + 1).padStart(2, "0")}.png`; };
   const avatarOfTp = (tpId) => {
     const tp = t.players.find((p) => p.id === tpId);
     if (!tp) return null;
@@ -292,6 +315,18 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   const N = roundNums.length;
   const curMatches = (rmap[cur] || []).sort((a, b) => a.court - b.court);
   const curComplete = curMatches.length > 0 && curMatches.every((m) => m.score_a != null);
+  const isLastRound = cur === N;
+
+  // Мексикано: добавить следующий раунд
+  const addMexicanoRound = async () => {
+    setAddingRound(true);
+    try {
+      await generateMexicanoRound(t.id, t.players, t.matches);
+      await load();
+      setCur(N + 1);
+    } catch (e) { alert(e.message || "Не удалось создать раунд"); }
+    finally { setAddingRound(false); }
+  };
 
   const share = async () => {
     const url = tournamentLink(t.invite_code);
@@ -299,7 +334,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     try { if (navigator.share) { await navigator.share({ title: "Турнир", text, url }); return; } } catch (e) {}
     try { await navigator.clipboard.writeText(text); setToast("Скопировано ✓"); setTimeout(() => setToast(""), 1500); } catch (e) {}
   };
-  const start = async () => { try { await startTournament(t.id, t.players); load(); } catch (e) { alert(e.message || "Не удалось запустить"); } };
+  const start = async () => { try { await startTournament(t.id, t.players, t.format); load(); } catch (e) { alert(e.message || "Не удалось запустить"); } };
   const saveScore = async (matchId, a, b) => { await submitMatchScore(matchId, a, b); await load(); };
 
   return (
@@ -309,14 +344,16 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
 
       <div className="tr-card" style={{ marginBottom: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div className="tr-d" style={{ fontSize: 20 }}>{t.name || "Американо"}</div>
+          <div className="tr-d" style={{ fontSize: 20 }}>{t.name || fmtName}</div>
           <div style={{ display: "flex", gap: 6 }}>
             <button className="tr-ghost" style={{ padding: 8 }} onClick={load}><RefreshCw size={15} /></button>
             {!readOnly && <button className="tr-btn" style={{ padding: "8px 12px", display: "flex", gap: 6, alignItems: "center" }} onClick={share}><Share2 size={14} /> {toast || "Ссылка"}</button>}
             {isGroupMember && <button className="tr-ghost" style={{ padding: 8, color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)" }} title="Удалить турнир" onClick={async () => { if (!confirm("Удалить турнир и все его данные?")) return; try { await deleteTournament(id); onArchiveChange && onArchiveChange(); back && back(); } catch (e) { alert("Не удалось удалить"); } }}><Trash2 size={15} /></button>}
           </div>
         </div>
-        <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>{t.players.length}/{t.target_size} игроков · до {t.points_per_game} очков · {statusLabel[t.status]}</div>
+        <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>
+          {t.players.length}/{t.target_size} игроков · до {t.points_per_game} очков · {fmtName} · {statusLabel[t.status]}
+        </div>
       </div>
 
       {/* ЛОББИ */}
@@ -347,9 +384,10 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
             <>
               <button className="tr-btn" style={{ width: "100%", padding: 14, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
                 disabled={t.players.length < 4 || t.players.length % 4 !== 0} onClick={start}>
-                <Play size={18} /> Запустить турнир ({t.players.length})
+                <Play size={18} /> Запустить {fmtName} ({t.players.length})
               </button>
               {t.players.length % 4 !== 0 && <div style={{ textAlign: "center", color: "var(--coral)", fontSize: 12, marginTop: 8 }}>Нужно число игроков, кратное 4</div>}
+              {isMexicano && <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginTop: 6 }}>Раунды генерируются поочерёдно по текущим очкам</div>}
             </>
           )}
         </>
@@ -358,14 +396,20 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
       {/* АКТИВНЫЙ / ЗАВЕРШЁН */}
       {t.status !== "open" && (
         <>
-          {/* Раунды и корты — для участников и для завершённых турниров в режиме просмотра */}
           {(!spectatorMode || t.status === "finished") && (
             <>
+              {/* Навигация по раундам */}
               <div className="tr-card" style={{ marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <button className="tr-ghost" style={{ padding: 8, opacity: cur > 1 ? 1 : .4 }} disabled={cur <= 1} onClick={() => setCur(cur - 1)}><ChevronLeft size={18} /></button>
-                <div className="tr-d" style={{ fontSize: 18 }}>Раунд {cur} <span style={{ color: "var(--mut)", fontSize: 14 }}>/ {N}</span></div>
-                <button className="tr-ghost" style={{ padding: 8, opacity: curComplete && cur < N ? 1 : .4 }} disabled={!curComplete || cur >= N} onClick={() => setCur(cur + 1)}><ChevronRight size={18} /></button>
+                <div className="tr-d" style={{ fontSize: 18 }}>
+                  Раунд {cur}
+                  {!isMexicano && <span style={{ color: "var(--mut)", fontSize: 14 }}> / {N}</span>}
+                  {isMexicano && <span style={{ color: "var(--mut)", fontSize: 14 }}> · {fmtName}</span>}
+                </div>
+                <button className="tr-ghost" style={{ padding: 8, opacity: cur < N ? 1 : .4 }} disabled={cur >= N} onClick={() => setCur(cur + 1)}><ChevronRight size={18} /></button>
               </div>
+
+              {/* Корты текущего раунда */}
               {curMatches.map((m) => (
                 <CourtView key={m.id} courtNumber={m.court} points={t.points_per_game}
                   teamA={[nameOf(m.team_a[0]), nameOf(m.team_a[1])]}
@@ -375,13 +419,43 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                   scoreA={m.score_a} scoreB={m.score_b} editable={!readOnly && t.status !== "finished"}
                   onSave={(a, b) => saveScore(m.id, a, b)} />
               ))}
-              {!curComplete && <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginBottom: 12 }}>Заполни счёт всех кортов, чтобы перейти к следующему раунду.</div>}
-              {curComplete && cur < N && <button className="tr-btn" style={{ width: "100%", padding: 12, marginBottom: 12 }} onClick={() => setCur(cur + 1)}>Следующий раунд →</button>}
-              {!readOnly && done && t.status !== "finished" && <button className="tr-btn" style={{ width: "100%", padding: 13, marginBottom: 12 }} onClick={async () => { await finishTournament(t.id); load(); }}>Завершить турнир</button>}
+
+              {/* Подсказка: ввести счёт */}
+              {!curComplete && (
+                <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginBottom: 12 }}>
+                  Заполни счёт всех кортов, чтобы перейти к следующему раунду.
+                </div>
+              )}
+
+              {/* Американо: кнопка «следующий» между существующими раундами */}
+              {curComplete && cur < N && (
+                <button className="tr-btn" style={{ width: "100%", padding: 12, marginBottom: 12 }} onClick={() => setCur(cur + 1)}>
+                  Следующий раунд →
+                </button>
+              )}
+
+              {/* Мексикано: добавить новый раунд */}
+              {!readOnly && isMexicano && curComplete && isLastRound && t.status !== "finished" && (
+                <button className="tr-btn" style={{ width: "100%", padding: 12, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                  disabled={addingRound} onClick={addMexicanoRound}>
+                  <Plus size={16} /> {addingRound ? "Жеребьёвка…" : "Следующий раунд (Мексикано)"}
+                </button>
+              )}
+
+              {/* Завершить турнир */}
+              {!readOnly && t.status !== "finished" && (
+                (isMexicano && curComplete && isLastRound) ||
+                (!isMexicano && done)
+              ) && (
+                <button className="tr-ghost" style={{ width: "100%", padding: 12, marginBottom: 12, color: "var(--mut)" }}
+                  onClick={async () => { await finishTournament(t.id); load(); }}>
+                  Завершить турнир
+                </button>
+              )}
             </>
           )}
 
-          {/* Таблица лидеров — видна всем, обновляется через realtime/поллинг */}
+          {/* Таблица лидеров */}
           <div className="tr-card" style={{ overflow: "hidden" }}>
             <div className="tr-d" style={{ fontSize: 15, marginBottom: 10 }}>{done ? "🏆 Итоговая таблица" : "Таблица"}</div>
             <StandingsTable rows={table} avatarOf={(row) => ({ url: avatarOfTp(row.id) })} />
