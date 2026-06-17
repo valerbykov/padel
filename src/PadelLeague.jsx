@@ -141,7 +141,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
       <style>{css}</style>
       <div style={{ maxWidth: 460, margin: "0 auto", padding: "20px 16px 88px" }}>
         <header style={{ marginBottom: 18 }}>
-          <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2 }}>PADEL · {t("league_title")}</div>
+          <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2 }}>{t("league_title")}</div>
           <h1 className="pl-display" style={{ fontSize: 30, lineHeight: 1, marginTop: 2, color: "var(--ink)" }}>{titles[tab]}</h1>
         </header>
 
@@ -1208,7 +1208,7 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard, bumpArchive }) {
   const share = async () => {
     const url = linkFor(game.invite_code);
     const text = `${t("game_share_text")}${game.title ? ` «${game.title}»` : ""}! ${t("game_share_join")}: ${url} (${t("code_label")} ${game.invite_code})`;
-    try { if (navigator.share) { await navigator.share({ title: "Падел", text, url }); return; } } catch (e) {}
+    try { if (navigator.share) { await navigator.share({ title: "PadelPack", text, url }); return; } } catch (e) {}
     try { await navigator.clipboard.writeText(text); setToast(t("copied")); setTimeout(() => setToast(""), 1600); } catch (e) { setToast("Скопируй вручную"); }
   };
 
@@ -1244,7 +1244,7 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard, bumpArchive }) {
       <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <div className="pl-display" style={{ fontSize: 18 }}>{game.title || "Падел"}</div>
+          <div className="pl-display" style={{ fontSize: 18 }}>{game.title || "PadelPack"}</div>
           {(game.starts_at || game.place) && (
             <div style={{ fontSize: 12, color: "var(--mut)", display: "flex", gap: 10, marginTop: 2, flexWrap: "wrap" }}>
               {game.starts_at && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={12} />{fmtDate(game.starts_at)}</span>}

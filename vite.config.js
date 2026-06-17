@@ -13,8 +13,8 @@ export default defineConfig({
       includeAssets: ["favicon-32x32.png", "apple-touch-icon.png"],
 
       manifest: {
-        name: "Падел · Лига друзей",
-        short_name: "Падел",
+        name: "PadelPack",
+        short_name: "PadelPack",
         description: "Игры в падел с друзьями: приглашения по ссылке, результаты и рейтинг.",
         lang: "ru",
         theme_color: "#0a1612",

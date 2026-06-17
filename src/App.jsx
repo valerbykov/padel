@@ -4,6 +4,7 @@
 // и прокидывает активную лигу в PadelLeague. Ссылка /j/CODE открывает экран гостя.
 import React, { useEffect, useState, useCallback } from "react";
 import { supabase } from "./lib/supabase";
+import { handleAuthCallbackUrl } from "./lib/auth";
 import LoginScreen from "./components/LoginScreen";
 import GuestJoin from "./components/GuestJoin";
 import TournamentJoin from "./components/TournamentJoin";
@@ -91,6 +92,18 @@ export default function App() {
     if (p) window.history.replaceState({}, "", window.location.pathname);
     return p || null;
   });
+
+  // Возврат после входа по deep link в нативной обёртке (Capacitor).
+  // На вебе window.Capacitor отсутствует — эффект ничего не делает.
+  useEffect(() => {
+    const CapApp = window.Capacitor?.Plugins?.App;
+    if (!CapApp) return;
+    let handle;
+    CapApp.addListener("appUrlOpen", async ({ url }) => {
+      if (url) await handleAuthCallbackUrl(url);
+    }).then((h) => { handle = h; });
+    return () => { handle?.remove?.(); };
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -280,7 +293,7 @@ function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme
           <span style={{ fontSize: 14, fontWeight: 600 }}>{name || "Профиль"}</span>
         </button>
       ) : (
-        <span style={{ color: "var(--ink)", fontSize: 14, fontWeight: 600 }}>Padel · {t("league_title")}</span>
+        <span style={{ color: "var(--ink)", fontSize: 14, fontWeight: 600 }}>{t("league_title")}</span>
       )}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {["ru","en","es"].map((l) => (

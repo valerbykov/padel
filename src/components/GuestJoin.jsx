@@ -93,7 +93,7 @@ export default function GuestJoin({ code, botName }) {
 
         {game && (
           <>
-            <div className="gj-display" style={{ fontSize: 26, marginTop: 4 }}>{game.title || "Падел"}</div>
+            <div className="gj-display" style={{ fontSize: 26, marginTop: 4 }}>{game.title || "PadelPack"}</div>
             {(game.starts_at || game.place) && (
               <div style={{ fontSize: 13, color: "var(--mut)", display: "flex", gap: 12, margin: "6px 0 14px", flexWrap: "wrap" }}>
                 {game.starts_at && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={13} />{fmtDate(game.starts_at)}</span>}

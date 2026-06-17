@@ -8,7 +8,7 @@ const T = {
     tab_friends: 'Друзья', tab_games: 'Игры', tab_history: 'История', tab_tournaments: 'Турниры',
     tab_start: 'Начало',
     // ── League ────────────────────────────────────────────────────────────
-    league_title: 'ЛИГА ДРУЗЕЙ',
+    league_title: 'PADELPACK',
     league_admin: 'admin', league_member: 'участник',
     league_create: 'Создать', league_join_code: 'По коду', league_join_btn: 'Вступить',
     league_new_title: 'Новая лига', league_join_title: 'Вступить по коду',
@@ -225,7 +225,7 @@ const T = {
     tab_friends: 'Friends', tab_games: 'Games', tab_history: 'History', tab_tournaments: 'Cups',
     tab_start: 'Home',
     // ── League ────────────────────────────────────────────────────────────
-    league_title: 'FRIEND LEAGUE',
+    league_title: 'PADELPACK',
     league_admin: 'admin', league_member: 'member',
     league_create: 'Create', league_join_code: 'By code', league_join_btn: 'Join',
     league_new_title: 'New league', league_join_title: 'Join by code',
@@ -442,7 +442,7 @@ const T = {
     tab_friends: 'Amigos', tab_games: 'Partidas', tab_history: 'Historial', tab_tournaments: 'Copas',
     tab_start: 'Inicio',
     // ── League ────────────────────────────────────────────────────────────
-    league_title: 'LIGA DE AMIGOS',
+    league_title: 'PADELPACK',
     league_admin: 'admin', league_member: 'miembro',
     league_create: 'Crear', league_join_code: 'Por código', league_join_btn: 'Unirse',
     league_new_title: 'Nueva liga', league_join_title: 'Unirse con código',

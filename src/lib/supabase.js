@@ -13,4 +13,13 @@ if (!url || !anon) {
   console.warn("Не заданы VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY");
 }
 
-export const supabase = createClient(url, anon);
+export const supabase = createClient(url, anon, {
+  auth: {
+    // PKCE: вход возвращает ?code=..., который мы обмениваем на сессию.
+    // Нужно для корректной обработки OAuth-возврата по deep link в нативе.
+    flowType: "pkce",
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+});
