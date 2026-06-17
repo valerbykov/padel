@@ -6,6 +6,8 @@ import { supabase } from "../lib/supabase";
 import TelegramLogin from "./TelegramLogin";
 import { Send, Mail, Phone, Check, AlertCircle, Sun, Moon, ArrowLeft } from "lucide-react";
 import { t, setLang } from "../lib/i18n";
+import { signInGoogle as authSignInGoogle } from "../lib/auth";
+import { authRedirectTo } from "../lib/platform";
 
 const darkVars = "--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;--lime-fg:#0a1612;";
 const lightVars = "--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;--ink:#0d1f18;--mut:#4a7060;--lime:#2a7a00;--coral:#d93a1f;--lime-fg:#ffffff;";
@@ -54,11 +56,8 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
   const signInGoogle = async () => {
     reset();
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: window.location.href },
-      });
-      if (error) throw error;
+      // общая логика: web -> origin, нативка -> системный браузер + deep link
+      await authSignInGoogle();
     } catch (e) { setMsg({ kind: "err", text: e.message }); }
   };
 
@@ -69,7 +68,7 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
     try {
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
-        options: { emailRedirectTo: window.location.href },
+        options: { emailRedirectTo: authRedirectTo() },
       });
       if (error) throw error;
       setMsg({ kind: "ok", text: t("login_link_sent") });
