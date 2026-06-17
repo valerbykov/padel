@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import { supabase } from "../lib/supabase";
 import TelegramLogin from "./TelegramLogin";
 import { Send, Mail, Phone, Check, AlertCircle, Sun, Moon, ArrowLeft } from "lucide-react";
+import Logo from "./Logo";
 import { t, setLang } from "../lib/i18n";
 import { signInGoogle as authSignInGoogle } from "../lib/auth";
 import { authRedirectTo } from "../lib/platform";
@@ -135,7 +136,7 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
       {/* Main content */}
       <div className="lg-body">
         <div className="lg-card">
-          <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2 }}>PADEL · ЛИГА ДРУЗЕЙ</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}><Logo theme={theme} showTagline /></div>
           <div className="lg-display" style={{ fontSize: 28, marginTop: 4 }}>{t("login_title")}</div>
 
           <button onClick={signInGoogle} style={{

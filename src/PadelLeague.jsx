@@ -10,6 +10,7 @@ import StandingsTable from "./components/StandingsTable";
 import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2 } from "lucide-react";
 import Tournaments, { TournamentView } from "./components/Tournaments";
 import CourtView from "./components/CourtView";
+import EmptyState from "./components/EmptyState";
 
 const DOG_COUNT = 15;
 const dogAvatar = (idOrName) => {
@@ -1097,7 +1098,7 @@ function Games({ groupId, players, reloadLeaderboard, session, archiveNonce, bum
         </button>
       </div>
       {loading && <div className="pl-card" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>{t("loading")}</div>}
-      {!loading && games.length === 0 && <div className="pl-card" style={{ padding: 24, textAlign: "center", color: "var(--mut)" }}>{session ? t("games_empty_session") : t("games_empty_guest")}</div>}
+      {!loading && games.length === 0 && <EmptyState text={session ? t("games_empty_session") : t("games_empty_guest")} />}
       {!loading && (() => {
         const upcoming = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length < 4);
         const active   = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length === 4);
@@ -1354,7 +1355,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
   const head = (txt) => <div className="pl-display" style={{ fontSize: 13, color: "var(--mut)", margin: "10px 2px 8px" }}>{txt}</div>;
 
   if (matches === null) return <div className="pl-card pl-pop" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>{t("loading")}</div>;
-  if (matches.length === 0 && tours.length === 0) return <div className="pl-card pl-pop" style={{ padding: 28, textAlign: "center", color: "var(--mut)" }}>{t("history_empty")}</div>;
+  if (matches.length === 0 && tours.length === 0) return <EmptyState className="pl-card pl-pop" text={t("history_empty")} />;
 
   return (
     <div className="pl-pop">

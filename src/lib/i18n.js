@@ -7,6 +7,7 @@ const T = {
     // ── Tabs ──────────────────────────────────────────────────────────────
     tab_friends: 'Друзья', tab_games: 'Игры', tab_history: 'История', tab_tournaments: 'Турниры',
     tab_start: 'Начало',
+    tagline: 'лига друзей · своя стая на корте',
     // ── League ────────────────────────────────────────────────────────────
     league_title: 'PADELPACK',
     league_admin: 'admin', league_member: 'участник',
@@ -224,6 +225,7 @@ const T = {
     // ── Tabs ──────────────────────────────────────────────────────────────
     tab_friends: 'Friends', tab_games: 'Games', tab_history: 'History', tab_tournaments: 'Cups',
     tab_start: 'Home',
+    tagline: 'a league of friends · your pack on court',
     // ── League ────────────────────────────────────────────────────────────
     league_title: 'PADELPACK',
     league_admin: 'admin', league_member: 'member',
@@ -441,6 +443,7 @@ const T = {
     // ── Tabs ──────────────────────────────────────────────────────────────
     tab_friends: 'Amigos', tab_games: 'Partidas', tab_history: 'Historial', tab_tournaments: 'Copas',
     tab_start: 'Inicio',
+    tagline: 'una liga de amigos · tu jauría en la pista',
     // ── League ────────────────────────────────────────────────────────────
     league_title: 'PADELPACK',
     league_admin: 'admin', league_member: 'miembro',
