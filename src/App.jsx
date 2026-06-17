@@ -13,6 +13,7 @@ import PadelLeague from "./PadelLeague";
 import ProfileEditor from "./components/ProfileEditor";
 import LeagueSetup from "./components/LeagueSetup";
 import LeaguePublicPage from "./components/LeaguePublicPage";
+import Logo from "./components/Logo";
 import { LogIn, Sun, Moon } from "lucide-react";
 import { getMyLeagues } from "./lib/padelApi";
 import { t, setLang, LANGS, LANG_LABELS, currentLang } from "./lib/i18n";
@@ -293,7 +294,7 @@ function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme
           <span style={{ fontSize: 14, fontWeight: 600 }}>{name || "Профиль"}</span>
         </button>
       ) : (
-        <span style={{ color: "var(--ink)", fontSize: 14, fontWeight: 600 }}>{t("league_title")}</span>
+        <Logo theme={theme} height={22} gap={8} />
       )}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {["ru","en","es"].map((l) => (
