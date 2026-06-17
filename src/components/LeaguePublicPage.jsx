@@ -10,7 +10,7 @@ const css = `
  font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;
  background-image:radial-gradient(circle at 80% -10%,rgba(200,255,45,.12),transparent 45%),radial-gradient(circle at 0% 110%,rgba(40,120,90,.18),transparent 40%);}
 .lp-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;}
-.lp-d{font-family:'Anton',sans-serif;text-transform:uppercase;letter-spacing:.5px;}
+.lp-d{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;}
 .lp-join-btn{display:block;width:100%;padding:17px;background:var(--lime);color:#0a1612;border:none;border-radius:16px;
  font-family:'Outfit',sans-serif;font-weight:800;font-size:17px;text-align:center;text-decoration:none;
  cursor:pointer;box-sizing:border-box;transition:filter .12s;}

@@ -21,7 +21,7 @@ const mkCss = (isLight) => `
 .lg-body{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;}
 .lg-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--bg) 85%,transparent);}
 .lg-card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:24px;width:100%;max-width:400px;}
-.lg-display{font-family:'Anton',sans-serif;text-transform:uppercase;letter-spacing:.5px;}
+.lg-display{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;}
 .lg-seg{display:flex;background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:4px;margin:18px 0;}
 .lg-seg button{flex:1;border:none;background:none;color:var(--mut);font-family:'Outfit';font-weight:600;font-size:13px;
  padding:9px 0;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;}

@@ -15,7 +15,7 @@ const css = `
   background-image:radial-gradient(circle at 20% 110%,rgba(200,255,45,.08),transparent 50%);}
 .cp-wrap{max-width:420px;margin:0 auto;padding:40px 16px;}
 .cp-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:24px;margin-bottom:12px;}
-.cp-d{font-family:'Anton',sans-serif;text-transform:uppercase;letter-spacing:.5px;}
+.cp-d{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;}
 .cp-btn{background:var(--lime);color:#0a1612;font-weight:700;border:none;border-radius:14px;padding:14px;cursor:pointer;width:100%;font-family:'Outfit';font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px;}
 .cp-btn:disabled{filter:grayscale(.5) brightness(.7);cursor:not-allowed;}
 .cp-ghost{background:var(--surface2);color:var(--ink);border:1px solid var(--line);border-radius:12px;cursor:pointer;padding:10px 16px;font-family:'Outfit';font-size:13px;}

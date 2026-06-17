@@ -18,13 +18,13 @@ import { t as tr } from "../lib/i18n";
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
 .tr-root{font-family:'Outfit',sans-serif;color:var(--ink);}
-.tr-d{font-family:'Anton',sans-serif;text-transform:uppercase;letter-spacing:.5px;}
+.tr-d{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;}
 .tr-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;}
 .tr-btn{background:var(--lime);color:var(--lime-fg);font-weight:700;border:none;border-radius:14px;cursor:pointer;}
 .tr-btn:disabled{filter:grayscale(.6) brightness(.7);cursor:not-allowed;}
 .tr-ghost{background:var(--surface2);color:var(--ink);border:1px solid var(--line);border-radius:14px;cursor:pointer;}
 .tr-input,.tr-select{background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Outfit';outline:none;width:100%;padding:10px 12px;box-sizing:border-box;}
-.tr-codebox{font-family:'Anton';letter-spacing:6px;font-size:28px;color:var(--lime);text-align:center;background:var(--surface2);border:1px dashed var(--line);border-radius:14px;padding:10px;}
+.tr-codebox{font-family:'Outfit';font-weight:800;letter-spacing:6px;font-size:28px;color:var(--lime);text-align:center;background:var(--surface2);border:1px dashed var(--line);border-radius:14px;padding:10px;}
 .tr-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;}
 .tr-root{padding-bottom:4px;}
 @media(max-width:400px){

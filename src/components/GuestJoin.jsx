@@ -19,7 +19,7 @@ const css = `
  font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
  background-image:radial-gradient(circle at 80% -10%,rgba(200,255,45,.10),transparent 45%);}
 .gj-card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:22px;width:100%;max-width:400px;}
-.gj-display{font-family:'Anton',sans-serif;text-transform:uppercase;letter-spacing:.5px;}
+.gj-display{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;}
 .gj-input{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Outfit';padding:12px;outline:none;box-sizing:border-box;margin-bottom:12px;}
 .gj-input:focus{border-color:var(--lime);}
 .gj-slot{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--surface2);border:1px solid var(--line);margin-bottom:6px;}

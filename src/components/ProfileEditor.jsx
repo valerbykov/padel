@@ -11,7 +11,8 @@ const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
 .pc-root{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;
  font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;color-scheme:dark;}
-.pc-d{font-family:'Anton',sans-serif;text-transform:uppercase;letter-spacing:.5px;}
+.pc-root.pc-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;--ink:#0d1f18;--mut:#4a7060;--lime:#2a7a00;color-scheme:light;}
+.pc-d{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;}
 .pc-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;}
 .pc-input{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Outfit';padding:11px 12px;outline:none;box-sizing:border-box;}
 .pc-input:focus{border-color:var(--lime);}
@@ -25,11 +26,11 @@ const css = `
 function Preview({ url, name, size = 96 }) {
   const initials = (name || "").trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
   return url
-    ? <img src={url} alt="" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", border: "2px solid #2a4a3a" }} />
-    : <div style={{ width: size, height: size, borderRadius: "50%", background: "#16291f", border: "1px solid #22382c", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: size * 0.33, color: "#c8ff2d" }}>{initials}</div>;
+    ? <img src={url} alt="" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--line)" }} />
+    : <div style={{ width: size, height: size, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: size * 0.33, color: "var(--lime)" }}>{initials}</div>;
 }
 
-export default function ProfileEditor({ onClose, onSaved }) {
+export default function ProfileEditor({ onClose, onSaved, theme = "dark" }) {
   const [userId, setUserId] = useState(null);
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -96,7 +97,7 @@ export default function ProfileEditor({ onClose, onSaved }) {
   };
 
   return (
-    <div className="pc-root">
+    <div className={"pc-root" + (theme === "light" ? " pc-light" : "")}>
       <style>{css}</style>
       <div style={{ maxWidth: 460, margin: "0 auto", padding: "20px 16px 40px" }}>
         <button className="pc-ghost" style={{ padding: "6px 12px", marginBottom: 16 }} onClick={onClose}><ArrowLeft size={14} /> Назад</button>
@@ -119,7 +120,7 @@ export default function ProfileEditor({ onClose, onSaved }) {
                 {PRESETS.map((u) => (
                   <img key={u} src={u} alt="" onClick={() => setAvatarUrl(u)} style={{
                     width: 46, height: 46, borderRadius: "50%", cursor: "pointer",
-                    border: avatarUrl === u ? "2px solid var(--lime)" : "2px solid transparent", background: "#16291f",
+                    border: avatarUrl === u ? "2px solid var(--lime)" : "2px solid transparent", background: "var(--surface2)",
                   }} />
                 ))}
               </div>

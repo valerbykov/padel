@@ -9,7 +9,7 @@ const css = `
 .pp-root{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;
  font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;padding:18px 16px 40px;
  background-image:radial-gradient(circle at 80% -10%,rgba(200,255,45,.10),transparent 45%);}
-.pp-display{font-family:'Anton',sans-serif;text-transform:uppercase;letter-spacing:.5px;}
+.pp-display{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;}
 .pp-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;}
 .pp-tile{flex:1;text-align:center;}
 .pp-back{background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);

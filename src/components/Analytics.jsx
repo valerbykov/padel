@@ -10,7 +10,7 @@ const css = `
 .an-root{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;
  font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;padding:18px 16px 40px;
  background-image:radial-gradient(circle at 0% -10%,rgba(200,255,45,.08),transparent 45%);}
-.an-display{font-family:'Anton',sans-serif;text-transform:uppercase;letter-spacing:.5px;}
+.an-display{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;}
 .an-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;}
 .an-tile{flex:1;text-align:center;}
 `;

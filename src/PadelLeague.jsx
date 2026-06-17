@@ -42,7 +42,7 @@ body.pl-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;-
 .pl-root{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;color-scheme:dark;
  background-image:radial-gradient(circle at 80% -10%,rgba(200,255,45,.10),transparent 45%),radial-gradient(circle at 0% 110%,rgba(40,120,90,.18),transparent 40%);}
 .pl-root.pl-light{color-scheme:light;background-image:radial-gradient(circle at 80% -10%,rgba(42,122,0,.06),transparent 45%),radial-gradient(circle at 0% 110%,rgba(40,120,90,.08),transparent 40%);}
-.pl-display{font-family:'Anton',sans-serif;letter-spacing:.5px;text-transform:uppercase;}
+.pl-display{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;}
 .pl-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;}
 .pl-btn{background:var(--lime);color:var(--lime-fg);font-weight:700;border:none;border-radius:14px;cursor:pointer;transition:transform .12s,filter .12s;}
 .pl-btn:active{transform:scale(.97);}.pl-btn:disabled{filter:grayscale(.6) brightness(.7);cursor:not-allowed;}
@@ -53,7 +53,7 @@ body.pl-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;-
 .pl-tab.on{color:var(--lime);}
 .pl-pop{animation:pop .35s cubic-bezier(.2,.8,.2,1) both;}
 @keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.pl-codebox{font-family:'Anton';letter-spacing:6px;font-size:30px;color:var(--lime);text-align:center;background:var(--surface2);border:1px dashed var(--line);border-radius:14px;padding:12px;}
+.pl-codebox{font-family:'Outfit';font-weight:800;letter-spacing:6px;font-size:30px;color:var(--lime);text-align:center;background:var(--surface2);border:1px dashed var(--line);border-radius:14px;padding:12px;}
 .pl-slot{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--surface2);border:1px solid var(--line);}
 @media(max-width:400px){
   .pl-card{border-radius:14px;}
@@ -268,6 +268,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
   const [selected, setSelected] = useState(null);
   const [busy, setBusy] = useState(false);
   const [tourCounts, setTourCounts] = useState({});
+  const [tourCountsByName, setTourCountsByName] = useState({});
   const [streaks, setStreaks] = useState({});
   const [extraPlayers, setExtraPlayers] = useState([]);
   const [showLeagueMenu, setShowLeagueMenu] = useState(false);
@@ -290,12 +291,15 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
       if (!active) return;
       // tourCounts
       const counts = {};
+      const countsByName = {};
       tours.filter((tour) => tour.status === "finished").forEach((tour) => {
         (tour.players || []).forEach((p) => {
           if (p.profile_id) counts[p.profile_id] = (counts[p.profile_id] || 0) + 1;
+          else if (p.name) { const k = p.name.trim().toLowerCase(); countsByName[k] = (countsByName[k] || 0) + 1; }
         });
       });
       setTourCounts(counts);
+      setTourCountsByName(countsByName);
       // Win streaks: traverse matches newest-first per player
       const rows = (matchRows || []);
       const sk = {};
@@ -508,7 +512,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         if (i === 0) qb.push("👑");
         if (p.matches >= 5 && p.wins / p.matches >= 0.7) qb.push("🎯");
         if (p.matches >= 20) qb.push("⚡");
-        if ((tourCounts[p.id] || 0) >= 3) qb.push("🏆");
+        if ((tourCounts[p.id] || tourCountsByName[(p.name || "").trim().toLowerCase()] || 0) >= 3) qb.push("🏆");
         return (
           <div key={p.id} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }} onClick={() => setSelected(p)}>
             <div className="pl-display" style={{ width: 22, fontSize: 22, color: ["var(--yellow)", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)" }}>{i + 1}</div>
@@ -516,7 +520,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
               <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 4, fontSize: 12, color: "var(--mut)" }}>
-                <span>{p.matches} {t("matches")} · {tourCounts[p.id] || 0} {t("tournaments")}</span>
+                <span>{p.matches} {t("matches")} · {tourCounts[p.id] || tourCountsByName[(p.name || "").trim().toLowerCase()] || 0} {t("tournaments")}</span>
                 {(() => { const lv = playerLevel(p.matches, p.rating); return <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 8, background: `color-mix(in srgb, ${lv.color} 15%, transparent)`, color: lv.color, border: `1px solid color-mix(in srgb, ${lv.color} 35%, transparent)` }}>{lv.label}</span>; })()}
                 {qb.length > 0 && <span style={{ letterSpacing: 2 }}>{qb.join("")}</span>}
                 {streaks[p.id] && <span style={{ color: "var(--coral)", fontWeight: 600 }}>🔥{streaks[p.id]}</span>}

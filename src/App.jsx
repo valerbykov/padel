@@ -178,7 +178,7 @@ export default function App() {
     return <LoginScreen botName={BOT_NAME} onSuccess={() => setShowLogin(false)} onBack={() => setShowLogin(false)} theme={theme} lang={lang} onThemeToggle={toggleTheme} onLangChange={handleLangChange} />;
 
   if (showProfile && session)
-    return <ProfileEditor onClose={() => setShowProfile(false)} onSaved={() => setPNonce((n) => n + 1)} />;
+    return <ProfileEditor onClose={() => setShowProfile(false)} onSaved={() => setPNonce((n) => n + 1)} theme={theme} />;
 
   // Переход по ?join=CODE — показываем экран вступления с предзаполненным кодом.
   if (pendingJoin && session && profile && leagues !== null) {
