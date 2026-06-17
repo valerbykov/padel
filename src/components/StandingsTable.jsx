@@ -44,7 +44,7 @@ export default function StandingsTable({ rows, highlightId, avatarOf }) {
           }}>
             {/* Колонка: номер + аватар + имя под ней */}
             <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, overflow: "hidden" }}>
-              <span style={{ fontFamily: "'Anton',sans-serif", width: 16, flexShrink: 0, color: medal || "#7d9488", fontSize: 13, lineHeight: 1 }}>
+              <span style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, width: 16, flexShrink: 0, color: medal || "#7d9488", fontSize: 13, lineHeight: 1 }}>
                 {i + 1}
               </span>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, minWidth: 0, flex: 1 }}>

@@ -567,7 +567,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
             <button className="tr-ghost" style={{ padding: 8 }} onClick={load}><RefreshCw size={15} /></button>
             {!readOnly && (
               <button className="tr-btn" style={{ padding: "8px 12px", display: "flex", gap: 6, alignItems: "center" }} onClick={share}>
-                <Share2 size={14} /> {toast || tr("trn_share_btn") || tr("share_btn")}
+                <Share2 size={14} /> {toast || tr("share_btn")}
               </button>
             )}
             {isGroupMember && (

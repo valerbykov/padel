@@ -50,7 +50,7 @@ function SetChip({ val, team, onClick, editable }) {
   return (
     <div onClick={editable ? onClick : undefined} style={{
       minWidth: "clamp(32px,10vw,42px)", padding: "clamp(6px,2.5vw,9px) clamp(8px,3.5vw,12px)",
-      textAlign: "center", fontFamily: "'Anton',sans-serif",
+      textAlign: "center", fontFamily: "'Outfit',sans-serif", fontWeight: 800,
       fontSize: "clamp(16px,6vw,22px)", lineHeight: 1,
       background: val != null ? "rgba(10,22,18,.9)" : "#16291f",
       border: `1.5px solid ${val != null ? color : "#22382c"}`,
@@ -163,7 +163,7 @@ export default function CourtView({
     <div
       onClick={() => editable && mode !== "sets" && openPick(team)}
       style={{
-        fontFamily: "'Anton',sans-serif",
+        fontFamily: "'Outfit',sans-serif", fontWeight: 800,
         fontSize: "clamp(18px,7.5vw,30px)", minWidth: "clamp(38px,12vw,54px)",
         textAlign: "center", padding: "clamp(5px,2vw,8px) clamp(7px,3vw,12px)",
         borderRadius: 10, lineHeight: 1, cursor: editable && mode !== "sets" ? "pointer" : "default",
@@ -179,8 +179,14 @@ export default function CourtView({
       {/* Корт */}
       <div style={{ position: "relative", width: "100%", borderRadius: 14, overflow: "hidden" }}>
         <img src={bgUrl} alt="корт" style={{ width: "100%", display: "block" }} />
+        {editable && mode !== "sets" && !savedAlready && !pickFor && (
+          <>
+            <div onClick={() => openPick("A")} style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "50%", cursor: "pointer" }} aria-label="ввести счёт команды A" />
+            <div onClick={() => openPick("B")} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "50%", cursor: "pointer" }} aria-label="ввести счёт команды B" />
+          </>
+        )}
 
-        <div style={{ position: "absolute", top: 8, left: 10, fontFamily: "'Anton',sans-serif", textTransform: "uppercase", fontSize: 13, letterSpacing: 1, color: "#fff", background: "rgba(10,22,18,.55)", padding: "2px 8px", borderRadius: 8 }}>
+        <div style={{ position: "absolute", top: 8, left: 10, fontFamily: "'Outfit',sans-serif", fontWeight: 800, textTransform: "uppercase", fontSize: 13, letterSpacing: 1, color: "#fff", background: "rgba(10,22,18,.55)", padding: "2px 8px", borderRadius: 8 }}>
           Корт {courtNumber}
         </div>
 
@@ -191,13 +197,13 @@ export default function CourtView({
 
         <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", display: "flex", alignItems: "center", gap: 8 }}>
           {box(mode === "sets" ? setsWonA : dA, aWin, "A")}
-          <span style={{ color: "#fff", fontFamily: "'Anton',sans-serif", fontSize: 22 }}>:</span>
+          <span style={{ color: "#fff", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22 }}>:</span>
           {box(mode === "sets" ? setsWonB : dB, bWin, "B")}
         </div>
 
         {editable && mode !== "sets" && !savedAlready && !pickFor && (
           <div style={{ position: "absolute", left: "50%", bottom: "5%", transform: "translateX(-50%)", fontSize: 11, color: "#fff", background: "rgba(10,22,18,.55)", padding: "2px 8px", borderRadius: 8 }}>
-            нажми на счёт команды, чтобы ввести
+            нажми на свою половину поля, чтобы ввести счёт
           </div>
         )}
 
@@ -221,7 +227,7 @@ export default function CourtView({
                   {ranges.map(([s, e]) => (
                     <button key={s} onClick={() => setRange([s, e])} style={{
                       padding: "16px 0", borderRadius: 12, cursor: "pointer",
-                      fontFamily: "'Anton',sans-serif", fontSize: 20,
+                      fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 20,
                       background: "#16291f", color: "#eef3ee", border: "1px solid #22382c",
                     }}>{s}–{e}</button>
                   ))}
@@ -238,7 +244,7 @@ export default function CourtView({
                       return (
                         <button key={n} disabled={busy} onClick={() => pickSets ? pickSetScore(n) : pickSumFree(pickFor, n)} style={{
                           padding: "12px 0", borderRadius: 12, cursor: "pointer",
-                          fontFamily: "'Anton',sans-serif", fontSize: 20,
+                          fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 20,
                           background: cur ? "#c8ff2d" : "#16291f",
                           color: cur ? "#0a1612" : "#eef3ee",
                           border: "1px solid #22382c",
@@ -268,7 +274,7 @@ export default function CourtView({
             }}>
               <span style={{ fontSize: 12, color: "#7d9488", width: 44, flexShrink: 0 }}>Сет {i + 1}</span>
               <SetChip val={s.a} team="A" editable={editable && !savedAlready} onClick={() => setPickSets({ setIdx: i, team: "A" })} />
-              <span style={{ color: "#7d9488", fontFamily: "'Anton',sans-serif", fontSize: 14 }}>:</span>
+              <span style={{ color: "#7d9488", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 14 }}>:</span>
               <SetChip val={s.b} team="B" editable={editable && !savedAlready} onClick={() => setPickSets({ setIdx: i, team: "B" })} />
             </div>
           ))}

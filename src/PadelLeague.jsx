@@ -837,15 +837,15 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
       <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 4 }}>{label}</div>
       <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
         <div style={{ textAlign: "center", flex: 1 }}>
-          <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 22, color: "#3ddc84" }}>{w}</div>
+          <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22, color: "#3ddc84" }}>{w}</div>
           <div style={{ fontSize: 10, color: "var(--mut)" }}>{t("stat_wins")}</div>
         </div>
         <div style={{ textAlign: "center", flex: 1 }}>
-          <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 22, color: "var(--ink)" }}>{d}</div>
+          <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22, color: "var(--ink)" }}>{d}</div>
           <div style={{ fontSize: 10, color: "var(--mut)" }}>{t("stat_draws")}</div>
         </div>
         <div style={{ textAlign: "center", flex: 1 }}>
-          <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 22, color: "var(--coral)" }}>{l}</div>
+          <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22, color: "var(--coral)" }}>{l}</div>
           <div style={{ fontSize: 10, color: "var(--mut)" }}>{t("stat_losses")}</div>
         </div>
         <div style={{ flex: 2, height: 6, borderRadius: 3, overflow: "hidden", background: "var(--surface2)", display: "flex" }}>
@@ -933,7 +933,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{bp?.name || "?"}</div>
                 <div style={{ fontSize: 12, color: "var(--mut)" }}>{bestPartner.w} {t("wins_short")} · {bestPartner.l} {t("losses_short")} · {bestPartner.total} {t("matches")}</div>
               </div>
-              <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 22, color: "var(--lime)", flexShrink: 0 }}>{Math.round(bestPartner.rate * 100)}%</div>
+              <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22, color: "var(--lime)", flexShrink: 0 }}>{Math.round(bestPartner.rate * 100)}%</div>
             </div>
           </div>
         );
@@ -985,7 +985,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
                   </div>
                   <div style={{ fontSize: 10, color: "var(--mut)" }}>{together ? t("together") : t("versus")} · {fmtDate(m.played_at)}</div>
                 </div>
-                <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 14, flexShrink: 0 }}>{m.sets_a}:{m.sets_b}</div>
+                <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>{m.sets_a}:{m.sets_b}</div>
               </div>
             );
           })}
@@ -1000,7 +1000,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
           {playerTours.map((tour) => (
             <div key={tour.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--line)" }}>
               <div style={{ width: 28, height: 28, borderRadius: "50%", background: tour.position === 1 ? "rgba(200,255,45,.12)" : "var(--surface2)", border: `1px solid ${tour.position === 1 ? "var(--lime)" : "var(--line)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span style={{ fontFamily: "'Anton',sans-serif", fontSize: 13, color: tour.position === 1 ? "var(--lime)" : tour.position <= 3 ? "var(--yellow)" : "var(--mut)" }}>{tour.position}</span>
+                <span style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 13, color: tour.position === 1 ? "var(--lime)" : tour.position <= 3 ? "var(--yellow)" : "var(--mut)" }}>{tour.position}</span>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tour.name || t("fmt_americano_name")}</div>
@@ -1395,7 +1395,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
                 {detail.map((s, i) => (
                   <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, minWidth: 52 }}>
                     <div style={{ fontSize: 10, color: "var(--mut)" }}>{t("set_label")} {i + 1}</div>
-                    <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 18, color: s.a > s.b ? "var(--lime)" : s.b > s.a ? "var(--coral)" : "var(--ink)" }}>
+                    <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 18, color: s.a > s.b ? "var(--lime)" : s.b > s.a ? "var(--coral)" : "var(--ink)" }}>
                       {s.a}<span style={{ color: "var(--mut)", fontSize: 14 }}>:</span>{s.b}
                     </div>
                   </div>
