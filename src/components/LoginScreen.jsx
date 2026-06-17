@@ -137,11 +137,11 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
       <div className="lg-body">
         <div className="lg-card">
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}><Logo theme={theme} showTagline /></div>
-          <div className="lg-display" style={{ fontSize: 28, marginTop: 4 }}>{t("login_title")}</div>
+          <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 19, fontWeight: 600, color: "var(--ink)", textAlign: "center", marginTop: 8 }}>{t("login_title")}</div>
 
           <button onClick={signInGoogle} style={{
             width: "100%", marginTop: 16, padding: 12, borderRadius: 14, cursor: "pointer",
-            background: "#fff", color: "#1f1f1f", border: "none", fontWeight: 700, fontFamily: "'Outfit',sans-serif",
+            background: "#fff", color: "#1f1f1f", border: "1px solid #dadce0", fontWeight: 700, fontFamily: "'Outfit',sans-serif",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
           }}>
             <span style={{ fontFamily: "Arial, sans-serif", fontWeight: 700, fontSize: 16 }}>
