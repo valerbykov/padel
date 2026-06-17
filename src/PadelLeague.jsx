@@ -292,7 +292,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
       // tourCounts
       const counts = {};
       const countsByName = {};
-      tours.filter((tour) => tour.status === "finished").forEach((tour) => {
+      tours.filter((tour) => tour.status === "finished" || tour.status === "active").forEach((tour) => {
         (tour.players || []).forEach((p) => {
           if (p.profile_id) counts[p.profile_id] = (counts[p.profile_id] || 0) + 1;
           else if (p.name) { const k = p.name.trim().toLowerCase(); countsByName[k] = (countsByName[k] || 0) + 1; }
