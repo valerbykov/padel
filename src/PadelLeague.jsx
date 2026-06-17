@@ -129,6 +129,17 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
 
   useEffect(() => { loadLeaderboard(); }, [loadLeaderboard]);
 
+  // После логина/выхода синхронизируем вкладку.
+  // Баг: tab инициализировался один раз ("welcome") и не менялся при появлении
+  // сессии — экран welcome скрыт (нужен !session), board не выбран → пустой экран.
+  useEffect(() => {
+    setTab((prev) => {
+      if (session && prev === "welcome") return "board";                     // вошёл → сразу «Друзья»
+      if (!session && (prev === "board" || prev === "history")) return "welcome"; // вышел → «Начало»
+      return prev;
+    });
+  }, [session]);
+
   useEffect(() => {
     document.body.classList.toggle("pl-light", theme === "light");
     return () => document.body.classList.remove("pl-light");
