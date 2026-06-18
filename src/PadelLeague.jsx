@@ -867,6 +867,33 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
     </div>
   );
 
+  const myGames = (() => {
+    let w = 0, l = 0, d = 0;
+    (allMatches || []).forEach((m) => {
+      const inA = (m.team_a || []).includes(player.id);
+      const inB = (m.team_b || []).includes(player.id);
+      if (!inA && !inB) return;
+      if (m.sets_a === m.sets_b) { d++; return; }
+      const won = inA ? m.sets_a > m.sets_b : m.sets_b > m.sets_a;
+      if (won) w++; else l++;
+    });
+    return { w, l, d, total: w + l + d };
+  })();
+  const myTourStats = (() => {
+    const list = playerTours || [];
+    return {
+      total: list.length,
+      podium: list.filter((r) => r.position >= 1 && r.position <= 3).length,
+      wins: list.filter((r) => r.position === 1).length,
+    };
+  })();
+  const tileStat = (n, label, color) => (
+    <div style={{ flex: 1, textAlign: "center" }}>
+      <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22, color }}>{n}</div>
+      <div style={{ fontSize: 10, color: "var(--mut)", marginTop: 2 }}>{label}</div>
+    </div>
+  );
+
   return (
     <div className="pl-pop">
       <button className="pl-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={close}>
@@ -877,7 +904,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
       <div className="pl-card" style={{ padding: 18, marginBottom: 10, textAlign: "center" }}>
         <img src={playerAvatar(player.avatar_url, player.id)} alt="" style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--line)", marginBottom: 8 }} />
         <div className="pl-display" style={{ fontSize: 24 }}>{player.name}</div>
-        <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 4 }}>{player.matches} {t("matches")} · {player.wins} {t("stat_wins")}</div>
+        <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 4 }}>{myGames.total} {t("matches")} · {myGames.w} {t("stat_wins")}</div>
         {badges.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", marginTop: 10 }}>
             {badges.map((b) => (
@@ -929,6 +956,26 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
           <div style={{ fontSize: 12, color: "var(--mut)" }}>{t("rating")}</div>
         </div>
         <LineChart values={hist || [player.rating]} />
+      </div>
+
+      {/* Плитки: игры и турниры */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+        <div className="pl-card" style={{ padding: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--mut)", marginBottom: 10 }}><Swords size={14} /> {t("tab_games")}</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            {tileStat(myGames.w, t("stat_wins"), "#3ddc84")}
+            {tileStat(myGames.d, t("stat_draws"), "var(--ink)")}
+            {tileStat(myGames.l, t("stat_losses"), "var(--coral)")}
+          </div>
+        </div>
+        <div className="pl-card" style={{ padding: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--mut)", marginBottom: 10 }}><Award size={14} /> {t("tab_tournaments")}</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            {tileStat(myTourStats.total, t("trn_stat_total"), "var(--ink)")}
+            {tileStat(myTourStats.podium, t("trn_stat_podium"), "#ffd23f")}
+            {tileStat(myTourStats.wins, t("trn_stat_wins"), "var(--lime)")}
+          </div>
+        </div>
       </div>
 
       {/* Лучший партнёр */}

@@ -8,6 +8,7 @@ const T = {
     tab_friends: 'Друзья', tab_games: 'Игры', tab_history: 'История', tab_tournaments: 'Турниры',
     tab_start: 'Начало',
     tagline: 'лига друзей · своя стая на корте',
+    trn_stat_total: 'Всего', trn_stat_podium: 'Тройка', trn_stat_wins: 'Победы',
     // ── League ────────────────────────────────────────────────────────────
     league_title: 'PADELPACK',
     league_admin: 'admin', league_member: 'участник',
@@ -226,6 +227,7 @@ const T = {
     tab_friends: 'Friends', tab_games: 'Games', tab_history: 'History', tab_tournaments: 'Cups',
     tab_start: 'Home',
     tagline: 'a league of friends · your pack on court',
+    trn_stat_total: 'Total', trn_stat_podium: 'Top 3', trn_stat_wins: 'Wins',
     // ── League ────────────────────────────────────────────────────────────
     league_title: 'PADELPACK',
     league_admin: 'admin', league_member: 'member',
@@ -444,6 +446,7 @@ const T = {
     tab_friends: 'Amigos', tab_games: 'Partidas', tab_history: 'Historial', tab_tournaments: 'Copas',
     tab_start: 'Inicio',
     tagline: 'una liga de amigos · tu jauría en la pista',
+    trn_stat_total: 'Total', trn_stat_podium: 'Top 3', trn_stat_wins: 'Victorias',
     // ── League ────────────────────────────────────────────────────────────
     league_title: 'PADELPACK',
     league_admin: 'admin', league_member: 'miembro',
