@@ -77,7 +77,7 @@ const statusLabel = (s) => ({ open: tr("trn_sec_open"), active: tr("trn_sec_acti
 export default function Tournaments({ groupId, players, profileId, bumpArchive, session, onLogin, isAdmin = false }) {
   const [mode, setMode] = useState("list");
   const [activeId, setActiveId] = useState(null);
-  if (mode === "create") return <Create groupId={groupId} back={() => setMode("list")} open={(id) => { setActiveId(id); setMode("view"); }} />;
+  if (mode === "create") return <Create groupId={groupId} profileId={profileId} back={() => setMode("list")} open={(id) => { setActiveId(id); setMode("view"); }} />;
   if (mode === "view") return <TournamentView id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} onArchiveChange={bumpArchive} isAdmin={isAdmin} />;
   return <List groupId={groupId} session={session} onLogin={onLogin} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
 }
@@ -228,7 +228,7 @@ function FormatPicker({ selected, onSelect }) {
 
 // ─── Create (2 шага: format → config) ─────────────────────────────────────────
 
-function Create({ groupId, back, open }) {
+function Create({ groupId, profileId, back, open }) {
   const [step, setStep] = useState("format");
   const [format, setFormat] = useState(null);
   const [courts, setCourts] = useState(2);
