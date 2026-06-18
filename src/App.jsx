@@ -202,22 +202,6 @@ export default function App() {
     );
   }
 
-  // Залогинен, профиль загружен, но ни одной лиги нет.
-  if (session && profile && leagues !== null && leagues.length === 0)
-    return (
-      <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
-        <TopBar
-          session={session} name={profile?.name} avatarUrl={profile?.avatar_url}
-          onLogin={() => setShowLogin(true)}
-          onProfile={() => setShowProfile(true)}
-          onSignOut={() => supabase.auth.signOut()}
-          theme={theme} onThemeToggle={toggleTheme}
-          lang={lang} onLangChange={handleLangChange}
-        />
-        <LeagueSetup onDone={handleLeagueDone} />
-      </div>
-    );
-
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
       <TopBar

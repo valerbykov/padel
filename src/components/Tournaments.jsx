@@ -5,7 +5,7 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import {
   createTournament, listTournaments, getTournament, addTournamentPlayer, removeTournamentPlayer,
-  startTournament, submitMatchScore, finishTournament, tournamentLink, deleteTournament,
+  startTournament, submitMatchScore, finishTournament, tournamentLink, deleteTournament, listMyTournaments,
   generateMexicanoRound, generateKotHRound, setCourtName, setScorePin, checkScorePin,
 } from "../lib/tournamentApi";
 import { standings, detailedStandings, allMatchesPlayed } from "../lib/americano";
@@ -105,7 +105,7 @@ function List({ groupId, create, open, session, onLogin }) {
   const [showAll, setShowAll] = useState(false);
   useEffect(() => {
     setShowAll(false);
-    listTournaments(groupId).then(setItems).catch(() => setItems([]));
+    (groupId ? listTournaments(groupId) : listMyTournaments()).then(setItems).catch(() => setItems([]));
   }, [groupId]);
 
   const byStatus = {
@@ -117,21 +117,26 @@ function List({ groupId, create, open, session, onLogin }) {
   return (
     <div className="tr-root">
       <style>{css}</style>
-      {session ? (
-        <button className="tr-btn" style={{ width: "100%", padding: 13, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={create}>
-          <PlusCircle size={18} /> {tr("trn_create_btn")}
-        </button>
-      ) : (
+      {!session ? (
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "color-mix(in srgb, var(--lime) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 30%, transparent)", borderRadius: 12, marginBottom: 16 }}>
           <div style={{ fontSize: 18 }}>🔐</div>
           <div style={{ flex: 1, fontSize: 13, color: "var(--mut)", lineHeight: 1.4 }}>{tr("trn_sign_in_hint")}</div>
           <button className="tr-btn" style={{ padding: "7px 14px", fontSize: 12, flexShrink: 0, borderRadius: 10 }} onClick={onLogin}>{tr("sign_in")}</button>
         </div>
+      ) : groupId ? (
+        <button className="tr-btn" style={{ width: "100%", padding: 13, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={create}>
+          <PlusCircle size={18} /> {tr("trn_create_btn")}
+        </button>
+      ) : (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, marginBottom: 16 }}>
+          <div style={{ fontSize: 18 }}>🎾</div>
+          <div style={{ flex: 1, fontSize: 13, color: "var(--mut)", lineHeight: 1.4 }}>{tr("trn_need_league_hint")}</div>
+        </div>
       )}
       {items === null && <div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>{tr("loading")}</div>}
       {items !== null && items.length === 0 && (
         <div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>
-          {session ? tr("trn_empty_session") : tr("trn_empty_guest")}
+          {!session ? tr("trn_empty_guest") : groupId ? tr("trn_empty_session") : tr("solo_tours_empty")}
         </div>
       )}
       {items !== null && getSections().map((sec) => {

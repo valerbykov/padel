@@ -35,6 +35,14 @@ export async function listTournaments(groupId) {
   return data || [];
 }
 
+// Мои турниры без лиги (security definer my_tournaments): где я в составе.
+// Та же форма, что T_SELECT. Видны активные и завершённые.
+export async function listMyTournaments() {
+  const { data, error } = await supabase.rpc("my_tournaments");
+  if (error) throw error;
+  return data || [];
+}
+
 export async function getTournament(id) {
   const { data, error } = await supabase.from("tournaments").select(T_SELECT).eq("id", id).single();
   if (error) throw error;

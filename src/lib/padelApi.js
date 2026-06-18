@@ -148,6 +148,33 @@ export async function createGame(groupId, { title, startsAt, place, slots = [], 
   return game; // содержит invite_code → linkFor(game.invite_code)
 }
 
+// Мои игры без лиги (security definer my_games): игры, где я в слоте или организатор.
+// Та же форма, что GAME_SELECT. Видны активные и завершённые.
+export async function listMyGames() {
+  const { data, error } = await supabase.rpc("my_games");
+  if (error) throw error;
+  return data || [];
+}
+
+// Моя история сыгранных матчей без лиги (security definer my_history_matches).
+export async function listMyHistoryMatches() {
+  const { data, error } = await supabase.rpc("my_history_matches");
+  if (error) throw error;
+  return data || [];
+}
+
+// Игроки, с которыми я играл вместе (для вкладки «Друзья» без лиги).
+// Форма совместима с лидербордом: { id, name, avatar_url, rating, matches, wins }.
+export async function getPlayedWith() {
+  const { data, error } = await supabase.rpc("played_with");
+  if (error) throw error;
+  return (data || []).map((r) => ({
+    id: r.id, name: r.name, avatar_url: r.avatar_url,
+    contacts: {}, claim_code: null,
+    rating: r.rating || 0, matches: r.matches || 0, wins: r.wins || 0, user_id: null,
+  }));
+}
+
 // Список игр группы (для вкладки «Игры»).
 export async function listGames(groupId) {
   const { data, error } = await supabase
@@ -235,6 +262,14 @@ export async function removeMember(groupId, profileId) {
   const { error } = await supabase.from("group_members")
     .delete().eq("group_id", groupId).eq("profile_id", profileId);
   if (error) throw error;
+}
+
+// Профили участников группы по id (для раздела «Играли вместе», обход RLS).
+export async function getGroupProfiles(groupId, ids) {
+  if (!groupId || !ids || ids.length === 0) return [];
+  const { data, error } = await supabase.rpc("group_profiles", { p_group_id: groupId, p_ids: ids });
+  if (error) throw error;
+  return data || [];
 }
 
 export async function getProfileByClaimCode(code) {

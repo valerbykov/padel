@@ -1,9 +1,9 @@
 // PadelLeague.jsx — основной экран на реальных данных Supabase.
 import React, { useEffect, useState, useCallback } from "react";
 import { supabase } from "./lib/supabase";
-import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts } from "./lib/padelApi";
+import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith } from "./lib/padelApi";
 import { getRatingHistory } from "./lib/statsApi";
-import { listTournaments } from "./lib/tournamentApi";
+import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
 import { t } from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
@@ -126,7 +126,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
 
   const loadLeaderboard = useCallback(async () => {
     if (!groupId) return;
-    try { setPlayers(await getLeaderboard(groupId)); } catch (e) { /* noop */ }
+    try { setPlayers(groupId ? await getLeaderboard(groupId) : await getPlayedWith()); } catch (e) { /* noop */ }
   }, [groupId]);
 
   useEffect(() => { loadLeaderboard(); }, [loadLeaderboard]);
@@ -158,7 +158,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
           <h1 className="pl-display" style={{ fontSize: 30, lineHeight: 1, marginTop: 2, color: "var(--ink)" }}>{titles[tab]}</h1>
         </header>
 
-        {session && !groupId && (
+        {session && !groupId && tab !== "board" && (
           <div className="pl-card" style={{ padding: "14px 16px", marginBottom: 12, borderColor: "rgba(200,255,45,.3)" }}>
             <div style={{ fontWeight: 600, color: "var(--lime)", marginBottom: 4 }}>{t("not_in_league_title")}</div>
             <div style={{ fontSize: 13, color: "var(--mut)" }}>{t("not_in_league_sub")}</div>
@@ -287,6 +287,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
 
   useEffect(() => {
     let active = true;
+    if (!groupId) { setSrv(null); setExtraPlayers([]); setTourCounts({}); setTourCountsByName({}); setMatchCounts({}); setStreaks({}); return () => { active = false; }; }
     const memberIds = new Set(players.map((p) => p.id));
     Promise.all([
       listTournaments(groupId),
@@ -340,9 +341,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         });
       });
       if (extraIds.size > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles").select("id, name, avatar_url, contacts, claim_code, user_id")
-          .in("id", [...extraIds]);
+        const profiles = await getGroupProfiles(groupId, [...extraIds]).catch(() => []);
         if (active) setExtraPlayers((profiles || []).sort((a, b) => a.name.localeCompare(b.name)));
       } else {
         if (active) setExtraPlayers([]);
@@ -453,32 +452,44 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
               </div>
             </div>
           )}
+        </div>
+      )}
 
-          {/* Инлайн-форма создания/вступления */}
-          {showNewLeague && (
-            <div className="pl-card pl-pop" style={{ padding: 14, marginTop: 6 }}>
-              {showNewLeague === "create" ? (
-                <>
-                  <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14 }}>{t("league_new_title")}</div>
-                  <input className="pl-input" style={{ padding: "9px 12px", marginBottom: 8 }} placeholder={t("league_name_placeholder")} value={newLeagueName} onChange={(e) => setNewLeagueName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleCreateLeague()} autoFocus />
-                  {leagueErr && <div style={{ fontSize: 12, color: "var(--coral)", marginBottom: 6 }}>{leagueErr}</div>}
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button className="pl-btn" style={{ flex: 1, padding: 10 }} disabled={leagueBusy || !newLeagueName.trim()} onClick={handleCreateLeague}>{leagueBusy ? t("creating") : t("league_create")}</button>
-                    <button className="pl-ghost" style={{ padding: "0 12px" }} onClick={() => { setShowNewLeague(false); setLeagueErr(""); }}><X size={14} /></button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14 }}>{t("league_join_title")}</div>
-                  <input className="pl-input" style={{ padding: "9px 12px", marginBottom: 8, textTransform: "uppercase", letterSpacing: 3, textAlign: "center" }} placeholder="XXXXXX" value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))} onKeyDown={(e) => e.key === "Enter" && handleJoinLeague()} autoFocus />
-                  {leagueErr && <div style={{ fontSize: 12, color: "var(--coral)", marginBottom: 6 }}>{leagueErr}</div>}
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button className="pl-btn" style={{ flex: 1, padding: 10 }} disabled={leagueBusy || joinCode.length < 4} onClick={handleJoinLeague}>{leagueBusy ? t("creating") : t("league_join_btn")}</button>
-                    <button className="pl-ghost" style={{ padding: "0 12px" }} onClick={() => { setShowNewLeague(false); setLeagueErr(""); }}><X size={14} /></button>
-                  </div>
-                </>
-              )}
-            </div>
+      {/* Без лиги — даём выбор: создать свою или вступить по коду. Не блокирует:
+          вкладки доступны, в чужие игры/турниры можно зайти по ссылке-приглашению. */}
+      {(!leagues || leagues.length === 0) && !showNewLeague && (
+        <div className="pl-card pl-pop" style={{ padding: 18, marginBottom: 12, textAlign: "center" }}>
+          <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>{t("welcome_choose_title")}</div>
+          <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 14, lineHeight: 1.4 }}>{t("welcome_choose_sub")}</div>
+          <button className="pl-btn" style={{ width: "100%", padding: 12, marginBottom: 8 }} onClick={() => { setShowNewLeague("create"); setLeagueErr(""); }}>{t("welcome_create_league")}</button>
+          <button className="pl-ghost" style={{ width: "100%", padding: 12 }} onClick={() => { setShowNewLeague("join"); setLeagueErr(""); }}>{t("welcome_join_league")}</button>
+          <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 12, lineHeight: 1.4 }}>{t("welcome_skip_hint")}</div>
+        </div>
+      )}
+
+      {/* Форма создать/вступить — общая для переключателя лиг и онбординга */}
+      {showNewLeague && (
+        <div className="pl-card pl-pop" style={{ padding: 14, marginBottom: 12 }}>
+          {showNewLeague === "create" ? (
+            <>
+              <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14 }}>{t("league_new_title")}</div>
+              <input className="pl-input" style={{ padding: "9px 12px", marginBottom: 8 }} placeholder={t("league_name_placeholder")} value={newLeagueName} onChange={(e) => setNewLeagueName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleCreateLeague()} autoFocus />
+              {leagueErr && <div style={{ fontSize: 12, color: "var(--coral)", marginBottom: 6 }}>{leagueErr}</div>}
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="pl-btn" style={{ flex: 1, padding: 10 }} disabled={leagueBusy || !newLeagueName.trim()} onClick={handleCreateLeague}>{leagueBusy ? t("creating") : t("league_create")}</button>
+                <button className="pl-ghost" style={{ padding: "0 12px" }} onClick={() => { setShowNewLeague(false); setLeagueErr(""); }}><X size={14} /></button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14 }}>{t("league_join_title")}</div>
+              <input className="pl-input" style={{ padding: "9px 12px", marginBottom: 8, textTransform: "uppercase", letterSpacing: 3, textAlign: "center" }} placeholder="XXXXXX" value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))} onKeyDown={(e) => e.key === "Enter" && handleJoinLeague()} autoFocus />
+              {leagueErr && <div style={{ fontSize: 12, color: "var(--coral)", marginBottom: 6 }}>{leagueErr}</div>}
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="pl-btn" style={{ flex: 1, padding: 10 }} disabled={leagueBusy || joinCode.length < 4} onClick={handleJoinLeague}>{leagueBusy ? t("creating") : t("league_join_btn")}</button>
+                <button className="pl-ghost" style={{ padding: "0 12px" }} onClick={() => { setShowNewLeague(false); setLeagueErr(""); }}><X size={14} /></button>
+              </div>
+            </>
           )}
         </div>
       )}
@@ -499,7 +510,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         </div>
       )}
 
-      {ranked.length === 0 && (
+      {groupId && ranked.length === 0 && (
         <div className="pl-card" style={{ padding: 20, marginBottom: 12 }}>
           <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}>{t("onboarding_title")}</div>
           {[
@@ -517,7 +528,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
           ))}
         </div>
       )}
-      {ranked.map((p, i) => {
+      {groupId && ranked.map((p, i) => {
         const qb = [];
         if (i === 0) qb.push("👑");
         if (p.matches >= 5 && p.wins / p.matches >= 0.7) qb.push("🎯");
@@ -544,7 +555,24 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         );
       })}
 
-      {open ? (
+      {!groupId && (ranked.filter((p) => p.id !== profileId).length > 0 ? (
+        <>
+          <div className="pl-display" style={{ fontSize: 12, color: "var(--mut)", margin: "4px 2px 8px", letterSpacing: 1 }}>{t("played_together_label")}</div>
+          {ranked.filter((p) => p.id !== profileId).map((p) => (
+            <div key={p.id} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", marginBottom: 8 }}>
+              <img src={playerAvatar(p.avatar_url, p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
+                <div style={{ fontSize: 12, color: "var(--mut)", display: "inline-flex", alignItems: "center", gap: 4 }}><Swords size={13} /> {p.matches}</div>
+              </div>
+            </div>
+          ))}
+        </>
+      ) : (
+        <EmptyState text={t("solo_friends_empty")} />
+      ))}
+
+      {groupId && (open ? (
         <div className="pl-card" style={{ padding: 14, marginTop: 8 }}>
           <div style={{ fontWeight: 600, marginBottom: 10 }}>{t("add_player_form_title")}</div>
           <input className="pl-input" style={{ padding: "10px 12px", marginBottom: 8 }} placeholder={t("player_name_placeholder")} value={name}
@@ -568,7 +596,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         <button className="pl-ghost" style={{ width: "100%", padding: 12, marginTop: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontWeight: 600 }} onClick={() => setOpen(true)}>
           <Users size={18} /> {t("add_player")}
         </button>
-      )}
+      ))}
 
       {extraPlayers.length > 0 && (
         <>
@@ -1097,7 +1125,7 @@ function Games({ groupId, players, reloadLeaderboard, session, archiveNonce, bum
 
   const loadGames = useCallback(async () => {
     setLoading(true);
-    try { setGames(await listGames(groupId)); } catch (e) { /* noop */ } finally { setLoading(false); }
+    try { setGames(groupId ? await listGames(groupId) : await listMyGames()); } catch (e) { /* noop */ } finally { setLoading(false); }
   }, [groupId]);
   useEffect(() => { loadGames(); }, [loadGames, archiveNonce]);
 
@@ -1120,15 +1148,12 @@ function Games({ groupId, players, reloadLeaderboard, session, archiveNonce, bum
         </div>
       )}
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        {session && <button className="pl-btn" style={{ flex: 1, padding: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={() => setMode("create")}>
+        {session && groupId && <button className="pl-btn" style={{ flex: 1, padding: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={() => setMode("create")}>
           <PlusCircle size={18} /> {t("create_game")}
         </button>}
-        <button className="pl-ghost" style={{ padding: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontWeight: 600 }} onClick={loadGames}>
-          <RefreshCw size={16} />
-        </button>
       </div>
       {loading && <div className="pl-card" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>{t("loading")}</div>}
-      {!loading && games.length === 0 && <EmptyState text={session ? t("games_empty_session") : t("games_empty_guest")} />}
+      {!loading && games.length === 0 && <EmptyState text={!session ? t("games_empty_guest") : (groupId ? t("games_empty_session") : t("solo_games_empty"))} />}
       {!loading && (() => {
         const upcoming = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length < 4);
         const active   = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length === 4);
@@ -1369,11 +1394,17 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
   useEffect(() => {
     if (sel) return;
     (async () => {
-      const { data } = await supabase.from("matches")
-        .select("id, team_a, team_b, sets_a, sets_b, score_detail, played_at")
-        .eq("group_id", groupId).order("played_at", { ascending: false }).limit(30);
-      setMatches(data || []);
-      try { const all = await listTournaments(groupId); setTours(all.filter((tour) => tour.status === "finished")); }
+      let mData;
+      if (groupId) {
+        const { data } = await supabase.from("matches")
+          .select("id, team_a, team_b, sets_a, sets_b, score_detail, played_at")
+          .eq("group_id", groupId).order("played_at", { ascending: false }).limit(30);
+        mData = data || [];
+      } else {
+        mData = await listMyHistoryMatches().catch(() => []);
+      }
+      setMatches(mData);
+      try { const all = groupId ? await listTournaments(groupId) : await listMyTournaments(); setTours(all.filter((tour) => tour.status === "finished")); }
       catch (e) { setTours([]); }
     })();
   }, [groupId, sel, archiveNonce]);
