@@ -6,13 +6,13 @@ import { supabase } from "../lib/supabase";
 import {
   createTournament, listTournaments, getTournament, addTournamentPlayer, removeTournamentPlayer,
   startTournament, submitMatchScore, finishTournament, tournamentLink, deleteTournament,
-  generateMexicanoRound, generateKotHRound, setCourtName,
+  generateMexicanoRound, generateKotHRound, setCourtName, setScorePin, checkScorePin,
 } from "../lib/tournamentApi";
 import { standings, detailedStandings, allMatchesPlayed } from "../lib/americano";
 import { getAllKotHTeams } from "../lib/mexicano";
 import CourtView from "./CourtView";
 import StandingsTable from "./StandingsTable";
-import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, Share2, Trash2, Plus } from "lucide-react";
+import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, Share2, Trash2, Plus, Check } from "lucide-react";
 import { t as tr } from "../lib/i18n";
 
 const css = `
@@ -74,11 +74,11 @@ const statusLabel = (s) => ({ open: tr("trn_sec_open"), active: tr("trn_sec_acti
 
 // ─── Root ──────────────────────────────────────────────────────────────────────
 
-export default function Tournaments({ groupId, players, profileId, bumpArchive, session, onLogin }) {
+export default function Tournaments({ groupId, players, profileId, bumpArchive, session, onLogin, isAdmin = false }) {
   const [mode, setMode] = useState("list");
   const [activeId, setActiveId] = useState(null);
   if (mode === "create") return <Create groupId={groupId} back={() => setMode("list")} open={(id) => { setActiveId(id); setMode("view"); }} />;
-  if (mode === "view") return <TournamentView id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} onArchiveChange={bumpArchive} />;
+  if (mode === "view") return <TournamentView id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} onArchiveChange={bumpArchive} isAdmin={isAdmin} />;
   return <List groupId={groupId} session={session} onLogin={onLogin} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
 }
 
@@ -271,7 +271,7 @@ function Create({ groupId, back, open }) {
     setBusy(true);
     try {
       const targetSize = isKothBtB ? playerCount : courts * 4;
-      const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format });
+      const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format, createdBy: profileId });
       open(trn.id);
     } catch (e) { alert("Не удалось создать турнир"); setBusy(false); }
   };
@@ -423,12 +423,15 @@ function AddPlayer({ players, existing, onAdd, disabled }) {
 
 // ─── TournamentView ────────────────────────────────────────────────────────────
 
-export function TournamentView({ id, players, back, readOnly = false, initialT = null, reloadFn = null, isGroupMember = false, currentProfileId = null, spectatorMode = false, onArchiveChange = null }) {
+export function TournamentView({ id, players, back, readOnly = false, initialT = null, reloadFn = null, isGroupMember = false, currentProfileId = null, spectatorMode = false, onArchiveChange = null, isAdmin = false }) {
   const hasInitRef = useRef(!!initialT);
   const [trnData, setTrnData] = useState(initialT ? { ...initialT, matches: initialT.matches || [], players: initialT.players || [] } : null);
   const [toast, setToast] = useState("");
   const [cur, setCur] = useState(1);
   const [addingRound, setAddingRound] = useState(false);
+  const [pinShown, setPinShown] = useState(null);
+  const [pinInput, setPinInput] = useState("");
+  const [unlocked, setUnlocked] = useState(() => { try { return !!localStorage.getItem("pp_scorepin_" + id); } catch (e) { return false; } });
   const initRef = useRef(false);
 
   const load = useCallback(async () => {
@@ -472,6 +475,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   if (trnData === false) return <div className="tr-root"><style>{css}</style><div className="tr-card" style={{ color: "var(--coral)" }}>{tr("trn_loading_fail")}</div></div>;
 
   const fmt = fmtById(trnData.format);
+  const amCreator = !!(currentProfileId && trnData.created_by && trnData.created_by === currentProfileId);
   const nameOf = (tpId) => trnData.players.find((p) => p.id === tpId)?.name || "?";
   const _dogAv = (pid) => { if (!pid) return null; const h = [...String(pid)].reduce((a, c) => a + c.charCodeAt(0), 0); return `/avatars/dog-${String((h % 15) + 1).padStart(2, "0")}.png`; };
   const avatarOfTp = (tpId) => {
@@ -539,7 +543,20 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     try { await navigator.clipboard.writeText(text); setToast(tr("copied")); setTimeout(() => setToast(""), 1500); } catch (e) {}
   };
   const start = async () => { try { await startTournament(trnData.id, trnData.players, trnData.format); load(); } catch (e) { alert(e.message || "Не удалось запустить"); } };
-  const saveScore = async (matchId, a, b) => { await submitMatchScore(matchId, a, b); await load(); };
+  const saveScore = async (matchId, a, b) => {
+    let pin = null; try { pin = localStorage.getItem("pp_scorepin_" + id); } catch (e) {}
+    await submitMatchScore(matchId, a, b, pin || ""); await load();
+  };
+  const genPin = async () => {
+    const pin = String(Math.floor(1000 + Math.random() * 9000));
+    try { await setScorePin(trnData.id, pin); setPinShown(pin); } catch (e) { alert(e.message || "Ошибка"); }
+  };
+  const unlockPin = async () => {
+    const v = pinInput.trim();
+    const ok = await checkScorePin(trnData.id, v).catch(() => false);
+    if (ok) { try { localStorage.setItem("pp_scorepin_" + id, v); } catch (e) {} setUnlocked(true); setToast(tr("trn_score_unlocked")); setTimeout(() => setToast(""), 1500); }
+    else { setToast(tr("trn_score_pin_wrong")); setTimeout(() => setToast(""), 1800); }
+  };
 
   const roundLabel = isKothBtB
     ? `${tr("trn_match_label")} ${cur}`
@@ -586,6 +603,32 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
         </div>
       </div>
 
+      {trnData.status === "active" && !readOnly && (
+        <div className="tr-card" style={{ marginBottom: 12 }}>
+          {(amCreator || isAdmin) ? (
+            <>
+              <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{tr("trn_score_access")}</div>
+              {pinShown && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <div className="tr-codebox" style={{ flex: 1 }}>{pinShown}</div>
+                  <button className="tr-ghost" style={{ padding: "10px 12px" }} onClick={() => { try { navigator.clipboard.writeText(pinShown); } catch (e) {} setToast(tr("copied")); setTimeout(() => setToast(""), 1500); }}><Copy size={15} /></button>
+                </div>
+              )}
+              <button className="tr-ghost" style={{ width: "100%", padding: 10 }} onClick={genPin}>{pinShown ? tr("trn_score_pin_regen") : tr("trn_score_pin_share")}</button>
+            </>
+          ) : unlocked ? (
+            <div style={{ fontSize: 13, color: "var(--lime)", display: "flex", alignItems: "center", gap: 6 }}><Check size={14} /> {tr("trn_score_unlocked")}</div>
+          ) : (
+            <>
+              <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{tr("trn_score_pin_prompt")}</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input className="tr-input" inputMode="numeric" value={pinInput} onChange={(e) => setPinInput(e.target.value)} placeholder="PIN" style={{ flex: 1 }} />
+                <button className="tr-btn" style={{ padding: "8px 16px", width: "auto" }} onClick={unlockPin}>{tr("trn_score_unlock")}</button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
       {/* ── LOBBY ─────────────────────────────────────────────────────────── */}
       {trnData.status === "open" && (
         <>
@@ -665,7 +708,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                   teamAvatarsA={[avatarOfTp(m.team_a[0]), avatarOfTp(m.team_a[1])]}
                   teamAvatarsB={[avatarOfTp(m.team_b[0]), avatarOfTp(m.team_b[1])]}
                   scoreA={m.score_a} scoreB={m.score_b}
-                  editable={!readOnly && trnData.status !== "finished"}
+                  editable={!readOnly && (amCreator || unlocked || isAdmin) && trnData.status !== "finished"}
                   onSave={(a, b) => saveScore(m.id, a, b)} />
               ))}
 

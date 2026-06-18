@@ -8,7 +8,7 @@ const genCode = () => Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math
 export const tournamentLink = (code) => `${window.location.origin}/t/${code}`;
 
 const T_SELECT =
-  "id, invite_code, name, format, points_per_game, target_size, status, court_names, created_at, " +
+  "id, invite_code, name, format, points_per_game, target_size, status, court_names, created_by, created_at, " +
   "players:tournament_players(id, profile_id, name, created_at), " +
   "matches:tournament_matches(id, round_number, court, team_a, team_b, score_a, score_b)";
 
@@ -131,10 +131,22 @@ export async function generateKotHRound(tournamentId, matches) {
   if (error) throw error;
 }
 
-export async function submitMatchScore(matchId, scoreA, scoreB) {
-  const { error } = await supabase.from("tournament_matches")
-    .update({ score_a: scoreA, score_b: scoreB }).eq("id", matchId);
+export async function submitMatchScore(matchId, scoreA, scoreB, pin = null) {
+  const { error } = await supabase.rpc("submit_tournament_score", {
+    p_match_id: matchId, p_score_a: scoreA, p_score_b: scoreB, p_pin: pin || "",
+  });
   if (error) throw error;
+}
+
+// PIN доступа к вводу счёта (см. supabase/sql/score_pin.sql).
+export async function setScorePin(tournamentId, pin) {
+  const { error } = await supabase.rpc("set_score_pin", { p_tournament_id: tournamentId, p_pin: pin || "" });
+  if (error) throw error;
+}
+export async function checkScorePin(tournamentId, pin) {
+  const { data, error } = await supabase.rpc("check_score_pin", { p_tournament_id: tournamentId, p_pin: pin || "" });
+  if (error) throw error;
+  return !!data;
 }
 
 export async function finishTournament(tournamentId) {

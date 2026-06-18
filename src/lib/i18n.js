@@ -9,6 +9,7 @@ const T = {
     tab_start: 'Начало',
     tagline: 'лига друзей · своя стая на корте',
     trn_stat_total: 'Всего', trn_stat_podium: 'Тройка', trn_stat_wins: 'Победы',
+    trn_score_access: 'Доступ к вводу счёта', trn_score_pin_share: 'Поделиться PIN для счёта', trn_score_pin_regen: 'Новый PIN', trn_score_pin_prompt: 'Счёт вводит организатор. Введи PIN, чтобы вводить тоже.', trn_score_unlock: 'Разблокировать', trn_score_unlocked: 'Ввод счёта разблокирован', trn_score_pin_wrong: 'Неверный PIN',
     // ── League ────────────────────────────────────────────────────────────
     league_title: 'PADELPACK',
     league_admin: 'admin', league_member: 'участник',
@@ -228,6 +229,7 @@ const T = {
     tab_start: 'Home',
     tagline: 'a league of friends · your pack on court',
     trn_stat_total: 'Total', trn_stat_podium: 'Top 3', trn_stat_wins: 'Wins',
+    trn_score_access: 'Score entry access', trn_score_pin_share: 'Share score PIN', trn_score_pin_regen: 'New PIN', trn_score_pin_prompt: 'Only the organizer enters scores. Enter PIN to unlock.', trn_score_unlock: 'Unlock', trn_score_unlocked: 'Score entry unlocked', trn_score_pin_wrong: 'Wrong PIN',
     // ── League ────────────────────────────────────────────────────────────
     league_title: 'PADELPACK',
     league_admin: 'admin', league_member: 'member',
@@ -447,6 +449,7 @@ const T = {
     tab_start: 'Inicio',
     tagline: 'una liga de amigos · tu jauría en la pista',
     trn_stat_total: 'Total', trn_stat_podium: 'Top 3', trn_stat_wins: 'Victorias',
+    trn_score_access: 'Acceso al marcador', trn_score_pin_share: 'Compartir PIN', trn_score_pin_regen: 'Nuevo PIN', trn_score_pin_prompt: 'Solo el organizador anota. Introduce el PIN para desbloquear.', trn_score_unlock: 'Desbloquear', trn_score_unlocked: 'Marcador desbloqueado', trn_score_pin_wrong: 'PIN incorrecto',
     // ── League ────────────────────────────────────────────────────────────
     league_title: 'PADELPACK',
     league_admin: 'admin', league_member: 'miembro',
