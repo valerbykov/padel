@@ -65,6 +65,8 @@ function SetChip({ val, team, onClick, editable }) {
 
 export default function CourtView({
   courtNumber = 1,
+  courtName,
+  onRenameCourt,
   teamA = [], teamB = [],
   teamAvatarsA = [], teamAvatarsB = [],
   scoreA = null, scoreB = null,
@@ -186,9 +188,14 @@ export default function CourtView({
           </>
         )}
 
-        <div style={{ position: "absolute", top: 8, left: 10, fontFamily: "'Outfit',sans-serif", fontWeight: 800, textTransform: "uppercase", fontSize: 13, letterSpacing: 1, color: "#fff", background: "rgba(10,22,18,.55)", padding: "2px 8px", borderRadius: 8 }}>
-          Корт {courtNumber}
-        </div>
+        {(courtNumber != null || courtName) && (
+          <div
+            onClick={onRenameCourt && courtNumber != null ? () => { const v = window.prompt("Название корта", courtName || ("Корт " + courtNumber)); if (v !== null) onRenameCourt(v.trim()); } : undefined}
+            style={{ position: "absolute", top: 8, left: 10, fontFamily: "'Outfit',sans-serif", fontWeight: 800, textTransform: "uppercase", fontSize: 13, letterSpacing: 1, color: "#fff", background: "rgba(10,22,18,.55)", padding: "2px 8px", borderRadius: 8, cursor: onRenameCourt && courtNumber != null ? "pointer" : "default" }}
+          >
+            {courtName || ("Корт " + courtNumber)}{onRenameCourt && courtNumber != null ? " ✎" : ""}
+          </div>
+        )}
 
         <Chip name={teamA[0]} avatarUrl={teamAvatarsA[0]} x={20} y={28} team="A" />
         <Chip name={teamA[1]} avatarUrl={teamAvatarsA[1]} x={20} y={72} team="A" />

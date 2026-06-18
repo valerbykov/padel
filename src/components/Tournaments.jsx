@@ -6,7 +6,7 @@ import { supabase } from "../lib/supabase";
 import {
   createTournament, listTournaments, getTournament, addTournamentPlayer, removeTournamentPlayer,
   startTournament, submitMatchScore, finishTournament, tournamentLink, deleteTournament,
-  generateMexicanoRound, generateKotHRound,
+  generateMexicanoRound, generateKotHRound, setCourtName,
 } from "../lib/tournamentApi";
 import { standings, detailedStandings, allMatchesPlayed } from "../lib/americano";
 import { getAllKotHTeams } from "../lib/mexicano";
@@ -658,6 +658,8 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
               {/* Courts for current round */}
               {curMatches.map((m) => (
                 <CourtView key={m.id} courtNumber={isKothBtB ? null : m.court} points={trnData.points_per_game}
+                  courtName={trnData.court_names ? trnData.court_names[String(m.court)] : undefined}
+                  onRenameCourt={(!readOnly && !isKothBtB) ? (name) => setCourtName(trnData.id, m.court, name).then(load).catch(() => {}) : undefined}
                   teamA={[nameOf(m.team_a[0]), nameOf(m.team_a[1])]}
                   teamB={[nameOf(m.team_b[0]), nameOf(m.team_b[1])]}
                   teamAvatarsA={[avatarOfTp(m.team_a[0]), avatarOfTp(m.team_a[1])]}

@@ -8,7 +8,7 @@ const genCode = () => Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math
 export const tournamentLink = (code) => `${window.location.origin}/t/${code}`;
 
 const T_SELECT =
-  "id, invite_code, name, format, points_per_game, target_size, status, created_at, " +
+  "id, invite_code, name, format, points_per_game, target_size, status, court_names, created_at, " +
   "players:tournament_players(id, profile_id, name, created_at), " +
   "matches:tournament_matches(id, round_number, court, team_a, team_b, score_a, score_b)";
 
@@ -144,5 +144,13 @@ export async function finishTournament(tournamentId) {
 
 export async function deleteTournament(id) {
   const { error } = await supabase.from("tournaments").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// Переименовать корт в турнире (jsonb court_names). name="" — сбросить к «Корт N».
+export async function setCourtName(tournamentId, court, name) {
+  const { error } = await supabase.rpc("set_court_name", {
+    p_tournament_id: tournamentId, p_court: court, p_name: name || "",
+  });
   if (error) throw error;
 }
