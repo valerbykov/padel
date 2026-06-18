@@ -530,7 +530,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
               <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 4, fontSize: 12, color: "var(--mut)" }}>
-                <span>{gamesOf(p)} {t("matches")} · {toursOf(p)} {t("tournaments")}</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_games")}><Swords size={13} /> {gamesOf(p)}</span><span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_tournaments")}><Award size={13} /> {toursOf(p)}</span></span>
                 {(() => { const lv = playerLevel(p.matches, p.rating); return <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 8, background: `color-mix(in srgb, ${lv.color} 15%, transparent)`, color: lv.color, border: `1px solid color-mix(in srgb, ${lv.color} 35%, transparent)` }}>{lv.label}</span>; })()}
                 {qb.length > 0 && <span style={{ letterSpacing: 2 }}>{qb.join("")}</span>}
                 {streaks[p.id] && <span style={{ color: "var(--coral)", fontWeight: 600 }}>🔥{streaks[p.id]}</span>}
