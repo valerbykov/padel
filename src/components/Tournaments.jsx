@@ -246,6 +246,9 @@ function Create({ groupId, profileId, back, open }) {
     { v: 1, label: tr("trn_court1"), sub: tr("trn_4players") },
     { v: 2, label: tr("trn_court2"), sub: tr("trn_8players") },
     { v: 3, label: tr("trn_court3"), sub: tr("trn_12players") },
+    { v: 4, label: tr("trn_court4"), sub: tr("trn_16players") },
+    { v: 5, label: tr("trn_court5"), sub: tr("trn_20players") },
+    { v: 6, label: tr("trn_court6"), sub: tr("trn_24players") },
   ];
   const KOTH_PLAYER_OPTS = [
     { v: 4,  label: "4",  sub: tr("trn_teams_2") },

@@ -247,9 +247,9 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
         </header>
 
         {session && !groupId && tab !== "board" && (
-          <div className="pl-card" style={{ padding: "14px 16px", marginBottom: 12, borderColor: "rgba(200,255,45,.3)" }}>
-            <div style={{ fontWeight: 600, color: "var(--lime)", marginBottom: 4 }}>{t("not_in_league_title")}</div>
-            <div style={{ fontSize: 13, color: "var(--mut)" }}>{t("not_in_league_sub")}</div>
+          <div className="pl-card pl-pop" style={{ padding: 16, marginBottom: 12, textAlign: "center" }}>
+            <div style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.4 }}>{t("welcome_choose_sub")}</div>
+            <div style={{ fontSize: 12, color: "var(--lime)", marginTop: 10 }}>{t("league_switch_hint")}</div>
           </div>
         )}
 
@@ -516,7 +516,6 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
       {/* Без лиги — короткая подсказка; выбор/создание лиги теперь в переключателе в шапке. */}
       {(!leagues || leagues.length === 0) && (
         <div className="pl-card pl-pop" style={{ padding: 16, marginBottom: 12, textAlign: "center" }}>
-          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{t("welcome_choose_title")}</div>
           <div style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.4 }}>{t("welcome_choose_sub")}</div>
           <div style={{ fontSize: 12, color: "var(--lime)", marginTop: 10 }}>{t("league_switch_hint")}</div>
         </div>
