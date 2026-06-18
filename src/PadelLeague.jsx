@@ -210,7 +210,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
   const bumpArchive = useCallback(() => setArchiveNonce((n) => n + 1), []);
 
   const loadLeaderboard = useCallback(async () => {
-    if (!groupId) return;
+    // groupId есть → лидерборд лиги; нет → «Играли вместе» по всем лигам (played_with)
     try { setPlayers(groupId ? await getLeaderboard(groupId) : await getPlayedWith()); } catch (e) { /* noop */ }
   }, [groupId]);
 
