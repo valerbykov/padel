@@ -1,7 +1,7 @@
 // PadelLeague.jsx — основной экран на реальных данных Supabase.
 import React, { useEffect, useState, useCallback } from "react";
 import { supabase } from "./lib/supabase";
-import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith } from "./lib/padelApi";
+import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember } from "./lib/padelApi";
 import { getRatingHistory } from "./lib/statsApi";
 import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
 import { t } from "./lib/i18n";
@@ -351,6 +351,8 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, theme = "d
 /* --------------------------------- Board ---------------------------------- */
 function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leagues, activeLeague, onLeagueChange, onLeagueCreated }) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [netPlayers, setNetPlayers] = useState([]);
   const [name, setName] = useState("");
   const [contacts, setContacts] = useState({ whatsapp: "", telegram: "", email: "", phone: "" });
   const [selected, setSelected] = useState(null);
@@ -439,13 +441,25 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
     return () => { active = false; };
   }, [groupId, players]);
 
-  const resetForm = () => { setName(""); setContacts({ whatsapp: "", telegram: "", email: "", phone: "" }); };
+  useEffect(() => {
+    if (open && groupId) getLeagueablePlayers(groupId).then(setNetPlayers).catch(() => setNetPlayers([]));
+  }, [open, groupId, players]);
 
-  const add = async () => {
-    const n = name.trim();
+  // Добавить уже существующего игрока (из других лиг) в один тап.
+  const addExisting = async (p) => {
+    if (busy) return;
+    setBusy(true);
+    try { await addExistingMember(groupId, p.id); setNetPlayers((prev) => prev.filter((x) => x.id !== p.id)); setQuery(""); reload(); }
+    catch (e) { alert("Не удалось добавить игрока"); }
+    finally { setBusy(false); }
+  };
+
+  // Создать нового гостя по введённому имени (контакты заполняются в профиле).
+  const addGuest = async () => {
+    const n = query.trim();
     if (!n || busy) return;
     setBusy(true);
-    try { await addMember(groupId, n, contacts); resetForm(); setOpen(false); reload(); }
+    try { await addMember(groupId, n, {}); setQuery(""); reload(); }
     catch (e) { alert("Не удалось добавить игрока"); }
     finally { setBusy(false); }
   };
@@ -601,23 +615,28 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
 
       {groupId && (open ? (
         <div className="pl-card" style={{ padding: 14, marginTop: 8 }}>
-          <div style={{ fontWeight: 600, marginBottom: 10 }}>{t("add_player_form_title")}</div>
-          <input className="pl-input" style={{ padding: "10px 12px", marginBottom: 8 }} placeholder={t("player_name_placeholder")} value={name}
-            onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} autoFocus />
-          <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 6 }}>{t("contacts_optional")}</div>
-          {[
-            { key: "whatsapp", placeholder: "WhatsApp (+7…)" },
-            { key: "telegram", placeholder: "Telegram (@username)" },
-            { key: "email",    placeholder: "Email" },
-            { key: "phone",    placeholder: "Телефон" },
-          ].map(({ key, placeholder }) => (
-            <input key={key} className="pl-input" style={{ padding: "8px 12px", marginBottom: 6 }} placeholder={placeholder}
-              value={contacts[key]} onChange={(e) => setContacts(c => ({ ...c, [key]: e.target.value }))} />
-          ))}
-          <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-            <button className="pl-btn" style={{ flex: 1, padding: 11 }} disabled={!name.trim() || busy} onClick={add}>{busy ? t("adding") : t("add_player_btn")}</button>
-            <button className="pl-ghost" style={{ padding: "0 14px" }} onClick={() => { resetForm(); setOpen(false); }}><X size={16} /></button>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <span style={{ fontWeight: 600 }}>{t("add_player_form_title")}</span>
+            <button className="pl-ghost" style={{ padding: "2px 8px" }} onClick={() => { setQuery(""); setOpen(false); }}><X size={16} /></button>
           </div>
+          <input className="pl-input" style={{ padding: "10px 12px" }} placeholder={t("add_search_placeholder")} value={query}
+            onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addGuest()} autoFocus />
+          {query.trim() && (
+            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+              {netPlayers.filter((p) => (p.name || "").toLowerCase().includes(query.trim().toLowerCase())).slice(0, 6).map((p) => (
+                <button key={p.id} disabled={busy} onClick={() => addExisting(p)}
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, cursor: "pointer", color: "var(--ink)", fontFamily: "'Outfit'", textAlign: "left" }}>
+                  <img src={playerAvatar(p.avatar_url, p.id)} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                  {p.registered && <span style={{ fontSize: 10, color: "var(--lime)", flexShrink: 0 }}>{t("account_badge")}</span>}
+                </button>
+              ))}
+              <button className="pl-btn" disabled={busy} style={{ padding: 10, textAlign: "left" }} onClick={addGuest}>
+                {t("add_guest_prefix")} «{query.trim()}»
+              </button>
+            </div>
+          )}
+          <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 10, lineHeight: 1.4 }}>{t("add_player_hint")}</div>
         </div>
       ) : (
         <button className="pl-ghost" style={{ width: "100%", padding: 12, marginTop: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontWeight: 600 }} onClick={() => setOpen(true)}>

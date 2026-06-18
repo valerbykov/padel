@@ -83,6 +83,23 @@ export async function addMember(groupId, name, contacts = {}) {
   return profile;
 }
 
+// Пул для добавления в лигу: зарегистрированные/гостевые игроки из других лиг
+// пользователя, которых ещё нет в этой лиге. Требует RPC leagueable_players.
+export async function getLeagueablePlayers(groupId) {
+  if (!groupId) return [];
+  const { data, error } = await supabase.rpc("leagueable_players", { p_group_id: groupId });
+  if (error) throw error;
+  return data || [];
+}
+
+// Добавить уже существующий профиль в лигу (без создания нового).
+export async function addExistingMember(groupId, profileId) {
+  const { error } = await supabase
+    .from("group_members")
+    .insert({ group_id: groupId, profile_id: profileId, rating: 1000 });
+  if (error) throw error;
+}
+
 /* =====================================================================
    ГРАФИК РЕЙТИНГА (PlayerDetail)
    ===================================================================== */

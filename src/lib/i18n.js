@@ -90,6 +90,10 @@ const T = {
     played_together_label: 'ИГРАЛИ ВМЕСТЕ',
     // ── Add player form ───────────────────────────────────────────────────
     add_player_form_title: 'Добавить игрока',
+    add_search_placeholder: 'Имя игрока — найти или создать',
+    add_guest_prefix: 'Добавить нового:',
+    account_badge: '✓ аккаунт',
+    add_player_hint: 'Зарегистрированных игроков из твоих лиг можно добавить в один тап. Контакты заполняются в профиле игрока.',
     contacts_optional: 'Контакты (опционально)',
     player_name_placeholder: 'Имя *',
     phone_placeholder: 'Телефон',
@@ -321,6 +325,10 @@ const T = {
     played_together_label: 'ALSO PLAYED',
     // ── Add player form ───────────────────────────────────────────────────
     add_player_form_title: 'Add player',
+    add_search_placeholder: 'Player name — find or create',
+    add_guest_prefix: 'Add new:',
+    account_badge: '✓ account',
+    add_player_hint: 'Registered players from your leagues can be added in one tap. Contacts are filled in the player profile.',
     contacts_optional: 'Contacts (optional)',
     player_name_placeholder: 'Name *',
     phone_placeholder: 'Phone',
@@ -552,6 +560,10 @@ const T = {
     played_together_label: 'TAMBIÉN JUGARON',
     // ── Add player form ───────────────────────────────────────────────────
     add_player_form_title: 'Añadir jugador',
+    add_search_placeholder: 'Nombre del jugador — buscar o crear',
+    add_guest_prefix: 'Añadir nuevo:',
+    account_badge: '✓ cuenta',
+    add_player_hint: 'Los jugadores registrados de tus ligas se añaden con un toque. Los contactos se rellenan en el perfil del jugador.',
     contacts_optional: 'Contactos (opcional)',
     player_name_placeholder: 'Nombre *',
     phone_placeholder: 'Teléfono',

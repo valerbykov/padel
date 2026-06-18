@@ -127,12 +127,7 @@ function List({ groupId, create, open, session, onLogin }) {
         <button className="tr-btn" style={{ width: "100%", padding: 13, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={create}>
           <PlusCircle size={18} /> {tr("trn_create_btn")}
         </button>
-      ) : (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, marginBottom: 16 }}>
-          <div style={{ fontSize: 18 }}>🎾</div>
-          <div style={{ flex: 1, fontSize: 13, color: "var(--mut)", lineHeight: 1.4 }}>{tr("trn_need_league_hint")}</div>
-        </div>
-      )}
+      ) : null}
       {items === null && <div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>{tr("loading")}</div>}
       {items !== null && items.length === 0 && (
         <div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>
