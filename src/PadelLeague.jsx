@@ -313,8 +313,8 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
       // Win streaks: traverse matches newest-first per player
       const rows = (matchRows || []);
       const sk = {};
-      const memberIds = [...new Set(rows.flatMap((m) => [...(m.team_a || []), ...(m.team_b || [])]))];
-      memberIds.forEach((id) => {
+      const streakIds = [...new Set(rows.flatMap((m) => [...(m.team_a || []), ...(m.team_b || [])]))];
+      streakIds.forEach((id) => {
         let streak = 0;
         for (let i = rows.length - 1; i >= 0; i--) {
           const m = rows[i];
@@ -1388,6 +1388,7 @@ function EnterScore({ gameId, reloadGames, reloadLeaderboard }) {
 function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce, bumpArchive }) {
   const [matches, setMatches] = useState(null);
   const [tours, setTours] = useState([]);
+  const [extraMap, setExtraMap] = useState({});
   const [sel, setSel] = useState(null);
   const [expanded, setExpanded] = useState(null);
 
@@ -1404,15 +1405,28 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
         mData = await listMyHistoryMatches().catch(() => []);
       }
       setMatches(mData);
+      // Имена игроков, которые играли в группе, но больше не состоят в лиге
+      // (удалены из лиги) — резолвим через group_profiles, чтобы в истории
+      // показывалось их настоящее имя, а не «Удалён».
+      try {
+        const ids = [...new Set(mData.flatMap((m) => [...(m.team_a || []), ...(m.team_b || [])]).filter(Boolean))];
+        const unknown = ids.filter((id) => !players.some((p) => p.id === id));
+        if (groupId && unknown.length > 0) {
+          const profs = await getGroupProfiles(groupId, unknown).catch(() => []);
+          const map = {};
+          (profs || []).forEach((p) => { map[p.id] = p; });
+          setExtraMap(map);
+        } else { setExtraMap({}); }
+      } catch (e) { setExtraMap({}); }
       try { const all = groupId ? await listTournaments(groupId) : await listMyTournaments(); setTours(all.filter((tour) => tour.status === "finished")); }
       catch (e) { setTours([]); }
     })();
-  }, [groupId, sel, archiveNonce]);
+  }, [groupId, sel, archiveNonce, players]);
 
   if (sel) return <TournamentView id={sel.id} players={players} back={() => setSel(null)} isGroupMember={isGroupMember} currentProfileId={profileId} />;
 
-  const nameOf = (id) => players.find((p) => p.id === id)?.name || t("player_deleted");
-  const avatarOf = (id) => { const gp = players.find((p) => p.id === id); return gp ? playerAvatar(gp.avatar_url, id) : null; };
+  const nameOf = (id) => players.find((p) => p.id === id)?.name || extraMap[id]?.name || t("player_deleted");
+  const avatarOf = (id) => { const gp = players.find((p) => p.id === id) || extraMap[id]; return gp ? playerAvatar(gp.avatar_url, id) : null; };
   const head = (txt) => <div className="pl-display" style={{ fontSize: 13, color: "var(--mut)", margin: "10px 2px 8px" }}>{txt}</div>;
 
   if (matches === null) return <div className="pl-card pl-pop" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>{t("loading")}</div>;

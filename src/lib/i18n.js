@@ -95,7 +95,7 @@ const T = {
     adding: 'Добавляю…',
     // ── Delete player modal ───────────────────────────────────────────────
     delete_player_prefix: 'Удалить',
-    delete_player_sub: 'Игрок будет удалён из лиги. В истории отобразится как «Удалён».',
+    delete_player_sub: 'Игрок удаляется только из этой лиги — аккаунт и история сохранятся. Прошлые игры и турниры останутся под его именем, а сам он будет виден в разделе «Играли вместе».',
     checking_games: 'Проверяю игры…',
     delete_games_label_pre: 'Удалить',
     delete_games_count_suffix: 'игр(ы)',
@@ -324,7 +324,7 @@ const T = {
     adding: 'Adding…',
     // ── Delete player modal ───────────────────────────────────────────────
     delete_player_prefix: 'Delete',
-    delete_player_sub: 'The player will be removed from the league and shown as \'Deleted\' in history.',
+    delete_player_sub: 'The player is removed from this league only — their account and history stay. Past games and tournaments keep their name, and they remain visible under "Also played".',
     checking_games: 'Checking games…',
     delete_games_label_pre: 'Delete',
     delete_games_count_suffix: 'game(s)',
@@ -553,7 +553,7 @@ const T = {
     adding: 'Añadiendo…',
     // ── Delete player modal ───────────────────────────────────────────────
     delete_player_prefix: 'Eliminar',
-    delete_player_sub: 'El jugador será eliminado de la liga y aparecerá como \'Eliminado\' en el historial.',
+    delete_player_sub: 'El jugador se elimina solo de esta liga; su cuenta e historial se conservan. Las partidas y torneos anteriores mantienen su nombre y seguirá visible en "También jugaron".',
     checking_games: 'Verificando partidas…',
     delete_games_label_pre: 'Eliminar',
     delete_games_count_suffix: 'partida(s)',
