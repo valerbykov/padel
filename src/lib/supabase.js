@@ -15,9 +15,12 @@ if (!url || !anon) {
 
 export const supabase = createClient(url, anon, {
   auth: {
-    // PKCE: вход возвращает ?code=..., который мы обмениваем на сессию.
-    // Нужно для корректной обработки OAuth-возврата по deep link в нативе.
-    flowType: "pkce",
+    // implicit: токен приходит в #access_token прямо в URL — корректно работает
+    // в standalone-PWA (возврат от Google в Safari/PWA) и совместимо с нативным
+    // deep-link (handleAuthCallbackUrl в auth.js понимает и access_token, и code).
+    // PKCE здесь ломал вход в установленной PWA на iOS (обмен code требует verifier
+    // из localStorage, который теряется при возврате через Safari).
+    flowType: "implicit",
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,

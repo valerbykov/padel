@@ -1,7 +1,7 @@
 // PadelLeague.jsx — основной экран на реальных данных Supabase.
 import React, { useEffect, useState, useCallback } from "react";
 import { supabase } from "./lib/supabase";
-import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague } from "./lib/padelApi";
+import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts } from "./lib/padelApi";
 import { getRatingHistory } from "./lib/statsApi";
 import { listTournaments } from "./lib/tournamentApi";
 import { t } from "./lib/i18n";
@@ -269,6 +269,8 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
   const [busy, setBusy] = useState(false);
   const [tourCounts, setTourCounts] = useState({});
   const [tourCountsByName, setTourCountsByName] = useState({});
+  const [srv, setSrv] = useState(null);
+  const [matchCounts, setMatchCounts] = useState({});
   const [streaks, setStreaks] = useState({});
   const [extraPlayers, setExtraPlayers] = useState([]);
   const [showLeagueMenu, setShowLeagueMenu] = useState(false);
@@ -280,6 +282,8 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
   const [inviteCopied, setInviteCopied] = useState(false);
   const [publicLinkCopied, setPublicLinkCopied] = useState(false);
   const ranked = [...players].sort((a, b) => b.rating - a.rating);
+  const gamesOf = (p) => srv ? (srv.games[p.id] ?? 0) : (matchCounts[p.id] || p.matches || 0);
+  const toursOf = (p) => srv ? (srv.tours[p.id] ?? 0) : (tourCounts[p.id] || tourCountsByName[(p.name || "").trim().toLowerCase()] || 0);
 
   useEffect(() => {
     let active = true;
@@ -300,6 +304,11 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
       });
       setTourCounts(counts);
       setTourCountsByName(countsByName);
+      const mc = {};
+      (matchRows || []).forEach((m) => {
+        [...new Set([...(m.team_a || []), ...(m.team_b || [])])].forEach((id) => { if (id) mc[id] = (mc[id] || 0) + 1; });
+      });
+      if (active) setMatchCounts(mc);
       // Win streaks: traverse matches newest-first per player
       const rows = (matchRows || []);
       const sk = {};
@@ -339,6 +348,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         if (active) setExtraPlayers([]);
       }
     }).catch(() => { if (active) { setTourCounts({}); setExtraPlayers([]); } });
+    getGroupCounts(groupId).then((c) => { if (active) setSrv(c); }).catch(() => { if (active) setSrv(null); });
     return () => { active = false; };
   }, [groupId, players]);
 
@@ -512,7 +522,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         if (i === 0) qb.push("👑");
         if (p.matches >= 5 && p.wins / p.matches >= 0.7) qb.push("🎯");
         if (p.matches >= 20) qb.push("⚡");
-        if ((tourCounts[p.id] || tourCountsByName[(p.name || "").trim().toLowerCase()] || 0) >= 3) qb.push("🏆");
+        if (toursOf(p) >= 3) qb.push("🏆");
         return (
           <div key={p.id} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }} onClick={() => setSelected(p)}>
             <div className="pl-display" style={{ width: 22, fontSize: 22, color: ["var(--yellow)", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)" }}>{i + 1}</div>
@@ -520,7 +530,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
               <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 4, fontSize: 12, color: "var(--mut)" }}>
-                <span>{p.matches} {t("matches")} · {tourCounts[p.id] || tourCountsByName[(p.name || "").trim().toLowerCase()] || 0} {t("tournaments")}</span>
+                <span>{gamesOf(p)} {t("matches")} · {toursOf(p)} {t("tournaments")}</span>
                 {(() => { const lv = playerLevel(p.matches, p.rating); return <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 8, background: `color-mix(in srgb, ${lv.color} 15%, transparent)`, color: lv.color, border: `1px solid color-mix(in srgb, ${lv.color} 35%, transparent)` }}>{lv.label}</span>; })()}
                 {qb.length > 0 && <span style={{ letterSpacing: 2 }}>{qb.join("")}</span>}
                 {streaks[p.id] && <span style={{ color: "var(--coral)", fontWeight: 600 }}>🔥{streaks[p.id]}</span>}

@@ -52,6 +52,17 @@ export async function getLeaderboard(groupId) {
   }));
 }
 
+// Серверный счётчик игр/турниров по игрокам (обходит RLS). Требует SQL-функцию
+// group_player_counts (supabase/sql/group_player_counts.sql).
+export async function getGroupCounts(groupId) {
+  if (!groupId) return { games: {}, tours: {} };
+  const { data, error } = await supabase.rpc("group_player_counts", { p_group_id: groupId });
+  if (error) throw error;
+  const games = {}, tours = {};
+  (data || []).forEach((r) => { games[r.profile_id] = r.games; tours[r.profile_id] = r.tournaments; });
+  return { games, tours };
+}
+
 // «Добавить игрока»: создаём профиль-гость + членство в группе.
 // contacts: { whatsapp?, telegram?, email?, phone? } — всё опционально.
 export async function addMember(groupId, name, contacts = {}) {
