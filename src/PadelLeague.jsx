@@ -118,6 +118,91 @@ function ContactLinks({ contacts = {} }) {
 }
 
 /* --------------------------------- root ----------------------------------- */
+/* -------------------- LeagueSwitcher (глобальный, в шапке) ---------------- */
+function LeagueSwitcher({ leagues, activeLeague, isAdmin, onLeagueChange, onLeagueCreated }) {
+  const [menu, setMenu] = useState(false);
+  const [mode, setMode] = useState(false); // false | "create" | "join"
+  const [newName, setNewName] = useState("");
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const has = leagues && leagues.length > 0;
+  const close = () => { setMenu(false); setMode(false); setErr(""); };
+
+  const handleCreate = async () => {
+    if (!newName.trim() || busy) return;
+    setBusy(true); setErr("");
+    try { const lg = await createLeague(newName.trim()); onLeagueCreated && onLeagueCreated(lg); close(); setNewName(""); }
+    catch (e) { setErr(e.message || "Ошибка"); } finally { setBusy(false); }
+  };
+  const handleJoin = async () => {
+    if (code.trim().length < 4 || busy) return;
+    setBusy(true); setErr("");
+    try { const lg = await joinLeague(code.trim()); onLeagueCreated && onLeagueCreated(lg); close(); setCode(""); }
+    catch (e) {
+      const m = e.message || "";
+      if (m.includes("league_not_found")) setErr("Лига не найдена");
+      else if (m.includes("already_member")) setErr("Вы уже в этой лиге");
+      else setErr(m || "Ошибка");
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div style={{ position: "relative", flexShrink: 0 }}>
+      <button onClick={() => { setMenu((v) => !v); setMode(false); setErr(""); }}
+        style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 999, cursor: "pointer", color: "var(--ink)", fontFamily: "'Outfit'", fontSize: 13, maxWidth: 200 }}>
+        <Trophy size={14} style={{ color: "var(--lime)", flexShrink: 0 }} />
+        <span style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeLeague?.name || t("no_league_chip")}</span>
+        <span style={{ color: "var(--mut)", fontSize: 11, flexShrink: 0 }}>{menu ? "▲" : "▼"}</span>
+      </button>
+
+      {menu && (
+        <div className="pl-pop" style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, minWidth: 240, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 14, zIndex: 50, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,.25)" }}>
+          {!mode && (
+            <>
+              {has && leagues.map((lg) => (
+                <button key={lg.id} onClick={() => { onLeagueChange && onLeagueChange(lg.id); close(); }}
+                  style={{ width: "100%", padding: "11px 14px", textAlign: "left", background: lg.id === activeLeague?.id ? "var(--surface2)" : "none", border: "none", color: lg.id === activeLeague?.id ? "var(--lime)" : "var(--ink)", fontFamily: "'Outfit'", fontSize: 14, cursor: "pointer", display: "flex", justifyContent: "space-between", gap: 8 }}>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lg.name}</span>
+                  {lg.role !== "member" && <span style={{ fontSize: 10, color: "var(--mut)" }}>{lg.role}</span>}
+                </button>
+              ))}
+              <div style={{ borderTop: has ? "1px solid var(--line)" : "none", display: "flex" }}>
+                <button onClick={() => { setMode("create"); setErr(""); }}
+                  style={{ flex: 1, padding: "11px 0", background: "none", border: "none", color: "var(--lime)", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit'" }}>{t("league_create")}</button>
+                <button onClick={() => { setMode("join"); setErr(""); }}
+                  style={{ flex: 1, padding: "11px 0", background: "none", border: "none", color: "var(--mut)", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit'" }}>{t("league_join_code")}</button>
+              </div>
+            </>
+          )}
+          {mode === "create" && (
+            <div style={{ padding: 14 }}>
+              <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14 }}>{t("league_new_title")}</div>
+              <input className="pl-input" style={{ padding: "9px 12px", marginBottom: 8 }} placeholder={t("league_name_placeholder")} value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleCreate()} autoFocus />
+              {err && <div style={{ fontSize: 12, color: "var(--coral)", marginBottom: 6 }}>{err}</div>}
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="pl-btn" style={{ flex: 1, padding: 10 }} disabled={busy || !newName.trim()} onClick={handleCreate}>{busy ? t("creating") : t("league_create")}</button>
+                <button className="pl-ghost" style={{ padding: "0 12px" }} onClick={close}><X size={14} /></button>
+              </div>
+            </div>
+          )}
+          {mode === "join" && (
+            <div style={{ padding: 14 }}>
+              <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14 }}>{t("league_join_title")}</div>
+              <input className="pl-input" style={{ padding: "9px 12px", marginBottom: 8, textTransform: "uppercase", letterSpacing: 3, textAlign: "center" }} placeholder="XXXXXX" value={code} onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))} onKeyDown={(e) => e.key === "Enter" && handleJoin()} autoFocus />
+              {err && <div style={{ fontSize: 12, color: "var(--coral)", marginBottom: 6 }}>{err}</div>}
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="pl-btn" style={{ flex: 1, padding: 10 }} disabled={busy || code.length < 4} onClick={handleJoin}>{busy ? t("creating") : t("league_join_btn")}</button>
+                <button className="pl-ghost" style={{ padding: "0 12px" }} onClick={close}><X size={14} /></button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PadelLeague({ groupId, session, profileId, leagues = [], activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin }) {
   const [tab, setTab] = useState(session ? "board" : "welcome");
   const [players, setPlayers] = useState([]);
@@ -153,9 +238,12 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
     <div className={`pl-root${theme === "light" ? " pl-light" : ""}`}>
       <style>{css}</style>
       <div style={{ maxWidth: 460, margin: "0 auto", padding: "20px 16px 88px" }}>
-        <header style={{ marginBottom: 18 }}>
-          <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2 }}>{t("league_title")}</div>
-          <h1 className="pl-display" style={{ fontSize: 30, lineHeight: 1, marginTop: 2, color: "var(--ink)" }}>{titles[tab]}</h1>
+        <header style={{ marginBottom: 18, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+          <div>
+            <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2 }}>{t("league_title")}</div>
+            <h1 className="pl-display" style={{ fontSize: 30, lineHeight: 1, marginTop: 2, color: "var(--ink)" }}>{titles[tab]}</h1>
+          </div>
+          {session && <LeagueSwitcher leagues={leagues} activeLeague={activeLeague} isAdmin={isAdmin} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} />}
         </header>
 
         {session && !groupId && tab !== "board" && (
@@ -425,72 +513,12 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
 
   return (
     <div className="pl-pop">
-      {/* Переключатель лиг */}
-      {leagues && leagues.length > 0 && (
-        <div style={{ marginBottom: 12, position: "relative" }}>
-          <button
-            onClick={() => { setShowLeagueMenu((v) => !v); setShowNewLeague(false); setLeagueErr(""); }}
-            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 14, cursor: "pointer", color: "var(--ink)", fontFamily: "'Outfit'", fontSize: 14 }}>
-            <span style={{ fontWeight: 600 }}>{activeLeague?.name || "Лига"}</span>
-            <span style={{ color: "var(--mut)", fontSize: 11 }}>{isAdmin ? t("league_admin") : t("league_member")} {showLeagueMenu ? "▲" : "▼"}</span>
-          </button>
-
-          {showLeagueMenu && (
-            <div className="pl-pop" style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 14, zIndex: 30, overflow: "hidden" }}>
-              {leagues.map((lg) => (
-                <button key={lg.id} onClick={() => { onLeagueChange && onLeagueChange(lg.id); setShowLeagueMenu(false); }}
-                  style={{ width: "100%", padding: "11px 14px", textAlign: "left", background: lg.id === activeLeague?.id ? "var(--surface2)" : "none", border: "none", color: lg.id === activeLeague?.id ? "var(--lime)" : "var(--ink)", fontFamily: "'Outfit'", fontSize: 14, cursor: "pointer", display: "block" }}>
-                  {lg.name}
-                  {lg.role !== "member" && <span style={{ fontSize: 10, color: "var(--mut)", marginLeft: 6 }}>{lg.role}</span>}
-                </button>
-              ))}
-              <div style={{ borderTop: "1px solid var(--line)", display: "flex" }}>
-                <button onClick={() => { setShowNewLeague("create"); setShowLeagueMenu(false); setLeagueErr(""); }}
-                  style={{ flex: 1, padding: "10px 0", background: "none", border: "none", color: "var(--lime)", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit'" }}>{t("league_create")}</button>
-                <button onClick={() => { setShowNewLeague("join"); setShowLeagueMenu(false); setLeagueErr(""); }}
-                  style={{ flex: 1, padding: "10px 0", background: "none", border: "none", color: "var(--mut)", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit'" }}>{t("league_join_code")}</button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Без лиги — даём выбор: создать свою или вступить по коду. Не блокирует:
-          вкладки доступны, в чужие игры/турниры можно зайти по ссылке-приглашению. */}
-      {(!leagues || leagues.length === 0) && !showNewLeague && (
-        <div className="pl-card pl-pop" style={{ padding: 18, marginBottom: 12, textAlign: "center" }}>
-          <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>{t("welcome_choose_title")}</div>
-          <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 14, lineHeight: 1.4 }}>{t("welcome_choose_sub")}</div>
-          <button className="pl-btn" style={{ width: "100%", padding: 12, marginBottom: 8 }} onClick={() => { setShowNewLeague("create"); setLeagueErr(""); }}>{t("welcome_create_league")}</button>
-          <button className="pl-ghost" style={{ width: "100%", padding: 12 }} onClick={() => { setShowNewLeague("join"); setLeagueErr(""); }}>{t("welcome_join_league")}</button>
-          <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 12, lineHeight: 1.4 }}>{t("welcome_skip_hint")}</div>
-        </div>
-      )}
-
-      {/* Форма создать/вступить — общая для переключателя лиг и онбординга */}
-      {showNewLeague && (
-        <div className="pl-card pl-pop" style={{ padding: 14, marginBottom: 12 }}>
-          {showNewLeague === "create" ? (
-            <>
-              <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14 }}>{t("league_new_title")}</div>
-              <input className="pl-input" style={{ padding: "9px 12px", marginBottom: 8 }} placeholder={t("league_name_placeholder")} value={newLeagueName} onChange={(e) => setNewLeagueName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleCreateLeague()} autoFocus />
-              {leagueErr && <div style={{ fontSize: 12, color: "var(--coral)", marginBottom: 6 }}>{leagueErr}</div>}
-              <div style={{ display: "flex", gap: 8 }}>
-                <button className="pl-btn" style={{ flex: 1, padding: 10 }} disabled={leagueBusy || !newLeagueName.trim()} onClick={handleCreateLeague}>{leagueBusy ? t("creating") : t("league_create")}</button>
-                <button className="pl-ghost" style={{ padding: "0 12px" }} onClick={() => { setShowNewLeague(false); setLeagueErr(""); }}><X size={14} /></button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14 }}>{t("league_join_title")}</div>
-              <input className="pl-input" style={{ padding: "9px 12px", marginBottom: 8, textTransform: "uppercase", letterSpacing: 3, textAlign: "center" }} placeholder="XXXXXX" value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))} onKeyDown={(e) => e.key === "Enter" && handleJoinLeague()} autoFocus />
-              {leagueErr && <div style={{ fontSize: 12, color: "var(--coral)", marginBottom: 6 }}>{leagueErr}</div>}
-              <div style={{ display: "flex", gap: 8 }}>
-                <button className="pl-btn" style={{ flex: 1, padding: 10 }} disabled={leagueBusy || joinCode.length < 4} onClick={handleJoinLeague}>{leagueBusy ? t("creating") : t("league_join_btn")}</button>
-                <button className="pl-ghost" style={{ padding: "0 12px" }} onClick={() => { setShowNewLeague(false); setLeagueErr(""); }}><X size={14} /></button>
-              </div>
-            </>
-          )}
+      {/* Без лиги — короткая подсказка; выбор/создание лиги теперь в переключателе в шапке. */}
+      {(!leagues || leagues.length === 0) && (
+        <div className="pl-card pl-pop" style={{ padding: 16, marginBottom: 12, textAlign: "center" }}>
+          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{t("welcome_choose_title")}</div>
+          <div style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.4 }}>{t("welcome_choose_sub")}</div>
+          <div style={{ fontSize: 12, color: "var(--lime)", marginTop: 10 }}>{t("league_switch_hint")}</div>
         </div>
       )}
 
