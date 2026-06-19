@@ -6,6 +6,8 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import LoginScreen from "./LoginScreen";
 import { Calendar, MapPin, Check, AlertCircle, LogIn, UserCheck } from "lucide-react";
+import { t } from "../lib/i18n";
+import { usePublicChrome, PublicToggles } from "./publicChrome";
 
 const fmtDate = (iso) => {
   if (!iso) return "";
@@ -23,7 +25,7 @@ const css = `
 .gj-input{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Outfit';padding:12px;outline:none;box-sizing:border-box;margin-bottom:12px;}
 .gj-input:focus{border-color:var(--lime);}
 .gj-slot{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--surface2);border:1px solid var(--line);margin-bottom:6px;}
-.gj-btn{background:var(--lime);color:#0a1612;font-weight:700;border:none;border-radius:10px;padding:7px 13px;cursor:pointer;font-size:13px;}
+.gj-btn{background:var(--lime);color:var(--lime-fg);font-weight:700;border:none;border-radius:10px;padding:7px 13px;cursor:pointer;font-size:13px;}
 .gj-btn:disabled{filter:grayscale(.6) brightness(.7);cursor:not-allowed;}
 .gj-loginlink{background:none;border:none;color:var(--lime);cursor:pointer;font-family:'Outfit';font-size:13px;display:inline-flex;align-items:center;gap:6px;padding:0;}
 `;
@@ -36,6 +38,7 @@ export default function GuestJoin({ code, botName }) {
   const [session, setSession] = useState(null);
   const [profileName, setProfileName] = useState("");
   const [showLogin, setShowLogin] = useState(false);
+  const { theme, lang, vars, toggleTheme, cycleLang } = usePublicChrome();
 
   const load = async () => {
     try {
@@ -65,7 +68,7 @@ export default function GuestJoin({ code, botName }) {
   }, [session]);
 
   if (showLogin && !session) {
-    return <LoginScreen botName={botName} onSuccess={() => setShowLogin(false)} />;
+    return <LoginScreen botName={botName} onSuccess={() => setShowLogin(false)} theme={theme} lang={lang} onThemeToggle={toggleTheme} onLangChange={cycleLang} />;
   }
 
   const take = async (team, position) => {
@@ -83,13 +86,14 @@ export default function GuestJoin({ code, botName }) {
   };
 
   return (
-    <div className="gj-root" style={{ flexDirection: "column", gap: 20 }}>
+    <div className="gj-root" style={{ ...vars, flexDirection: "column", gap: 20 }}>
       <style>{css}</style>
+      <div style={{ width: "100%", maxWidth: 400 }}><PublicToggles theme={theme} lang={lang} onTheme={toggleTheme} onLang={cycleLang} /></div>
       <div className="gj-card">
-        <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2 }}>ПРИГЛАШЕНИЕ В ИГРУ</div>
+        <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2 }}>{t("pub_game_invite")}</div>
 
-        {game === undefined && <p style={{ color: "var(--mut)", marginTop: 16 }}>Загрузка…</p>}
-        {game === null && <p style={{ color: "var(--coral)", marginTop: 16, display: "flex", alignItems: "center", gap: 8 }}><AlertCircle size={16} /> Игра по коду {code} не найдена.</p>}
+        {game === undefined && <p style={{ color: "var(--mut)", marginTop: 16 }}>{t("pub_loading")}</p>}
+        {game === null && <p style={{ color: "var(--coral)", marginTop: 16, display: "flex", alignItems: "center", gap: 8 }}><AlertCircle size={16} /> {t("pub_game_notfound").replace("{code}", code)}</p>}
 
         {game && (
           <>
@@ -102,19 +106,19 @@ export default function GuestJoin({ code, botName }) {
             )}
 
             {game.status !== "open" ? (
-              <p style={{ color: "var(--mut)", marginTop: 12 }}>Игра уже закрыта для входа.</p>
+              <p style={{ color: "var(--mut)", marginTop: 12 }}>{t("pub_game_closed")}</p>
             ) : (
               <>
                 {session ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--lime)", fontSize: 13, marginBottom: 12 }}>
-                    <UserCheck size={16} /> Вошёл как {profileName || "игрок"} — результат пойдёт в твой рейтинг
+                    <UserCheck size={16} /> {t("pub_logged_rating").replace("{name}", profileName || "игрок")}
                   </div>
                 ) : (
                   <>
-                    <input className="gj-input" placeholder="Твоё имя (как гость)" value={name} onChange={(e) => setName(e.target.value)} />
+                    <input className="gj-input" placeholder={t("pub_guest_name_ph")} value={name} onChange={(e) => setName(e.target.value)} />
                     <div style={{ marginBottom: 14 }}>
                       <button className="gj-loginlink" onClick={() => setShowLogin(true)}>
-                        <LogIn size={14} /> Войти через аккаунт, чтобы результат засчитался в рейтинг
+                        <LogIn size={14} /> {t("pub_login_for_rating")}
                       </button>
                     </div>
                   </>
@@ -123,8 +127,8 @@ export default function GuestJoin({ code, botName }) {
                 {(game.slots || []).map((s, i) => (
                   <div key={i} className="gj-slot">
                     <span className="gj-display" style={{ fontSize: 12, color: s.team === "A" ? "var(--lime)" : "var(--coral)", width: 24 }}>{s.team}</span>
-                    <span style={{ flex: 1, color: s.taken ? "var(--ink)" : "var(--mut)" }}>{s.taken ? s.name : "свободно"}</span>
-                    {!s.taken && <button className="gj-btn" disabled={(!session && !name.trim()) || busy} onClick={() => take(s.team, s.position)}>Занять</button>}
+                    <span style={{ flex: 1, color: s.taken ? "var(--ink)" : "var(--mut)" }}>{s.taken ? s.name : t("pub_free")}</span>
+                    {!s.taken && <button className="gj-btn" disabled={(!session && !name.trim()) || busy} onClick={() => take(s.team, s.position)}>{t("pub_take_slot")}</button>}
                   </div>
                 ))}
                 {err && <p style={{ color: "var(--coral)", fontSize: 13, marginTop: 8 }}>{err}</p>}
@@ -133,10 +137,10 @@ export default function GuestJoin({ code, botName }) {
           </>
         )}
       </div>
-      <div style={{ textAlign: "center", color: "#7d9488", fontSize: 12, maxWidth: 400 }}>
-        🎾 Хочешь организовать свои игры?{" "}
-        <a href="/" style={{ color: "#c8ff2d", fontWeight: 700, textDecoration: "none" }}>
-          Создать лигу бесплатно →
+      <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, maxWidth: 400 }}>
+        {t("pub_footer_q")}{" "}
+        <a href="/" style={{ color: "var(--lime)", fontWeight: 700, textDecoration: "none" }}>
+          {t("pub_footer_cta")}
         </a>
       </div>
     </div>

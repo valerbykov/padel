@@ -3,6 +3,8 @@
 // Показывает рейтинг игроков, кнопку «Вступить» и вирусный CTA «Создать лигу».
 import React, { useEffect, useState } from "react";
 import { getPublicLeague } from "../lib/padelApi";
+import { t } from "../lib/i18n";
+import { usePublicChrome, PublicToggles, plural } from "./publicChrome";
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
@@ -11,7 +13,7 @@ const css = `
  background-image:radial-gradient(circle at 80% -10%,rgba(200,255,45,.12),transparent 45%),radial-gradient(circle at 0% 110%,rgba(40,120,90,.18),transparent 40%);}
 .lp-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;}
 .lp-d{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;}
-.lp-join-btn{display:block;width:100%;padding:17px;background:var(--lime);color:#0a1612;border:none;border-radius:16px;
+.lp-join-btn{display:block;width:100%;padding:17px;background:var(--lime);color:var(--lime-fg);border:none;border-radius:16px;
  font-family:'Outfit',sans-serif;font-weight:800;font-size:17px;text-align:center;text-decoration:none;
  cursor:pointer;box-sizing:border-box;transition:filter .12s;}
 .lp-join-btn:hover{filter:brightness(1.08);}
@@ -42,6 +44,7 @@ function Avatar({ name = "", url, size = 38 }) {
 export default function LeaguePublicPage({ code }) {
   const [league, setLeague] = useState(undefined);
   const [err,    setErr]    = useState(null);
+  const { theme, lang, vars, toggleTheme, cycleLang } = usePublicChrome();
 
   useEffect(() => {
     getPublicLeague(code)
@@ -53,28 +56,29 @@ export default function LeaguePublicPage({ code }) {
   const createUrl = window.location.origin;
 
   return (
-    <div className="lp-root">
+    <div className="lp-root" style={vars}>
       <style>{css}</style>
-      <div style={{ maxWidth: 440, margin: "0 auto", padding: "32px 16px 56px" }}>
+      <div style={{ maxWidth: 440, margin: "0 auto", padding: "20px 16px 56px" }}>
+        <PublicToggles theme={theme} lang={lang} onTheme={toggleTheme} onLang={cycleLang} />
 
         {/* Брендинг */}
         <div style={{ color: "var(--lime)", fontSize: 11, fontWeight: 700, letterSpacing: 3, marginBottom: 24 }}>
-          🎾 ПАДЕЛ · ЛИГА ДРУЗЕЙ
+          {t("pub_league_brand")}
         </div>
 
         {/* Загрузка / ошибка */}
         {league === undefined && (
-          <div style={{ color: "var(--mut)", fontSize: 14 }}>Загрузка…</div>
+          <div style={{ color: "var(--mut)", fontSize: 14 }}>{t("pub_loading")}</div>
         )}
         {err && (
           <div className="lp-card" style={{ padding: 22, textAlign: "center" }}>
             <div style={{ fontSize: 32, marginBottom: 10 }}>🏓</div>
-            <div style={{ fontWeight: 700, marginBottom: 6 }}>Лига не найдена</div>
+            <div style={{ fontWeight: 700, marginBottom: 6 }}>{t("pub_league_notfound_t")}</div>
             <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 18 }}>
-              Проверь ссылку или попроси организатора прислать новую.
+              {t("pub_league_notfound_s")}
             </div>
             <a href={createUrl} className="lp-join-btn" style={{ fontSize: 15 }}>
-              Создать свою лигу →
+              {t("pub_create_own")}
             </a>
           </div>
         )}
@@ -86,19 +90,19 @@ export default function LeaguePublicPage({ code }) {
               {league.name}
             </div>
             <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 28 }}>
-              {league.member_count} {noun(league.member_count, "игрок", "игрока", "игроков")}
+              {league.member_count} {plural(league.member_count, "players")}
             </div>
 
             {/* Заголовок таблицы */}
             <div style={{ fontSize: 10, fontWeight: 700, color: "var(--mut)", letterSpacing: 2, marginBottom: 10 }}>
-              РЕЙТИНГ
+              {t("pub_rating")}
             </div>
 
             {/* Лидерборд */}
             <div className="lp-card" style={{ marginBottom: 20, overflow: "hidden" }}>
               {(league.members || []).length === 0 && (
                 <div style={{ padding: 20, textAlign: "center", color: "var(--mut)", fontSize: 13 }}>
-                  Игроков пока нет
+                  {t("pub_no_players")}
                 </div>
               )}
               {(league.members || []).map((p, i) => (
@@ -116,7 +120,7 @@ export default function LeaguePublicPage({ code }) {
                       {p.name}
                     </div>
                     <div style={{ fontSize: 11, color: "var(--mut)" }}>
-                      {p.matches} {noun(p.matches, "игра", "игры", "игр")} · {p.wins} {noun(p.wins, "победа", "победы", "побед")}
+                      {p.matches} {plural(p.matches, "games")} · {p.wins} {plural(p.wins, "wins")}
                     </div>
                   </div>
                   <div className="lp-d" style={{ fontSize: 22, color: "var(--lime)", flexShrink: 0 }}>
@@ -128,22 +132,22 @@ export default function LeaguePublicPage({ code }) {
 
             {/* Кнопка вступить */}
             <a href={joinUrl} className="lp-join-btn" style={{ marginBottom: 12 }}>
-              Вступить в лигу →
+              {t("pub_join_league")}
             </a>
             <div style={{ fontSize: 12, color: "var(--mut)", textAlign: "center", marginBottom: 28 }}>
-              После входа в аккаунт тебя автоматически добавят в лигу
+              {t("pub_after_login")}
             </div>
 
             {/* Вирусный CTA */}
             <div style={{ borderTop: "1px solid var(--line)", paddingTop: 22, textAlign: "center" }}>
               <div className="lp-d" style={{ fontSize: 13, color: "var(--mut)", marginBottom: 10, letterSpacing: 1 }}>
-                ХОЧЕШЬ СВОЮ ЛИГУ?
+                {t("pub_want_own_t")}
               </div>
               <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 14, lineHeight: 1.5 }}>
-                Рейтинги, американо-турниры, история игр — бесплатно для любой компании.
+                {t("pub_want_own_s")}
               </div>
               <a href={createUrl} style={{ color: "var(--lime)", fontWeight: 700, fontSize: 15, textDecoration: "none" }}>
-                Создать свою лигу →
+                {t("pub_create_own")}
               </a>
             </div>
           </>

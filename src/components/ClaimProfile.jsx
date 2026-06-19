@@ -7,6 +7,8 @@ import { supabase } from "../lib/supabase";
 import { getProfileByClaimCode, claimProfile } from "../lib/padelApi";
 import LoginScreen from "./LoginScreen";
 import { UserCheck, AlertCircle, CheckCircle2, LogIn, ArrowRight } from "lucide-react";
+import { t } from "../lib/i18n";
+import { usePublicChrome, PublicToggles } from "./publicChrome";
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
@@ -16,7 +18,7 @@ const css = `
 .cp-wrap{max-width:420px;margin:0 auto;padding:40px 16px;}
 .cp-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:24px;margin-bottom:12px;}
 .cp-d{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;}
-.cp-btn{background:var(--lime);color:#0a1612;font-weight:700;border:none;border-radius:14px;padding:14px;cursor:pointer;width:100%;font-family:'Outfit';font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.cp-btn{background:var(--lime);color:var(--lime-fg);font-weight:700;border:none;border-radius:14px;padding:14px;cursor:pointer;width:100%;font-family:'Outfit';font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px;}
 .cp-btn:disabled{filter:grayscale(.5) brightness(.7);cursor:not-allowed;}
 .cp-ghost{background:var(--surface2);color:var(--ink);border:1px solid var(--line);border-radius:12px;cursor:pointer;padding:10px 16px;font-family:'Outfit';font-size:13px;}
 `;
@@ -28,6 +30,7 @@ export default function ClaimProfile({ code, botName }) {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(null); // claimed name
   const [err, setErr] = useState("");
+  const { theme, lang, vars, toggleTheme, cycleLang } = usePublicChrome();
 
   useEffect(() => {
     getProfileByClaimCode(code)
@@ -45,7 +48,7 @@ export default function ClaimProfile({ code, botName }) {
   }, []);
 
   if (showLogin && !session) {
-    return <LoginScreen botName={botName} onSuccess={() => setShowLogin(false)} />;
+    return <LoginScreen botName={botName} onSuccess={() => setShowLogin(false)} theme={theme} lang={lang} onThemeToggle={toggleTheme} onLangChange={cycleLang} />;
   }
 
   const claim = async () => {
@@ -66,16 +69,17 @@ export default function ClaimProfile({ code, botName }) {
   };
 
   return (
-    <div className="cp-root">
+    <div className="cp-root" style={vars}>
       <style>{css}</style>
       <div className="cp-wrap">
+        <PublicToggles theme={theme} lang={lang} onTheme={toggleTheme} onLang={cycleLang} />
         <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2, marginBottom: 24 }}>
-          ПАДЕЛ · ЛИГА ДРУЗЕЙ
+          {t("pub_league_brand")}
         </div>
 
         {/* Загрузка */}
         {profile === undefined && (
-          <div className="cp-card" style={{ textAlign: "center", color: "var(--mut)" }}>Загрузка…</div>
+          <div className="cp-card" style={{ textAlign: "center", color: "var(--mut)" }}>{t("pub_loading")}</div>
         )}
 
         {/* Профиль не найден */}
@@ -83,9 +87,9 @@ export default function ClaimProfile({ code, botName }) {
           <div className="cp-card" style={{ display: "flex", alignItems: "center", gap: 12, color: "var(--coral)" }}>
             <AlertCircle size={20} />
             <div>
-              <div style={{ fontWeight: 600 }}>Ссылка недействительна</div>
+              <div style={{ fontWeight: 600 }}>{t("pub_claim_invalid_t")}</div>
               <div style={{ fontSize: 13, color: "var(--mut)", marginTop: 4 }}>
-                Возможно, профиль уже был привязан или ссылка устарела.
+                {t("pub_claim_invalid_s")}
               </div>
             </div>
           </div>
@@ -97,15 +101,14 @@ export default function ClaimProfile({ code, botName }) {
             <div className="cp-card" style={{ textAlign: "center" }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>🎉</div>
               <div className="cp-d" style={{ fontSize: 22, color: "var(--lime)", marginBottom: 6 }}>
-                Готово!
+                {t("pub_claim_done_t")}
               </div>
               <div style={{ color: "var(--mut)", fontSize: 14 }}>
-                История <b style={{ color: "var(--ink)" }}>{done}</b> привязана к твоему аккаунту.<br />
-                Рейтинг и все сыгранные матчи теперь твои.
+                {(() => { const parts = t("pub_claim_done_s").split("{name}"); return (<>{parts[0]}<b style={{ color: "var(--ink)" }}>{done}</b>{parts[1] || ""}</>); })()}
               </div>
             </div>
             <button className="cp-btn" onClick={() => window.location.assign("/")}>
-              Открыть приложение <ArrowRight size={16} />
+              {t("pub_open_app")} <ArrowRight size={16} />
             </button>
           </>
         )}
@@ -119,8 +122,7 @@ export default function ClaimProfile({ code, botName }) {
               </div>
               <div className="cp-d" style={{ fontSize: 22, marginBottom: 4 }}>{profile.name}</div>
               <div style={{ fontSize: 13, color: "var(--mut)" }}>
-                Тебя добавил администратор лиги.<br />
-                Привяжи аккаунт — и твоя история игр сохранится.
+                {t("pub_added_by_admin")}
               </div>
             </div>
 
@@ -129,7 +131,7 @@ export default function ClaimProfile({ code, botName }) {
                 <div className="cp-card" style={{ display: "flex", alignItems: "center", gap: 10, padding: 14 }}>
                   <CheckCircle2 size={18} color="var(--lime)" />
                   <div style={{ fontSize: 13 }}>
-                    Войдёшь как <b>{session.user?.user_metadata?.name || session.user?.email || "ты"}</b>
+                    {(() => { const nm = session.user?.user_metadata?.name || session.user?.email || "ты"; const parts = t("pub_login_as").split("{name}"); return (<>{parts[0]}<b>{nm}</b>{parts[1] || ""}</>); })()}
                   </div>
                 </div>
                 {err && (
@@ -138,19 +140,19 @@ export default function ClaimProfile({ code, botName }) {
                   </div>
                 )}
                 <button className="cp-btn" disabled={busy} onClick={claim}>
-                  {busy ? "Привязываю…" : <>Да, это я — привязать аккаунт <ArrowRight size={16} /></>}
+                  {busy ? t("pub_claiming") : <>{t("pub_claim_confirm")} <ArrowRight size={16} /></>}
                 </button>
                 <button className="cp-ghost" style={{ width: "100%", marginTop: 8 }} onClick={() => supabase.auth.signOut()}>
-                  Войти под другим аккаунтом
+                  {t("pub_login_other")}
                 </button>
               </>
             ) : (
               <>
                 <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 12, paddingLeft: 4 }}>
-                  Войди в аккаунт, чтобы привязать историю игр.
+                  {t("pub_login_to_claim")}
                 </div>
                 <button className="cp-btn" onClick={() => setShowLogin(true)}>
-                  <LogIn size={16} /> Войти через Telegram
+                  <LogIn size={16} /> {t("pub_login_tg")}
                 </button>
               </>
             )}

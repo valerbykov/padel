@@ -8,6 +8,8 @@ import { getTournamentByCode, getTournament, joinTournamentByCode } from "../lib
 import { TournamentView } from "./Tournaments";
 import LoginScreen from "./LoginScreen";
 import { Trophy, AlertCircle, Check, LogIn, UserCheck } from "lucide-react";
+import { t as tr } from "../lib/i18n";
+import { usePublicChrome, PublicToggles } from "./publicChrome";
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
@@ -19,7 +21,7 @@ const css = `
 .tj-d{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;}
 .tj-input{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Outfit';padding:12px;outline:none;box-sizing:border-box;margin-bottom:10px;}
 .tj-input:focus{border-color:var(--lime);}
-.tj-btn{background:var(--lime);color:#0a1612;font-weight:700;border:none;border-radius:14px;padding:13px;cursor:pointer;width:100%;}
+.tj-btn{background:var(--lime);color:var(--lime-fg);font-weight:700;border:none;border-radius:14px;padding:13px;cursor:pointer;width:100%;}
 .tj-btn:disabled{filter:grayscale(.6) brightness(.7);cursor:not-allowed;}
 .tj-loginlink{background:none;border:none;color:var(--lime);cursor:pointer;font-family:'Outfit';font-size:13px;display:inline-flex;align-items:center;gap:6px;padding:0;margin-bottom:10px;}
 .tj-ghost{background:var(--surface2);color:var(--ink);border:1px solid var(--line);border-radius:12px;cursor:pointer;padding:8px 14px;font-family:'Outfit';}
@@ -35,6 +37,7 @@ export default function TournamentJoin({ code, botName }) {
   const [profileName, setProfileName] = useState("");
   const [profileId, setProfileId] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
+  const { theme, lang, vars, toggleTheme, cycleLang } = usePublicChrome();
 
   const load = async () => {
     try {
@@ -64,7 +67,7 @@ export default function TournamentJoin({ code, botName }) {
     })();
   }, [session]);
 
-  if (showLogin && !session) return <LoginScreen botName={botName} onSuccess={() => setShowLogin(false)} />;
+  if (showLogin && !session) return <LoginScreen botName={botName} onSuccess={() => setShowLogin(false)} theme={theme} lang={lang} onThemeToggle={toggleTheme} onLangChange={cycleLang} />;
 
   const join = async () => {
     const display = session ? (profileName || "Игрок") : name.trim();
@@ -82,30 +85,31 @@ export default function TournamentJoin({ code, botName }) {
   const canEdit = !!session && !!profileId && (t?.players || []).some((p) => p.profile_id === profileId);
 
   return (
-    <div className="tj-root">
+    <div className="tj-root" style={vars}>
       <style>{css}</style>
       <div className="tj-wrap">
+        <PublicToggles theme={theme} lang={lang} onTheme={toggleTheme} onLang={cycleLang} />
         {/* Шапка */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2, display: "flex", alignItems: "center", gap: 6 }}>
-            <Trophy size={14} /> ПАДЕЛ · ТУРНИР
+            <Trophy size={14} /> {tr("pub_trn_brand")}
           </div>
           {session ? (
-            <button className="tj-ghost" style={{ fontSize: 12 }} onClick={() => window.location.assign("/")}>В приложение →</button>
+            <button className="tj-ghost" style={{ fontSize: 12 }} onClick={() => window.location.assign("/")}>{tr("pub_to_app")}</button>
           ) : (
             <button className="tj-ghost" style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6 }} onClick={() => setShowLogin(true)}>
-              <LogIn size={13} /> Войти
+              <LogIn size={13} /> {tr("pub_login")}
             </button>
           )}
         </div>
 
         {t === undefined && (
-          <div className="tj-card" style={{ textAlign: "center", color: "var(--mut)" }}>Загрузка…</div>
+          <div className="tj-card" style={{ textAlign: "center", color: "var(--mut)" }}>{tr("pub_loading")}</div>
         )}
 
         {t === null && (
           <div className="tj-card" style={{ color: "var(--coral)", display: "flex", alignItems: "center", gap: 8 }}>
-            <AlertCircle size={16} /> Турнир по коду {code} не найден.
+            <AlertCircle size={16} /> {tr("pub_trn_notfound").replace("{code}", code)}
           </div>
         )}
 
@@ -114,27 +118,27 @@ export default function TournamentJoin({ code, botName }) {
             {/* Баннер: присоединиться (только при status=open и ещё не зарегистрирован) */}
             {t.status === "open" && !joined && (
               <div className="tj-card">
-                <div className="tj-d" style={{ fontSize: 20, marginBottom: 4 }}>{t.name || "Американо"}</div>
+                <div className="tj-d" style={{ fontSize: 20, marginBottom: 4 }}>{t.name || tr("pub_americano")}</div>
                 <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 14 }}>
-                  {(t.players || []).length}/{t.target_size} игроков · до {t.points_per_game} очков
+                  {(t.players || []).length}/{t.target_size} {plural(t.target_size, "players")} · {tr("pub_upto")} {t.points_per_game} {tr("pub_points")}
                 </div>
 
                 {session ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--lime)", fontSize: 13, marginBottom: 12 }}>
-                    <UserCheck size={16} /> Вошёл как {profileName || "игрок"} — результат пойдёт в рейтинг
+                    <UserCheck size={16} /> {tr("pub_logged_rating").replace("{name}", profileName || "игрок")}
                   </div>
                 ) : (
                   <>
-                    <input className="tj-input" placeholder="Твоё имя (как гость)" value={name} onChange={(e) => setName(e.target.value)}
+                    <input className="tj-input" placeholder={tr("pub_guest_name_ph")} value={name} onChange={(e) => setName(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && join()} />
                     <button className="tj-loginlink" onClick={() => setShowLogin(true)}>
-                      <LogIn size={14} /> Войти для записи в рейтинг
+                      <LogIn size={14} /> {tr("pub_login_for_rating2")}
                     </button>
                   </>
                 )}
 
                 <button className="tj-btn" disabled={(!session && !name.trim()) || busy} onClick={join}>
-                  {busy ? "Присоединяюсь…" : "Присоединиться к турниру"}
+                  {busy ? tr("pub_joining") : tr("pub_join_trn")}
                 </button>
                 {err && <p style={{ color: "var(--coral)", fontSize: 13, marginTop: 8 }}>{err}</p>}
               </div>
@@ -143,14 +147,14 @@ export default function TournamentJoin({ code, botName }) {
             {/* Подтверждение присоединения */}
             {joined && (
               <div className="tj-card" style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--lime)", fontWeight: 600 }}>
-                <Check size={18} /> Ты в списке участников!
+                <Check size={18} /> {tr("pub_youre_in")}
               </div>
             )}
 
             {/* Гостю объясняем ограничение */}
             {!session && t.status !== "open" && (
               <div style={{ fontSize: 12, color: "var(--mut)", textAlign: "center", marginBottom: 8 }}>
-                Режим просмотра · счёт вводят только участники турнира
+                {tr("pub_view_mode")}
               </div>
             )}
 
@@ -163,10 +167,10 @@ export default function TournamentJoin({ code, botName }) {
           </>
         )}
       </div>
-      <div style={{ textAlign: "center", color: "#7d9488", fontSize: 12, padding: "0 16px 8px" }}>
-        🎾 Хочешь организовать свои игры?{" "}
-        <a href="/" style={{ color: "#c8ff2d", fontWeight: 700, textDecoration: "none" }}>
-          Создать лигу бесплатно →
+      <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, padding: "0 16px 8px" }}>
+        {tr("pub_footer_q")}{" "}
+        <a href="/" style={{ color: "var(--lime)", fontWeight: 700, textDecoration: "none" }}>
+          {tr("pub_footer_cta")}
         </a>
       </div>
     </div>

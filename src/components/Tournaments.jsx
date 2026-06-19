@@ -230,7 +230,9 @@ function Create({ groupId, profileId, back, open }) {
   const [courts, setCourts] = useState(2);
   const [playerCount, setPlayerCount] = useState(8);
   const [points, setPoints] = useState(32);
-  const [date, setDate] = useState(nowLocalDT());
+  const [day, setDay] = useState(() => nowLocalDT().slice(0, 10));
+  const [time, setTime] = useState(() => nowLocalDT().slice(11, 16));
+  const date = day ? `${day}T${time || "00:00"}` : "";
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -373,7 +375,10 @@ function Create({ groupId, profileId, back, open }) {
         {/* Date */}
         <div>
           <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_date_label")}</div>
-          <input type="datetime-local" className="tr-input" value={date} onChange={(e) => setDate(e.target.value)} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <input type="date" className="tr-input" style={{ flex: 3 }} value={day} onChange={(e) => setDay(e.target.value)} />
+            <input type="time" className="tr-input" style={{ flex: 2 }} value={time} onChange={(e) => setTime(e.target.value)} />
+          </div>
         </div>
 
         {/* Name */}

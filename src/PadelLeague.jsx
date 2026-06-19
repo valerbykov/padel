@@ -1277,7 +1277,9 @@ function CreateGame({ groupId, players, back, done }) {
   const [step, setStep] = useState("info"); // "info" | "players"
   const [title, setTitle] = useState("");
   const [titleEdited, setTitleEdited] = useState(false);
-  const [date, setDate] = useState(nowLocalDT());
+  const [day, setDay] = useState(() => nowLocalDT().slice(0, 10));
+  const [time, setTime] = useState(() => nowLocalDT().slice(11, 16));
+  const date = day ? `${day}T${time || "00:00"}` : "";
   const [place, setPlace] = useState("");
   const [slots, setSlots] = useState([null, null, null, null]);
   const [busy, setBusy] = useState(false);
@@ -1316,9 +1318,9 @@ function CreateGame({ groupId, players, back, done }) {
         <div className="pl-card" style={{ padding: 14, marginBottom: 12, display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 6 }}>{t("game_when_label")}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Calendar size={18} color="var(--mut)" />
-              <input type="datetime-local" className="pl-input" style={{ padding: "9px 12px" }} value={date} onChange={(e) => setDate(e.target.value)} />
+            <div style={{ display: "flex", gap: 8 }}>
+              <input type="date" className="pl-input" style={{ padding: "10px 12px", flex: 3 }} value={day} onChange={(e) => setDay(e.target.value)} />
+              <input type="time" className="pl-input" style={{ padding: "10px 12px", flex: 2 }} value={time} onChange={(e) => setTime(e.target.value)} />
             </div>
           </div>
           <div>
@@ -1334,7 +1336,7 @@ function CreateGame({ groupId, players, back, done }) {
               onChange={(e) => { setTitle(e.target.value); setTitleEdited(true); }} />
           </div>
         </div>
-        <button className="pl-btn" style={{ width: "100%", padding: 14, fontSize: 16 }} disabled={!date} onClick={() => setStep("players")}>{t("game_next")}</button>
+        <button className="pl-btn" style={{ width: "100%", padding: 14, fontSize: 16 }} disabled={!day} onClick={() => setStep("players")}>{t("game_next")}</button>
       </div>
     );
   }
@@ -1568,6 +1570,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
           <div key={m.id} className="pl-card" style={{ padding: 12, marginBottom: 8, cursor: detail ? "pointer" : "default" }}
             onClick={() => detail && setExpanded(isExpanded ? null : m.id)}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {isGroupMember && <span style={{ width: 32, flexShrink: 0 }} aria-hidden="true" />}
               <div style={{ flex: 1, minWidth: 0 }}>
                 {(m.team_a || []).map((id) => (
                   <div key={id} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
