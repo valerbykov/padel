@@ -281,12 +281,10 @@ function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme
         <Logo theme={theme} height={22} gap={8} />
       )}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        {["ru","en","es"].map((l) => (
-          <button key={l} onClick={() => onLangChange?.(l)}
-            style={{ ...base, background: lang === l ? "color-mix(in srgb, var(--lime) 18%, transparent)" : "var(--surface2)", color: lang === l ? "var(--lime)" : "var(--mut)", padding: "6px 8px", fontSize: 11, fontWeight: 700, minWidth: 32, border: lang === l ? "1px solid color-mix(in srgb, var(--lime) 40%, transparent)" : "1px solid var(--line)" }}>
-            {l.toUpperCase()}
-          </button>
-        ))}
+        <button onClick={() => { const o = ["ru","en","es"]; onLangChange?.(o[(o.indexOf(lang) + 1) % o.length]); }}
+          style={{ ...base, background: "var(--surface2)", color: "var(--ink)", padding: "6px 10px", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+          {lang.toUpperCase()} <span style={{ color: "var(--mut)", fontWeight: 400, fontSize: 13 }}>↻</span>
+        </button>
         <button onClick={onThemeToggle} title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
           style={{ ...base, background: "var(--surface2)", color: "var(--mut)", display: "flex", alignItems: "center", padding: "6px 9px" }}>
           {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}

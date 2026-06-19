@@ -294,7 +294,7 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, theme = "d
   const features = [
     { icon: "🏆", title: t("feat_board_title"), sub: t("feat_board_sub") },
     { icon: "📊", title: t("feat_stats_title"), sub: t("feat_stats_sub") },
-    { icon: "🎾", title: t("feat_tour_title"), sub: t("feat_tour_sub") },
+    { icon: "🥇", title: t("feat_tour_title"), sub: t("feat_tour_sub") },
     { icon: "📲", title: t("feat_pwa_title"), sub: t("feat_pwa_sub") },
   ];
   return (
@@ -330,14 +330,10 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, theme = "d
 
       {/* Lang + theme controls */}
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 6, marginTop: 18, flexWrap: "wrap" }}>
-        {["ru", "en", "es"].map((l) => (
-          <button key={l} onClick={() => onLangChange?.(l)} style={{
-            border: `1px solid ${lang === l ? "color-mix(in srgb, var(--lime) 40%, transparent)" : "var(--line)"}`,
-            borderRadius: 10, padding: "5px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer",
-            background: lang === l ? "color-mix(in srgb, var(--lime) 18%, transparent)" : "var(--surface2)",
-            color: lang === l ? "var(--lime)" : "var(--mut)", fontFamily: "'Outfit',sans-serif",
-          }}>{l.toUpperCase()}</button>
-        ))}
+        <button onClick={() => { const o = ["ru", "en", "es"]; onLangChange?.(o[(o.indexOf(lang) + 1) % o.length]); }} style={{
+          border: "1px solid var(--line)", borderRadius: 10, padding: "5px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer",
+          background: "var(--surface2)", color: "var(--ink)", fontFamily: "'Outfit',sans-serif", display: "flex", alignItems: "center", gap: 6,
+        }}>{lang.toUpperCase()} <span style={{ color: "var(--mut)", fontWeight: 400 }}>↻</span></button>
         <button onClick={onThemeToggle} style={{
           border: "1px solid var(--line)", borderRadius: 10, padding: "5px 9px",
           background: "var(--surface2)", color: "var(--mut)", cursor: "pointer",
@@ -558,7 +554,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
           <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}>{t("onboarding_title")}</div>
           {[
             { n: 1, icon: "👤", text: t("onboarding_1_text"), sub: isAdmin ? t("onboarding_1_sub_admin") : t("onboarding_1_sub_member") },
-            { n: 2, icon: "🎾", text: t("onboarding_2_text"), sub: t("onboarding_2_sub") },
+            { n: 2, icon: "⚔️", text: t("onboarding_2_text"), sub: t("onboarding_2_sub") },
             { n: 3, icon: "📣", text: t("onboarding_3_text"), sub: activeLeague?.invite_code ? t("onboarding_3_sub_code").replace("{code}", activeLeague.invite_code) : t("onboarding_3_sub_no_code") },
           ].map(({ n, icon, text, sub }) => (
             <div key={n} style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 12 }}>

@@ -10,6 +10,7 @@ import LoginScreen from "./LoginScreen";
 import { Trophy, AlertCircle, Check, LogIn, UserCheck } from "lucide-react";
 import { t as tr } from "../lib/i18n";
 import { usePublicChrome, PublicToggles } from "./publicChrome";
+import Logo from "./Logo";
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
@@ -91,9 +92,7 @@ export default function TournamentJoin({ code, botName }) {
         <PublicToggles theme={theme} lang={lang} onTheme={toggleTheme} onLang={cycleLang} />
         {/* Шапка */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-          <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2, display: "flex", alignItems: "center", gap: 6 }}>
-            <Trophy size={14} /> {tr("pub_trn_brand")}
-          </div>
+          <Logo height={18} />
           {session ? (
             <button className="tj-ghost" style={{ fontSize: 12 }} onClick={() => window.location.assign("/")}>{tr("pub_to_app")}</button>
           ) : (

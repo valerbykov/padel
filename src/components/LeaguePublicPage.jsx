@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import { getPublicLeague } from "../lib/padelApi";
 import { t } from "../lib/i18n";
 import { usePublicChrome, PublicToggles, plural } from "./publicChrome";
+import Logo from "./Logo";
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
@@ -62,9 +63,7 @@ export default function LeaguePublicPage({ code }) {
         <PublicToggles theme={theme} lang={lang} onTheme={toggleTheme} onLang={cycleLang} />
 
         {/* Брендинг */}
-        <div style={{ color: "var(--lime)", fontSize: 11, fontWeight: 700, letterSpacing: 3, marginBottom: 24 }}>
-          {t("pub_league_brand")}
-        </div>
+        <div style={{ marginBottom: 22 }}><Logo height={24} /></div>
 
         {/* Загрузка / ошибка */}
         {league === undefined && (
@@ -95,7 +94,7 @@ export default function LeaguePublicPage({ code }) {
 
             {/* Заголовок таблицы */}
             <div style={{ fontSize: 10, fontWeight: 700, color: "var(--mut)", letterSpacing: 2, marginBottom: 10 }}>
-              {t("pub_rating")}
+              {t("pub_members")}
             </div>
 
             {/* Лидерборд */}
@@ -107,24 +106,12 @@ export default function LeaguePublicPage({ code }) {
               )}
               {(league.members || []).map((p, i) => (
                 <div key={i} style={{
-                  display: "flex", alignItems: "center", gap: 12, padding: "12px 16px",
+                  display: "flex", alignItems: "center", gap: 12, padding: "11px 16px",
                   borderBottom: i < league.members.length - 1 ? "1px solid var(--line)" : "none",
-                  background: i < 3 ? `rgba(${i===0?'255,210,63':i===1?'207,216,208':'205,127,77'},.04)` : "transparent",
                 }}>
-                  <span className="lp-d" style={{ width: 18, fontSize: 16, color: MEDALS[i] || "var(--mut)", flexShrink: 0 }}>
-                    {i + 1}
-                  </span>
                   <Avatar name={p.name} url={p.avatar_url} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {p.name}
-                    </div>
-                    <div style={{ fontSize: 11, color: "var(--mut)" }}>
-                      {p.matches} {plural(p.matches, "games")} · {p.wins} {plural(p.wins, "wins")}
-                    </div>
-                  </div>
-                  <div className="lp-d" style={{ fontSize: 22, color: "var(--lime)", flexShrink: 0 }}>
-                    {p.rating}
+                  <div style={{ fontWeight: 600, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {p.name}
                   </div>
                 </div>
               ))}

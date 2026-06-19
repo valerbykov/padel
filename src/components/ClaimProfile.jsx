@@ -9,6 +9,7 @@ import LoginScreen from "./LoginScreen";
 import { UserCheck, AlertCircle, CheckCircle2, LogIn, ArrowRight } from "lucide-react";
 import { t } from "../lib/i18n";
 import { usePublicChrome, PublicToggles } from "./publicChrome";
+import Logo from "./Logo";
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
@@ -73,9 +74,7 @@ export default function ClaimProfile({ code, botName }) {
       <style>{css}</style>
       <div className="cp-wrap">
         <PublicToggles theme={theme} lang={lang} onTheme={toggleTheme} onLang={cycleLang} />
-        <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2, marginBottom: 24 }}>
-          {t("pub_league_brand")}
-        </div>
+        <div style={{ marginBottom: 22 }}><Logo height={22} /></div>
 
         {/* Загрузка */}
         {profile === undefined && (

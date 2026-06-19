@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Logo from "./Logo";
 import { createLeague, joinLeague } from "../lib/padelApi";
 
 /**
@@ -75,7 +76,7 @@ export default function LeagueSetup({ onDone, initialMode = null, initialCode = 
   /* ── выбор режима ───────────────────────────────────────────── */
   if (!mode) return (
     <div style={s.wrap}>
-      <div style={s.logo}>🎾</div>
+      <div style={{ marginBottom: 14 }}><Logo height={40} /></div>
       <div style={s.title}>Добро пожаловать!</div>
       <div style={s.sub}>
         Чтобы начать, создайте свою лигу или вступите в уже существующую по коду-приглашению.
