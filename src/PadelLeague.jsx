@@ -800,7 +800,8 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
       setRawTours(participated);
       const rows = participated.map((tour) => {
         const tPlayers = (tour.players || []).map((p) => ({ id: p.id, name: p.name }));
-        const table = detailedStandings(tPlayers, tour.matches || []);
+        // как на экране турнира: считаем только матчи реальных раундов (round_number > 0)
+        const table = detailedStandings(tPlayers, (tour.matches || []).filter((m) => (m.round_number || 0) > 0));
         const myTp = (tour.players || []).find((p) => p.profile_id === player.id);
         const pos = table.findIndex((r) => r.id === myTp?.id);
         const row = table[pos] || {};
@@ -1263,6 +1264,7 @@ function SlotPicker({ value, players, taken, onChange, teamLabel }) {
             <button key={p.id} className="pl-ghost" style={{ padding: "8px 10px", textAlign: "left" }} onClick={() => { onChange({ profileId: p.id, label: p.name }); setQ(""); }}>{p.name}</button>
           ))}
           <button className="pl-btn" style={{ padding: "8px 10px", textAlign: "left" }} onClick={() => { onChange({ guestName: q.trim(), label: q.trim() + " " + t("guest_label") }); setQ(""); }}>{t("add_guest_prefix")}{q.trim()}</button>
+          <div style={{ fontSize: 11, color: "var(--mut)", lineHeight: 1.4, padding: "2px 2px" }}>{t("add_guest_league_hint")}</div>
         </div>
       )}
     </div>

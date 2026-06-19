@@ -418,6 +418,7 @@ function AddPlayer({ players, existing, onAdd, disabled }) {
           ))}
           <button className="tr-btn" disabled={busy} style={{ padding: "8px 10px", textAlign: "left" }}
             onClick={() => add({ name: q.trim() })}>{tr("trn_guest_add")}{q.trim()}</button>
+          <div style={{ fontSize: 11, color: "var(--mut)", lineHeight: 1.4, padding: "2px 2px" }}>{tr("add_guest_league_hint")}</div>
         </div>
       )}
     </div>
