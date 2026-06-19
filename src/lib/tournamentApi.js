@@ -158,7 +158,8 @@ export async function checkScorePin(tournamentId, pin) {
 }
 
 export async function finishTournament(tournamentId) {
-  const { error } = await supabase.from("tournaments").update({ status: "finished" }).eq("id", tournamentId);
+  // Завершает турнир И начисляет рейтинг за его матчи (server-side, finish_tournament).
+  const { error } = await supabase.rpc("finish_tournament", { p_tournament_id: tournamentId });
   if (error) throw error;
 }
 
