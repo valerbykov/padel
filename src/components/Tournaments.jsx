@@ -15,6 +15,7 @@ import StandingsTable from "./StandingsTable";
 import EmptyState from "./EmptyState";
 import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, Share2, Trash2, Plus, Check } from "lucide-react";
 import { t as tr } from "../lib/i18n";
+const nowLocalDT = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
@@ -229,7 +230,7 @@ function Create({ groupId, profileId, back, open }) {
   const [courts, setCourts] = useState(2);
   const [playerCount, setPlayerCount] = useState(8);
   const [points, setPoints] = useState(32);
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(nowLocalDT());
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
 

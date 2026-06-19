@@ -46,15 +46,15 @@ function Chip({ name, avatarUrl, x, y, team }) {
 }
 
 function SetChip({ val, team, onClick, editable }) {
-  const color = team === "A" ? "#c8ff2d" : "#5fd0ff";
+  const color = team === "A" ? "var(--lime)" : "#3aa6e0";
   return (
     <div onClick={editable ? onClick : undefined} style={{
-      minWidth: "clamp(32px,10vw,42px)", padding: "clamp(6px,2.5vw,9px) clamp(8px,3.5vw,12px)",
+      minWidth: "clamp(40px,12vw,52px)", padding: "clamp(7px,2.6vw,10px) clamp(10px,3.5vw,14px)",
       textAlign: "center", fontFamily: "'Outfit',sans-serif", fontWeight: 800,
       fontSize: "clamp(16px,6vw,22px)", lineHeight: 1,
-      background: val != null ? "rgba(10,22,18,.9)" : "#16291f",
-      border: `1.5px solid ${val != null ? color : "#22382c"}`,
-      borderRadius: 10, color: val != null ? "#eef3ee" : "#7d9488",
+      background: "var(--surface2)",
+      border: `2px solid ${val != null ? color : "var(--line)"}`,
+      borderRadius: 10, color: val != null ? "var(--ink)" : "var(--mut)",
       cursor: editable ? "pointer" : "default",
       userSelect: "none",
     }}>
@@ -273,35 +273,38 @@ export default function CourtView({
 
       {/* Детальный счёт по сетам */}
       {mode === "sets" && (
-        <div style={{ marginTop: 8, background: "#11211b", border: "1px solid #22382c", borderRadius: 12, padding: "8px 14px" }}>
+        <div style={{ marginTop: 8, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 12, padding: "8px 14px" }}>
           {setsDetail.map((s, i) => (
             <div key={i} style={{
-              display: "flex", alignItems: "center", gap: 10, padding: "7px 0",
-              borderBottom: i < 2 ? "1px solid #1a2e22" : "none",
+              display: "flex", alignItems: "center", gap: 8, padding: "7px 0",
+              borderBottom: i < setsDetail.length - 1 ? "1px solid var(--line)" : "none",
             }}>
-              <span style={{ fontSize: 12, color: "#7d9488", width: 44, flexShrink: 0 }}>Сет {i + 1}</span>
-              <SetChip val={s.a} team="A" editable={editable && !savedAlready} onClick={() => setPickSets({ setIdx: i, team: "A" })} />
-              <span style={{ color: "#7d9488", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 14 }}>:</span>
-              <SetChip val={s.b} team="B" editable={editable && !savedAlready} onClick={() => setPickSets({ setIdx: i, team: "B" })} />
+              <span style={{ fontSize: 12, color: "var(--mut)", width: 50, flexShrink: 0 }}>Сет {i + 1}</span>
+              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+                <SetChip val={s.a} team="A" editable={editable && !savedAlready} onClick={() => setPickSets({ setIdx: i, team: "A" })} />
+                <span style={{ color: "var(--mut)", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 14 }}>:</span>
+                <SetChip val={s.b} team="B" editable={editable && !savedAlready} onClick={() => setPickSets({ setIdx: i, team: "B" })} />
+              </div>
+              <span style={{ width: 50, flexShrink: 0 }} aria-hidden="true" />
             </div>
           ))}
           {editable && !savedAlready && !allSetsEntered && (
-            <div style={{ fontSize: 11, color: "#7d9488", textAlign: "center", paddingTop: 6 }}>
+            <div style={{ fontSize: 11, color: "var(--mut)", textAlign: "center", paddingTop: 6 }}>
               нажми на счёт сета, чтобы ввести
             </div>
           )}
           {editable && !savedAlready && (
-            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
               {setsDetail.length < 5 && (
                 <button onClick={addSet} style={{
-                  flex: 1, padding: "7px 0", borderRadius: 10, border: "1px dashed #22382c",
-                  background: "transparent", color: "#7d9488", cursor: "pointer", fontSize: 13, fontFamily: "'Outfit',sans-serif",
-                }}>+ сет</button>
+                  flex: 1, padding: "10px 0", borderRadius: 10, border: "1px solid color-mix(in srgb, var(--lime) 45%, transparent)",
+                  background: "color-mix(in srgb, var(--lime) 12%, transparent)", color: "var(--lime)", cursor: "pointer", fontSize: 14, fontWeight: 700, fontFamily: "'Outfit',sans-serif",
+                }}>+ Добавить сет</button>
               )}
               {setsDetail.length > 1 && (
                 <button onClick={removeLastSet} style={{
-                  padding: "7px 14px", borderRadius: 10, border: "1px solid #22382c",
-                  background: "transparent", color: "#7d9488", cursor: "pointer", fontSize: 13,
+                  padding: "10px 16px", borderRadius: 10, border: "1px solid var(--line)",
+                  background: "var(--surface2)", color: "var(--mut)", cursor: "pointer", fontSize: 14, fontWeight: 700,
                 }}>−</button>
               )}
             </div>
@@ -314,7 +317,7 @@ export default function CourtView({
         <button onClick={saveSets} disabled={!setsValid || busy} style={{
           width: "100%", marginTop: 8, padding: 11, borderRadius: 12, border: "none",
           cursor: setsValid ? "pointer" : "not-allowed", fontWeight: 700,
-          fontFamily: "'Outfit',sans-serif", background: "#c8ff2d", color: "#0a1612",
+          fontFamily: "'Outfit',sans-serif", background: "var(--lime)", color: "var(--lime-fg)",
           filter: (!setsValid || busy) ? "grayscale(.6) brightness(.7)" : "none",
         }}>
           {busy ? "Записываю…" : !allSetsEntered ? "Введи счёт всех сетов" : "Записать результат"}
@@ -326,7 +329,7 @@ export default function CourtView({
         <button onClick={saveFree} disabled={dA == null || dB == null || dA === dB || busy} style={{
           width: "100%", marginTop: 8, padding: 11, borderRadius: 12, border: "none",
           cursor: "pointer", fontWeight: 700, fontFamily: "'Outfit',sans-serif",
-          background: "#c8ff2d", color: "#0a1612",
+          background: "var(--lime)", color: "var(--lime-fg)",
           filter: (dA == null || dB == null || dA === dB || busy) ? "grayscale(.6) brightness(.7)" : "none",
         }}>
           {busy ? "Записываю…" : (dA != null && dB != null && dA === dB ? "Ничья недопустима" : "Записать результат")}

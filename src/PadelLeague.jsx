@@ -20,6 +20,8 @@ const dogAvatar = (idOrName) => {
   return `/avatars/dog-${String((hash % DOG_COUNT) + 1).padStart(2, "0")}.png`;
 };
 const playerAvatar = (url, idOrName) => url || dogAvatar(idOrName);
+// Текущая дата-время в формате datetime-local (YYYY-MM-DDTHH:MM) с учётом таймзоны.
+const nowLocalDT = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
 
 function playerLevel(matches, rating) {
   if (rating >= 1200) return { label: t("level_legend"), color: "var(--yellow)" };
@@ -1272,44 +1274,97 @@ function SlotPicker({ value, players, taken, onChange, teamLabel }) {
 }
 
 function CreateGame({ groupId, players, back, done }) {
-  const [title, setTitle] = useState(""), [date, setDate] = useState(""), [place, setPlace] = useState("");
+  const [step, setStep] = useState("info"); // "info" | "players"
+  const [title, setTitle] = useState("");
+  const [titleEdited, setTitleEdited] = useState(false);
+  const [date, setDate] = useState(nowLocalDT());
+  const [place, setPlace] = useState("");
   const [slots, setSlots] = useState([null, null, null, null]);
   const [busy, setBusy] = useState(false);
   const chosenIds = slots.filter((v) => v && v.profileId).map((v) => v.profileId);
+  const filled = slots.filter((v) => v && (v.profileId || v.guestName)).length;
   const setSlot = (i, v) => setSlots((s) => s.map((x, j) => (j === i ? v : x)));
+
+  // Автоназвание по дате/месту (как в турнирах), пока пользователь не правил вручную.
+  useEffect(() => {
+    if (titleEdited) return;
+    if (!date) { setTitle(""); return; }
+    try {
+      const d = new Date(date);
+      const day = d.toLocaleString("ru-RU", { day: "numeric", month: "short" });
+      const time = d.toLocaleString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+      setTitle(place.trim() ? `${day} · ${time} · ${place.trim()}` : `${t("game_default_name")} · ${day} · ${time}`);
+    } catch (e) {}
+  }, [date, place, titleEdited]);
 
   const create = async () => {
     setBusy(true);
-    try { await createGame(groupId, { title, startsAt: date || null, place, slots }); done(); }
+    try { await createGame(groupId, { title: title.trim() || null, startsAt: date || null, place, slots }); done(); }
     catch (e) { alert("Не удалось создать игру"); setBusy(false); }
   };
 
+  const stepBadge = (txt) => (
+    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: "var(--lime)", marginBottom: 10 }}>{txt}</div>
+  );
+
+  // ── Шаг 1: когда / где / название ─────────────────────────────────────────
+  if (step === "info") {
+    return (
+      <div className="pl-pop">
+        <button className="pl-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={back}>← {t("back")}</button>
+        {stepBadge(t("game_step1"))}
+        <div className="pl-card" style={{ padding: 14, marginBottom: 12, display: "flex", flexDirection: "column", gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 6 }}>{t("game_when_label")}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Calendar size={18} color="var(--mut)" />
+              <input type="datetime-local" className="pl-input" style={{ padding: "9px 12px" }} value={date} onChange={(e) => setDate(e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 6 }}>{t("game_where_label")}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <MapPin size={18} color="var(--mut)" />
+              <input className="pl-input" style={{ padding: "10px 12px" }} placeholder={t("court_club_placeholder")} value={place} onChange={(e) => setPlace(e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 6 }}>{t("game_name_label")}</div>
+            <input className="pl-input" style={{ padding: "10px 12px" }} placeholder={t("game_name_placeholder")} value={title}
+              onChange={(e) => { setTitle(e.target.value); setTitleEdited(true); }} />
+          </div>
+        </div>
+        <button className="pl-btn" style={{ width: "100%", padding: 14, fontSize: 16 }} disabled={!date} onClick={() => setStep("players")}>{t("game_next")}</button>
+      </div>
+    );
+  }
+
+  // ── Шаг 2: игроки ─────────────────────────────────────────────────────────
   return (
     <div className="pl-pop">
-      <button className="pl-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={back}>← {t("back")}</button>
-      <div className="pl-card" style={{ padding: 14, marginBottom: 12, display: "flex", flexDirection: "column", gap: 10 }}>
-        <input className="pl-input" style={{ padding: "10px 12px" }} placeholder={t("game_name_placeholder")} value={title} onChange={(e) => setTitle(e.target.value)} />
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Calendar size={18} color="var(--mut)" />
-          <input type="datetime-local" className="pl-input" style={{ padding: "9px 12px" }} value={date} onChange={(e) => setDate(e.target.value)} />
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <MapPin size={18} color="var(--mut)" />
-          <input className="pl-input" style={{ padding: "10px 12px" }} placeholder={t("court_club_placeholder")} value={place} onChange={(e) => setPlace(e.target.value)} />
+      <button className="pl-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={() => setStep("info")}>← {t("back")}</button>
+      {stepBadge(t("game_step2"))}
+      <div className="pl-card" style={{ padding: "12px 14px", marginBottom: 12 }}>
+        <div style={{ fontWeight: 600, fontSize: 15 }}>{title || t("game_default_name")}</div>
+        <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          {date && <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Calendar size={12} /> {fmtDate(date)}</span>}
+          {place.trim() && <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><MapPin size={12} /> {place.trim()}</span>}
         </div>
       </div>
       <div className="pl-card" style={{ padding: 14, marginBottom: 12 }}>
-        <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 10 }}>{t("slots_label")}</div>
+        <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 10, display: "flex", justifyContent: "space-between" }}>
+          <span>{t("slots_label")}</span><span>{filled}/4</span>
+        </div>
         {[0, 1, 2, 3].map((i) => (
           <SlotPicker key={i} value={slots[i]} players={players} taken={chosenIds}
             onChange={(v) => setSlot(i, v)} teamLabel={i < 2 ? "A" : "B"} />
         ))}
+        <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 6, lineHeight: 1.4 }}>{t("game_slots_hint")}</div>
       </div>
       <button className="pl-btn" style={{ width: "100%", padding: 14, fontSize: 16 }} disabled={busy} onClick={create}>{busy ? t("creating_game") : t("create_and_get_link")}</button>
     </div>
   );
 }
-
 function GameCard({ game, back, reloadGames, reloadLeaderboard, bumpArchive }) {
   const [showShare, setShowShare] = useState(false);
   const [toast, setToast] = useState("");
