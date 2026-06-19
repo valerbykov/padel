@@ -1476,7 +1476,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
   const head = (txt) => <div className="pl-display" style={{ fontSize: 13, color: "var(--mut)", margin: "10px 2px 8px" }}>{txt}</div>;
 
   if (matches === null) return <div className="pl-card pl-pop" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>{t("loading")}</div>;
-  if (matches.length === 0 && tours.length === 0) return <EmptyState className="pl-card pl-pop" text={t("history_empty")} />;
+  if (matches.length === 0 && tours.length === 0) return <EmptyState className="pl-card pl-pop" variant="clock" text={t("history_empty")} />;
 
   return (
     <div className="pl-pop">

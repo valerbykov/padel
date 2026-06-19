@@ -12,6 +12,7 @@ import { standings, detailedStandings, allMatchesPlayed } from "../lib/americano
 import { getAllKotHTeams } from "../lib/mexicano";
 import CourtView from "./CourtView";
 import StandingsTable from "./StandingsTable";
+import EmptyState from "./EmptyState";
 import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, Share2, Trash2, Plus, Check } from "lucide-react";
 import { t as tr } from "../lib/i18n";
 
@@ -130,9 +131,8 @@ function List({ groupId, create, open, session, onLogin }) {
       ) : null}
       {items === null && <div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>{tr("loading")}</div>}
       {items !== null && items.length === 0 && (
-        <div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>
-          {!session ? tr("trn_empty_guest") : groupId ? tr("trn_empty_session") : tr("solo_tours_empty")}
-        </div>
+        <EmptyState className="tr-card" variant="podium"
+          text={!session ? tr("trn_empty_guest") : groupId ? tr("trn_empty_session") : tr("solo_tours_empty")} />
       )}
       {items !== null && getSections().map((sec) => {
         const list = byStatus[sec.status];
