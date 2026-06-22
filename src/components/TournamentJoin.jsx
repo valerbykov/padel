@@ -9,7 +9,7 @@ import { TournamentView } from "./Tournaments";
 import LoginScreen from "./LoginScreen";
 import { Trophy, AlertCircle, Check, LogIn, UserCheck } from "lucide-react";
 import { t as tr } from "../lib/i18n";
-import { usePublicChrome, PublicToggles } from "./publicChrome";
+import { usePublicChrome, PublicToggles, plural } from "./publicChrome";
 import Logo from "./Logo";
 
 const css = `
