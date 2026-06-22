@@ -5,7 +5,7 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import {
   createTournament, listTournaments, getTournament, addTournamentPlayer, removeTournamentPlayer,
-  startTournament, submitMatchScore, finishTournament, tournamentLink, deleteTournament, listMyTournaments,
+  startTournament, submitMatchScore, finishTournament, tournamentLink, deleteTournament, listMyTournaments, copyTournament,
   generateMexicanoRound, generateKotHRound, setCourtName, setScorePin, checkScorePin,
 } from "../lib/tournamentApi";
 import { standings, detailedStandings, allMatchesPlayed } from "../lib/americano";
@@ -81,30 +81,37 @@ export default function Tournaments({ groupId, players, profileId, bumpArchive, 
   const [activeId, setActiveId] = useState(null);
   if (mode === "create") return <Create groupId={groupId} profileId={profileId} back={() => setMode("list")} open={(id) => { setActiveId(id); setMode("view"); }} />;
   if (mode === "view") return <TournamentView id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} onArchiveChange={bumpArchive} isAdmin={isAdmin} />;
-  return <List groupId={groupId} session={session} onLogin={onLogin} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
+  return <List groupId={groupId} profileId={profileId} session={session} onLogin={onLogin} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
 }
 
 // ─── TournamentCard ────────────────────────────────────────────────────────────
 
-function TournamentCard({ trn, color, onClick }) {
+function TournamentCard({ trn, color, onClick, onCopy }) {
   const fmt = fmtById(trn.format);
   return (
-    <div className="tr-card" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }} onClick={onClick}>
+    <div className="tr-card" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={onClick}>
       <Trophy size={20} color={color} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{trn.name || fmt.name}</div>
         <div style={{ fontSize: 12, color: "var(--mut)" }}>{(trn.players || []).length}/{trn.target_size} {tr("trn_players_label").toLowerCase()} · {trn.points_per_game} {tr("trn_winner_points")} · {fmt.emoji} {fmt.name}</div>
       </div>
       <span className="tr-badge" style={{ background: "rgba(255,255,255,.06)", color, flexShrink: 0 }}>{statusLabel(trn.status)}</span>
+      {onCopy && (
+        <button onClick={(e) => { e.stopPropagation(); onCopy(); }} title={tr("trn_copy")}
+          style={{ flexShrink: 0, padding: "7px 9px", borderRadius: 10, border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--mut)", cursor: "pointer", display: "flex", alignItems: "center" }}>
+          <Copy size={14} />
+        </button>
+      )}
     </div>
   );
 }
 
 // ─── List ──────────────────────────────────────────────────────────────────────
 
-function List({ groupId, create, open, session, onLogin }) {
+function List({ groupId, profileId, create, open, session, onLogin }) {
   const [items, setItems] = useState(null);
   const [showAll, setShowAll] = useState(false);
+  const [copySrc, setCopySrc] = useState(null);
   useEffect(() => {
     setShowAll(false);
     (groupId ? listTournaments(groupId) : listMyTournaments()).then(setItems).catch(() => setItems([]));
@@ -145,7 +152,7 @@ function List({ groupId, create, open, session, onLogin }) {
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: sec.color, textTransform: "uppercase", marginBottom: 8, paddingLeft: 4 }}>
               {sec.label}
             </div>
-            {visible.map((trn) => <TournamentCard key={trn.id} trn={trn} color={sec.color} onClick={() => open(trn.id)} />)}
+            {visible.map((trn) => <TournamentCard key={trn.id} trn={trn} color={sec.color} onClick={() => open(trn.id)} onCopy={groupId ? () => setCopySrc(trn) : null} />)}
             {hidden > 0 && (
               <button className="tr-ghost" style={{ width: "100%", padding: "8px 12px", fontSize: 12, marginTop: 4 }} onClick={() => setShowAll(true)}>
                 {tr("trn_show_more_pre")} {hidden} {tr("trn_show_more_suf")}
@@ -154,6 +161,42 @@ function List({ groupId, create, open, session, onLogin }) {
           </div>
         );
       })}
+      {copySrc && (
+        <CopyDialog src={copySrc} groupId={groupId} profileId={profileId}
+          onClose={() => setCopySrc(null)} onCopied={(id) => { setCopySrc(null); open(id); }} />
+      )}
+    </div>
+  );
+}
+
+function CopyDialog({ src, groupId, profileId, onClose, onCopied }) {
+  const fmt = fmtById(src.format);
+  const [name, setName] = useState(`${src.name || fmt.name} ${tr("trn_copy_suffix")}`);
+  const [withPlayers, setWithPlayers] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const count = (src.players || []).length;
+  const go = async () => {
+    if (busy) return;
+    setBusy(true);
+    try { const t = await copyTournament(src.id, groupId, { name, withPlayers, createdBy: profileId }); onCopied(t.id); }
+    catch (e) { alert("Не удалось скопировать турнир"); setBusy(false); }
+  };
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }} onClick={onClose}>
+      <div className="tr-card" style={{ width: "100%", maxWidth: 360 }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 12 }}>{tr("trn_copy_title")}</div>
+        <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_copy_name_label")}</div>
+        <input className="tr-input" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        <label style={{ display: "flex", alignItems: "center", gap: 10, margin: "6px 0 16px", cursor: count ? "pointer" : "not-allowed", opacity: count ? 1 : 0.5 }}>
+          <input type="checkbox" checked={withPlayers && count > 0} disabled={!count} onChange={(e) => setWithPlayers(e.target.checked)}
+            style={{ width: 16, height: 16, accentColor: "var(--lime)" }} />
+          <span style={{ fontSize: 14 }}>{tr("trn_copy_with_players")} ({count})</span>
+        </label>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="tr-ghost" style={{ flex: 1, padding: 11 }} onClick={onClose} disabled={busy}>{tr("cancel")}</button>
+          <button className="tr-btn" style={{ flex: 1, padding: 11 }} onClick={go} disabled={busy}>{busy ? tr("creating") : tr("trn_copy_btn")}</button>
+        </div>
+      </div>
     </div>
   );
 }

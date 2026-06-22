@@ -27,6 +27,26 @@ export async function createTournament(groupId, { name, pointsPerGame = 32, targ
   return t;
 }
 
+// Копия существующего турнира: тот же формат/очки/размер, новый статус "open".
+// withPlayers — перенести участников (профили и гостей по имени), без счёта.
+export async function copyTournament(srcId, groupId, { name, withPlayers = true, createdBy = null } = {}) {
+  const src = await getTournament(srcId);
+  const trn = await createTournament(groupId, {
+    name: (name && name.trim()) || null,
+    pointsPerGame: src.points_per_game,
+    targetSize: src.target_size,
+    format: src.format,
+    createdBy: createdBy || null,
+  });
+  if (withPlayers) {
+    const players = [...(src.players || [])].sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
+    for (const p of players) {
+      await addTournamentPlayer(trn.id, { profileId: p.profile_id || null, name: p.name });
+    }
+  }
+  return trn;
+}
+
 export async function listTournaments(groupId) {
   let q = supabase.from("tournaments").select(T_SELECT).order("created_at", { ascending: false }).limit(100);
   if (groupId) q = q.eq("group_id", groupId);
