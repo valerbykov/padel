@@ -99,11 +99,14 @@ export default function App() {
   useEffect(() => {
     const CapApp = window.Capacitor?.Plugins?.App;
     if (!CapApp) return;
-    let handle;
-    CapApp.addListener("appUrlOpen", async ({ url }) => {
+    let sub;
+    const res = CapApp.addListener("appUrlOpen", async ({ url }) => {
       if (url) await handleAuthCallbackUrl(url);
-    }).then((h) => { handle = h; });
-    return () => { handle?.remove?.(); };
+    });
+    // Capacitor 8: addListener может вернуть handle напрямую ИЛИ Promise<handle>
+    if (res && typeof res.then === "function") res.then((h) => { sub = h; });
+    else sub = res;
+    return () => { sub?.remove?.(); };
   }, []);
 
   useEffect(() => {
@@ -125,7 +128,7 @@ export default function App() {
     let active = true;
     if (!session) { setProfile(null); return; }
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = session.user;            // уже есть из getSession — без лишнего getUser()
       if (!user) return;
       const { data } = await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle();
       if (active) setProfile(data);
@@ -246,6 +249,7 @@ export default function App() {
         session={session}
         profileId={profile?.id}
         leagues={leagues || []}
+        leaguesReady={leagues !== null}
         activeLeague={activeLeague}
         isAdmin={isAdmin}
         onLeagueChange={handleLeagueChange}

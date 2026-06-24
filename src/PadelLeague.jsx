@@ -205,16 +205,19 @@ function LeagueSwitcher({ leagues, activeLeague, isAdmin, onLeagueChange, onLeag
   );
 }
 
-export default function PadelLeague({ groupId, session, profileId, leagues = [], activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin }) {
+export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin }) {
   const [tab, setTab] = useState(session ? "board" : "welcome");
   const [players, setPlayers] = useState([]);
   const [archiveNonce, setArchiveNonce] = useState(0);
   const bumpArchive = useCallback(() => setArchiveNonce((n) => n + 1), []);
 
   const loadLeaderboard = useCallback(async () => {
+    // Пока лиги ещё не загружены и нет groupId — НЕ дёргаем тяжёлый played_with
+    // (иначе он зря вызывается на старте, пока активная лига не определилась).
+    if (!groupId && !leaguesReady) return;
     // groupId есть → лидерборд лиги; нет → «Играли вместе» по всем лигам (played_with)
     try { setPlayers(groupId ? await getLeaderboard(groupId) : await getPlayedWith()); } catch (e) { /* noop */ }
-  }, [groupId]);
+  }, [groupId, leaguesReady]);
 
   useEffect(() => { loadLeaderboard(); }, [loadLeaderboard]);
 

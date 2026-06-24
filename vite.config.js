@@ -4,10 +4,11 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     VitePWA({
+      disable: mode === "capacitor",   // в нативной сборке (Capacitor) service worker не нужен
       registerType: "autoUpdate",   // тихо обновляет service worker
       injectRegister: "auto",       // сам добавит регистрацию SW
       includeAssets: ["favicon-32x32.png", "apple-touch-icon.png"],
@@ -49,4 +50,4 @@ export default defineConfig({
       },
     }),
   ],
-});
+}));
