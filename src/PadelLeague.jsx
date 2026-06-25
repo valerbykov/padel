@@ -247,12 +247,16 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
     return () => document.body.classList.remove("pl-light");
   }, [theme]);
 
+  // При переключении вкладки всегда показываем её с самого верха (иначе заголовок
+  // обрезается остаточной прокруткой прошлой вкладки).
+  useEffect(() => { window.scrollTo({ top: 0, left: 0 }); }, [tab]);
+
   const titles = { board: t("tab_friends"), games: t("tab_games"), history: t("tab_history"), tournaments: t("tab_tournaments") };
 
   return (
     <div className={`pl-root${theme === "light" ? " pl-light" : ""}`}>
       <style>{css}</style>
-      <div style={{ maxWidth: 460, margin: "0 auto", padding: "20px 16px 88px" }}>
+      <div style={{ maxWidth: 460, margin: "0 auto", padding: "calc(20px + env(safe-area-inset-top)) 16px calc(88px + env(safe-area-inset-bottom))" }}>
         <header style={{ marginBottom: 18, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
           <div>
             <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2 }}>{t("league_title")}</div>
@@ -275,7 +279,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
         {tab === "history" && (session ? <HistoryView groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} archiveNonce={archiveNonce} bumpArchive={bumpArchive} /> : <GateScreen />)}
       </div>
 
-      <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--topbar-bg)", borderTop: "1px solid var(--line)", backdropFilter: "blur(8px)" }}>
+      <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--topbar-bg)", borderTop: "1px solid var(--line)", backdropFilter: "blur(8px)", paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div style={{ maxWidth: 460, margin: "0 auto", display: "flex" }}>
           {!session && <button className={`pl-tab ${tab === "welcome" ? "on" : ""}`} onClick={() => setTab("welcome")}><LogIn size={20} />{t("tab_start")}</button>}
           {session && <button className={`pl-tab ${tab === "board" ? "on" : ""}`} onClick={() => setTab("board")}><Trophy size={20} />{t("tab_friends")}</button>}
