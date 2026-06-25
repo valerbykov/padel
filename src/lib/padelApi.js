@@ -2,6 +2,7 @@
 // Слой данных: каждая функция соответствует операции в прототипе.
 // Названия таблиц/колонок совпадают со schema.sql.
 import { supabase } from "./supabase";
+import { swr, bustCache } from "./cache";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const genCode = () =>
@@ -32,7 +33,7 @@ export async function ensureMyProfile(name) {
    ===================================================================== */
 
 // Таблица лидеров группы. Заменяет loadState() для players.
-export async function getLeaderboard(groupId) {
+async function _getLeaderboard(groupId) {
   const { data, error } = await supabase
     .from("group_members")
     .select("rating, matches_played, wins, profile:profiles(id, name, avatar_url, contacts, claim_code, user_id)")
@@ -51,16 +52,22 @@ export async function getLeaderboard(groupId) {
     user_id: r.profile.user_id || null,
   }));
 }
+export function getLeaderboard(groupId) {
+  return swr("lb:" + (groupId || "_"), () => _getLeaderboard(groupId));
+}
 
 // Серверный счётчик игр/турниров по игрокам (обходит RLS). Требует SQL-функцию
 // group_player_counts (supabase/sql/group_player_counts.sql).
-export async function getGroupCounts(groupId) {
+async function _getGroupCounts(groupId) {
   if (!groupId) return { games: {}, tours: {} };
   const { data, error } = await supabase.rpc("group_player_counts", { p_group_id: groupId });
   if (error) throw error;
   const games = {}, tours = {};
   (data || []).forEach((r) => { games[r.profile_id] = r.games; tours[r.profile_id] = r.tournaments; });
   return { games, tours };
+}
+export function getGroupCounts(groupId) {
+  return swr("counts:" + (groupId || "_"), () => _getGroupCounts(groupId));
 }
 
 // «Добавить игрока»: создаём профиль-гость + членство в группе.
@@ -127,22 +134,6 @@ const GAME_SELECT =
   "matches(id, sets_a, sets_b, score_detail)";
 
 // Создать игру + 4 слота. slots: [A1, A2, B1, B2] — profileId или null (по ссылке).
-// Короткий кэш + дедуп для списка игр (тот же приём, что в tournamentApi).
-const _gamesCache = new Map();
-const _gamesInflight = new Map();
-function _memoGames(key, fn) {
-  const c = _gamesCache.get(key);
-  if (c && Date.now() - c.t < 4000) return Promise.resolve(c.v);
-  if (_gamesInflight.has(key)) return _gamesInflight.get(key);
-  const p = Promise.resolve().then(fn).then(
-    (v) => { _gamesCache.set(key, { v, t: Date.now() }); _gamesInflight.delete(key); return v; },
-    (e) => { _gamesInflight.delete(key); throw e; }
-  );
-  _gamesInflight.set(key, p);
-  return p;
-}
-function _bustGames() { _gamesCache.clear(); _gamesInflight.clear(); }
-
 export async function createGame(groupId, { title, startsAt, place, slots = [], hostId } = {}) {
   let game = null;
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -163,7 +154,7 @@ export async function createGame(groupId, { title, startsAt, place, slots = [], 
     if (res.error.code !== "23505") throw res.error; // не коллизия кода → реальная ошибка
   }
   if (!game) throw new Error("Не удалось сгенерировать уникальный код");
-  _bustGames();
+  bustCache();
 
   const layout = [
     { team: "A", position: 1 }, { team: "A", position: 2 },
@@ -220,7 +211,7 @@ async function _listGames(groupId) {
   return data;
 }
 export function listGames(groupId) {
-  return _memoGames("games:" + (groupId || "_"), () => _listGames(groupId));
+  return swr("games:" + (groupId || "_"), () => _listGames(groupId));
 }
 
 // Резолв приглашения по коду (экран «По коду»). null, если не найдено.
@@ -293,7 +284,7 @@ export function subscribeToGame(gameId, onChange) {
 export async function deleteGame(gameId) {
   const { error } = await supabase.from("games").delete().eq("id", gameId);
   if (error) throw error;
-  _bustGames();
+  bustCache();
 }
 
 export async function removeMember(groupId, profileId) {

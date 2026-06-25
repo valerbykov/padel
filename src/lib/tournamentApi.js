@@ -2,6 +2,7 @@
 import { supabase } from "./supabase";
 import { buildMatches, standings } from "./americano";
 import { buildFirstRound, buildMexicanoRound, buildKotHStart, buildKotHNextMatch } from "./mexicano";
+import { swr, bustCache } from "./cache";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const genCode = () => Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join("");
@@ -11,25 +12,6 @@ const T_SELECT =
   "id, invite_code, name, format, points_per_game, target_size, status, court_names, created_by, created_at, " +
   "players:tournament_players(id, profile_id, name, created_at), " +
   "matches:tournament_matches(id, round_number, court, team_a, team_b, score_a, score_b)";
-
-// Короткий кэш + дедуп для списка турниров: Доска, вкладка «Турниры» и История
-// независимо дёргают listTournaments на каждое переключение вкладок, плодя пачки
-// одинаковых запросов и зависания на нестабильной сети. Кэшируем на 4 c и схлопываем
-// параллельные вызовы; сбрасываем при создании/удалении (_bustList).
-const _listCache = new Map();
-const _listInflight = new Map();
-function _memoList(key, fn) {
-  const c = _listCache.get(key);
-  if (c && Date.now() - c.t < 4000) return Promise.resolve(c.v);
-  if (_listInflight.has(key)) return _listInflight.get(key);
-  const p = Promise.resolve().then(fn).then(
-    (v) => { _listCache.set(key, { v, t: Date.now() }); _listInflight.delete(key); return v; },
-    (e) => { _listInflight.delete(key); throw e; }
-  );
-  _listInflight.set(key, p);
-  return p;
-}
-function _bustList() { _listCache.clear(); _listInflight.clear(); }
 
 export async function createTournament(groupId, { name, pointsPerGame = 32, targetSize = 8, createdBy, format = "americano" } = {}) {
   let t = null;
@@ -43,7 +25,7 @@ export async function createTournament(groupId, { name, pointsPerGame = 32, targ
     if (res.error.code !== "23505") throw res.error;
   }
   if (!t) throw new Error("Не удалось сгенерировать код");
-  _bustList();
+  bustCache();
   return t;
 }
 
@@ -64,7 +46,7 @@ export async function copyTournament(srcId, groupId, { name, withPlayers = true,
       await addTournamentPlayer(trn.id, { profileId: p.profile_id || null, name: p.name });
     }
   }
-  _bustList();
+  bustCache();
   return trn;
 }
 
@@ -76,7 +58,7 @@ async function _listTournaments(groupId) {
   return data || [];
 }
 export function listTournaments(groupId) {
-  return _memoList("tours:" + (groupId || "_"), () => _listTournaments(groupId));
+  return swr("tours:" + (groupId || "_"), () => _listTournaments(groupId));
 }
 
 // Мои турниры без лиги (security definer my_tournaments): где я в составе.
@@ -210,7 +192,7 @@ export async function finishTournament(tournamentId) {
 export async function deleteTournament(id) {
   const { error } = await supabase.from("tournaments").delete().eq("id", id);
   if (error) throw error;
-  _bustList();
+  bustCache();
 }
 
 // Переименовать корт в турнире (jsonb court_names). name="" — сбросить к «Корт N».
