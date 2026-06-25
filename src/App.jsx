@@ -54,6 +54,22 @@ export default function App() {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showInstall,   setShowInstall]   = useState(false);
 
+  // Нативный статус-бар (Android/iOS). На Android env(safe-area-inset-top) для
+  // строки состояния = 0, поэтому CSS-отступ не помогает — говорим системе НЕ
+  // накладывать статус-бар на webview (контент встаёт под ним) и задаём цвет/стиль
+  // иконок под тему. Доступ рантаймом — на вебе плагина нет, эффект тихо ничего не делает.
+  useEffect(() => {
+    const Cap = window.Capacitor;
+    const SB = Cap?.Plugins?.StatusBar;
+    if (!SB) return;
+    const dark = theme !== "light";
+    if (Cap.getPlatform && Cap.getPlatform() === "android") {
+      SB.setOverlaysWebView({ overlay: false }).catch(() => {});
+    }
+    SB.setStyle({ style: dark ? "DARK" : "LIGHT" }).catch(() => {}); // DARK = светлые иконки (для тёмного фона)
+    SB.setBackgroundColor({ color: dark ? "#0a1612" : "#ffffff" }).catch(() => {});
+  }, [theme]);
+
   // PWA install prompt (Android/Desktop Chrome)
   useEffect(() => {
     if (localStorage.getItem("plInstallDismissed")) return;
