@@ -1,7 +1,7 @@
 // PadelLeague.jsx — основной экран на реальных данных Supabase.
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "./lib/supabase";
-import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember } from "./lib/padelApi";
+import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches } from "./lib/padelApi";
 import { getRatingHistory } from "./lib/statsApi";
 import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
 import { t } from "./lib/i18n";
@@ -396,8 +396,8 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
     const memberIds = new Set(players.map((p) => p.id));
     Promise.all([
       listTournaments(groupId),
-      supabase.from("matches").select("team_a, team_b, sets_a, sets_b, played_at").eq("group_id", groupId).order("played_at", { ascending: true }).limit(500),
-    ]).then(async ([tours, { data: matchRows }]) => {
+      getBoardMatches(groupId),
+    ]).then(async ([tours, matchRows]) => {
       if (!active) return;
       // tourCounts
       const counts = {};
@@ -793,12 +793,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
     });
 
     // Загружаем матчи группы для статистики
-    supabase.from("matches")
-      .select("id, team_a, team_b, sets_a, sets_b, played_at")
-      .eq("group_id", groupId)
-      .order("played_at", { ascending: false })
-      .limit(100)
-      .then(({ data }) => setAllMatches(data || []));
+    getStatMatches(groupId).then((data) => setAllMatches(data || []));
 
     // Лиги игрока
     supabase.from("group_members")
@@ -1515,10 +1510,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
     (async () => {
       let mData;
       if (groupId) {
-        const { data } = await supabase.from("matches")
-          .select("id, team_a, team_b, sets_a, sets_b, score_detail, played_at")
-          .eq("group_id", groupId).order("played_at", { ascending: false }).limit(30);
-        mData = data || [];
+        mData = await getHistoryMatches(groupId);
       } else {
         mData = await listMyHistoryMatches().catch(() => []);
       }

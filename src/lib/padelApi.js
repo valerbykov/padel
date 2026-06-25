@@ -70,6 +70,39 @@ export function getGroupCounts(groupId) {
   return swr("counts:" + (groupId || "_"), () => _getGroupCounts(groupId));
 }
 
+// Матчи группы (кэшируются — раньше эти запросы шли инлайном из компонентов и
+// плодили десятки дублей при переключении вкладок).
+async function _matchesBoard(groupId) {
+  const { data, error } = await supabase.from("matches")
+    .select("team_a, team_b, sets_a, sets_b, played_at")
+    .eq("group_id", groupId).order("played_at", { ascending: true }).limit(500);
+  if (error) throw error;
+  return data || [];
+}
+export function getBoardMatches(groupId) {
+  return swr("mb:" + (groupId || "_"), () => _matchesBoard(groupId));
+}
+async function _matchesStat(groupId) {
+  const { data, error } = await supabase.from("matches")
+    .select("id, team_a, team_b, sets_a, sets_b, played_at")
+    .eq("group_id", groupId).order("played_at", { ascending: false }).limit(100);
+  if (error) throw error;
+  return data || [];
+}
+export function getStatMatches(groupId) {
+  return swr("ms:" + (groupId || "_"), () => _matchesStat(groupId));
+}
+async function _matchesHistory(groupId) {
+  const { data, error } = await supabase.from("matches")
+    .select("id, team_a, team_b, sets_a, sets_b, score_detail, played_at")
+    .eq("group_id", groupId).order("played_at", { ascending: false }).limit(30);
+  if (error) throw error;
+  return data || [];
+}
+export function getHistoryMatches(groupId) {
+  return swr("mh:" + (groupId || "_"), () => _matchesHistory(groupId));
+}
+
 // «Добавить игрока»: создаём профиль-гость + членство в группе.
 // contacts: { whatsapp?, telegram?, email?, phone? } — всё опционально.
 export async function addMember(groupId, name, contacts = {}) {
@@ -261,6 +294,7 @@ export async function submitResult(gameId, setsA, setsB, scoreDetail = null) {
     body: { gameId, setsA, setsB, scoreDetail },
   });
   if (error) throw error;
+  bustCache();
   return data;
 }
 
