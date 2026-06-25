@@ -9,7 +9,7 @@ const colorOf = (name = "") => `hsl(${[...name].reduce((a, c) => a + c.charCodeA
 
 function Avatar({ name, url, size = 34 }) {
   return url ? (
-    <img src={url} alt="" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
+    <img src={url} alt="" loading="lazy" decoding="async" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
   ) : (
     <div style={{ width: size, height: size, borderRadius: "50%", background: colorOf(name), color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: size * 0.36, border: "1px solid rgba(255,255,255,.15)", flexShrink: 0 }}>
       {initials(name)}

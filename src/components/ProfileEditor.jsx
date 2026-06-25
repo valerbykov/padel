@@ -72,7 +72,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark" }) {
     try {
       const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
       const path = `${userId}/avatar_${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, cacheControl: "3600" });
+      const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, cacheControl: "31536000" });
       if (error) throw error;
       const { data } = supabase.storage.from("avatars").getPublicUrl(path);
       setAvatarUrl(data.publicUrl);

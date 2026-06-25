@@ -18,7 +18,7 @@ function Chip({ name, avatarUrl, x, y, team }) {
       maxWidth: "27%",
     }}>
       {avatarUrl ? (
-        <img src={avatarUrl} alt="" style={{
+        <img src={avatarUrl} alt="" loading="lazy" decoding="async" style={{
           width: "clamp(22px,7vw,32px)", height: "clamp(22px,7vw,32px)",
           borderRadius: "50%", objectFit: "cover",
           border: `2px solid ${color}`, background: "#0a1612", flexShrink: 0,

@@ -4,11 +4,10 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      disable: mode === "capacitor",   // в нативной сборке (Capacitor) service worker не нужен
       registerType: "autoUpdate",   // тихо обновляет service worker
       injectRegister: "auto",       // сам добавит регистрацию SW
       includeAssets: ["favicon-32x32.png", "apple-touch-icon.png"],
@@ -44,10 +43,23 @@ export default defineConfig(({ mode }) => ({
               expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
             },
           },
+          {
+            // Аватары из публичного бакета Supabase Storage. Имена файлов
+            // уникальны (avatar_<timestamp>), поэтому кэшируем агрессивно:
+            // первый раз тянем из (возможно холодного) origin, дальше — мгновенно
+            // из локального кэша, без 10-секундного ожидания.
+            urlPattern: ({ url }) => url.pathname.includes("/storage/v1/object/public/avatars/"),
+            handler: "CacheFirst",
+            options: {
+              cacheName: "supabase-avatars",
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 90 },
+              cacheableResponse: { statuses: [0, 200, 206] },
+            },
+          },
         ],
         // ВАЖНО: запросы к Supabase API НЕ кэшируем — данные и авторизация
         // должны быть свежими. Они на другом origin и сюда не попадают.
       },
     }),
   ],
-}));
+});
