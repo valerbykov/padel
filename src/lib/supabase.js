@@ -1,26 +1,58 @@
 // lib/supabase.js
-// Инициализация клиента Supabase.
-// Переменные берутся из .env (Vite). Заполни своими значениями из
-// Supabase → Project Settings → API:
-//   VITE_SUPABASE_URL=https://xxxx.supabase.co
-//   VITE_SUPABASE_ANON_KEY=eyJhbGci...
+// Клиент Supabase с двумя «дорогами» к ОДНОЙ базе (реплик нет):
+//   - direct: прямой hosted Supabase — весь мир, быстро;
+//   - proxy:  через api.padelpack.app — Россия, обход троттлинга Cloudflare.
+// По умолчанию ходим напрямую. Если запросы валятся как при РФ-фильтрации
+// (таймаут / обрыв) — автоматически и навсегда (для этого браузера) уходим на прокси.
+// Плюс первичная догадка по таймзоне, чтобы РФ-юзер сразу стартовал на прокси.
 import { createClient } from "@supabase/supabase-js";
 
-const url = import.meta.env.VITE_SUPABASE_URL;
-const anon = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const DIRECT = import.meta.env.VITE_SUPABASE_URL;                 // прямой hosted Supabase
+const PROXY  = import.meta.env.VITE_SUPABASE_PROXY_URL || "";     // прокси для РФ (может быть пустым)
+const anon   = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!url || !anon) {
+if (!DIRECT || !anon) {
   console.warn("Не заданы VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY");
 }
 
-// Свой fetch для клиента Supabase: таймаут + один повтор на свежем соединении.
-// Зачем: REST ходит по одному постоянному HTTP/2-соединению. Если сеть роняет его
-// молча, Chrome ловит ERR_HTTP2_PING_FAILED, а уже ушедшие запросы висят минутами
-// до длинного таймаута (помогает лишь переключение вкладки — сброс сокета).
-// Обрываем по таймауту и повторяем — но только идемпотентные GET/HEAD, чтобы не
-// задвоить мутации (отправку счёта и т.п.).
-const FETCH_TIMEOUT_MS = 12000;
+const hostOf = (u) => { try { return new URL(u).host; } catch { return ""; } };
+const DIRECT_HOST = hostOf(DIRECT);
+const PROXY_HOST  = hostOf(PROXY);
 
+const MODE_KEY = "pp_endpoint";
+function guessRF() {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+    return /Moscow|Volgograd|Saratov|Astrakhan|Kaliningrad|Kirov|Samara|Ulyanovsk|Yekaterinburg|Omsk|Novosibirsk|Barnaul|Tomsk|Novokuznetsk|Krasnoyarsk|Irkutsk|Chita|Yakutsk|Khandyga|Ust-Nera|Vladivostok|Magadan|Sakhalin|Srednekolymsk|Kamchatka|Anadyr|Simferopol/.test(tz);
+  } catch { return false; }
+}
+
+let mode = "direct";
+try {
+  const saved = localStorage.getItem(MODE_KEY);
+  if (saved === "proxy" && PROXY_HOST) mode = "proxy";
+  else if (saved === "direct") mode = "direct";
+  else if (PROXY_HOST && guessRF()) mode = "proxy"; // первая догадка для РФ
+} catch { /* localStorage недоступен */ }
+
+function persistMode(m) {
+  mode = m;
+  try { localStorage.setItem(MODE_KEY, m); } catch { /* ignore */ }
+}
+
+// Базу клиента фиксируем при создании (чтобы и realtime шёл правильной дорогой).
+const baseUrl = (mode === "proxy" && PROXY) ? PROXY : DIRECT;
+
+// Переписать host запроса на прокси, когда mode === "proxy" (REST/auth на лету,
+// даже если клиент создан с прямой базой — например при фолбэке в этой же сессии).
+function applyMode(input) {
+  if (mode !== "proxy" || !PROXY_HOST || !DIRECT_HOST) return input;
+  const rw = (u) => u.replace("//" + DIRECT_HOST, "//" + PROXY_HOST);
+  if (typeof input === "string") return rw(input);
+  try { return (input && input.url) ? new Request(rw(input.url), input) : input; } catch { return input; }
+}
+
+const FETCH_TIMEOUT_MS = 12000;
 function timedFetch(input, init = {}) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
@@ -31,29 +63,25 @@ function timedFetch(input, init = {}) {
   return fetch(input, { ...init, signal: ctrl.signal }).finally(() => clearTimeout(timer));
 }
 
+// Таймаут + один повтор на свежем соединении (для идемпотентных GET/HEAD).
 async function resilientCore(input, init = {}) {
   const method = (init.method || "GET").toUpperCase();
   const canRetry = method === "GET" || method === "HEAD";
   try {
     return await timedFetch(input, init);
   } catch (e) {
-    // ERR_HTTP2_PING_FAILED / обрыв сети → TypeError; таймаут → AbortError.
     const transient = e && (e.name === "AbortError" || e instanceof TypeError);
     if (canRetry && transient) {
       await new Promise((r) => setTimeout(r, 300));
-      return await timedFetch(input, init); // свежее соединение
+      return await timedFetch(input, init);
     }
     throw e;
   }
 }
 
-// Дедуп одинаковых параллельных GET/HEAD: при частом переключении вкладок на
-// нестабильной сети одинаковые запросы (profiles, auth user и т.п.) идут пачками
-// и забивают соединение. Склеиваем их в один сетевой запрос — тело буферизуем и
-// раздаём копии. Мутации (POST/PATCH/DELETE) не трогаем.
+// Дедуп одинаковых параллельных GET/HEAD: один сетевой запрос на всех.
 const _getInflight = new Map();
 const reqUrl = (input) => (typeof input === "string" ? input : (input && input.url) || String(input));
-
 async function fetchBuffered(input, init) {
   const resp = await resilientCore(input, init);
   const body = await resp.arrayBuffer();
@@ -63,8 +91,7 @@ function bufToResponse(b) {
   const nullBody = b.status === 204 || b.status === 205 || b.status === 304;
   return new Response(nullBody ? null : b.body, { status: b.status, statusText: b.statusText, headers: b.headers });
 }
-
-function resilientFetch(input, init = {}) {
+function dedupFetch(input, init = {}) {
   const method = (init.method || "GET").toUpperCase();
   if (method === "GET" || method === "HEAD") {
     const key = method + " " + reqUrl(input);
@@ -78,17 +105,30 @@ function resilientFetch(input, init = {}) {
   return resilientCore(input, init);
 }
 
-export const supabase = createClient(url, anon, {
-  global: { fetch: resilientFetch },
+// Точка входа: маршрутизация + авто-фолбэк на прокси при РФ-троттлинге.
+async function customFetch(input, init = {}) {
+  try {
+    return await dedupFetch(applyMode(input), init);
+  } catch (e) {
+    const transient = e && (e.name === "AbortError" || e instanceof TypeError);
+    if (transient && mode === "direct" && PROXY_HOST) {
+      persistMode("proxy");                              // запоминаем выбор для этого браузера
+      return await dedupFetch(applyMode(input), init);   // повтор уже через прокси
+    }
+    throw e;
+  }
+}
+
+export const supabase = createClient(baseUrl, anon, {
+  global: { fetch: customFetch },
   auth: {
-    // implicit: токен приходит в #access_token прямо в URL — корректно работает
-    // в standalone-PWA (возврат от Google в Safari/PWA) и совместимо с нативным
-    // deep-link (handleAuthCallbackUrl в auth.js понимает и access_token, и code).
-    // PKCE здесь ломал вход в установленной PWA на iOS (обмен code требует verifier
-    // из localStorage, который теряется при возврате через Safari).
+    // implicit: токен приходит в #access_token — корректно для standalone-PWA и нативного deep-link.
     flowType: "implicit",
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
   },
 });
+
+// Текущая «дорога» ("direct" | "proxy") — на случай индикатора/отладки.
+export const supabaseEndpoint = () => mode;
