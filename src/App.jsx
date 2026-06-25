@@ -117,7 +117,14 @@ export default function App() {
       }
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
+      // Supabase повторно шлёт это событие при фокусе вкладки / refresh токена.
+      // Если сессия по сути та же — не пересоздаём state, иначе профиль и весь
+      // каскад загрузок (лиги/лидерборд/турниры/игры/матчи) перезапускаются и
+      // плодят дубли запросов (видно в Network как два одинаковых запроса).
+      setSession((prev) => {
+        if (prev && s && prev.access_token === s.access_token && prev.user?.id === s.user?.id) return prev;
+        return s;
+      });
       if (s) setShowLogin(false);
     });
     return () => sub.subscription.unsubscribe();
