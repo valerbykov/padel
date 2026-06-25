@@ -1,5 +1,5 @@
 // PadelLeague.jsx — основной экран на реальных данных Supabase.
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "./lib/supabase";
 import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember } from "./lib/padelApi";
 import { getRatingHistory } from "./lib/statsApi";
@@ -211,13 +211,23 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
   const [archiveNonce, setArchiveNonce] = useState(0);
   const bumpArchive = useCallback(() => setArchiveNonce((n) => n + 1), []);
 
+  // Защита от гонки: если loadLeaderboard вызвался несколько раз (сначала без
+  // groupId, потом с ним — пока активная лига доопределялась), применяем результат
+  // ТОЛЬКО последнего вызова, иначе «соло»-ответ (played_with) затирает лидерборд
+  // лиги и показывается заглушка онбординга.
+  const lbSeq = useRef(0);
   const loadLeaderboard = useCallback(async () => {
-    // Пока лиги ещё не загружены и нет groupId — НЕ дёргаем тяжёлый played_with
-    // (иначе он зря вызывается на старте, пока активная лига не определилась).
-    if (!groupId && !leaguesReady) return;
+    if (!groupId) {
+      if (!leaguesReady) return;                  // лиги ещё грузятся
+      if ((leagues?.length || 0) > 0) return;     // лиги есть, активная ещё не выбрана → ждём groupId, соло-путь не дёргаем
+    }
+    const seq = ++lbSeq.current;
     // groupId есть → лидерборд лиги; нет → «Играли вместе» по всем лигам (played_with)
-    try { setPlayers(groupId ? await getLeaderboard(groupId) : await getPlayedWith()); } catch (e) { /* noop */ }
-  }, [groupId, leaguesReady]);
+    try {
+      const data = groupId ? await getLeaderboard(groupId) : await getPlayedWith();
+      if (seq === lbSeq.current) setPlayers(data);
+    } catch (e) { /* noop */ }
+  }, [groupId, leaguesReady, leagues]);
 
   useEffect(() => { loadLeaderboard(); }, [loadLeaderboard]);
 
