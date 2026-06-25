@@ -208,22 +208,24 @@ export async function createGame(groupId, { title, startsAt, place, slots = [], 
 
 // Мои игры без лиги (security definer my_games): игры, где я в слоте или организатор.
 // Та же форма, что GAME_SELECT. Видны активные и завершённые.
-export async function listMyGames() {
+async function _listMyGames() {
   const { data, error } = await supabase.rpc("my_games");
   if (error) throw error;
   return data || [];
 }
+export function listMyGames() { return swr("my_games", _listMyGames); }
 
 // Моя история сыгранных матчей без лиги (security definer my_history_matches).
-export async function listMyHistoryMatches() {
+async function _listMyHistoryMatches() {
   const { data, error } = await supabase.rpc("my_history_matches");
   if (error) throw error;
   return data || [];
 }
+export function listMyHistoryMatches() { return swr("my_history", _listMyHistoryMatches); }
 
 // Игроки, с которыми я играл вместе (для вкладки «Друзья» без лиги).
 // Форма совместима с лидербордом: { id, name, avatar_url, rating, matches, wins }.
-export async function getPlayedWith() {
+async function _getPlayedWith() {
   const { data, error } = await supabase.rpc("played_with");
   if (error) throw error;
   return (data || []).map((r) => ({
@@ -232,6 +234,7 @@ export async function getPlayedWith() {
     rating: r.rating || 0, matches: r.matches || 0, wins: r.wins || 0, user_id: null,
   }));
 }
+export function getPlayedWith() { return swr("played_with", _getPlayedWith); }
 
 // Список игр группы (для вкладки «Игры»).
 async function _listGames(groupId) {

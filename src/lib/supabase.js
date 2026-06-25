@@ -31,7 +31,7 @@ function timedFetch(input, init = {}) {
   return fetch(input, { ...init, signal: ctrl.signal }).finally(() => clearTimeout(timer));
 }
 
-async function resilientFetch(input, init = {}) {
+async function resilientCore(input, init = {}) {
   const method = (init.method || "GET").toUpperCase();
   const canRetry = method === "GET" || method === "HEAD";
   try {
@@ -45,6 +45,37 @@ async function resilientFetch(input, init = {}) {
     }
     throw e;
   }
+}
+
+// Дедуп одинаковых параллельных GET/HEAD: при частом переключении вкладок на
+// нестабильной сети одинаковые запросы (profiles, auth user и т.п.) идут пачками
+// и забивают соединение. Склеиваем их в один сетевой запрос — тело буферизуем и
+// раздаём копии. Мутации (POST/PATCH/DELETE) не трогаем.
+const _getInflight = new Map();
+const reqUrl = (input) => (typeof input === "string" ? input : (input && input.url) || String(input));
+
+async function fetchBuffered(input, init) {
+  const resp = await resilientCore(input, init);
+  const body = await resp.arrayBuffer();
+  return { body, status: resp.status, statusText: resp.statusText, headers: resp.headers };
+}
+function bufToResponse(b) {
+  const nullBody = b.status === 204 || b.status === 205 || b.status === 304;
+  return new Response(nullBody ? null : b.body, { status: b.status, statusText: b.statusText, headers: b.headers });
+}
+
+function resilientFetch(input, init = {}) {
+  const method = (init.method || "GET").toUpperCase();
+  if (method === "GET" || method === "HEAD") {
+    const key = method + " " + reqUrl(input);
+    let p = _getInflight.get(key);
+    if (!p) {
+      p = fetchBuffered(input, init).finally(() => _getInflight.delete(key));
+      _getInflight.set(key, p);
+    }
+    return p.then(bufToResponse);
+  }
+  return resilientCore(input, init);
 }
 
 export const supabase = createClient(url, anon, {
