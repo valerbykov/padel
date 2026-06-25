@@ -12,6 +12,25 @@ const T_SELECT =
   "players:tournament_players(id, profile_id, name, created_at), " +
   "matches:tournament_matches(id, round_number, court, team_a, team_b, score_a, score_b)";
 
+// Короткий кэш + дедуп для списка турниров: Доска, вкладка «Турниры» и История
+// независимо дёргают listTournaments на каждое переключение вкладок, плодя пачки
+// одинаковых запросов и зависания на нестабильной сети. Кэшируем на 4 c и схлопываем
+// параллельные вызовы; сбрасываем при создании/удалении (_bustList).
+const _listCache = new Map();
+const _listInflight = new Map();
+function _memoList(key, fn) {
+  const c = _listCache.get(key);
+  if (c && Date.now() - c.t < 4000) return Promise.resolve(c.v);
+  if (_listInflight.has(key)) return _listInflight.get(key);
+  const p = Promise.resolve().then(fn).then(
+    (v) => { _listCache.set(key, { v, t: Date.now() }); _listInflight.delete(key); return v; },
+    (e) => { _listInflight.delete(key); throw e; }
+  );
+  _listInflight.set(key, p);
+  return p;
+}
+function _bustList() { _listCache.clear(); _listInflight.clear(); }
+
 export async function createTournament(groupId, { name, pointsPerGame = 32, targetSize = 8, createdBy, format = "americano" } = {}) {
   let t = null;
   for (let i = 0; i < 5; i++) {
@@ -24,6 +43,7 @@ export async function createTournament(groupId, { name, pointsPerGame = 32, targ
     if (res.error.code !== "23505") throw res.error;
   }
   if (!t) throw new Error("Не удалось сгенерировать код");
+  _bustList();
   return t;
 }
 
@@ -44,15 +64,19 @@ export async function copyTournament(srcId, groupId, { name, withPlayers = true,
       await addTournamentPlayer(trn.id, { profileId: p.profile_id || null, name: p.name });
     }
   }
+  _bustList();
   return trn;
 }
 
-export async function listTournaments(groupId) {
+async function _listTournaments(groupId) {
   let q = supabase.from("tournaments").select(T_SELECT).order("created_at", { ascending: false }).limit(100);
   if (groupId) q = q.eq("group_id", groupId);
   const { data, error } = await q;
   if (error) throw error;
   return data || [];
+}
+export function listTournaments(groupId) {
+  return _memoList("tours:" + (groupId || "_"), () => _listTournaments(groupId));
 }
 
 // Мои турниры без лиги (security definer my_tournaments): где я в составе.
@@ -186,6 +210,7 @@ export async function finishTournament(tournamentId) {
 export async function deleteTournament(id) {
   const { error } = await supabase.from("tournaments").delete().eq("id", id);
   if (error) throw error;
+  _bustList();
 }
 
 // Переименовать корт в турнире (jsonb court_names). name="" — сбросить к «Корт N».

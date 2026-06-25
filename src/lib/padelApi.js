@@ -127,6 +127,22 @@ const GAME_SELECT =
   "matches(id, sets_a, sets_b, score_detail)";
 
 // Создать игру + 4 слота. slots: [A1, A2, B1, B2] — profileId или null (по ссылке).
+// Короткий кэш + дедуп для списка игр (тот же приём, что в tournamentApi).
+const _gamesCache = new Map();
+const _gamesInflight = new Map();
+function _memoGames(key, fn) {
+  const c = _gamesCache.get(key);
+  if (c && Date.now() - c.t < 4000) return Promise.resolve(c.v);
+  if (_gamesInflight.has(key)) return _gamesInflight.get(key);
+  const p = Promise.resolve().then(fn).then(
+    (v) => { _gamesCache.set(key, { v, t: Date.now() }); _gamesInflight.delete(key); return v; },
+    (e) => { _gamesInflight.delete(key); throw e; }
+  );
+  _gamesInflight.set(key, p);
+  return p;
+}
+function _bustGames() { _gamesCache.clear(); _gamesInflight.clear(); }
+
 export async function createGame(groupId, { title, startsAt, place, slots = [], hostId } = {}) {
   let game = null;
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -147,6 +163,7 @@ export async function createGame(groupId, { title, startsAt, place, slots = [], 
     if (res.error.code !== "23505") throw res.error; // не коллизия кода → реальная ошибка
   }
   if (!game) throw new Error("Не удалось сгенерировать уникальный код");
+  _bustGames();
 
   const layout = [
     { team: "A", position: 1 }, { team: "A", position: 2 },
@@ -193,7 +210,7 @@ export async function getPlayedWith() {
 }
 
 // Список игр группы (для вкладки «Игры»).
-export async function listGames(groupId) {
+async function _listGames(groupId) {
   const { data, error } = await supabase
     .from("games")
     .select(GAME_SELECT)
@@ -201,6 +218,9 @@ export async function listGames(groupId) {
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data;
+}
+export function listGames(groupId) {
+  return _memoGames("games:" + (groupId || "_"), () => _listGames(groupId));
 }
 
 // Резолв приглашения по коду (экран «По коду»). null, если не найдено.
@@ -273,6 +293,7 @@ export function subscribeToGame(gameId, onChange) {
 export async function deleteGame(gameId) {
   const { error } = await supabase.from("games").delete().eq("id", gameId);
   if (error) throw error;
+  _bustGames();
 }
 
 export async function removeMember(groupId, profileId) {
