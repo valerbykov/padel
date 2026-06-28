@@ -1,13 +1,14 @@
 // components/LoginScreen.jsx
 // Единый экран входа: Telegram + Email (magic-link) + SMS (код).
 // Поддерживает светлую/тёмную тему и переключение языка.
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import TelegramLogin from "./TelegramLogin";
 import { Send, Mail, Phone, Check, AlertCircle, Sun, Moon, ArrowLeft } from "lucide-react";
 import Logo from "./Logo";
 import { t, setLang } from "../lib/i18n";
-import { signInGoogle as authSignInGoogle } from "../lib/auth";
+import { signInGoogle as authSignInGoogle, signInYandex } from "../lib/auth";
+import { isRussiaSync, detectRegion } from "../lib/region";
 import { authRedirectTo } from "../lib/platform";
 
 const darkVars = "--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;--lime-fg:#0a1612;";
@@ -41,7 +42,10 @@ const mkCss = (isLight) => `
 const emailOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
 export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark", lang = "ru", onThemeToggle, onLangChange }) {
-  const [method, setMethod] = useState("telegram"); // telegram | email | sms
+  const [method, setMethod] = useState("email"); // telegram | email | sms — по умолчанию email
+  const [isRF, setIsRF] = useState(isRussiaSync()); // РФ → скрываем Google (закон об авторизации)
+  useEffect(() => { detectRegion().then(setIsRF); }, []);
+  useEffect(() => { if (isRF && method === "telegram") setMethod("email"); }, [isRF, method]);
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
@@ -137,6 +141,7 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}><Logo theme={theme} showTagline /></div>
           <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 19, fontWeight: 600, color: "var(--ink)", textAlign: "center", marginTop: 8 }}>{t("login_title")}</div>
 
+          {!isRF && (
           <button onClick={signInGoogle} style={{
             width: "100%", marginTop: 16, padding: 12, borderRadius: 14, cursor: "pointer",
             background: "#fff", color: "#1f1f1f", border: "1px solid #dadce0", fontWeight: 700, fontFamily: "'Outfit',sans-serif",
@@ -147,18 +152,28 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
             </span>
             {t("login_google")}
           </button>
+          )}
+
+          <button onClick={signInYandex} style={{
+            width: "100%", marginTop: isRF ? 16 : 10, padding: 12, borderRadius: 14, cursor: "pointer",
+            background: "#fff", color: "#1f1f1f", border: "1px solid #dadce0", fontWeight: 700, fontFamily: "'Outfit',sans-serif",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+          }}>
+            <span style={{ fontFamily: "Arial, sans-serif", fontWeight: 900, fontSize: 17, color: "#FC3F1D" }}>Я</span>
+            {t("login_yandex")}
+          </button>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "16px 0 4px", color: "var(--mut)", fontSize: 12 }}>
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} /> или <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
           </div>
 
           <div className="lg-seg">
-            <button className={method === "telegram" ? "on" : ""} onClick={() => { setMethod("telegram"); reset(); }}><Send size={14} />Telegram</button>
+            {!isRF && <button className={method === "telegram" ? "on" : ""} onClick={() => { setMethod("telegram"); reset(); }}><Send size={14} />Telegram</button>}
             <button className={method === "email" ? "on" : ""} onClick={() => { setMethod("email"); reset(); }}><Mail size={14} />Email</button>
             <button className={method === "sms" ? "on" : ""} onClick={() => { setMethod("sms"); reset(); }}><Phone size={14} />SMS</button>
           </div>
 
-          {method === "telegram" && (
+          {!isRF && method === "telegram" && (
             <div>
               <p style={{ fontSize: 13, color: "var(--mut)", marginBottom: 12 }}>{t("login_via_tg")}</p>
               <TelegramLogin botName={botName} onSuccess={onSuccess} />

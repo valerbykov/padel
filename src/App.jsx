@@ -4,7 +4,7 @@
 // и прокидывает активную лигу в PadelLeague. Ссылка /j/CODE открывает экран гостя.
 import React, { useEffect, useState, useCallback } from "react";
 import { supabase } from "./lib/supabase";
-import { handleAuthCallbackUrl } from "./lib/auth";
+import { handleAuthCallbackUrl, handleYandexCallback } from "./lib/auth";
 import LoginScreen from "./components/LoginScreen";
 import GuestJoin from "./components/GuestJoin";
 import TournamentJoin from "./components/TournamentJoin";
@@ -117,7 +117,7 @@ export default function App() {
     if (!CapApp) return;
     let sub;
     const res = CapApp.addListener("appUrlOpen", async ({ url }) => {
-      if (url) await handleAuthCallbackUrl(url);
+      if (url) { if (!(await handleYandexCallback(url))) await handleAuthCallbackUrl(url); }
     });
     // Capacitor 8: addListener может вернуть handle напрямую ИЛИ Promise<handle>
     if (res && typeof res.then === "function") res.then((h) => { sub = h; });
@@ -126,12 +126,14 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    (async () => {
+      await handleYandexCallback().catch(() => {}); // возврат с Яндекса (?code=...) поднимет сессию
+      const { data } = await supabase.auth.getSession();
       setSession(data.session);
       if (window.location.hash.includes("access_token")) {
         window.history.replaceState({}, "", window.location.pathname);
       }
-    });
+    })();
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       // Supabase повторно шлёт это событие при фокусе вкладки / refresh токена.
       // Если сессия по сути та же — не пересоздаём state, иначе профиль и весь

@@ -1,7 +1,7 @@
 // lib/auth.js
 // Авторизация через Supabase Auth: email/пароль + Google.
 import { supabase } from "./supabase";
-import { authRedirectTo, isNativeApp, capPlugin } from "./platform";
+import { authRedirectTo, isNativeApp, capPlugin, NATIVE_REDIRECT } from "./platform";
 
 /* ---------- регистрация / вход ---------- */
 
@@ -112,4 +112,52 @@ export async function getMyProfile() {
     .maybeSingle();
   if (error) throw error;
   return data;
+}
+
+
+/* ---------- Яндекс (Yandex ID) — OAuth code flow ---------- */
+// Яндекса нет в нативных провайдерах Supabase, поэтому свой поток:
+// 1) редирект на oauth.yandex.ru; 2) возврат с ?code=; 3) edge-функция yandex-auth
+// меняет code на сессию (как telegram-auth).
+const YANDEX_CLIENT_ID = import.meta.env.VITE_YANDEX_CLIENT_ID;
+
+export function signInYandex() {
+  if (!YANDEX_CLIENT_ID) { console.warn("VITE_YANDEX_CLIENT_ID не задан"); return; }
+  const redirect = isNativeApp() ? NATIVE_REDIRECT : window.location.origin + "/";
+  const u = new URL("https://oauth.yandex.ru/authorize");
+  u.searchParams.set("response_type", "code");
+  u.searchParams.set("client_id", YANDEX_CLIENT_ID);
+  u.searchParams.set("redirect_uri", redirect);
+  u.searchParams.set("state", "padel_yandex");
+  // Нативка: Яндекс во встроенном webview капризен — открываем системный браузер,
+  // возврат ловим по deep link (padelpack://login-callback?code=...) в App.jsx.
+  if (isNativeApp()) {
+    const Browser = capPlugin("Browser");
+    if (Browser) { Browser.open({ url: u.toString() }); return; }
+  }
+  window.location.href = u.toString();
+}
+
+// Вызвать на старте: если вернулись с Яндекса (?code=...&state=padel_yandex) —
+// меняем code на сессию Supabase. Возвращает true при успехе.
+export async function handleYandexCallback(rawUrl) {
+  let qs;
+  if (rawUrl) { const i = rawUrl.indexOf("?"); qs = i >= 0 ? rawUrl.slice(i + 1) : ""; }
+  else { qs = (typeof window !== "undefined" ? window.location.search : "").replace(/^\?/, ""); }
+  const sp = new URLSearchParams(qs);
+  if (sp.get("state") !== "padel_yandex" || !sp.get("code")) return false;
+  const code = sp.get("code");
+  const redirect = isNativeApp() ? NATIVE_REDIRECT : window.location.origin + "/";
+  try {
+    const { data, error } = await supabase.functions.invoke("yandex-auth", { body: { code, redirect_uri: redirect } });
+    if (error) throw error;
+    let r = await supabase.auth.verifyOtp({ email: data.email, token: data.token, type: "email" });
+    if (r.error && data.token_hash) r = await supabase.auth.verifyOtp({ token_hash: data.token_hash, type: "email" });
+    return !r.error;
+  } catch (e) {
+    console.warn("yandex callback failed", e);
+    return false;
+  } finally {
+    if (!rawUrl && typeof window !== "undefined") window.history.replaceState({}, "", window.location.pathname);
+  }
 }

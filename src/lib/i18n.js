@@ -193,6 +193,7 @@ const T = {
     // ── Login ─────────────────────────────────────────────────────────────
     login_title: 'Вход',
     login_google: 'Войти через Google',
+    login_yandex: 'Войти через Яндекс',
     login_via_tg: 'Войди одним нажатием через свой Telegram-аккаунт.',
     login_get_link: 'Получить ссылку',
     login_get_code: 'Получить код',
@@ -458,6 +459,7 @@ const T = {
     // ── Login ─────────────────────────────────────────────────────────────
     login_title: 'Sign In',
     login_google: 'Sign in with Google',
+    login_yandex: 'Sign in with Yandex',
     login_via_tg: 'Sign in with one tap via your Telegram account.',
     login_get_link: 'Get magic link',
     login_get_code: 'Get code',
@@ -723,6 +725,7 @@ const T = {
     // ── Login ─────────────────────────────────────────────────────────────
     login_title: 'Acceder',
     login_google: 'Entrar con Google',
+    login_yandex: 'Entrar con Yandex',
     login_via_tg: 'Entra con un toque desde tu cuenta de Telegram.',
     login_get_link: 'Obtener enlace',
     login_get_code: 'Obtener código',
