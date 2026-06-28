@@ -7,7 +7,7 @@ import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
 import { t } from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
-import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2 } from "lucide-react";
+import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound } from "lucide-react";
 import Tournaments, { TournamentView } from "./components/Tournaments";
 import CourtView from "./components/CourtView";
 import EmptyState from "./components/EmptyState";
@@ -46,11 +46,14 @@ body.pl-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;-
 .pl-root.pl-light{color-scheme:light;background-image:radial-gradient(circle at 80% -10%,rgba(42,122,0,.06),transparent 45%),radial-gradient(circle at 0% 110%,rgba(40,120,90,.08),transparent 40%);}
 .pl-display{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;}
 .pl-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;}
-.pl-btn{background:var(--lime);color:var(--lime-fg);font-weight:700;border:none;border-radius:14px;cursor:pointer;transition:transform .12s,filter .12s;}
+.pl-btn{background:var(--lime);color:var(--lime-fg);font-weight:700;border:none;border-radius:14px;cursor:pointer;transition:transform .12s,filter .15s,box-shadow .15s;}
+.pl-btn:hover:not(:disabled){filter:brightness(1.05);box-shadow:0 6px 18px -8px color-mix(in srgb,var(--lime) 70%,transparent);}
 .pl-btn:active{transform:scale(.97);}.pl-btn:disabled{filter:grayscale(.6) brightness(.7);cursor:not-allowed;}
-.pl-ghost{background:var(--surface2);color:var(--ink);border:1px solid var(--line);border-radius:14px;cursor:pointer;}
-.pl-input,.pl-select{background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Outfit';outline:none;width:100%;}
-.pl-input:focus,.pl-select:focus{border-color:var(--lime);}
+.pl-ghost{background:var(--surface2);color:var(--ink);border:1px solid var(--line);border-radius:14px;cursor:pointer;transition:background .15s,border-color .15s;}
+.pl-ghost:hover{border-color:color-mix(in srgb,var(--lime) 35%,transparent);}
+.pl-input,.pl-select{background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Outfit';outline:none;width:100%;transition:border-color .15s,box-shadow .15s;}
+.pl-input::placeholder{color:var(--mut);}
+.pl-input:focus,.pl-select:focus{border-color:var(--lime);box-shadow:0 0 0 3px color-mix(in srgb,var(--lime) 18%,transparent);}
 .pl-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--mut);cursor:pointer;font-size:11px;font-weight:600;padding:8px 0;}
 .pl-tab.on{color:var(--lime);}
 .pl-pop{animation:pop .35s cubic-bezier(.2,.8,.2,1) both;}
@@ -149,31 +152,52 @@ function LeagueSwitcher({ leagues, activeLeague, isAdmin, onLeagueChange, onLeag
     } finally { setBusy(false); }
   };
 
+  const initialOf = (n = "") => (n.trim()[0] || "?").toUpperCase();
+  const roleLabel = (r) => r === "owner" ? "★" : r === "admin" ? "⚙" : "";
+
   return (
     <div style={{ position: "relative", flexShrink: 0 }}>
-      <button onClick={() => { setMenu((v) => !v); setMode(false); setErr(""); }}
-        style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 999, cursor: "pointer", color: "var(--ink)", fontFamily: "'Outfit'", fontSize: 13, maxWidth: 200 }}>
-        <Trophy size={14} style={{ color: "var(--lime)", flexShrink: 0 }} />
-        <span style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeLeague?.name || t("no_league_chip")}</span>
-        <span style={{ color: "var(--mut)", fontSize: 11, flexShrink: 0 }}>{menu ? "▲" : "▼"}</span>
+      <style>{`
+        .ls-trigger{transition:border-color .15s, background .15s;}
+        .ls-trigger:hover{border-color:color-mix(in srgb,var(--lime) 45%,transparent);}
+        .ls-item{transition:background .12s;}
+        .ls-item:hover{background:var(--surface2);}
+        .ls-foot-btn{transition:background .12s;}
+        .ls-foot-btn:hover{background:var(--surface2);}
+      `}</style>
+      <button className="ls-trigger" onClick={() => { setMenu((v) => !v); setMode(false); setErr(""); }}
+        style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px 6px 7px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 999, cursor: "pointer", color: "var(--ink)", fontFamily: "'Outfit'", fontSize: 13, maxWidth: 210 }}>
+        <span style={{ width: 26, height: 26, borderRadius: "50%", background: "color-mix(in srgb,var(--lime) 16%,transparent)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <Trophy size={14} style={{ color: "var(--lime)" }} />
+        </span>
+        <span style={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeLeague?.name || t("no_league_chip")}</span>
+        {menu ? <ChevronUp size={15} style={{ color: "var(--mut)", flexShrink: 0 }} /> : <ChevronDown size={15} style={{ color: "var(--mut)", flexShrink: 0 }} />}
       </button>
 
       {menu && (
-        <div className="pl-pop" style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, minWidth: 240, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 14, zIndex: 50, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,.25)" }}>
+        <div className="pl-pop" style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, minWidth: 250, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 16, zIndex: 50, overflow: "hidden", boxShadow: "0 12px 32px rgba(0,0,0,.35)" }}>
           {!mode && (
             <>
-              {has && leagues.map((lg) => (
-                <button key={lg.id} onClick={() => { onLeagueChange && onLeagueChange(lg.id); close(); }}
-                  style={{ width: "100%", padding: "11px 14px", textAlign: "left", background: lg.id === activeLeague?.id ? "var(--surface2)" : "none", border: "none", color: lg.id === activeLeague?.id ? "var(--lime)" : "var(--ink)", fontFamily: "'Outfit'", fontSize: 14, cursor: "pointer", display: "flex", justifyContent: "space-between", gap: 8 }}>
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lg.name}</span>
-                  {lg.role !== "member" && <span style={{ fontSize: 10, color: "var(--mut)" }}>{lg.role}</span>}
-                </button>
-              ))}
+              {has && <div style={{ padding: "10px 14px 6px", fontSize: 10, fontWeight: 700, letterSpacing: 1.2, color: "var(--mut)", textTransform: "uppercase" }}>{t("league_your")}</div>}
+              {has && leagues.map((lg) => {
+                const active = lg.id === activeLeague?.id;
+                return (
+                  <button key={lg.id} className="ls-item" onClick={() => { onLeagueChange && onLeagueChange(lg.id); close(); }}
+                    style={{ width: "100%", padding: "9px 12px", textAlign: "left", background: active ? "color-mix(in srgb,var(--lime) 10%,transparent)" : "none", border: "none", color: "var(--ink)", fontFamily: "'Outfit'", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, background: active ? "var(--lime)" : "var(--surface2)", color: active ? "var(--lime-fg)" : "var(--ink)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13 }}>{initialOf(lg.name)}</span>
+                    <span style={{ flex: 1, minWidth: 0, fontWeight: active ? 700 : 500, color: active ? "var(--lime)" : "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {lg.name}
+                      {lg.role !== "member" && <span style={{ marginLeft: 6, fontSize: 11, color: "var(--mut)" }}>{roleLabel(lg.role)}</span>}
+                    </span>
+                    {active && <Check size={16} style={{ color: "var(--lime)", flexShrink: 0 }} />}
+                  </button>
+                );
+              })}
               <div style={{ borderTop: has ? "1px solid var(--line)" : "none", display: "flex" }}>
-                <button onClick={() => { setMode("create"); setErr(""); }}
-                  style={{ flex: 1, padding: "11px 0", background: "none", border: "none", color: "var(--lime)", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit'" }}>{t("league_create")}</button>
-                <button onClick={() => { setMode("join"); setErr(""); }}
-                  style={{ flex: 1, padding: "11px 0", background: "none", border: "none", color: "var(--mut)", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit'" }}>{t("league_join_code")}</button>
+                <button className="ls-foot-btn" onClick={() => { setMode("create"); setErr(""); }}
+                  style={{ flex: 1, padding: "12px 0", background: "none", border: "none", color: "var(--lime)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'Outfit'", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}><PlusCircle size={15} /> {t("league_create")}</button>
+                <button className="ls-foot-btn" onClick={() => { setMode("join"); setErr(""); }}
+                  style={{ flex: 1, padding: "12px 0", background: "none", border: "none", borderLeft: "1px solid var(--line)", color: "var(--mut)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'Outfit'", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}><KeyRound size={15} /> {t("league_join_code")}</button>
               </div>
             </>
           )}
@@ -318,6 +342,7 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, theme = "d
     <div className="pl-pop">
       {/* Hero */}
       <div style={{ textAlign: "center", padding: "28px 0 22px" }}>
+        <img src={theme === "light" ? "/logo-mark-light.png" : "/logo-mark-dark.png"} alt="PadelPack" style={{ width: 60, height: 60, borderRadius: 16, margin: "0 auto 12px", display: "block", boxShadow: "0 8px 24px -10px rgba(0,0,0,.6)" }} />
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}><Logo theme={theme} showTagline /></div>
         <div style={{ fontSize: 14, color: "var(--mut)", lineHeight: 1.6, maxWidth: 270, margin: "10px auto 0" }}>
           {t("welcome_tagline")}

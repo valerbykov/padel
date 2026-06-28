@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a1612" />
+  <title>PadelPack — игры, лиги и турниры для твоей падел-компании</title>
+  <meta name="description" content="Собирай игры по ссылке, веди лигу, проводи турниры (Американо, Мексикано) и следи за честным ELO-рейтингом. Без таблиц в мессенджерах." />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="PadelPack — своя стая на корте" />
+  <meta property="og:description" content="Игры, лиги, турниры и честный рейтинг для твоей падел-компании." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/logo-mark-dark.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    :root{
+      --bg:#0a1612; --surface:#11211b; --surface2:#16291f; --line:#22382c;
+      --ink:#eef3ee; --mut:#7d9488; --lime:#c8ff2d; --coral:#ff6a52; --lime-fg:#0a1612;
+      --maxw:1080px;
+    }
+    *,*::before,*::after{box-sizing:border-box;}
+    html{scroll-behavior:smooth;}
+    body{
+      margin:0; background:var(--bg); color:var(--ink);
+      font-family:'Outfit',system-ui,'Segoe UI',Roboto,sans-serif;
+      -webkit-font-smoothing:antialiased; overflow-x:clip; line-height:1.5;
+      background-image:
+        radial-gradient(circle at 82% -8%, rgba(200,255,45,.12), transparent 42%),
+        radial-gradient(circle at -5% 18%, rgba(40,120,90,.20), transparent 40%),
+        radial-gradient(circle at 50% 120%, rgba(255,106,82,.07), transparent 45%);
+    }
+    a{color:inherit; text-decoration:none;}
+    .wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px;}
+    .display{font-family:'Anton',sans-serif; font-weight:400; letter-spacing:.3px; text-transform:uppercase; line-height:1;}
+
+    /* wordmark */
+    .word{font-family:'Outfit'; font-weight:800; letter-spacing:-.5px; white-space:nowrap; line-height:1;}
+    .word .a{color:var(--lime);} .word .b{color:var(--ink);}
+
+    /* ── Header ── */
+    header{position:sticky; top:0; z-index:50; backdrop-filter:blur(12px);
+      background:color-mix(in srgb,var(--bg) 78%,transparent); border-bottom:1px solid var(--line);}
+    .nav{display:flex; align-items:center; justify-content:space-between; height:62px;}
+    .nav-left{display:flex; align-items:center; gap:10px;}
+    .nav-left img{width:30px; height:30px; border-radius:8px;}
+    .nav-right{display:flex; align-items:center; gap:10px;}
+    .langsw{display:flex; background:var(--surface2); border:1px solid var(--line); border-radius:11px; padding:3px;}
+    .langsw button{border:none; background:none; color:var(--mut); font-family:'Outfit'; font-weight:700;
+      font-size:12px; padding:5px 9px; border-radius:8px; cursor:pointer; transition:.15s;}
+    .langsw button.on{background:var(--lime); color:var(--lime-fg);}
+    .btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; cursor:pointer;
+      font-family:'Outfit'; font-weight:700; border-radius:13px; border:1px solid transparent;
+      padding:11px 18px; font-size:14px; transition:transform .12s, filter .15s; white-space:nowrap;}
+    .btn:hover{transform:translateY(-1px);}
+    .btn-primary{background:var(--lime); color:var(--lime-fg);}
+    .btn-primary:hover{filter:brightness(1.05);}
+    .btn-ghost{background:var(--surface2); color:var(--ink); border-color:var(--line);}
+    .btn-lg{padding:14px 26px; font-size:15.5px; border-radius:15px;}
+
+    /* ── Hero ── */
+    .hero{padding:64px 0 56px; position:relative;}
+    .hero-grid{display:grid; grid-template-columns:1.15fr .85fr; gap:42px; align-items:center;}
+    .pill{display:inline-flex; align-items:center; gap:8px; background:color-mix(in srgb,var(--lime) 12%,transparent);
+      border:1px solid color-mix(in srgb,var(--lime) 35%,transparent); color:var(--lime);
+      font-weight:600; font-size:12.5px; padding:6px 13px; border-radius:999px; margin-bottom:22px;}
+    .pill .dot{width:7px; height:7px; border-radius:50%; background:var(--lime); box-shadow:0 0 0 4px color-mix(in srgb,var(--lime) 22%,transparent);}
+    h1.hero-title{font-size:clamp(38px,6.4vw,68px); margin:0 0 18px;}
+    h1.hero-title .hl{color:var(--lime);}
+    .hero-sub{font-size:clamp(16px,2.2vw,19px); color:var(--mut); max-width:520px; margin:0 0 30px;}
+    .hero-cta{display:flex; gap:14px; flex-wrap:wrap; align-items:center;}
+    .hero-note{margin-top:18px; color:var(--mut); font-size:13px; display:flex; gap:16px; flex-wrap:wrap;}
+    .hero-note span{display:inline-flex; align-items:center; gap:7px;}
+    .tick{color:var(--lime);}
+
+    /* hero visual — phone card */
+    .phone{position:relative; justify-self:center; width:100%; max-width:330px;}
+    .phone-frame{background:linear-gradient(160deg,var(--surface2),var(--surface)); border:1px solid var(--line);
+      border-radius:34px; padding:14px; box-shadow:0 30px 80px -30px rgba(0,0,0,.8), 0 0 0 1px rgba(200,255,45,.05);}
+    .phone-screen{background:var(--bg); border-radius:24px; border:1px solid var(--line); overflow:hidden;}
+    .ps-top{display:flex; align-items:center; justify-content:space-between; padding:13px 15px; border-bottom:1px solid var(--line);}
+    .ps-row{display:flex; align-items:center; gap:11px; padding:10px 15px;}
+    .ps-row + .ps-row{border-top:1px solid color-mix(in srgb,var(--line) 60%,transparent);}
+    .ps-rank{font-family:'Anton'; font-size:16px; width:18px; color:var(--mut); text-align:center; flex-shrink:0;}
+    .ps-rank.g{color:#ffd23f;} .ps-rank.s{color:#cfd8d0;} .ps-rank.b{color:#cd7f4d;}
+    .ps-av{width:34px; height:34px; border-radius:50%; background:var(--surface2); border:1px solid var(--line);
+      display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; color:var(--lime); flex-shrink:0;}
+    .ps-info{flex:1; min-width:0;}
+    .ps-name{font-weight:600; font-size:14px; line-height:1.2;}
+    .ps-meta{display:flex; align-items:center; gap:7px; font-size:11px; color:var(--mut); margin-top:3px; flex-wrap:wrap;}
+    .ps-lvl{font-size:9.5px; font-weight:700; padding:1px 6px; border-radius:7px;
+      background:color-mix(in srgb,var(--lime) 15%,transparent); color:var(--lime); border:1px solid color-mix(in srgb,var(--lime) 35%,transparent);}
+    .ps-lvl.exp{background:rgba(126,200,227,.15); color:#7ec8e3; border-color:rgba(126,200,227,.35);}
+    .ps-streak{color:var(--coral); font-weight:600;}
+    .float{position:absolute; background:var(--surface); border:1px solid var(--line); border-radius:16px;
+      padding:11px 14px; box-shadow:0 14px 40px -14px rgba(0,0,0,.7); font-size:12.5px; font-weight:600;
+      display:flex; align-items:center; gap:9px;}
+    .float .ic{width:30px; height:30px; border-radius:9px; background:color-mix(in srgb,var(--lime) 16%,transparent);
+      display:flex; align-items:center; justify-content:center;}
+    .float-1{top:-18px; right:-14px; animation:bob 4s ease-in-out infinite;}
+    .float-2{bottom:34px; left:-26px; animation:bob 4s ease-in-out .8s infinite;}
+    @keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-9px);}}
+
+    /* ── Logos / trust strip ── */
+    .strip{border-top:1px solid var(--line); border-bottom:1px solid var(--line); background:color-mix(in srgb,var(--surface) 50%,transparent);}
+    .strip-in{display:flex; flex-wrap:wrap; gap:14px 30px; align-items:center; justify-content:center; padding:18px 0; color:var(--mut); font-size:13.5px; font-weight:600;}
+    .strip-in b{color:var(--ink);}
+    .chip{display:inline-flex; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--line); padding:7px 13px; border-radius:11px;}
+
+    /* ── Section ── */
+    section.block{padding:72px 0;}
+    .sec-head{text-align:center; max-width:640px; margin:0 auto 46px;}
+    .eyebrow{color:var(--lime); font-weight:700; font-size:13px; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:12px;}
+    .sec-head h2{font-size:clamp(28px,4.2vw,42px); margin:0 0 14px;}
+    .sec-head p{color:var(--mut); font-size:16.5px; margin:0;}
+
+    /* features grid */
+    .feat{display:grid; grid-template-columns:repeat(3,1fr); gap:18px;}
+    .card{background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:24px;
+      transition:transform .15s, border-color .15s;}
+    .card:hover{transform:translateY(-3px); border-color:color-mix(in srgb,var(--lime) 40%,transparent);}
+    .card .ic{width:46px; height:46px; border-radius:13px; background:color-mix(in srgb,var(--lime) 14%,transparent);
+      display:flex; align-items:center; justify-content:center; margin-bottom:16px;}
+    .card h3{font-size:18px; margin:0 0 8px;}
+    .card p{color:var(--mut); font-size:14.5px; margin:0;}
+
+    /* formats */
+    .formats{display:grid; grid-template-columns:repeat(4,1fr); gap:16px;}
+    .fmt{background:linear-gradient(165deg,var(--surface2),var(--surface)); border:1px solid var(--line);
+      border-radius:18px; padding:22px 20px; position:relative; overflow:hidden;}
+    .fmt .emoji{font-size:30px; margin-bottom:14px;}
+    .fmt h4{margin:0 0 6px; font-size:17px;}
+    .fmt p{margin:0; color:var(--mut); font-size:13.5px;}
+
+    /* steps */
+    .steps{display:grid; grid-template-columns:repeat(3,1fr); gap:22px; counter-reset:step;}
+    .step{position:relative; padding-top:8px;}
+    .step .n{font-family:'Anton'; font-size:54px; color:color-mix(in srgb,var(--lime) 28%,transparent); line-height:1; margin-bottom:6px;}
+    .step h4{margin:0 0 8px; font-size:19px;}
+    .step p{margin:0; color:var(--mut); font-size:15px;}
+
+    /* CTA band */
+    .cta{margin:18px auto 0; max-width:var(--maxw);}
+    .cta-in{background:
+        radial-gradient(circle at 85% 20%, rgba(200,255,45,.16), transparent 55%),
+        linear-gradient(160deg,var(--surface2),var(--surface));
+      border:1px solid color-mix(in srgb,var(--lime) 30%,transparent); border-radius:28px;
+      padding:54px 40px; text-align:center;}
+    .cta-in h2{font-size:clamp(26px,4vw,40px); margin:0 0 14px;}
+    .cta-in p{color:var(--mut); font-size:17px; margin:0 0 28px;}
+
+    /* footer */
+    footer{border-top:1px solid var(--line); padding:34px 0 44px; margin-top:72px;}
+    .foot{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;}
+    .foot-links{display:flex; gap:22px; flex-wrap:wrap; color:var(--mut); font-size:14px;}
+    .foot-links a:hover{color:var(--lime);}
+    .foot-copy{color:var(--mut); font-size:13px;}
+
+    /* reveal anim */
+    .reveal{opacity:0; transform:translateY(18px); transition:opacity .6s ease, transform .6s ease;}
+    .reveal.in{opacity:1; transform:none;}
+
+    @media (max-width:880px){
+      .hero-grid{grid-template-columns:1fr; gap:40px;}
+      .phone{order:-1; max-width:290px;}
+      .feat{grid-template-columns:repeat(2,1fr);}
+      .formats{grid-template-columns:repeat(2,1fr);}
+      .steps{grid-template-columns:1fr;}
+      .float-2{left:-12px;}
+    }
+    @media (max-width:560px){
+      .feat{grid-template-columns:1fr;}
+      .formats{grid-template-columns:1fr;}
+      .nav .btn-ghost{display:none;}
+      .cta-in{padding:40px 22px;}
+      .hero{padding:44px 0 40px;}
+      .float-2{display:none;}
+    }
+    @media (prefers-reduced-motion:reduce){
+      *{animation:none !important; scroll-behavior:auto;}
+      .reveal{opacity:1; transform:none;}
+    }
+  </style>
+</head>
+<body>
+  <!-- ─────────────── HEADER ─────────────── -->
+  <header>
+    <div class="wrap nav">
+      <div class="nav-left">
+        <img src="/logo-mark-dark.png" alt="" width="30" height="30" onerror="this.style.display='none'" />
+        <span class="word" style="font-size:21px;"><span class="a">Padel</span><span class="b">Pack</span></span>
+      </div>
+      <div class="nav-right">
+        <div class="langsw" id="langsw">
+          <button data-lang="ru">RU</button>
+          <button data-lang="en">EN</button>
+          <button data-lang="es">ES</button>
+        </div>
+        <a class="btn btn-ghost" href="/" data-i18n="nav_open"></a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ─────────────── HERO ─────────────── -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div class="reveal in">
+        <div class="pill"><span class="dot"></span><span data-i18n="hero_pill"></span></div>
+        <h1 class="hero-title" data-i18n-html="hero_title"></h1>
+        <p class="hero-sub" data-i18n="hero_sub"></p>
+        <div class="hero-cta">
+          <a class="btn btn-primary btn-lg" href="/" data-i18n="hero_cta_primary"></a>
+          <a class="btn btn-ghost btn-lg" href="#features" data-i18n="hero_cta_secondary"></a>
+        </div>
+        <div class="hero-note">
+          <span><span class="tick">✓</span> <span data-i18n="hero_note_1"></span></span>
+          <span><span class="tick">✓</span> <span data-i18n="hero_note_2"></span></span>
+          <span><span class="tick">✓</span> <span data-i18n="hero_note_3"></span></span>
+        </div>
+      </div>
+
+      <!-- phone mock -->
+      <div class="phone reveal in">
+        <div class="float float-1">
+          <span class="ic" style="color:var(--lime);font-weight:800;font-size:16px;">✓</span><span data-i18n="float_match"></span>
+        </div>
+        <div class="phone-frame">
+          <div class="phone-screen">
+            <div class="ps-top">
+              <span class="word" style="font-size:16px;"><span class="a">Padel</span><span class="b">Pack</span></span>
+              <span style="font-size:11px; color:var(--mut); font-weight:600;" data-i18n="mock_standings"></span>
+            </div>
+            <div class="ps-row">
+              <span class="ps-rank g">1</span>
+              <span class="ps-av">МК</span>
+              <div class="ps-info">
+                <span class="ps-name">Макс К. 👑</span>
+                <span class="ps-meta">⚔ 28 · 🏆 3 <span class="ps-lvl" data-i18n="mock_lvl_master"></span> <span class="ps-streak">🔥 5</span></span>
+              </div>
+            </div>
+            <div class="ps-row">
+              <span class="ps-rank s">2</span>
+              <span class="ps-av">АН</span>
+              <div class="ps-info">
+                <span class="ps-name">Аня Н.</span>
+                <span class="ps-meta">⚔ 22 · 🏆 2 <span class="ps-lvl exp" data-i18n="mock_lvl_exp"></span></span>
+              </div>
+            </div>
+            <div class="ps-row">
+              <span class="ps-rank b">3</span>
+              <span class="ps-av">ДВ</span>
+              <div class="ps-info">
+                <span class="ps-name">Дима В.</span>
+                <span class="ps-meta">⚔ 19 · 🏆 1 <span class="ps-lvl exp" data-i18n="mock_lvl_exp"></span></span>
+              </div>
+            </div>
+            <div class="ps-row">
+              <span class="ps-rank">4</span>
+              <span class="ps-av">ЛС</span>
+              <div class="ps-info">
+                <span class="ps-name">Лена С.</span>
+                <span class="ps-meta">⚔ 12 <span class="ps-lvl" data-i18n="mock_lvl_amateur"></span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="float float-2">
+          <span class="ic">🏆</span><span data-i18n="float_tournament"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── TRUST STRIP ─────────────── -->
+  <div class="strip">
+    <div class="wrap strip-in">
+      <span data-i18n="strip_intro"></span>
+      <span class="chip">🌗 <span data-i18n="strip_theme"></span></span>
+      <span class="chip">🌍 RU · EN · ES</span>
+      <span class="chip">📊 <span data-i18n="strip_elo"></span></span>
+      <span class="chip">🔗 <span data-i18n="strip_link"></span></span>
+      <span class="chip">📲 PWA</span>
+    </div>
+  </div>
+
+  <!-- ─────────────── FEATURES ─────────────── -->
+  <section class="block" id="features">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div class="eyebrow" data-i18n="feat_eyebrow"></div>
+        <h2 data-i18n="feat_title"></h2>
+        <p data-i18n="feat_sub"></p>
+      </div>
+      <div class="feat">
+        <div class="card reveal"><div class="ic">🔗</div><h3 data-i18n="f1_t"></h3><p data-i18n="f1_d"></p></div>
+        <div class="card reveal"><div class="ic">🏟️</div><h3 data-i18n="f2_t"></h3><p data-i18n="f2_d"></p></div>
+        <div class="card reveal"><div class="ic">🏆</div><h3 data-i18n="f3_t"></h3><p data-i18n="f3_d"></p></div>
+        <div class="card reveal"><div class="ic">📊</div><h3 data-i18n="f4_t"></h3><p data-i18n="f4_d"></p></div>
+        <div class="card reveal"><div class="ic">📈</div><h3 data-i18n="f5_t"></h3><p data-i18n="f5_d"></p></div>
+        <div class="card reveal"><div class="ic">🔐</div><h3 data-i18n="f6_t"></h3><p data-i18n="f6_d"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── FORMATS ─────────────── -->
+  <section class="block" style="padding-top:0;">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div class="eyebrow" data-i18n="fmt_eyebrow"></div>
+        <h2 data-i18n="fmt_title"></h2>
+        <p data-i18n="fmt_sub"></p>
+      </div>
+      <div class="formats">
+        <div class="fmt reveal"><div class="emoji">🎾</div><h4>Американо</h4><p data-i18n="fmt_amer"></p></div>
+        <div class="fmt reveal"><div class="emoji">🧠</div><h4>Мексикано</h4><p data-i18n="fmt_mex"></p></div>
+        <div class="fmt reveal"><div class="emoji">👑</div><h4 data-i18n="fmt_koth_t"></h4><p data-i18n="fmt_koth"></p></div>
+        <div class="fmt reveal"><div class="emoji">📦</div><h4 data-i18n="fmt_btb_t"></h4><p data-i18n="fmt_btb"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── HOW IT WORKS ─────────────── -->
+  <section class="block" style="padding-top:0;">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div class="eyebrow" data-i18n="how_eyebrow"></div>
+        <h2 data-i18n="how_title"></h2>
+      </div>
+      <div class="steps">
+        <div class="step reveal"><div class="n">01</div><h4 data-i18n="s1_t"></h4><p data-i18n="s1_d"></p></div>
+        <div class="step reveal"><div class="n">02</div><h4 data-i18n="s2_t"></h4><p data-i18n="s2_d"></p></div>
+        <div class="step reveal"><div class="n">03</div><h4 data-i18n="s3_t"></h4><p data-i18n="s3_d"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── CTA ─────────────── -->
+  <section class="cta wrap">
+    <div class="cta-in reveal">
+      <h2 data-i18n="cta_title"></h2>
+      <p data-i18n="cta_sub"></p>
+      <a class="btn btn-primary btn-lg" href="/" data-i18n="cta_btn"></a>
+    </div>
+  </section>
+
+  <!-- ─────────────── FOOTER ─────────────── -->
+  <footer>
+    <div class="wrap foot">
+      <div class="nav-left">
+        <img src="/logo-mark-dark.png" alt="" width="26" height="26" onerror="this.style.display='none'" style="width:26px;height:26px;border-radius:7px;" />
+        <span class="word" style="font-size:17px;"><span class="a">Padel</span><span class="b">Pack</span></span>
+      </div>
+      <div class="foot-links">
+        <a href="/" data-i18n="nav_open"></a>
+        <a href="#features" data-i18n="foot_features"></a>
+        <a href="/privacy.html" data-i18n="foot_privacy"></a>
+        <a href="mailto:valerbykov@gmail.com">valerbykov@gmail.com</a>
+      </div>
+    </div>
+    <div class="wrap foot" style="margin-top:18px;">
+      <div class="foot-copy">© 2026 PadelPack · <span data-i18n="foot_tagline"></span></div>
+    </div>
+  </footer>
+
+  <script>
+    // ───────── i18n ─────────
+    const I18N = {
+      ru:{
+        nav_open:"Открыть приложение",
+        hero_pill:"Игры, лиги и турниры в одном месте",
+        hero_title:'Своя <span class="hl">стая</span> на корте',
+        hero_sub:"Собирай игры по ссылке, веди лигу, проводи турниры и следи за статистикой — всё в одном приложении.",
+        hero_cta_primary:"Начать",
+        hero_cta_secondary:"Как это работает",
+        hero_note_1:"Без установки",
+        hero_note_2:"Друзья заходят в один тап",
+        hero_note_3:"RU · EN · ES",
+        float_match:"Матч засчитан",
+        float_tournament:"Турнир создан",
+        mock_standings:"Таблица лиги",
+        mock_lvl_master:"Мастер", mock_lvl_exp:"Опытный", mock_lvl_amateur:"Любитель",
+        strip_intro:"Создано игроками для игроков",
+        strip_theme:"Тёмная и светлая темы",
+        strip_elo:"Уровни и ачивки",
+        strip_link:"Игры по ссылке",
+        feat_eyebrow:"Возможности",
+        feat_title:"Всё для твоей падел-компании",
+        feat_sub:"Меньше рутины с организацией — больше игры на корте.",
+        f1_t:"Игры по ссылке",
+        f1_d:"Создай игру и пришли ссылку — друзья занимают места в один тап, даже без регистрации.",
+        f2_t:"Лиги",
+        f2_d:"Собери свою компанию, веди общий рейтинг и историю всех встреч.",
+        f3_t:"Турниры",
+        f3_d:"Американо, Мексикано и другие форматы с автоматическим расписанием: каждый играет со всеми.",
+        f4_t:"Статистика",
+        f4_d:"Победы, серии, лучшие напарники и вся история игр под рукой.",
+        f5_t:"Уровни и достижения",
+        f5_d:"Уровни игроков, серии побед и ачивки — прогресс компании виден в таблице лиги.",
+        f6_t:"Удобный вход",
+        f6_d:"Google, Яндекс, Telegram, email или SMS — выбирай свой способ.",
+        fmt_eyebrow:"Форматы турниров",
+        fmt_title:"Каждый играет со всеми",
+        fmt_sub:"Автоматическое расписание под любой состав и количество кортов.",
+        fmt_amer:"Идеально для дебюта — все меняются партнёрами каждый раунд.",
+        fmt_mex:"Умный подбор соперников по текущему рейтингу.",
+        fmt_koth_t:"King of the Court",
+        fmt_koth:"Держи корт! Команды фиксируются, пары не меняются.",
+        fmt_btb_t:"Beat the Box",
+        fmt_btb:"Вызови чемпиона и поднимайся по коробкам наверх.",
+        how_eyebrow:"Как это работает",
+        how_title:"Три шага до первой игры",
+        s1_t:"Создай игру или лигу",
+        s1_d:"Выбери формат, дату и корт. На всё уходит меньше минуты.",
+        s2_t:"Пришли ссылку",
+        s2_d:"Друзья открывают её и занимают места в один тап — без установки и регистрации.",
+        s3_t:"Играй и следи за таблицей",
+        s3_d:"Внеси счёт — таблица лиги, статистика и история обновятся автоматически.",
+        cta_title:"Готов собрать свою стаю?",
+        cta_sub:"Бесплатно. Открывается прямо в браузере, ставится как приложение.",
+        cta_btn:"Открыть PadelPack",
+        foot_features:"Возможности",
+        foot_privacy:"Конфиденциальность",
+        foot_tagline:"лига друзей · своя стая на корте",
+      },
+      en:{
+        nav_open:"Open the app",
+        hero_pill:"Games, leagues & tournaments in one place",
+        hero_title:'Your <span class="hl">pack</span> on court',
+        hero_sub:"Organize games by link, run a league, hold tournaments and track your stats — all in one app.",
+        hero_cta_primary:"Get started",
+        hero_cta_secondary:"How it works",
+        hero_note_1:"No install",
+        hero_note_2:"Friends join in one tap",
+        hero_note_3:"EN · RU · ES",
+        float_match:"Match recorded",
+        float_tournament:"Tournament created",
+        mock_standings:"League table",
+        mock_lvl_master:"Master", mock_lvl_exp:"Experienced", mock_lvl_amateur:"Amateur",
+        strip_intro:"Made by players for players",
+        strip_theme:"Dark & light themes",
+        strip_elo:"Levels & badges",
+        strip_link:"Games by link",
+        feat_eyebrow:"Features",
+        feat_title:"Everything for your padel crew",
+        feat_sub:"Less organizing, more padel on court.",
+        f1_t:"Games by link",
+        f1_d:"Create a game and share a link — friends grab spots in one tap, even without signing up.",
+        f2_t:"Leagues",
+        f2_d:"Build your crew, keep a shared rating and a full match history.",
+        f3_t:"Tournaments",
+        f3_d:"Americano, Mexicano and more with automatic scheduling: everyone plays with everyone.",
+        f4_t:"Stats",
+        f4_d:"Wins, streaks, best partners and your full game history at a glance.",
+        f5_t:"Levels & achievements",
+        f5_d:"Player levels, win streaks and badges — your crew's progress shows in the league table.",
+        f6_t:"Easy sign-in",
+        f6_d:"Google, Yandex, Telegram, email or SMS — pick your own way.",
+        fmt_eyebrow:"Tournament formats",
+        fmt_title:"Everyone plays everyone",
+        fmt_sub:"Automatic scheduling for any roster and number of courts.",
+        fmt_amer:"Perfect for beginners — partners rotate every round.",
+        fmt_mex:"Smart matchmaking based on current ratings.",
+        fmt_koth_t:"King of the Court",
+        fmt_koth:"Hold the court! Teams are fixed, pairs don't change.",
+        fmt_btb_t:"Beat the Box",
+        fmt_btb:"Challenge the champion and climb up the boxes.",
+        how_eyebrow:"How it works",
+        how_title:"Three steps to your first game",
+        s1_t:"Create a game or league",
+        s1_d:"Pick a format, date and court. It takes less than a minute.",
+        s2_t:"Share the link",
+        s2_d:"Friends open it and grab a spot in one tap — no install, no sign-up.",
+        s3_t:"Play and track the table",
+        s3_d:"Enter the score — the league table, stats and history update automatically.",
+        cta_title:"Ready to gather your pack?",
+        cta_sub:"Free. Opens right in the browser, installs as an app.",
+        cta_btn:"Open PadelPack",
+        foot_features:"Features",
+        foot_privacy:"Privacy",
+        foot_tagline:"a league of friends · your pack on court",
+      },
+      es:{
+        nav_open:"Abrir la app",
+        hero_pill:"Partidas, ligas y torneos en un solo lugar",
+        hero_title:'Tu <span class="hl">jauría</span> en la pista',
+        hero_sub:"Organiza partidas por enlace, lleva una liga, celebra torneos y sigue tus estadísticas — todo en una app.",
+        hero_cta_primary:"Empezar",
+        hero_cta_secondary:"Cómo funciona",
+        hero_note_1:"Sin instalar",
+        hero_note_2:"Tus amigos entran en un toque",
+        hero_note_3:"ES · EN · RU",
+        float_match:"Partido registrado",
+        float_tournament:"Torneo creado",
+        mock_standings:"Tabla de la liga",
+        mock_lvl_master:"Maestro", mock_lvl_exp:"Experimentado", mock_lvl_amateur:"Amateur",
+        strip_intro:"Hecho por jugadores para jugadores",
+        strip_theme:"Temas claro y oscuro",
+        strip_elo:"Niveles y logros",
+        strip_link:"Partidas por enlace",
+        feat_eyebrow:"Funciones",
+        feat_title:"Todo para tu grupo de pádel",
+        feat_sub:"Menos organización, más pádel en la pista.",
+        f1_t:"Partidas por enlace",
+        f1_d:"Crea una partida y comparte el enlace — tus amigos ocupan plaza en un toque, incluso sin registrarse.",
+        f2_t:"Ligas",
+        f2_d:"Forma tu grupo, mantén una clasificación común y todo el historial de partidos.",
+        f3_t:"Torneos",
+        f3_d:"Americano, Mexicano y más con horario automático: todos juegan con todos.",
+        f4_t:"Estadísticas",
+        f4_d:"Victorias, rachas, mejores compañeros y todo tu historial a mano.",
+        f5_t:"Niveles y logros",
+        f5_d:"Niveles de jugador, rachas de victorias y logros — el progreso del grupo se ve en la tabla.",
+        f6_t:"Acceso fácil",
+        f6_d:"Google, Yandex, Telegram, email o SMS — elige el tuyo.",
+        fmt_eyebrow:"Formatos de torneo",
+        fmt_title:"Todos juegan con todos",
+        fmt_sub:"Horario automático para cualquier grupo y número de pistas.",
+        fmt_amer:"Perfecto para debutar — las parejas rotan cada ronda.",
+        fmt_mex:"Emparejamiento inteligente según la clasificación actual.",
+        fmt_koth_t:"King of the Court",
+        fmt_koth:"¡Mantén la pista! Los equipos se fijan, las parejas no cambian.",
+        fmt_btb_t:"Beat the Box",
+        fmt_btb:"Desafía al campeón y sube por las cajas.",
+        how_eyebrow:"Cómo funciona",
+        how_title:"Tres pasos hasta tu primera partida",
+        s1_t:"Crea una partida o liga",
+        s1_d:"Elige formato, fecha y pista. Toma menos de un minuto.",
+        s2_t:"Comparte el enlace",
+        s2_d:"Tus amigos lo abren y ocupan plaza en un toque — sin instalar ni registrarse.",
+        s3_t:"Juega y sigue la tabla",
+        s3_d:"Introduce el marcador — la tabla de la liga, estadísticas e historial se actualizan solos.",
+        cta_title:"¿Listo para reunir a tu jauría?",
+        cta_sub:"Gratis. Se abre en el navegador y se instala como app.",
+        cta_btn:"Abrir PadelPack",
+        foot_features:"Funciones",
+        foot_privacy:"Privacidad",
+        foot_tagline:"una liga de amigos · tu jauría en la pista",
+      },
+    };
+
+    function applyLang(lang){
+      const dict = I18N[lang] || I18N.ru;
+      document.documentElement.lang = lang;
+      document.querySelectorAll("[data-i18n]").forEach(el=>{
+        const k = el.getAttribute("data-i18n");
+        if(dict[k] != null) el.textContent = dict[k];
+      });
+      document.querySelectorAll("[data-i18n-html]").forEach(el=>{
+        const k = el.getAttribute("data-i18n-html");
+        if(dict[k] != null) el.innerHTML = dict[k];
+      });
+      document.querySelectorAll("#langsw button").forEach(b=>{
+        b.classList.toggle("on", b.getAttribute("data-lang") === lang);
+      });
+      try{ localStorage.setItem("plLang", lang); }catch(e){}
+    }
+
+    function pickLang(){
+      const url = new URLSearchParams(location.search).get("lang");
+      if(url && I18N[url]) return url;
+      let stored; try{ stored = localStorage.getItem("plLang"); }catch(e){}
+      if(stored && I18N[stored]) return stored;
+      const nav = (navigator.language || "ru").slice(0,2);
+      return I18N[nav] ? nav : "ru";
+    }
+
+    document.getElementById("langsw").addEventListener("click", e=>{
+      const b = e.target.closest("button"); if(!b) return;
+      applyLang(b.getAttribute("data-lang"));
+    });
+    applyLang(pickLang());
+
+    // ───────── reveal on scroll ─────────
+    const io = new IntersectionObserver((entries)=>{
+      entries.forEach(en=>{ if(en.isIntersecting){ en.target.classList.add("in"); io.unobserve(en.target); } });
+    }, { threshold:.12 });
+    document.querySelectorAll(".reveal:not(.in)").forEach(el=>io.observe(el));
+  </script>
+</body>
+</html>

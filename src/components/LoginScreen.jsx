@@ -20,8 +20,12 @@ const mkCss = (isLight) => `
  font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;flex-direction:column;
  background-image:radial-gradient(circle at 80% -10%,${isLight ? "rgba(42,122,0,.06)" : "rgba(200,255,45,.10)"},transparent 45%),radial-gradient(circle at 0% 110%,${isLight ? "rgba(40,120,90,.08)" : "rgba(40,120,90,.18)"},transparent 40%);}
 .lg-body{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;}
-.lg-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--bg) 85%,transparent);}
-.lg-card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:24px;width:100%;max-width:400px;}
+.lg-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(10px);}
+.lg-card{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:26px 24px 22px;width:100%;max-width:400px;box-shadow:0 24px 60px -28px rgba(0,0,0,.6);}
+.lg-mark{width:54px;height:54px;border-radius:15px;display:block;margin:0 auto 12px;box-shadow:0 8px 24px -10px rgba(0,0,0,.6);}
+.lg-sub{font-family:'Outfit',sans-serif;font-size:13.5px;color:var(--mut);text-align:center;line-height:1.45;margin:6px auto 2px;max-width:300px;}
+.lg-trust{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line);color:var(--mut);font-size:12px;}
+.lg-trust .dot{width:5px;height:5px;border-radius:50%;background:var(--lime);}
 .lg-display{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;}
 .lg-seg{display:flex;background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:4px;margin:18px 0;}
 .lg-seg button{flex:1;border:none;background:none;color:var(--mut);font-family:'Outfit';font-weight:600;font-size:13px;
@@ -31,9 +35,17 @@ const mkCss = (isLight) => `
  font-family:'Outfit';padding:12px;outline:none;box-sizing:border-box;font-size:15px;}
 .lg-input:focus{border-color:var(--lime);}
 .lg-btn{width:100%;background:var(--lime);color:var(--lime-fg);font-weight:700;border:none;border-radius:14px;padding:13px;
- cursor:pointer;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px;font-family:'Outfit';font-size:15px;}
+ cursor:pointer;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px;font-family:'Outfit';font-size:15px;
+ transition:transform .12s, filter .15s;}
+.lg-btn:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.05);}
+.lg-btn:active:not(:disabled){transform:translateY(0);}
 .lg-btn:disabled{filter:grayscale(.6) brightness(.7);cursor:not-allowed;}
 .lg-btn-sec{background:var(--surface2);color:var(--ink);border:1px solid var(--line);}
+.lg-oauth{width:100%;margin-top:16px;padding:12px;border-radius:14px;cursor:pointer;background:#fff;color:#1f1f1f;
+ border:1px solid #dadce0;font-weight:700;font-family:'Outfit',sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;
+ transition:transform .12s, box-shadow .15s;}
+.lg-oauth:hover{transform:translateY(-1px);box-shadow:0 6px 18px -8px rgba(0,0,0,.5);}
+.lg-seg button{transition:background .15s, color .15s;}
 .lg-msg{display:flex;align-items:center;gap:8px;font-size:13px;margin-top:12px;padding:10px 12px;border-radius:12px;}
 .lg-iconbtn{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:6px 10px;cursor:pointer;color:var(--mut);display:flex;align-items:center;gap:4px;font-family:'Outfit';font-size:11px;font-weight:700;}
 .lg-iconbtn.active{background:color-mix(in srgb,var(--lime) 18%,transparent);color:var(--lime);border-color:color-mix(in srgb,var(--lime) 40%,transparent);}
@@ -138,15 +150,12 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
       {/* Main content */}
       <div className="lg-body">
         <div className="lg-card">
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}><Logo theme={theme} showTagline /></div>
-          <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 19, fontWeight: 600, color: "var(--ink)", textAlign: "center", marginTop: 8 }}>{t("login_title")}</div>
+          <img className="lg-mark" src={theme === "light" ? "/logo-mark-light.png" : "/logo-mark-dark.png"} alt="PadelPack" />
+          <div style={{ display: "flex", justifyContent: "center" }}><Logo theme={theme} showTagline /></div>
+          <div className="lg-sub">{t("login_subtitle")}</div>
 
           {!isRF && (
-          <button onClick={signInGoogle} style={{
-            width: "100%", marginTop: 16, padding: 12, borderRadius: 14, cursor: "pointer",
-            background: "#fff", color: "#1f1f1f", border: "1px solid #dadce0", fontWeight: 700, fontFamily: "'Outfit',sans-serif",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-          }}>
+          <button className="lg-oauth" onClick={signInGoogle}>
             <span style={{ fontFamily: "Arial, sans-serif", fontWeight: 700, fontSize: 16 }}>
               <span style={{ color: "#4285F4" }}>G</span><span style={{ color: "#EA4335" }}>o</span><span style={{ color: "#FBBC05" }}>o</span><span style={{ color: "#4285F4" }}>g</span><span style={{ color: "#34A853" }}>l</span><span style={{ color: "#EA4335" }}>e</span>
             </span>
@@ -155,11 +164,7 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
           )}
 
           {isRF && (
-          <button onClick={signInYandex} style={{
-            width: "100%", marginTop: 16, padding: 12, borderRadius: 14, cursor: "pointer",
-            background: "#fff", color: "#1f1f1f", border: "1px solid #dadce0", fontWeight: 700, fontFamily: "'Outfit',sans-serif",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-          }}>
+          <button className="lg-oauth" onClick={signInYandex}>
             <span style={{ fontFamily: "Arial, sans-serif", fontWeight: 900, fontSize: 17, color: "#FC3F1D" }}>Я</span>
             {t("login_yandex")}
           </button>
@@ -215,6 +220,8 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
               <Msg />
             </div>
           )}
+
+          <div className="lg-trust"><span className="dot" /> {t("login_trust")}</div>
         </div>
       </div>
     </div>

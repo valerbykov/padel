@@ -178,6 +178,17 @@ export default function CourtView({
 
   return (
     <div style={{ marginBottom: 14 }}>
+      <style>{`
+        .cv-num{transition:transform .1s, background .12s, border-color .12s;}
+        .cv-num:hover:not(:disabled){background:#1e3528;border-color:color-mix(in srgb,#c8ff2d 40%,transparent);}
+        .cv-num:active:not(:disabled){transform:scale(.94);}
+        .cv-save{transition:transform .12s, filter .15s, box-shadow .15s;}
+        .cv-save:hover:not(:disabled){filter:brightness(1.05);box-shadow:0 6px 18px -8px rgba(200,255,45,.6);}
+        .cv-save:active:not(:disabled){transform:scale(.98);}
+        .cv-setbtn{transition:filter .12s, transform .1s;}
+        .cv-setbtn:hover{filter:brightness(1.1);}
+        .cv-setbtn:active{transform:scale(.96);}
+      `}</style>
       {/* Корт */}
       <div style={{ position: "relative", width: "100%", borderRadius: 14, overflow: "hidden" }}>
         <img src={bgUrl} alt="корт" style={{ width: "100%", display: "block" }} />
@@ -232,7 +243,7 @@ export default function CourtView({
               {!pickSets && useRanges && !range ? (
                 <div style={{ width: "100%", display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
                   {ranges.map(([s, e]) => (
-                    <button key={s} onClick={() => setRange([s, e])} style={{
+                    <button key={s} className="cv-num" onClick={() => setRange([s, e])} style={{
                       padding: "16px 0", borderRadius: 12, cursor: "pointer",
                       fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 20,
                       background: "#16291f", color: "#eef3ee", border: "1px solid #22382c",
@@ -249,7 +260,7 @@ export default function CourtView({
                     return arr.map((n) => {
                       const cur = pickerCurVal === n;
                       return (
-                        <button key={n} disabled={busy} onClick={() => pickSets ? pickSetScore(n) : pickSumFree(pickFor, n)} style={{
+                        <button key={n} className="cv-num" disabled={busy} onClick={() => pickSets ? pickSetScore(n) : pickSumFree(pickFor, n)} style={{
                           padding: "12px 0", borderRadius: 12, cursor: "pointer",
                           fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 20,
                           background: cur ? "#c8ff2d" : "#16291f",
@@ -296,13 +307,13 @@ export default function CourtView({
           {editable && !savedAlready && (
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
               {setsDetail.length < 5 && (
-                <button onClick={addSet} style={{
+                <button className="cv-setbtn" onClick={addSet} style={{
                   flex: 1, padding: "10px 0", borderRadius: 10, border: "1px solid color-mix(in srgb, var(--lime) 45%, transparent)",
                   background: "color-mix(in srgb, var(--lime) 12%, transparent)", color: "var(--lime)", cursor: "pointer", fontSize: 14, fontWeight: 700, fontFamily: "'Outfit',sans-serif",
                 }}>+ Добавить сет</button>
               )}
               {setsDetail.length > 1 && (
-                <button onClick={removeLastSet} style={{
+                <button className="cv-setbtn" onClick={removeLastSet} style={{
                   padding: "10px 16px", borderRadius: 10, border: "1px solid var(--line)",
                   background: "var(--surface2)", color: "var(--mut)", cursor: "pointer", fontSize: 14, fontWeight: 700,
                 }}>−</button>
@@ -314,7 +325,7 @@ export default function CourtView({
 
       {/* Кнопка записи — sets */}
       {editable && mode === "sets" && !savedAlready && (
-        <button onClick={saveSets} disabled={!setsValid || busy} style={{
+        <button className="cv-save" onClick={saveSets} disabled={!setsValid || busy} style={{
           width: "100%", marginTop: 8, padding: 11, borderRadius: 12, border: "none",
           cursor: setsValid ? "pointer" : "not-allowed", fontWeight: 700,
           fontFamily: "'Outfit',sans-serif", background: "var(--lime)", color: "var(--lime-fg)",
@@ -326,7 +337,7 @@ export default function CourtView({
 
       {/* Кнопка записи — free */}
       {editable && mode === "free" && (
-        <button onClick={saveFree} disabled={dA == null || dB == null || dA === dB || busy} style={{
+        <button className="cv-save" onClick={saveFree} disabled={dA == null || dB == null || dA === dB || busy} style={{
           width: "100%", marginTop: 8, padding: 11, borderRadius: 12, border: "none",
           cursor: "pointer", fontWeight: 700, fontFamily: "'Outfit',sans-serif",
           background: "var(--lime)", color: "var(--lime-fg)",

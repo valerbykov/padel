@@ -13,6 +13,7 @@ import PadelLeague from "./PadelLeague";
 import ProfileEditor from "./components/ProfileEditor";
 import LeagueSetup from "./components/LeagueSetup";
 import LeaguePublicPage from "./components/LeaguePublicPage";
+import Landing from "./components/Landing";
 import Logo from "./components/Logo";
 import { LogIn, Sun, Moon } from "lucide-react";
 import { getMyLeagues } from "./lib/padelApi";
@@ -53,6 +54,10 @@ export default function App() {
   const handleLangChange = useCallback((l) => { setLang(l); setLangState(l); }, []);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showInstall,   setShowInstall]   = useState(false);
+  // Гостям показываем встроенный лендинг первым экраном. После «Посмотреть
+  // приложение» запоминаем выбор, чтобы не упираться в стену при возврате.
+  const [skipLanding,   setSkipLanding]   = useState(() => !!localStorage.getItem("plLandingSeen"));
+  const dismissLanding = useCallback(() => { localStorage.setItem("plLandingSeen", "1"); setSkipLanding(true); }, []);
 
   // Нативный статус-бар (Android/iOS). На Android env(safe-area-inset-top) для
   // строки состояния = 0, поэтому CSS-отступ не помогает — говорим системе НЕ
@@ -205,6 +210,11 @@ export default function App() {
   if (showLogin && !session)
     return <LoginScreen botName={BOT_NAME} onSuccess={() => setShowLogin(false)} onBack={() => setShowLogin(false)} theme={theme} lang={lang} onThemeToggle={toggleTheme} onLangChange={handleLangChange} />;
 
+  // Гость на «чистом» входе (без спец-ссылки) — встроенный лендинг.
+  if (!session && !skipLanding)
+    return <Landing theme={theme} lang={lang} onThemeToggle={toggleTheme} onLangChange={handleLangChange}
+      onStart={() => setShowLogin(true)} onBrowse={dismissLanding} />;
+
   if (showProfile && session)
     return <ProfileEditor onClose={() => setShowProfile(false)} onSaved={() => setPNonce((n) => n + 1)} theme={theme} />;
 
@@ -290,38 +300,48 @@ export default function App() {
 }
 
 function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme, onThemeToggle, lang = "ru", onLangChange }) {
-  const base = { border: "1px solid var(--line)", borderRadius: 10, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif" };
+  const base = { border: "1px solid var(--line)", borderRadius: 11, padding: "7px 12px", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif", transition: "transform .12s, filter .15s, background .15s" };
   const initials = (name || "").trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
-      padding: "10px 16px", borderBottom: "1px solid var(--line)",
+      padding: "10px 16px", paddingTop: "max(10px, env(safe-area-inset-top))",
+      borderBottom: "1px solid var(--line)",
       background: "var(--topbar-bg)", position: "sticky", top: 0, zIndex: 60,
-      fontFamily: "'Outfit',sans-serif",
+      fontFamily: "'Outfit',sans-serif", backdropFilter: "blur(10px)",
     }}>
+      {/* Лёгкий hover/active без переезда на CSS-файл */}
+      <style>{`.tb-btn:hover{filter:brightness(1.07)}.tb-btn:active{transform:translateY(1px)}.tb-profile:hover{background:var(--surface2)}`}</style>
       {session ? (
-        <button onClick={onProfile} style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", color: "var(--ink)", padding: 0 }}>
+        <button onClick={onProfile} className="tb-profile" style={{ display: "flex", alignItems: "center", gap: 9, background: "none", border: "1px solid transparent", borderRadius: 999, cursor: "pointer", color: "var(--ink)", padding: "4px 10px 4px 4px", transition: "background .15s" }}>
           {avatarUrl
-            ? <img src={avatarUrl} alt="" style={{ width: 30, height: 30, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
-            : <span style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "var(--lime)" }}>{initials}</span>}
-          <span style={{ fontSize: 14, fontWeight: 600 }}>{name || "Профиль"}</span>
+            ? <img src={avatarUrl} alt="" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
+            : <span style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "var(--lime)" }}>{initials}</span>}
+          <span style={{ fontSize: 14, fontWeight: 600, maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name || "Профиль"}</span>
         </button>
       ) : (
-        <Logo theme={theme} height={22} gap={8} />
+        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+          <img src={theme === "light" ? "/logo-mark-light.png" : "/logo-mark-dark.png"} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0 }} />
+          <Logo theme={theme} height={21} gap={8} />
+        </div>
       )}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <button onClick={() => { const o = ["ru","en","es"]; onLangChange?.(o[(o.indexOf(lang) + 1) % o.length]); }}
-          style={{ ...base, background: "var(--surface2)", color: "var(--ink)", padding: "6px 10px", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
-          {lang.toUpperCase()} <span style={{ color: "var(--mut)", fontWeight: 400, fontSize: 13 }}>↻</span>
-        </button>
-        <button onClick={onThemeToggle} title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
-          style={{ ...base, background: "var(--surface2)", color: "var(--mut)", display: "flex", alignItems: "center", padding: "6px 9px" }}>
-          {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
-        </button>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        {/* lang + theme — единая группа-сегмент */}
+        <div style={{ display: "flex", gap: 4, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, padding: 3 }}>
+          <button className="tb-btn" onClick={() => { const o = ["ru","en","es"]; onLangChange?.(o[(o.indexOf(lang) + 1) % o.length]); }}
+            title="RU / EN / ES"
+            style={{ border: "none", background: "none", color: "var(--ink)", padding: "5px 9px", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 5, borderRadius: 9, cursor: "pointer", fontFamily: "'Outfit',sans-serif" }}>
+            {lang.toUpperCase()} <span style={{ color: "var(--mut)", fontWeight: 400, fontSize: 13 }}>↻</span>
+          </button>
+          <button className="tb-btn" onClick={onThemeToggle} title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
+            style={{ border: "none", background: "none", color: "var(--mut)", display: "flex", alignItems: "center", padding: "5px 8px", borderRadius: 9, cursor: "pointer" }}>
+            {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
+        </div>
         {session ? (
-          <button onClick={onSignOut} style={{ ...base, background: "var(--surface2)", color: "var(--mut)", whiteSpace: "nowrap" }}>{t("sign_out")}</button>
+          <button className="tb-btn" onClick={onSignOut} style={{ ...base, background: "var(--surface2)", color: "var(--mut)", whiteSpace: "nowrap" }}>{t("sign_out")}</button>
         ) : (
-          <button onClick={onLogin} style={{ ...base, background: "var(--lime)", color: "var(--lime-fg)", border: "none", fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+          <button className="tb-btn" onClick={onLogin} style={{ ...base, background: "var(--lime)", color: "var(--lime-fg)", border: "none", fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
             <LogIn size={15} /> {t("sign_in")}
           </button>
         )}

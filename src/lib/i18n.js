@@ -13,7 +13,7 @@ const T = {
     // ── League ────────────────────────────────────────────────────────────
     league_title: 'PADELPACK',
     league_admin: 'admin', league_member: 'участник',
-    league_create: 'Создать', league_join_code: 'По коду', league_join_btn: 'Вступить',
+    league_create: 'Создать', league_join_code: 'По коду', league_join_btn: 'Вступить', league_your: 'Твои лиги',
     league_new_title: 'Новая лига', league_join_title: 'Вступить по коду',
     welcome_choose_title: 'С чего начнём?',
     welcome_choose_sub: 'Создай свою лигу, чтобы собирать игроков для игр и турниров, или вступи в существующую по коду приглашения.',
@@ -59,7 +59,7 @@ const T = {
     install_btn: 'Установить',
     // ── Gate ──────────────────────────────────────────────────────────────
     gate_title: 'Только для участников лиги',
-    gate_sub: 'Войди через кнопку наверху, чтобы видеть рейтинг друзей, историю игр и статистику.',
+    gate_sub: 'Войди через кнопку наверху, чтобы видеть таблицу лиги, историю игр и статистику.',
     // ── Not in league ─────────────────────────────────────────────────────
     not_in_league: 'Не в лиге',
     not_in_league_title: 'Ты не в лиге',
@@ -86,10 +86,10 @@ const T = {
     not_in_league_sub: 'Создай свою лигу или вступи по коду на вкладке «Друзья». А играть в чужих матчах можно по ссылке-приглашению.',
     // ── Welcome screen ────────────────────────────────────────────────────
     chart_empty: 'Сыграй матч — появится динамика рейтинга.',
-    welcome_tagline: 'Рейтинг, матчи и статистика для твоей падел-компании',
+    welcome_tagline: 'Таблица, матчи и статистика для твоей падел-компании',
     welcome_cta: '🚀 Войти и начать',
     welcome_code_hint: 'Попроси организатора прислать код приглашения лиги',
-    feat_board_title: 'Рейтинговая таблица',
+    feat_board_title: 'Таблица лиги',
     feat_board_sub: 'Следи за прогрессом и уровнем каждого игрока',
     feat_stats_title: 'Статистика и бейджи',
     feat_stats_sub: 'Серии побед, лучший партнёр, ачивки и уровни',
@@ -203,6 +203,19 @@ const T = {
     login_sms_sent: 'Код отправлен по SMS',
     login_sending: 'Отправляю…',
     login_checking: 'Проверяю…',
+    login_subtitle: 'Войди, чтобы создавать игры, вести лигу и следить за статистикой',
+    login_trust: 'Создано игроками для игроков',
+    // ── Landing (in-app, для гостей) ──────────────────────────────────────
+    lp_pill: 'Игры, лиги и турниры в одном месте',
+    lp_title_pre: 'Своя ', lp_title_hl: 'стая', lp_title_post: ' на корте',
+    lp_sub: 'Игры по ссылке, лиги, турниры и статистика — всё в одном приложении.',
+    lp_start: 'Начать',
+    lp_browse: 'Посмотреть приложение',
+    lp_f1_t: 'Игры по ссылке', lp_f1_d: 'Друзья заходят в один тап',
+    lp_f2_t: 'Лиги и таблица', lp_f2_d: 'Уровни, ачивки и серии побед',
+    lp_f3_t: 'Турниры', lp_f3_d: 'Американо, Мексикано и др.',
+    lp_note: 'Без установки · RU · EN · ES · тёмная и светлая темы',
+    lp_about: 'Подробнее о PadelPack →',
     // ── Tournament formats ────────────────────────────────────────────────
     fmt_americano_name: 'Американо',
     fmt_americano_tagline: 'Идеально для дебюта',
@@ -279,7 +292,7 @@ const T = {
     // ── League ────────────────────────────────────────────────────────────
     league_title: 'PADELPACK',
     league_admin: 'admin', league_member: 'member',
-    league_create: 'Create', league_join_code: 'By code', league_join_btn: 'Join',
+    league_create: 'Create', league_join_code: 'By code', league_join_btn: 'Join', league_your: 'Your leagues',
     league_new_title: 'New league', league_join_title: 'Join by code',
     welcome_choose_title: 'Where to start?',
     welcome_choose_sub: 'Create your own league to gather players for games and tournaments, or join an existing one with an invite code.',
@@ -325,7 +338,7 @@ const T = {
     install_btn: 'Install',
     // ── Gate ──────────────────────────────────────────────────────────────
     gate_title: 'Members only',
-    gate_sub: 'Sign in to see friend rankings, match history and stats.',
+    gate_sub: 'Sign in to see the league table, match history and stats.',
     // ── Not in league ─────────────────────────────────────────────────────
     not_in_league: 'Not in league',
     not_in_league_title: 'Not in a league',
@@ -352,10 +365,10 @@ const T = {
     not_in_league_sub: 'Create your own league or join by code on the Friends tab. You can also play in others’ matches via an invite link.',
     // ── Welcome screen ────────────────────────────────────────────────────
     chart_empty: 'Play a match to see your rating history.',
-    welcome_tagline: 'Ratings, matches and stats for your padel crew',
+    welcome_tagline: 'Standings, matches and stats for your padel crew',
     welcome_cta: '🚀 Sign in & start',
     welcome_code_hint: 'Ask the organizer for a league invite code',
-    feat_board_title: 'Leaderboard',
+    feat_board_title: 'League table',
     feat_board_sub: 'Track each player\'s progress and level',
     feat_stats_title: 'Stats & badges',
     feat_stats_sub: 'Win streaks, best partner, achievements and levels',
@@ -469,6 +482,19 @@ const T = {
     login_sms_sent: 'Code sent by SMS',
     login_sending: 'Sending…',
     login_checking: 'Checking…',
+    login_subtitle: 'Sign in to create games, run a league and track your stats',
+    login_trust: 'Made by players for players',
+    // ── Landing (in-app, for guests) ──────────────────────────────────────
+    lp_pill: 'Games, leagues & tournaments in one place',
+    lp_title_pre: 'Your ', lp_title_hl: 'pack', lp_title_post: ' on court',
+    lp_sub: 'Games by link, leagues, tournaments and stats — all in one app.',
+    lp_start: 'Get started',
+    lp_browse: 'Browse the app',
+    lp_f1_t: 'Games by link', lp_f1_d: 'Friends join in one tap',
+    lp_f2_t: 'Leagues & table', lp_f2_d: 'Levels, badges & win streaks',
+    lp_f3_t: 'Tournaments', lp_f3_d: 'Americano, Mexicano & more',
+    lp_note: 'No install · EN · RU · ES · dark & light themes',
+    lp_about: 'More about PadelPack →',
     // ── Tournament formats ────────────────────────────────────────────────
     fmt_americano_name: 'Americano',
     fmt_americano_tagline: 'Perfect for beginners',
@@ -545,7 +571,7 @@ const T = {
     // ── League ────────────────────────────────────────────────────────────
     league_title: 'PADELPACK',
     league_admin: 'admin', league_member: 'miembro',
-    league_create: 'Crear', league_join_code: 'Por código', league_join_btn: 'Unirse',
+    league_create: 'Crear', league_join_code: 'Por código', league_join_btn: 'Unirse', league_your: 'Tus ligas',
     league_new_title: 'Nueva liga', league_join_title: 'Unirse con código',
     welcome_choose_title: '¿Por dónde empezar?',
     welcome_choose_sub: 'Crea tu propia liga para reunir jugadores para partidas y torneos, o únete a una existente con un código de invitación.',
@@ -591,7 +617,7 @@ const T = {
     install_btn: 'Instalar',
     // ── Gate ──────────────────────────────────────────────────────────────
     gate_title: 'Solo para miembros',
-    gate_sub: 'Entra para ver el ranking, historial de partidas y estadísticas.',
+    gate_sub: 'Entra para ver la tabla de la liga, historial de partidas y estadísticas.',
     // ── Not in league ─────────────────────────────────────────────────────
     not_in_league: 'No en liga',
     not_in_league_title: 'No estás en una liga',
@@ -621,7 +647,7 @@ const T = {
     welcome_tagline: 'Clasificación, partidas y estadísticas para tu grupo de pádel',
     welcome_cta: '🚀 Entrar y empezar',
     welcome_code_hint: 'Pide al organizador un código de invitación a la liga',
-    feat_board_title: 'Clasificación',
+    feat_board_title: 'Tabla de la liga',
     feat_board_sub: 'Sigue el progreso y nivel de cada jugador',
     feat_stats_title: 'Estadísticas y badges',
     feat_stats_sub: 'Rachas, mejor compañero, logros y niveles',
@@ -735,6 +761,19 @@ const T = {
     login_sms_sent: 'Código enviado por SMS',
     login_sending: 'Enviando…',
     login_checking: 'Verificando…',
+    login_subtitle: 'Entra para crear partidas, llevar una liga y seguir tus estadísticas',
+    login_trust: 'Hecho por jugadores para jugadores',
+    // ── Landing (in-app, para invitados) ──────────────────────────────────
+    lp_pill: 'Partidas, ligas y torneos en un solo lugar',
+    lp_title_pre: 'Tu ', lp_title_hl: 'jauría', lp_title_post: ' en la pista',
+    lp_sub: 'Partidas por enlace, ligas, torneos y estadísticas — todo en una app.',
+    lp_start: 'Empezar',
+    lp_browse: 'Ver la app',
+    lp_f1_t: 'Partidas por enlace', lp_f1_d: 'Tus amigos entran en un toque',
+    lp_f2_t: 'Ligas y tabla', lp_f2_d: 'Niveles, logros y rachas',
+    lp_f3_t: 'Torneos', lp_f3_d: 'Americano, Mexicano y más',
+    lp_note: 'Sin instalar · ES · EN · RU · temas claro y oscuro',
+    lp_about: 'Más sobre PadelPack →',
     // ── Tournament formats ────────────────────────────────────────────────
     fmt_americano_name: 'Americano',
     fmt_americano_tagline: 'Perfecto para debutantes',
