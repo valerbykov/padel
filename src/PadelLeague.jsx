@@ -51,7 +51,7 @@ body.pl-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;-
 .pl-btn:active{transform:scale(.97);}.pl-btn:disabled{filter:grayscale(.6) brightness(.7);cursor:not-allowed;}
 .pl-ghost{background:var(--surface2);color:var(--ink);border:1px solid var(--line);border-radius:14px;cursor:pointer;transition:background .15s,border-color .15s;}
 .pl-ghost:hover{border-color:color-mix(in srgb,var(--lime) 35%,transparent);}
-.pl-input,.pl-select{background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Outfit';outline:none;width:100%;transition:border-color .15s,box-shadow .15s;}
+.pl-input,.pl-select{background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Outfit';font-size:16px;outline:none;width:100%;transition:border-color .15s,box-shadow .15s;}
 .pl-input::placeholder{color:var(--mut);}
 .pl-input:focus,.pl-select:focus{border-color:var(--lime);box-shadow:0 0 0 3px color-mix(in srgb,var(--lime) 18%,transparent);}
 .pl-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--mut);cursor:pointer;font-size:11px;font-weight:600;padding:8px 0;}
@@ -229,7 +229,7 @@ function LeagueSwitcher({ leagues, activeLeague, isAdmin, onLeagueChange, onLeag
   );
 }
 
-export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin }) {
+export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin, onOpenLanding }) {
   const [tab, setTab] = useState(session ? "board" : "welcome");
   const [players, setPlayers] = useState([]);
   const [archiveNonce, setArchiveNonce] = useState(0);
@@ -296,7 +296,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
           </div>
         )}
 
-        {tab === "welcome" && !session && <WelcomeScreen onLogin={onLogin} onBrowseGames={() => setTab("games")} onBrowseTournaments={() => setTab("tournaments")} theme={theme} lang={lang} onThemeToggle={onThemeToggle} onLangChange={onLangChange} />}
+        {tab === "welcome" && !session && <WelcomeScreen onLogin={onLogin} onBrowseGames={() => setTab("games")} onBrowseTournaments={() => setTab("tournaments")} onOpenLanding={onOpenLanding} theme={theme} lang={lang} onThemeToggle={onThemeToggle} onLangChange={onLangChange} />}
         {tab === "board" && (session ? <Board groupId={groupId} players={players} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} /> : <GateScreen />)}
         {tab === "games" && <Games groupId={groupId} players={players} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} />}
         {tab === "tournaments" && <Tournaments groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} />}
@@ -331,7 +331,7 @@ function GateScreen() {
 }
 
 /* ------------------------------ WelcomeScreen ----------------------------- */
-function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, theme = "dark", lang = "ru", onThemeToggle, onLangChange }) {
+function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLanding, theme = "dark", lang = "ru", onThemeToggle, onLangChange }) {
   const features = [
     { icon: "🏆", title: t("feat_board_title"), sub: t("feat_board_sub") },
     { icon: "📊", title: t("feat_stats_title"), sub: t("feat_stats_sub") },
@@ -369,6 +369,14 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, theme = "d
       <div style={{ textAlign: "center", marginTop: 12, fontSize: 12, color: "var(--mut)" }}>
         {t("welcome_code_hint")}
       </div>
+
+      {onOpenLanding && (
+        <div style={{ textAlign: "center", marginTop: 14 }}>
+          <button onClick={onOpenLanding} style={{ background: "none", border: "none", color: "var(--lime)", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif" }}>
+            {t("lp_about")}
+          </button>
+        </div>
+      )}
 
       {/* Lang + theme controls */}
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 6, marginTop: 18, flexWrap: "wrap" }}>

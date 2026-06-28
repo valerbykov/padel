@@ -91,7 +91,9 @@ export default function CourtView({
       : [{ a: null, b: null }];  // по умолчанию 1 сет
   const [setsDetail, setSetsDetail] = useState(() => initSets(scoreDetail));
   const [pickSets, setPickSets] = useState(null); // {setIdx, team}
+  const [buf, setBuf] = useState(""); // буфер цифрового ввода счёта
   useEffect(() => { setSetsDetail(initSets(scoreDetail)); }, [JSON.stringify(scoreDetail)]); // eslint-disable-line
+  useEffect(() => { setBuf(""); }, [pickFor, pickSets]); // сброс при смене цели ввода
 
   const setsWonA = setsDetail.filter((s) => s.a != null && s.b != null && s.a > s.b).length;
   const setsWonB = setsDetail.filter((s) => s.a != null && s.b != null && s.b > s.a).length;
@@ -155,9 +157,21 @@ export default function CourtView({
     : (pickFor === "A" ? dA : dB);
   const closePicker = () => { closePick(); closePickSets(); };
 
+  // Цифровая клавиатура: прямой ввод счёта вместо «диапазон → число» для больших максимумов.
+  const useKeypad = useRanges && !pickSets;
+  const kpConfirm = (n) => { if (n == null || n > pickerMax) return; pickSumFree(pickFor, n); };
+  const kpDigit = (d) => {
+    if (buf === "" && d === 0) { kpConfirm(0); return; }       // одиночный «0» — сразу
+    const cand = buf + String(d);
+    const num = Number(cand);
+    if (num > pickerMax) return;                                // не даём ввести больше максимума
+    setBuf(cand);
+    if (cand.length >= 2 || num * 10 > pickerMax) kpConfirm(num); // авто-подтверждение, когда дальше цифру не добавить
+  };
+  const KP = { padding: "16px 0", borderRadius: 12, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22, background: "#16291f", color: "#eef3ee", border: "1px solid #22382c" };
+
   const getPickerTitle = () => {
     if (pickSets) return <>Сет {pickSets.setIdx + 1} · команда <b style={{ color: pickerColor }}>{pickSets.team}</b> (0–7)</>;
-    if (useRanges && !range) return <>Счёт команды <b style={{ color: pickerColor }}>{pickFor}</b> — диапазон</>;
     return <>Счёт команды <b style={{ color: pickerColor }}>{pickFor}</b> (0–{max})</>;
   };
 
@@ -190,7 +204,7 @@ export default function CourtView({
         .cv-setbtn:active{transform:scale(.96);}
       `}</style>
       {/* Корт */}
-      <div style={{ position: "relative", width: "100%", borderRadius: 14, overflow: "hidden" }}>
+      <div style={{ position: "relative", width: "100%", borderRadius: 14, overflow: "hidden", minHeight: (pickFor && useKeypad) ? 408 : undefined }}>
         <img src={bgUrl} alt="корт" style={{ width: "100%", display: "block" }} />
         {editable && mode !== "sets" && !savedAlready && !pickFor && (
           <>
@@ -239,24 +253,35 @@ export default function CourtView({
               <button onClick={closePicker} style={{ background: "none", border: "none", color: "#7d9488", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>✕</button>
             </div>
 
-            <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
-              {!pickSets && useRanges && !range ? (
-                <div style={{ width: "100%", display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
-                  {ranges.map(([s, e]) => (
-                    <button key={s} className="cv-num" onClick={() => setRange([s, e])} style={{
-                      padding: "16px 0", borderRadius: 12, cursor: "pointer",
-                      fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 20,
-                      background: "#16291f", color: "#eef3ee", border: "1px solid #22382c",
-                    }}>{s}–{e}</button>
-                  ))}
-                </div>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+              {useKeypad ? (
+                <>
+                  {/* Дисплей набранного счёта */}
+                  <div style={{ textAlign: "center", marginBottom: 12 }}>
+                    <span style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 42, lineHeight: 1, color: buf === "" ? "#42554a" : pickerColor }}>
+                      {buf === "" ? "0" : buf}
+                    </span>
+                    {mode === "sum" && (
+                      <div style={{ marginTop: 6, fontSize: 12.5, color: "#7d9488" }}>
+                        соперник: <b style={{ color: "#eef3ee" }}>{points - (buf === "" ? 0 : Number(buf))}</b>
+                      </div>
+                    )}
+                  </div>
+                  {/* Клавиатура */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => (
+                      <button key={d} className="cv-num" disabled={busy} onClick={() => kpDigit(d)} style={KP}>{d}</button>
+                    ))}
+                    <button className="cv-num" disabled={busy || buf === ""} onClick={() => setBuf(buf.slice(0, -1))} style={{ ...KP, color: "#7d9488", opacity: buf === "" ? .5 : 1 }}>⌫</button>
+                    <button className="cv-num" disabled={busy} onClick={() => kpDigit(0)} style={KP}>0</button>
+                    <button className="cv-num" disabled={busy || buf === ""} onClick={() => kpConfirm(Number(buf))} style={{ ...KP, background: buf === "" ? "#16291f" : "#c8ff2d", color: buf === "" ? "#42554a" : "#0a1612", border: "1px solid " + (buf === "" ? "#22382c" : "#c8ff2d") }}>✓</button>
+                  </div>
+                </>
               ) : (
                 <div style={{ width: "100%", display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
                   {(() => {
-                    const lo = !pickSets && useRanges && range ? range[0] : 0;
-                    const hi = !pickSets && useRanges && range ? range[1] : pickerMax;
                     const arr = [];
-                    for (let n = lo; n <= hi; n++) arr.push(n);
+                    for (let n = 0; n <= pickerMax; n++) arr.push(n);
                     return arr.map((n) => {
                       const cur = pickerCurVal === n;
                       return (
@@ -273,7 +298,7 @@ export default function CourtView({
                 </div>
               )}
             </div>
-            {mode === "sum" && (
+            {mode === "sum" && !useKeypad && (
               <div style={{ marginTop: 8, fontSize: 12, color: "#7d9488", textAlign: "center" }}>
                 счёт второй команды посчитается сам
               </div>

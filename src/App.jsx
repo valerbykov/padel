@@ -58,6 +58,8 @@ export default function App() {
   // приложение» запоминаем выбор, чтобы не упираться в стену при возврате.
   const [skipLanding,   setSkipLanding]   = useState(() => !!localStorage.getItem("plLandingSeen"));
   const dismissLanding = useCallback(() => { localStorage.setItem("plLandingSeen", "1"); setSkipLanding(true); }, []);
+  // Снова показать встроенный лендинг (ссылка со стартового экрана у гостя).
+  const openLanding = useCallback(() => { localStorage.removeItem("plLandingSeen"); setSkipLanding(false); }, []);
 
   // Нативный статус-бар (Android/iOS). На Android env(safe-area-inset-top) для
   // строки состояния = 0, поэтому CSS-отступ не помогает — говорим системе НЕ
@@ -294,6 +296,7 @@ export default function App() {
         onThemeToggle={toggleTheme}
         onLangChange={handleLangChange}
         onLogin={() => setShowLogin(true)}
+        onOpenLanding={openLanding}
       />
     </div>
   );

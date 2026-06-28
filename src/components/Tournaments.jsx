@@ -13,7 +13,7 @@ import { getAllKotHTeams } from "../lib/mexicano";
 import CourtView from "./CourtView";
 import StandingsTable from "./StandingsTable";
 import EmptyState from "./EmptyState";
-import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, Share2, Trash2, Plus, Check } from "lucide-react";
+import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Share2, Trash2, Plus, Check } from "lucide-react";
 import { t as tr } from "../lib/i18n";
 const nowLocalDT = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
 
@@ -25,7 +25,9 @@ const css = `
 .tr-btn{background:var(--lime);color:var(--lime-fg);font-weight:700;border:none;border-radius:14px;cursor:pointer;}
 .tr-btn:disabled{filter:grayscale(.6) brightness(.7);cursor:not-allowed;}
 .tr-ghost{background:var(--surface2);color:var(--ink);border:1px solid var(--line);border-radius:14px;cursor:pointer;}
-.tr-input,.tr-select{background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Outfit';outline:none;width:100%;padding:10px 12px;box-sizing:border-box;}
+.tr-input,.tr-select{background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Outfit';font-size:16px;outline:none;width:100%;padding:10px 12px;box-sizing:border-box;transition:border-color .15s,box-shadow .15s;}
+.tr-input:focus,.tr-select:focus{border-color:var(--lime);box-shadow:0 0 0 3px color-mix(in srgb,var(--lime) 18%,transparent);}
+.tr-input::placeholder{color:var(--mut);}
 .tr-codebox{font-family:'Outfit';font-weight:800;letter-spacing:6px;font-size:28px;color:var(--lime);text-align:center;background:var(--surface2);border:1px dashed var(--line);border-radius:14px;padding:10px;}
 .tr-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;}
 .tr-root{padding-bottom:4px;}
@@ -88,12 +90,27 @@ export default function Tournaments({ groupId, players, profileId, bumpArchive, 
 
 function TournamentCard({ trn, color, onClick, onCopy }) {
   const fmt = fmtById(trn.format);
+  // Завершённый турнир — считаем победителя и дату прямо на карточке (matches есть в выборке).
+  let winner = null;
+  if (trn.status === "finished") {
+    try {
+      const tbl = detailedStandings((trn.players || []).map((p) => ({ id: p.id, name: p.name })), (trn.matches || []).filter((m) => m.round_number > 0));
+      winner = tbl[0]?.name || null;
+    } catch (e) {}
+  }
+  const dateStr = trn.created_at ? (() => { try { return new Date(trn.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short" }); } catch (e) { return null; } })() : null;
   return (
     <div className="tr-card" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={onClick}>
       <Trophy size={20} color={color} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{trn.name || fmt.name}</div>
-        <div style={{ fontSize: 12, color: "var(--mut)" }}>{(trn.players || []).length}/{trn.target_size} {tr("trn_players_label").toLowerCase()} · {trn.points_per_game} {tr("trn_winner_points")} · {fmt.emoji} {fmt.name}</div>
+        <div style={{ fontSize: 12, color: "var(--mut)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(trn.players || []).length}/{trn.target_size} {tr("trn_players_label").toLowerCase()} · {trn.points_per_game} {tr("trn_winner_points")} · {fmt.emoji} {fmt.name}</div>
+        {(winner || dateStr) && (
+          <div style={{ fontSize: 12, marginTop: 3, display: "flex", gap: 10, alignItems: "center", overflow: "hidden" }}>
+            {winner && <span style={{ color: "var(--yellow)", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>🥇 {winner}</span>}
+            {dateStr && <span style={{ color: "var(--mut)", flexShrink: 0 }}>{dateStr}</span>}
+          </div>
+        )}
       </div>
       <span className="tr-badge" style={{ background: "rgba(255,255,255,.06)", color, flexShrink: 0 }}>{statusLabel(trn.status)}</span>
       {onCopy && (
@@ -430,6 +447,23 @@ function Create({ groupId, profileId, back, open }) {
           <input className="tr-input" placeholder={`${fmt.name} · 15 jun · 18:00`} value={name} onChange={(e) => setName(e.target.value)} />
         </div>
 
+        {/* Превью: что получится из настроек */}
+        {(() => {
+          const size = isKothBtB ? playerCount : courts * 4;
+          const detail = format === "americano" ? tr("trn_n_rounds").replace("{n}", String(Math.max(1, size - 1)))
+            : format === "mexicano" ? tr("trn_rounds_dynamic") : tr("trn_matches_dynamic");
+          return (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, fontSize: 13 }}>
+              <span style={{ fontSize: 18, flexShrink: 0 }}>{fmt.emoji}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ color: "var(--mut)" }}>{tr("trn_preview_label")}: </span>
+                <b>{size} {tr("trn_players_label").toLowerCase()}</b>
+                <span style={{ color: "var(--mut)" }}> · {detail}</span>
+              </div>
+            </div>
+          );
+        })()}
+
         <button className="tr-btn" style={{ padding: 13 }} disabled={busy} onClick={go}>
           {busy ? tr("trn_creating") : tr("trn_create_go")}
         </button>
@@ -485,6 +519,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   const [pinShown, setPinShown] = useState(null);
   const [pinInput, setPinInput] = useState("");
   const [unlocked, setUnlocked] = useState(() => { try { return !!localStorage.getItem("pp_scorepin_" + id); } catch (e) { return false; } });
+  const [openCourts, setOpenCourts] = useState({}); // {matchId: true} — раскрытые сыгранные корты
   const initRef = useRef(false);
 
   const load = useCallback(async () => {
@@ -729,18 +764,36 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
         <>
           {(!spectatorMode || trnData.status === "finished") && (
             <>
-              {/* Round/match navigation */}
-              <div className="tr-card" style={{ marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <button className="tr-ghost" style={{ padding: 8, opacity: cur > 1 ? 1 : .4 }} disabled={cur <= 1} onClick={() => setCur(cur - 1)}>
-                  <ChevronLeft size={18} />
-                </button>
-                <div className="tr-d" style={{ fontSize: 18 }}>
-                  {roundLabel}
-                  {roundSub && <span style={{ color: "var(--mut)", fontSize: 14 }}>{roundSub}</span>}
+              {/* Round/match navigation — пилюли раундов */}
+              <div className="tr-card" style={{ marginBottom: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <button className="tr-ghost" style={{ padding: 6, flexShrink: 0, opacity: cur > 1 ? 1 : .4 }} disabled={cur <= 1} onClick={() => setCur(cur - 1)}>
+                    <ChevronLeft size={16} />
+                  </button>
+                  <div style={{ flex: 1, display: "flex", gap: 6, overflowX: "auto", padding: "2px 0", scrollbarWidth: "none" }}>
+                    {roundNums.map((n) => {
+                      const played = (rmap[n] || []).length > 0 && (rmap[n] || []).every((m) => m.score_a != null);
+                      const active = n === cur;
+                      return (
+                        <button key={n} onClick={() => setCur(n)} style={{
+                          flexShrink: 0, minWidth: 36, padding: "7px 10px", borderRadius: 10, cursor: "pointer",
+                          fontFamily: "'Outfit',sans-serif", fontWeight: 700, fontSize: 13, border: "1px solid",
+                          borderColor: active ? "var(--lime)" : "var(--line)",
+                          background: active ? "var(--lime)" : (played ? "color-mix(in srgb, var(--lime) 12%, transparent)" : "var(--surface2)"),
+                          color: active ? "var(--lime-fg)" : (played ? "var(--lime)" : "var(--mut)"),
+                          display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
+                        }}>{n}{played && !active && <Check size={12} />}</button>
+                      );
+                    })}
+                  </div>
+                  <button className="tr-ghost" style={{ padding: 6, flexShrink: 0, opacity: cur < N ? 1 : .4 }} disabled={cur >= N} onClick={() => setCur(cur + 1)}>
+                    <ChevronRight size={16} />
+                  </button>
                 </div>
-                <button className="tr-ghost" style={{ padding: 8, opacity: cur < N ? 1 : .4 }} disabled={cur >= N} onClick={() => setCur(cur + 1)}>
-                  <ChevronRight size={18} />
-                </button>
+                <div className="tr-d" style={{ fontSize: 16, marginTop: 8, textAlign: "center" }}>
+                  {roundLabel}
+                  {roundSub && <span style={{ color: "var(--mut)", fontSize: 13 }}>{roundSub}</span>}
+                </div>
               </div>
 
               {/* Role labels for KotH/BtB */}
@@ -751,19 +804,47 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                 </div>
               )}
 
-              {/* Courts for current round */}
-              {curMatches.map((m) => (
-                <CourtView key={m.id} courtNumber={isKothBtB ? null : m.court} points={trnData.points_per_game}
-                  courtName={trnData.court_names ? trnData.court_names[String(m.court)] : undefined}
-                  onRenameCourt={(!readOnly && !isKothBtB) ? (name) => setCourtName(trnData.id, m.court, name).then(load).catch(() => {}) : undefined}
-                  teamA={[nameOf(m.team_a[0]), nameOf(m.team_a[1])]}
-                  teamB={[nameOf(m.team_b[0]), nameOf(m.team_b[1])]}
-                  teamAvatarsA={[avatarOfTp(m.team_a[0]), avatarOfTp(m.team_a[1])]}
-                  teamAvatarsB={[avatarOfTp(m.team_b[0]), avatarOfTp(m.team_b[1])]}
-                  scoreA={m.score_a} scoreB={m.score_b}
-                  editable={!readOnly && (amCreator || unlocked || isAdmin) && trnData.status !== "finished"}
-                  onSave={(a, b) => saveScore(m.id, a, b)} />
-              ))}
+              {/* Courts for current round — сыгранные сворачиваются в компактную строку */}
+              {curMatches.map((m) => {
+                const scored = m.score_a != null && m.score_b != null;
+                const collapsed = scored && !openCourts[m.id];
+                if (collapsed) {
+                  const aWin = m.score_a > m.score_b, bWin = m.score_b > m.score_a;
+                  const courtLbl = isKothBtB ? null : (trnData.court_names?.[String(m.court)] || (tr("trn_court1").replace("1", String(m.court))));
+                  return (
+                    <div key={m.id} className="tr-card" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "10px 12px" }}
+                      onClick={() => setOpenCourts((o) => ({ ...o, [m.id]: true }))}>
+                      {courtLbl && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--mut)", flexShrink: 0, textTransform: "uppercase" }}>{courtLbl}</span>}
+                      <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+                        <span style={{ flex: 1, textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: aWin ? "var(--lime)" : "var(--ink)", fontWeight: aWin ? 700 : 500 }}>{nameOf(m.team_a[0])} & {nameOf(m.team_a[1])}</span>
+                        <span style={{ fontFamily: "'Anton',sans-serif", fontSize: 15, flexShrink: 0 }}><span style={{ color: aWin ? "var(--lime)" : "var(--ink)" }}>{m.score_a}</span><span style={{ color: "var(--mut)" }}>:</span><span style={{ color: bWin ? "var(--lime)" : "var(--ink)" }}>{m.score_b}</span></span>
+                        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: bWin ? "var(--lime)" : "var(--ink)", fontWeight: bWin ? 700 : 500 }}>{nameOf(m.team_b[0])} & {nameOf(m.team_b[1])}</span>
+                      </div>
+                      <ChevronDown size={15} style={{ color: "var(--mut)", flexShrink: 0 }} />
+                    </div>
+                  );
+                }
+                return (
+                  <div key={m.id}>
+                    <CourtView courtNumber={isKothBtB ? null : m.court} points={trnData.points_per_game}
+                      courtName={trnData.court_names ? trnData.court_names[String(m.court)] : undefined}
+                      onRenameCourt={(!readOnly && !isKothBtB) ? (name) => setCourtName(trnData.id, m.court, name).then(load).catch(() => {}) : undefined}
+                      teamA={[nameOf(m.team_a[0]), nameOf(m.team_a[1])]}
+                      teamB={[nameOf(m.team_b[0]), nameOf(m.team_b[1])]}
+                      teamAvatarsA={[avatarOfTp(m.team_a[0]), avatarOfTp(m.team_a[1])]}
+                      teamAvatarsB={[avatarOfTp(m.team_b[0]), avatarOfTp(m.team_b[1])]}
+                      scoreA={m.score_a} scoreB={m.score_b}
+                      editable={!readOnly && (amCreator || unlocked || isAdmin) && trnData.status !== "finished"}
+                      onSave={(a, b) => saveScore(m.id, a, b)} />
+                    {scored && (
+                      <button className="tr-ghost" style={{ width: "100%", padding: "6px 0", marginTop: -6, marginBottom: 10, fontSize: 12, color: "var(--mut)", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}
+                        onClick={() => setOpenCourts((o) => ({ ...o, [m.id]: false }))}>
+                        <ChevronUp size={13} /> {tr("trn_collapse")}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
 
               {/* KotH/BtB queue */}
               {isKothBtB && kotHQueue.length > 0 && (
@@ -787,13 +868,6 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                 <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginBottom: 12 }}>
                   {isKothBtB ? tr("trn_enter_score") : tr("trn_enter_all_scores")}
                 </div>
-              )}
-
-              {/* Americano: next round nav */}
-              {!isKothBtB && !isMexicano && curComplete && cur < N && (
-                <button className="tr-btn" style={{ width: "100%", padding: 12, marginBottom: 12 }} onClick={() => setCur(cur + 1)}>
-                  {tr("trn_next_round")}
-                </button>
               )}
 
               {/* Mexicano: generate next round */}
@@ -827,6 +901,31 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
           {/* Standings table */}
           <div className="tr-card" style={{ overflow: "hidden" }}>
             <div className="tr-d" style={{ fontSize: 15, marginBottom: 10 }}>{done ? tr("trn_final_table") : tr("trn_table")}</div>
+            {trnData.status === "finished" && table[0] && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 14, background: "color-mix(in srgb, var(--yellow) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--yellow) 35%, transparent)" }}>
+                  <span style={{ fontSize: 26, flexShrink: 0 }}>🥇</span>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 11, color: "var(--mut)", textTransform: "uppercase", letterSpacing: .5, fontWeight: 700 }}>{tr("trn_winner")}</div>
+                    <div style={{ fontWeight: 800, fontSize: 17, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{table[0].name}</div>
+                  </div>
+                  <div style={{ marginLeft: "auto", textAlign: "right", flexShrink: 0 }}>
+                    <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 22, color: "var(--yellow)", lineHeight: 1 }}>{table[0].points}</div>
+                    <div style={{ fontSize: 10, color: "var(--mut)" }}>{tr("trn_winner_points")}</div>
+                  </div>
+                </div>
+                {(table[1] || table[2]) && (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {[1, 2].filter((i) => table[i]).map((i) => (
+                      <div key={i} style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 12, background: "var(--surface2)", border: "1px solid var(--line)", minWidth: 0 }}>
+                        <span style={{ fontSize: 16, flexShrink: 0 }}>{["", "🥈", "🥉"][i]}</span>
+                        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{table[i].name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <StandingsTable rows={table} avatarOf={(row) => ({ url: avatarOfTp(row.id) })} />
           </div>
         </>

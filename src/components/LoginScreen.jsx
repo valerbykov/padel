@@ -32,7 +32,7 @@ const mkCss = (isLight) => `
  padding:9px 0;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;}
 .lg-seg button.on{background:var(--lime);color:var(--lime-fg);}
 .lg-input{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);
- font-family:'Outfit';padding:12px;outline:none;box-sizing:border-box;font-size:15px;}
+ font-family:'Outfit';padding:12px;outline:none;box-sizing:border-box;font-size:16px;}
 .lg-input:focus{border-color:var(--lime);}
 .lg-btn{width:100%;background:var(--lime);color:var(--lime-fg);font-weight:700;border:none;border-radius:14px;padding:13px;
  cursor:pointer;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px;font-family:'Outfit';font-size:15px;
