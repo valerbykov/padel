@@ -336,7 +336,7 @@ function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme
             style={{ border: "none", background: "none", color: "var(--ink)", padding: "5px 9px", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 5, borderRadius: 9, cursor: "pointer", fontFamily: "'Outfit',sans-serif" }}>
             {lang.toUpperCase()} <span style={{ color: "var(--mut)", fontWeight: 400, fontSize: 13 }}>↻</span>
           </button>
-          <button className="tb-btn" onClick={onThemeToggle} title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
+          <button className="tb-btn" onClick={onThemeToggle} aria-label={t("aria_theme")} title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
             style={{ border: "none", background: "none", color: "var(--mut)", display: "flex", alignItems: "center", padding: "5px 8px", borderRadius: 9, cursor: "pointer" }}>
             {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
           </button>

@@ -44,7 +44,7 @@ const css = (isLight) => `
 .ld-feat{display:flex;align-items:center;gap:13px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;}
 .ld-feat .fic{width:42px;height:42px;border-radius:12px;flex-shrink:0;background:color-mix(in srgb,var(--lime) 14%,transparent);
  display:flex;align-items:center;justify-content:center;color:var(--lime);}
-.ld-feat h4{margin:0 0 2px;font-size:15px;font-weight:700;}
+.ld-feat h2{margin:0 0 2px;font-size:15px;font-weight:700;letter-spacing:-.2px;}
 .ld-feat p{margin:0;font-size:13px;color:var(--mut);}
 .ld-more{color:var(--lime);font-weight:600;font-size:14px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;margin-top:4px;}
 .ld-more:hover{text-decoration:underline;}
@@ -70,8 +70,8 @@ export default function Landing({ theme = "dark", lang = "ru", onStart, onBrowse
           <span className="ld-word"><span className="a">Padel</span><span className="b">Pack</span></span>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button className="ld-icbtn" onClick={cycleLang}>{lang.toUpperCase()} <span style={{ opacity: .6, fontWeight: 400 }}>↻</span></button>
-          <button className="ld-icbtn" onClick={onThemeToggle} style={{ padding: "6px 9px" }}>
+          <button className="ld-icbtn" onClick={cycleLang} aria-label={t("aria_lang")}>{lang.toUpperCase()} <span style={{ opacity: .6, fontWeight: 400 }}>↻</span></button>
+          <button className="ld-icbtn" onClick={onThemeToggle} aria-label={t("aria_theme")} style={{ padding: "6px 9px" }}>
             {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
           </button>
         </div>
@@ -93,7 +93,7 @@ export default function Landing({ theme = "dark", lang = "ru", onStart, onBrowse
           {feats.map(({ Icon, t: title, d }, i) => (
             <div className="ld-feat" key={i}>
               <span className="fic"><Icon size={20} /></span>
-              <div><h4>{title}</h4><p>{d}</p></div>
+              <div><h2>{title}</h2><p>{d}</p></div>
             </div>
           ))}
         </div>

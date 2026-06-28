@@ -47,6 +47,7 @@ const T = {
     // ── Common UI ─────────────────────────────────────────────────────────
     add_player: 'Добавить игрока',
     sign_in: 'Войти', sign_out: 'Выйти',
+    aria_theme: 'Сменить тему', aria_lang: 'Сменить язык',
     profile_label: 'Профиль',
     back: 'Назад', to_list: '← К списку',
     loading: 'Загрузка…',
@@ -332,6 +333,7 @@ const T = {
     // ── Common UI ─────────────────────────────────────────────────────────
     add_player: 'Add player',
     sign_in: 'Sign in', sign_out: 'Sign out',
+    aria_theme: 'Toggle theme', aria_lang: 'Change language',
     profile_label: 'Profile',
     back: 'Back', to_list: '← Back',
     loading: 'Loading…',
@@ -617,6 +619,7 @@ const T = {
     // ── Common UI ─────────────────────────────────────────────────────────
     add_player: 'Añadir jugador',
     sign_in: 'Entrar', sign_out: 'Salir',
+    aria_theme: 'Cambiar tema', aria_lang: 'Cambiar idioma',
     profile_label: 'Perfil',
     back: 'Atrás', to_list: '← Volver',
     loading: 'Cargando…',

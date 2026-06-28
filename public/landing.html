@@ -136,14 +136,14 @@
     .fmt{background:linear-gradient(165deg,var(--surface2),var(--surface)); border:1px solid var(--line);
       border-radius:18px; padding:22px 20px; position:relative; overflow:hidden;}
     .fmt .emoji{font-size:30px; margin-bottom:14px;}
-    .fmt h4{margin:0 0 6px; font-size:17px;}
+    .fmt h3{margin:0 0 6px; font-size:17px;}
     .fmt p{margin:0; color:var(--mut); font-size:13.5px;}
 
     /* steps */
     .steps{display:grid; grid-template-columns:repeat(3,1fr); gap:22px; counter-reset:step;}
     .step{position:relative; padding-top:8px;}
     .step .n{font-family:'Anton'; font-size:54px; color:color-mix(in srgb,var(--lime) 28%,transparent); line-height:1; margin-bottom:6px;}
-    .step h4{margin:0 0 8px; font-size:19px;}
+    .step h3{margin:0 0 8px; font-size:19px;}
     .step p{margin:0; color:var(--mut); font-size:15px;}
 
     /* CTA band */
@@ -318,10 +318,10 @@
         <p data-i18n="fmt_sub"></p>
       </div>
       <div class="formats">
-        <div class="fmt reveal"><div class="emoji">🎾</div><h4>Американо</h4><p data-i18n="fmt_amer"></p></div>
-        <div class="fmt reveal"><div class="emoji">🧠</div><h4>Мексикано</h4><p data-i18n="fmt_mex"></p></div>
-        <div class="fmt reveal"><div class="emoji">👑</div><h4 data-i18n="fmt_koth_t"></h4><p data-i18n="fmt_koth"></p></div>
-        <div class="fmt reveal"><div class="emoji">📦</div><h4 data-i18n="fmt_btb_t"></h4><p data-i18n="fmt_btb"></p></div>
+        <div class="fmt reveal"><div class="emoji">🔄</div><h3>Американо</h3><p data-i18n="fmt_amer"></p></div>
+        <div class="fmt reveal"><div class="emoji">🧠</div><h3>Мексикано</h3><p data-i18n="fmt_mex"></p></div>
+        <div class="fmt reveal"><div class="emoji">👑</div><h3 data-i18n="fmt_koth_t"></h3><p data-i18n="fmt_koth"></p></div>
+        <div class="fmt reveal"><div class="emoji">📦</div><h3 data-i18n="fmt_btb_t"></h3><p data-i18n="fmt_btb"></p></div>
       </div>
     </div>
   </section>
@@ -334,9 +334,9 @@
         <h2 data-i18n="how_title"></h2>
       </div>
       <div class="steps">
-        <div class="step reveal"><div class="n">01</div><h4 data-i18n="s1_t"></h4><p data-i18n="s1_d"></p></div>
-        <div class="step reveal"><div class="n">02</div><h4 data-i18n="s2_t"></h4><p data-i18n="s2_d"></p></div>
-        <div class="step reveal"><div class="n">03</div><h4 data-i18n="s3_t"></h4><p data-i18n="s3_d"></p></div>
+        <div class="step reveal"><div class="n">01</div><h3 data-i18n="s1_t"></h3><p data-i18n="s1_d"></p></div>
+        <div class="step reveal"><div class="n">02</div><h3 data-i18n="s2_t"></h3><p data-i18n="s2_d"></p></div>
+        <div class="step reveal"><div class="n">03</div><h3 data-i18n="s3_t"></h3><p data-i18n="s3_d"></p></div>
       </div>
     </div>
   </section>
@@ -398,7 +398,7 @@
         f2_t:"Лиги",
         f2_d:"Собери свою компанию, веди общий рейтинг и историю всех встреч.",
         f3_t:"Турниры",
-        f3_d:"Американо, Мексикано и другие форматы с автоматическим расписанием: каждый играет со всеми.",
+        f3_d:"Американо, Мексикано и другие форматы с автоматическим расписанием раундов.",
         f4_t:"Статистика",
         f4_d:"Победы, серии, лучшие напарники и вся история игр под рукой.",
         f5_t:"Уровни и достижения",
@@ -406,10 +406,10 @@
         f6_t:"Удобный вход",
         f6_d:"Google, Яндекс, Telegram, email или SMS — выбирай свой способ.",
         fmt_eyebrow:"Форматы турниров",
-        fmt_title:"Каждый играет со всеми",
+        fmt_title:"Формат под любую компанию",
         fmt_sub:"Автоматическое расписание под любой состав и количество кортов.",
         fmt_amer:"Идеально для дебюта — все меняются партнёрами каждый раунд.",
-        fmt_mex:"Умный подбор соперников по текущему рейтингу.",
+        fmt_mex:"Умный подбор соперников по текущим результатам.",
         fmt_koth_t:"King of the Court",
         fmt_koth:"Держи корт! Команды фиксируются, пары не меняются.",
         fmt_btb_t:"Beat the Box",
@@ -455,7 +455,7 @@
         f2_t:"Leagues",
         f2_d:"Build your crew, keep a shared rating and a full match history.",
         f3_t:"Tournaments",
-        f3_d:"Americano, Mexicano and more with automatic scheduling: everyone plays with everyone.",
+        f3_d:"Americano, Mexicano and more with automatic round scheduling.",
         f4_t:"Stats",
         f4_d:"Wins, streaks, best partners and your full game history at a glance.",
         f5_t:"Levels & achievements",
@@ -463,10 +463,10 @@
         f6_t:"Easy sign-in",
         f6_d:"Google, Yandex, Telegram, email or SMS — pick your own way.",
         fmt_eyebrow:"Tournament formats",
-        fmt_title:"Everyone plays everyone",
+        fmt_title:"A format for every crew",
         fmt_sub:"Automatic scheduling for any roster and number of courts.",
         fmt_amer:"Perfect for beginners — partners rotate every round.",
-        fmt_mex:"Smart matchmaking based on current ratings.",
+        fmt_mex:"Smart matchmaking based on current standings.",
         fmt_koth_t:"King of the Court",
         fmt_koth:"Hold the court! Teams are fixed, pairs don't change.",
         fmt_btb_t:"Beat the Box",
@@ -512,7 +512,7 @@
         f2_t:"Ligas",
         f2_d:"Forma tu grupo, mantén una clasificación común y todo el historial de partidos.",
         f3_t:"Torneos",
-        f3_d:"Americano, Mexicano y más con horario automático: todos juegan con todos.",
+        f3_d:"Americano, Mexicano y más con horario de rondas automático.",
         f4_t:"Estadísticas",
         f4_d:"Victorias, rachas, mejores compañeros y todo tu historial a mano.",
         f5_t:"Niveles y logros",
@@ -520,7 +520,7 @@
         f6_t:"Acceso fácil",
         f6_d:"Google, Yandex, Telegram, email o SMS — elige el tuyo.",
         fmt_eyebrow:"Formatos de torneo",
-        fmt_title:"Todos juegan con todos",
+        fmt_title:"Un formato para cada grupo",
         fmt_sub:"Horario automático para cualquier grupo y número de pistas.",
         fmt_amer:"Perfecto para debutar — las parejas rotan cada ronda.",
         fmt_mex:"Emparejamiento inteligente según la clasificación actual.",

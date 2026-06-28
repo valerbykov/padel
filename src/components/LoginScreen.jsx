@@ -141,7 +141,7 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
           <button className="lg-iconbtn" onClick={() => { const o = ["ru", "en", "es"]; handleLang(o[(o.indexOf(lang) + 1) % o.length]); }} style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {lang.toUpperCase()} <span style={{ opacity: .6, fontWeight: 400 }}>↻</span>
           </button>
-          <button className="lg-iconbtn" onClick={onThemeToggle} style={{ padding: "6px 9px" }}>
+          <button className="lg-iconbtn" onClick={onThemeToggle} aria-label={t("aria_theme")} style={{ padding: "6px 9px" }}>
             {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
           </button>
         </div>
