@@ -18,7 +18,7 @@ import { LogIn, Sun, Moon } from "lucide-react";
 import { getMyLeagues } from "./lib/padelApi";
 import { t, setLang, LANGS, LANG_LABELS, currentLang } from "./lib/i18n";
 
-const BOT_NAME = "padelacc_bot"; // имя твоего Telegram-бота без @
+const BOT_NAME = "padel_league_bot"; // имя твоего Telegram-бота без @
 
 function getInviteCode() {
   const m = window.location.pathname.match(/^\/j\/([A-Za-z0-9]{4})$/);

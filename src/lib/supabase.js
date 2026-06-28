@@ -20,19 +20,14 @@ const DIRECT_HOST = hostOf(DIRECT);
 const PROXY_HOST  = hostOf(PROXY);
 
 const MODE_KEY = "pp_endpoint";
-function guessRF() {
-  try {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-    return /Moscow|Volgograd|Saratov|Astrakhan|Kaliningrad|Kirov|Samara|Ulyanovsk|Yekaterinburg|Omsk|Novosibirsk|Barnaul|Tomsk|Novokuznetsk|Krasnoyarsk|Irkutsk|Chita|Yakutsk|Khandyga|Ust-Nera|Vladivostok|Magadan|Sakhalin|Srednekolymsk|Kamchatka|Anadyr|Simferopol/.test(tz);
-  } catch { return false; }
-}
 
+// По умолчанию ВСЕ ходят напрямую (быстро для мира). Если запрос падает как при
+// РФ-фильтрации (таймаут/обрыв) — клиент сам переключается на прокси и запоминает
+// это в localStorage (см. customFetch). Таймзоне не доверяем — она ненадёжна
+// (VPN, поездки, кривые настройки), решает только реальный результат запроса.
 let mode = "direct";
 try {
-  const saved = localStorage.getItem(MODE_KEY);
-  if (saved === "proxy" && PROXY_HOST) mode = "proxy";
-  else if (saved === "direct") mode = "direct";
-  else if (PROXY_HOST && guessRF()) mode = "proxy"; // первая догадка для РФ
+  if (localStorage.getItem(MODE_KEY) === "proxy" && PROXY_HOST) mode = "proxy";
 } catch { /* localStorage недоступен */ }
 
 function persistMode(m) {
