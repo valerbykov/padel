@@ -154,14 +154,16 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
           </button>
           )}
 
+          {isRF && (
           <button onClick={signInYandex} style={{
-            width: "100%", marginTop: isRF ? 16 : 10, padding: 12, borderRadius: 14, cursor: "pointer",
+            width: "100%", marginTop: 16, padding: 12, borderRadius: 14, cursor: "pointer",
             background: "#fff", color: "#1f1f1f", border: "1px solid #dadce0", fontWeight: 700, fontFamily: "'Outfit',sans-serif",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
           }}>
             <span style={{ fontFamily: "Arial, sans-serif", fontWeight: 900, fontSize: 17, color: "#FC3F1D" }}>Я</span>
             {t("login_yandex")}
           </button>
+          )}
 
           <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "16px 0 4px", color: "var(--mut)", fontSize: 12 }}>
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} /> или <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
