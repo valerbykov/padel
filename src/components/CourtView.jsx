@@ -5,6 +5,7 @@
 //   mode="sets" — обычная игра с детальным счётом: 3 сета (A:B каждый), без скролла.
 // Props: teamAvatarsA/B=[] — массивы URL аватарок; scoreDetail=[{a,b},...] — для отображения.
 import React, { useState, useEffect } from "react";
+import { dogAvatar } from "../lib/avatar";
 
 const COURT_IMG = "/padel-court.png";
 
@@ -17,23 +18,11 @@ function Chip({ name, avatarUrl, x, y, team }) {
       display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
       maxWidth: "27%",
     }}>
-      {avatarUrl ? (
-        <img src={avatarUrl} alt="" loading="lazy" decoding="async" style={{
-          width: "clamp(22px,7vw,32px)", height: "clamp(22px,7vw,32px)",
-          borderRadius: "50%", objectFit: "cover",
-          border: `2px solid ${color}`, background: "#0a1612", flexShrink: 0,
-        }} />
-      ) : (
-        <div style={{
-          width: "clamp(22px,7vw,32px)", height: "clamp(22px,7vw,32px)",
-          borderRadius: "50%",
-          background: "rgba(10,22,18,.82)", border: `2px solid ${color}`,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: "clamp(9px,2.8vw,12px)", fontWeight: 700, color: "#eef3ee", flexShrink: 0,
-        }}>
-          {(name || "?").trim().charAt(0).toUpperCase()}
-        </div>
-      )}
+      <img src={avatarUrl || dogAvatar(name)} alt="" loading="lazy" decoding="async" style={{
+        width: "clamp(22px,7vw,32px)", height: "clamp(22px,7vw,32px)",
+        borderRadius: "50%", objectFit: "cover",
+        border: `2px solid ${color}`, background: "#0a1612", flexShrink: 0,
+      }} />
       <div style={{
         background: "rgba(10,22,18,.82)", border: `1px solid ${color}`,
         borderRadius: 6, padding: "1px 5px",

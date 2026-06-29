@@ -3,19 +3,7 @@
 // Аватарка сверху, имя снизу под ней.
 // props: rows (из detailedStandings), highlightId?, avatarOf?(row)=>{url?,rating?}
 import React from "react";
-
-const initials = (name = "") => name.trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
-const colorOf = (name = "") => `hsl(${[...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 360} 55% 42%)`;
-
-function Avatar({ name, url, size = 34 }) {
-  return url ? (
-    <img src={url} alt="" loading="lazy" decoding="async" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
-  ) : (
-    <div style={{ width: size, height: size, borderRadius: "50%", background: colorOf(name), color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: size * 0.36, border: "1px solid rgba(255,255,255,.15)", flexShrink: 0 }}>
-      {initials(name)}
-    </div>
-  );
-}
+import Avatar from "./Avatar";
 
 export default function StandingsTable({ rows, highlightId, avatarOf }) {
   const grid = "1fr 64px 80px 38px";
@@ -48,7 +36,7 @@ export default function StandingsTable({ rows, highlightId, avatarOf }) {
                 {i + 1}
               </span>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, minWidth: 0, flex: 1 }}>
-                <Avatar name={p.name} url={av.url} size={32} />
+                <Avatar name={p.name} url={av.url} id={p.id} size={32} />
                 <span style={{
                   fontSize: 10, lineHeight: 1.2, textAlign: "center",
                   wordBreak: "break-word", hyphens: "auto",

@@ -9,6 +9,7 @@ import {
   generateMexicanoRound, generateKotHRound, setCourtName, setScorePin, checkScorePin,
 } from "../lib/tournamentApi";
 import { standings, detailedStandings, allMatchesPlayed } from "../lib/americano";
+import { dogAvatar } from "../lib/avatar";
 import { getAllKotHTeams } from "../lib/mexicano";
 import CourtView from "./CourtView";
 import StandingsTable from "./StandingsTable";
@@ -565,7 +566,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   const fmt = fmtById(trnData.format);
   const amCreator = !!(currentProfileId && trnData.created_by && trnData.created_by === currentProfileId);
   const nameOf = (tpId) => trnData.players.find((p) => p.id === tpId)?.name || "?";
-  const _dogAv = (pid) => { if (!pid) return null; const h = [...String(pid)].reduce((a, c) => a + c.charCodeAt(0), 0); return `/avatars/dog-${String((h % 15) + 1).padStart(2, "0")}.png`; };
+  const _dogAv = (pid) => pid ? dogAvatar(pid) : null;
   const avatarOfTp = (tpId) => {
     const tp = trnData.players.find((p) => p.id === tpId);
     if (!tp) return null;

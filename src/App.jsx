@@ -14,6 +14,7 @@ import ProfileEditor from "./components/ProfileEditor";
 import LeagueSetup from "./components/LeagueSetup";
 import LeaguePublicPage from "./components/LeaguePublicPage";
 import Landing from "./components/Landing";
+import Avatar from "./components/Avatar";
 import Logo from "./components/Logo";
 import { LogIn, Sun, Moon } from "lucide-react";
 import { getMyLeagues } from "./lib/padelApi";
@@ -297,6 +298,7 @@ export default function App() {
         onLangChange={handleLangChange}
         onLogin={() => setShowLogin(true)}
         onOpenLanding={openLanding}
+        onEditProfile={() => setShowProfile(true)}
       />
     </div>
   );
@@ -304,7 +306,6 @@ export default function App() {
 
 function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme, onThemeToggle, lang = "ru", onLangChange }) {
   const base = { border: "1px solid var(--line)", borderRadius: 11, padding: "7px 12px", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif", transition: "transform .12s, filter .15s, background .15s" };
-  const initials = (name || "").trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -317,9 +318,7 @@ function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme
       <style>{`.tb-btn:hover{filter:brightness(1.07)}.tb-btn:active{transform:translateY(1px)}.tb-profile:hover{background:var(--surface2)}`}</style>
       {session ? (
         <button onClick={onProfile} className="tb-profile" style={{ display: "flex", alignItems: "center", gap: 9, background: "none", border: "1px solid transparent", borderRadius: 999, cursor: "pointer", color: "var(--ink)", padding: "4px 10px 4px 4px", transition: "background .15s" }}>
-          {avatarUrl
-            ? <img src={avatarUrl} alt="" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
-            : <span style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "var(--lime)" }}>{initials}</span>}
+          <Avatar url={avatarUrl} name={name} size={32} />
           <span style={{ fontSize: 14, fontWeight: 600, maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name || "Профиль"}</span>
         </button>
       ) : (

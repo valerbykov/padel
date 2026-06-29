@@ -1,34 +1,36 @@
 // components/ProfileEditor.jsx
-// Личный кабинет: ФИО, почта (только просмотр), телефон, фото или аватар.
-// props: { onClose, onSaved }
+// Личный кабинет = НАСТРОЙКИ профиля: фото/аватар, имя, телефон, WhatsApp/Telegram, почта.
+// Статистика/история/уровень живут в карточке профиля игрока (вкладка «Друзья» → ты),
+// поэтому здесь их не дублируем — даём указатель.
+// props: { onClose, onSaved, theme }
 import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import { ArrowLeft, Camera, Check, Loader } from "lucide-react";
+import { ArrowLeft, Camera, Check, Loader, LogOut, BarChart3 } from "lucide-react";
+import Avatar from "./Avatar";
+import { t } from "../lib/i18n";
 
 const PRESETS = Array.from({ length: 15 }, (_, i) => `/avatars/dog-${String(i + 1).padStart(2, "0")}.png`);
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
-.pc-root{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;
+.pc-root{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;--lime-fg:#0a1612;
  font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;color-scheme:dark;}
-.pc-root.pc-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;--ink:#0d1f18;--mut:#4a7060;--lime:#2a7a00;color-scheme:light;}
+.pc-root.pc-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;--ink:#0d1f18;--mut:#4a7060;--lime:#2a7a00;--coral:#d93a1f;--lime-fg:#ffffff;color-scheme:light;}
 .pc-d{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;}
 .pc-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;}
-.pc-input{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Outfit';padding:11px 12px;outline:none;box-sizing:border-box;}
-.pc-input:focus{border-color:var(--lime);}
+.pc-input{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Outfit';font-size:16px;padding:11px 12px;outline:none;box-sizing:border-box;transition:border-color .15s,box-shadow .15s;}
+.pc-input:focus{border-color:var(--lime);box-shadow:0 0 0 3px color-mix(in srgb,var(--lime) 18%,transparent);}
+.pc-input::placeholder{color:var(--mut);}
 .pc-input:disabled{color:var(--mut);}
 .pc-label{font-size:12px;color:var(--mut);margin:0 0 5px 2px;}
-.pc-btn{background:var(--lime);color:#0a1612;font-weight:700;border:none;border-radius:14px;cursor:pointer;}
+.pc-btn{background:var(--lime);color:var(--lime-fg);font-weight:700;border:none;border-radius:14px;cursor:pointer;transition:transform .12s,filter .15s;}
+.pc-btn:hover:not(:disabled){filter:brightness(1.05);} .pc-btn:active:not(:disabled){transform:scale(.98);}
 .pc-btn:disabled{filter:grayscale(.6) brightness(.7);cursor:not-allowed;}
-.pc-ghost{background:var(--surface2);color:var(--ink);border:1px solid var(--line);border-radius:12px;cursor:pointer;}
+.pc-ghost{background:var(--surface2);color:var(--ink);border:1px solid var(--line);border-radius:12px;cursor:pointer;transition:border-color .15s;}
+.pc-ghost:hover{border-color:color-mix(in srgb,var(--lime) 35%,transparent);}
+.pc-preset{width:46px;height:46px;border-radius:50%;cursor:pointer;background:var(--surface2);transition:transform .12s;}
+.pc-preset:hover{transform:scale(1.08);}
 `;
-
-function Preview({ url, name, size = 96 }) {
-  const initials = (name || "").trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
-  return url
-    ? <img src={url} alt="" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--line)" }} />
-    : <div style={{ width: size, height: size, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: size * 0.33, color: "var(--lime)" }}>{initials}</div>;
-}
 
 export default function ProfileEditor({ onClose, onSaved, theme = "dark" }) {
   const [userId, setUserId] = useState(null);
@@ -40,7 +42,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark" }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [msg, setMsg] = useState("");
+  const [msg, setMsg] = useState(null); // { ok, text }
   const [whatsapp, setWhatsapp] = useState("");
   const [telegram, setTelegram] = useState("");
 
@@ -68,7 +70,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark" }) {
   const upload = async (e) => {
     const file = e.target.files?.[0];
     if (!file || !userId) return;
-    setUploading(true); setMsg("");
+    setUploading(true); setMsg(null);
     try {
       const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
       const path = `${userId}/avatar_${Date.now()}.${ext}`;
@@ -76,13 +78,13 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark" }) {
       if (error) throw error;
       const { data } = supabase.storage.from("avatars").getPublicUrl(path);
       setAvatarUrl(data.publicUrl);
-    } catch (err) { setMsg("Не удалось загрузить фото: " + err.message); }
+    } catch (err) { setMsg({ ok: false, text: `${t("pc_upload_fail")}: ${err.message}` }); }
     finally { setUploading(false); }
   };
 
   const save = async () => {
     if (!userId) return;
-    setBusy(true); setMsg("");
+    setBusy(true); setMsg(null);
     try {
       const { error } = await supabase.from("profiles").update({
         first_name: firstName || null, last_name: lastName || null,
@@ -90,46 +92,47 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark" }) {
         contacts: { whatsapp: whatsapp.trim() || undefined, telegram: telegram.trim() || undefined },
       }).eq("user_id", userId);
       if (error) throw error;
-      setMsg("Сохранено ✓");
+      setMsg({ ok: true, text: t("pc_saved") });
       onSaved?.();
-    } catch (err) { setMsg("Ошибка: " + err.message); }
+    } catch (err) { setMsg({ ok: false, text: `${t("pc_error")}: ${err.message}` }); }
     finally { setBusy(false); }
   };
+
+  const signOut = async () => { try { await supabase.auth.signOut(); } catch (e) {} onClose?.(); };
 
   return (
     <div className={"pc-root" + (theme === "light" ? " pc-light" : "")}>
       <style>{css}</style>
-      <div style={{ maxWidth: 460, margin: "0 auto", padding: "20px 16px 40px" }}>
-        <button className="pc-ghost" style={{ padding: "6px 12px", marginBottom: 16 }} onClick={onClose}><ArrowLeft size={14} /> Назад</button>
-        <h1 className="pc-d" style={{ fontSize: 26, marginBottom: 16 }}>Личный кабинет</h1>
+      <div style={{ maxWidth: 460, margin: "0 auto", padding: "calc(20px + env(safe-area-inset-top)) 16px 40px" }}>
+        <button className="pc-ghost" style={{ padding: "6px 12px", marginBottom: 16, display: "inline-flex", alignItems: "center", gap: 6 }} onClick={onClose}><ArrowLeft size={14} /> {t("back")}</button>
+        <h1 className="pc-d" style={{ fontSize: 26, marginBottom: 16 }}>{t("pc_title")}</h1>
 
         {loading ? (
-          <div className="pc-card" style={{ textAlign: "center", color: "var(--mut)" }}>Загрузка…</div>
+          <div className="pc-card" style={{ textAlign: "center", color: "var(--mut)" }}>{t("loading")}</div>
         ) : !userId ? (
-          <div className="pc-card" style={{ textAlign: "center", color: "var(--mut)" }}>Войди в аккаунт, чтобы редактировать профиль.</div>
+          <div className="pc-card" style={{ textAlign: "center", color: "var(--mut)" }}>{t("pc_login_to_edit")}</div>
         ) : (
           <>
             <div className="pc-card" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginBottom: 12 }}>
-              <Preview url={avatarUrl} name={fullName} />
+              <Avatar url={avatarUrl} name={fullName} id={userId} size={96} style={{ border: "2px solid var(--line)" }} />
               <label className="pc-ghost" style={{ padding: "8px 14px", display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13 }}>
-                {uploading ? <Loader size={15} /> : <Camera size={15} />} {uploading ? "Загрузка…" : "Загрузить фото"}
+                {uploading ? <Loader size={15} /> : <Camera size={15} />} {uploading ? t("pc_uploading") : t("pc_upload_photo")}
                 <input type="file" accept="image/*" style={{ display: "none" }} onChange={upload} disabled={uploading} />
               </label>
-              <div style={{ fontSize: 12, color: "var(--mut)" }}>или выбери аватар:</div>
+              <div style={{ fontSize: 12, color: "var(--mut)" }}>{t("pc_or_pick")}</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
                 {PRESETS.map((u) => (
-                  <img key={u} src={u} alt="" onClick={() => setAvatarUrl(u)} style={{
-                    width: 46, height: 46, borderRadius: "50%", cursor: "pointer",
-                    border: avatarUrl === u ? "2px solid var(--lime)" : "2px solid transparent", background: "var(--surface2)",
+                  <img key={u} src={u} alt="" loading="lazy" onClick={() => setAvatarUrl(u)} className="pc-preset" style={{
+                    border: avatarUrl === u ? "2px solid var(--lime)" : "2px solid transparent",
                   }} />
                 ))}
               </div>
             </div>
 
             <div className="pc-card" style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 12 }}>
-              <div><div className="pc-label">Имя</div><input className="pc-input" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Имя" /></div>
-              <div><div className="pc-label">Фамилия</div><input className="pc-input" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Фамилия" /></div>
-              <div><div className="pc-label">Телефон</div><input className="pc-input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+7…" inputMode="tel" /></div>
+              <div><div className="pc-label">{t("pc_first_name")}</div><input className="pc-input" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder={t("pc_first_name")} /></div>
+              <div><div className="pc-label">{t("pc_last_name")}</div><input className="pc-input" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder={t("pc_last_name")} /></div>
+              <div><div className="pc-label">{t("pc_phone")}</div><input className="pc-input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+7…" inputMode="tel" /></div>
               <div>
                 <div className="pc-label">WhatsApp</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -150,13 +153,21 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark" }) {
                   )}
                 </div>
               </div>
-              <div><div className="pc-label">Почта</div><input className="pc-input" value={email} disabled /></div>
+              <div><div className="pc-label">{t("pc_email")}</div><input className="pc-input" value={email} disabled /></div>
             </div>
 
             <button className="pc-btn" style={{ width: "100%", padding: 14, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} disabled={busy} onClick={save}>
-              <Check size={18} /> {busy ? "Сохраняю…" : "Сохранить"}
+              <Check size={18} /> {busy ? t("pc_saving") : t("pc_save")}
             </button>
-            {msg && <div style={{ textAlign: "center", marginTop: 10, fontSize: 13, color: msg.startsWith("Сохранено") ? "var(--lime)" : "var(--coral)" }}>{msg}</div>}
+            {msg && <div style={{ textAlign: "center", marginTop: 10, fontSize: 13, color: msg.ok ? "var(--lime)" : "var(--coral)" }}>{msg.text}{msg.ok ? " ✓" : ""}</div>}
+
+            {/* Указатель на статистику (она в карточке профиля игрока) + выход */}
+            <div className="pc-card" style={{ marginTop: 16, display: "flex", alignItems: "flex-start", gap: 10, fontSize: 12.5, color: "var(--mut)", lineHeight: 1.45 }}>
+              <BarChart3 size={16} style={{ color: "var(--lime)", flexShrink: 0, marginTop: 1 }} /> {t("pc_stats_hint")}
+            </div>
+            <button className="pc-ghost" style={{ width: "100%", padding: 12, marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--coral)" }} onClick={signOut}>
+              <LogOut size={15} /> {t("sign_out")}
+            </button>
           </>
         )}
       </div>
