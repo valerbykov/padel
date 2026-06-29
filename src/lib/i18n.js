@@ -168,6 +168,7 @@ const T = {
     tours_in_history: 'Завершённые турниры — во вкладке «История»',
     swipe_hint: 'Смахни карточку влево, чтобы удалить',
     mix_again: 'Сыграть ещё (микс)', mix_create: 'Создать игру', mix_hint: 'Перетащи игрока, чтобы поменять команды',
+    mix_session_title: 'Микс-сессия', mix_game_label: 'Игра', mix_delete_confirm: 'Удалить всю микс-сессию ({n} игр)?',
     games_empty_session: 'Игр нет. Создай игру и отправь ссылку друзьям.',
     games_empty_guest: 'Здесь будут игры твоей лиги. Войди и вступи в лигу.',
     slot_free: '🔗 свободно — ждёт по ссылке',
@@ -183,6 +184,7 @@ const T = {
     game_step2: 'ШАГ 2 ИЗ 2 · ИГРОКИ',
     game_next: 'Далее →',
     game_slots_hint: 'Можно создать игру и без полного состава — позови игроков по ссылке-приглашению.',
+    slots_dnd_hint: 'Перетащи за ⠿, чтобы поменять команды; смахни влево — убрать.',
     court_club_placeholder: 'Корт / клуб',
     slots_label: 'Слоты — выбери из состава, впиши гостя или оставь пустым (займут по ссылке)',
     create_and_get_link: 'Создать и получить ссылку',
@@ -467,6 +469,7 @@ const T = {
     tours_in_history: 'Finished tournaments are in the History tab',
     swipe_hint: 'Swipe a card left to delete',
     mix_again: 'Play again (mix)', mix_create: 'Create game', mix_hint: 'Drag a player to swap teams',
+    mix_session_title: 'Mix session', mix_game_label: 'Game', mix_delete_confirm: 'Delete the whole mix session ({n} games)?',
     games_empty_session: 'No games yet. Create a game and share the link with friends.',
     games_empty_guest: 'Your league games will appear here. Sign in and join a league.',
     slot_free: '🔗 free — waiting via link',
@@ -482,6 +485,7 @@ const T = {
     game_step2: 'STEP 2 OF 2 · PLAYERS',
     game_next: 'Next →',
     game_slots_hint: 'You can create the game without a full lineup — invite players via the share link.',
+    slots_dnd_hint: 'Drag by ⠿ to swap teams; swipe left to remove.',
     court_club_placeholder: 'Court / club',
     slots_label: 'Slots — pick from roster, add a guest, or leave empty (filled via link)',
     create_and_get_link: 'Create and get link',
@@ -766,6 +770,7 @@ const T = {
     tours_in_history: 'Los torneos finalizados están en la pestaña «Historial»',
     swipe_hint: 'Desliza una tarjeta a la izquierda para eliminar',
     mix_again: 'Jugar otra (mix)', mix_create: 'Crear partida', mix_hint: 'Arrastra un jugador para cambiar equipos',
+    mix_session_title: 'Sesión mix', mix_game_label: 'Partida', mix_delete_confirm: '¿Eliminar toda la sesión mix ({n} partidas)?',
     games_empty_session: 'No hay partidas. Crea una y comparte el enlace con tus amigos.',
     games_empty_guest: 'Aquí aparecerán las partidas de tu liga. Entra y únete a una liga.',
     slot_free: '🔗 libre — esperando por enlace',
@@ -781,6 +786,7 @@ const T = {
     game_step2: 'PASO 2 DE 2 · JUGADORES',
     game_next: 'Siguiente →',
     game_slots_hint: 'Puedes crear la partida sin alineación completa — invita jugadores con el enlace.',
+    slots_dnd_hint: 'Arrastra por ⠿ para cambiar equipos; desliza a la izquierda para quitar.',
     court_club_placeholder: 'Pista / club',
     slots_label: 'Plazas — elige del equipo, añade invitado o deja vacío (se llenan por enlace)',
     create_and_get_link: 'Crear y obtener enlace',
@@ -912,4 +918,14 @@ export function setLang(lang) {
 
 export function t(key) {
   return T[currentLang]?.[key] ?? T.ru[key] ?? key;
+}
+
+// «N игр» с правильным склонением (RU); EN/ES — простое множественное число.
+export function nGames(n) {
+  if (currentLang === 'en') return `${n} games`;
+  if (currentLang === 'es') return `${n} partidas`;
+  const a = n % 100, b = n % 10;
+  let w = 'игр';
+  if (!(a > 10 && a < 20)) { if (b === 1) w = 'игра'; else if (b >= 2 && b <= 4) w = 'игры'; }
+  return `${n} ${w}`;
 }

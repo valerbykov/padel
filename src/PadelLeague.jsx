@@ -4,10 +4,10 @@ import { supabase } from "./lib/supabase";
 import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches } from "./lib/padelApi";
 import { getRatingHistory } from "./lib/statsApi";
 import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
-import { t } from "./lib/i18n";
+import { t, nGames } from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
-import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle } from "lucide-react";
+import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical } from "lucide-react";
 import Tournaments, { TournamentView, TournamentCard, css as trCss } from "./components/Tournaments";
 import { deleteTournament } from "./lib/tournamentApi";
 import CourtView from "./components/CourtView";
@@ -1268,7 +1268,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
 
 /* --------------------------------- Games ---------------------------------- */
 // Карточка игры в списке: состав (аватары команд) + счёт у сыгранных.
-export function GameRow({ g, color, onOpen, flush }) {
+export function GameRow({ g, color, onOpen, flush, bare, label }) {
   const gslots = [...(g.slots || [])].sort((a, b) => ((a.team || "") + (a.position || "")).localeCompare((b.team || "") + (b.position || "")));
   const tA = gslots.filter(s => s.team === "A");
   const tB = gslots.filter(s => s.team === "B");
@@ -1290,7 +1290,9 @@ export function GameRow({ g, color, onOpen, flush }) {
     </div>
   );
   return (
-    <div className="pl-card" style={{ marginBottom: flush ? 0 : 8, cursor: "pointer", padding: "12px 14px" }} onClick={onOpen}>
+    <div className={bare ? "" : "pl-card"} style={{ marginBottom: bare ? 0 : (flush ? 0 : 8), cursor: "pointer", padding: bare ? "10px 2px" : "12px 14px" }} onClick={onOpen}>
+      {/* bare-режим (внутри плашки микс-сессии): без шапки, только составы и счёт. */}
+      {!bare && (
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <Swords size={18} color={color} style={{ flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -1301,12 +1303,54 @@ export function GameRow({ g, color, onOpen, flush }) {
           {played ? "✓" : `${filled}/4`}
         </span>
       </div>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "center", gap: 10, marginTop: 11 }}>
+      )}
+      {bare && label && <div style={{ fontSize: 11, fontWeight: 700, color: "var(--mut)", letterSpacing: 0.5 }}>{label}</div>}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "center", gap: 10, marginTop: bare ? 6 : 11 }}>
         <Team a={tA[0]} b={tA[1]} ring="var(--lime)" names={nm(tA)} won={aWon} />
         <span style={{ fontFamily: "'Anton',sans-serif", fontSize: played ? 18 : 13, color: "var(--mut)", flexShrink: 0, minWidth: 30, textAlign: "center", paddingTop: 5 }}>
           {played && m ? <><span style={{ color: aWon ? "var(--lime)" : "var(--ink)" }}>{m.sets_a}</span><span style={{ color: "var(--mut)" }}>:</span><span style={{ color: bWon ? "var(--lime)" : "var(--ink)" }}>{m.sets_b}</span></> : "—"}
         </span>
         <Team a={tB[0]} b={tB[1]} ring="var(--coral)" names={nm(tB)} won={bWon} />
+      </div>
+      {/* Счёт по геймам внутри каждого сета (как было до унификации). */}
+      {played && Array.isArray(m?.score_detail) && m.score_detail.length > 0 && (
+        <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+          {m.score_detail.map((s, i) => (
+            <span key={i} style={{ fontSize: 11, fontWeight: 700, fontVariantNumeric: "tabular-nums", letterSpacing: 0.3 }}>
+              <span style={{ color: s.a > s.b ? "var(--lime)" : "var(--ink)" }}>{s.a}</span>
+              <span style={{ color: "var(--mut)" }}>:</span>
+              <span style={{ color: s.b > s.a ? "var(--lime)" : "var(--ink)" }}>{s.b}</span>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Объединённая плашка микс-сессии: несколько под-игр одного выхода (тот же
+// состав, разные расстановки). Внутри — каждая под-игра со своим счётом.
+function MixGroupCard({ games, color, onOpenGame }) {
+  const first = games[0];
+  const when = first.starts_at || first.created_at;
+  return (
+    <div className="pl-card" style={{ padding: 0, overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderBottom: "1px solid var(--line)" }}>
+        <Shuffle size={18} color={color} style={{ flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{first.title || t("mix_session_title")}</div>
+          {when && <div style={{ fontSize: 12, color: "var(--mut)" }}>{fmtDate(when)}</div>}
+        </div>
+        <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: "color-mix(in srgb, var(--lime) 14%, transparent)", color: "var(--lime)", flexShrink: 0 }}>
+          {nGames(games.length)}
+        </span>
+      </div>
+      <div style={{ padding: "2px 14px 8px" }}>
+        {games.map((g, i) => (
+          <div key={g.id} style={{ borderTop: i === 0 ? "none" : "1px solid var(--line)" }}>
+            <GameRow g={g} color={color} bare label={`${t("mix_game_label")} ${i + 1}`} onOpen={() => onOpenGame(g)} />
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -1410,6 +1454,65 @@ function SlotPicker({ value, players, taken, onChange, teamLabel }) {
   );
 }
 
+// 4 слота игры: в пустые — поиск/добавление; у заполненных — перетаскивание за
+// «ручку» (обмен местами A↔B) и удаление смахиванием влево.
+function GameSlots({ slots, setSlots, players, chosenIds }) {
+  const refs = useRef([]);
+  const [drag, setDrag] = useState(null); // { idx, x, y }
+  const setSlot = (i, v) => setSlots((s) => s.map((x, j) => (j === i ? v : x)));
+  const startDrag = (idx) => (e) => {
+    e.stopPropagation();
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+    setDrag({ idx, x: e.clientX, y: e.clientY });
+  };
+  const moveDrag = (e) => { if (drag) setDrag((d) => d && { ...d, x: e.clientX, y: e.clientY }); };
+  const endDrag = (e) => {
+    if (!drag) return;
+    let tgt = -1;
+    refs.current.forEach((el, i) => { if (!el) return; const r = el.getBoundingClientRect(); if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) tgt = i; });
+    if (tgt >= 0 && tgt !== drag.idx) setSlots((prev) => { const n = [...prev]; const t = n[tgt]; n[tgt] = n[drag.idx]; n[drag.idx] = t; return n; });
+    setDrag(null);
+  };
+  return (
+    <div onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag} style={{ touchAction: drag ? "none" : "auto" }}>
+      {[0, 1, 2, 3].map((i) => {
+        const v = slots[i];
+        const team = i < 2 ? "A" : "B";
+        const ring = i < 2 ? "var(--lime)" : "var(--coral)";
+        if (!v) {
+          return (
+            <div key={i} ref={(el) => (refs.current[i] = el)}>
+              <SlotPicker value={null} players={players} taken={chosenIds} teamLabel={team} onChange={(val) => setSlot(i, val)} />
+            </div>
+          );
+        }
+        return (
+          <div key={i} ref={(el) => (refs.current[i] = el)} style={{ opacity: drag?.idx === i ? 0.3 : 1 }}>
+            <SwipeToDelete onDelete={() => setSlot(i, null)}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface)" }}>
+                <span className="pl-display" style={{ width: 24, fontSize: 12, color: ring }}>{team}</span>
+                <div className="pl-slot" style={{ flex: 1, justifyContent: "space-between" }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                    <span onPointerDown={startDrag(i)} style={{ cursor: "grab", touchAction: "none", color: "var(--mut)", display: "flex", flexShrink: 0 }}><GripVertical size={16} /></span>
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.label}</span>
+                  </span>
+                  <button style={{ padding: 4, border: "none", background: "none", color: "var(--mut)", cursor: "pointer", flexShrink: 0 }} onClick={() => setSlot(i, null)}><X size={14} /></button>
+                </div>
+              </div>
+            </SwipeToDelete>
+          </div>
+        );
+      })}
+      <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 2, lineHeight: 1.4 }}>{t("slots_dnd_hint")}</div>
+      {drag && slots[drag.idx] && (
+        <div style={{ position: "fixed", left: drag.x, top: drag.y, transform: "translate(-50%,-50%)", pointerEvents: "none", zIndex: 300, padding: "8px 12px", borderRadius: 12, background: "var(--surface)", border: "1.5px solid var(--lime)", display: "flex", alignItems: "center", gap: 8, boxShadow: "0 8px 24px rgba(0,0,0,.4)" }}>
+          <span style={{ fontSize: 13, fontWeight: 600 }}>{slots[drag.idx].label}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CreateGame({ groupId, players, back, done }) {
   const [step, setStep] = useState("info"); // "info" | "players"
   const [title, setTitle] = useState("");
@@ -1422,19 +1525,13 @@ function CreateGame({ groupId, players, back, done }) {
   const [busy, setBusy] = useState(false);
   const chosenIds = slots.filter((v) => v && v.profileId).map((v) => v.profileId);
   const filled = slots.filter((v) => v && (v.profileId || v.guestName)).length;
-  const setSlot = (i, v) => setSlots((s) => s.map((x, j) => (j === i ? v : x)));
 
-  // Автоназвание по дате/месту (как в турнирах), пока пользователь не правил вручную.
+  // Автоназвание = место (если указано) или пусто. Дата/время НЕ дублируются
+  // в названии — они и так показываются отдельной строкой в плашке/карточке.
   useEffect(() => {
     if (titleEdited) return;
-    if (!date) { setTitle(""); return; }
-    try {
-      const d = new Date(date);
-      const day = d.toLocaleString("ru-RU", { day: "numeric", month: "short" });
-      const time = d.toLocaleString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-      setTitle(place.trim() ? `${day} · ${time} · ${place.trim()}` : `${t("game_default_name")} · ${day} · ${time}`);
-    } catch (e) {}
-  }, [date, place, titleEdited]);
+    setTitle(place.trim());
+  }, [place, titleEdited]);
 
   const create = async () => {
     setBusy(true);
@@ -1494,10 +1591,7 @@ function CreateGame({ groupId, players, back, done }) {
         <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 10, display: "flex", justifyContent: "space-between" }}>
           <span>{t("slots_label")}</span><span>{filled}/4</span>
         </div>
-        {[0, 1, 2, 3].map((i) => (
-          <SlotPicker key={i} value={slots[i]} players={players} taken={chosenIds}
-            onChange={(v) => setSlot(i, v)} teamLabel={i < 2 ? "A" : "B"} />
-        ))}
+        <GameSlots slots={slots} setSlots={setSlots} players={players} chosenIds={chosenIds} />
         <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 6, lineHeight: 1.4 }}>{t("game_slots_hint")}</div>
       </div>
       <button className="pl-btn" style={{ width: "100%", padding: 14, fontSize: 16 }} disabled={busy} onClick={create}>{busy ? t("creating_game") : t("create_and_get_link")}</button>
@@ -1581,7 +1675,8 @@ function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArc
     setMixBusy(true);
     try {
       const newSlots = arr.map((p) => (p.profile_id ? { profileId: p.profile_id } : { guestName: p.guest_name }));
-      await createGame(groupId, { title: game.title || null, startsAt: new Date().toISOString(), slots: newSlots });
+      // Связываем под-игры микса: общий mix_group_id = id исходной игры (или её группы).
+      await createGame(groupId, { title: game.title || null, startsAt: new Date().toISOString(), slots: newSlots, mixGroupId: game.mix_group_id || game.id });
       bumpArchive && bumpArchive();
       reloadGames && reloadGames();
       back && back();
@@ -1784,12 +1879,29 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
       })}
 
       {games.length > 0 && head(t("games_history_heading"))}
-      {games.map((g) => {
-        const card = <GameRow g={g} color="#7d9488" flush={isGroupMember} onOpen={() => setSel({ type: "game", data: g })} />;
-        return isGroupMember
-          ? <SwipeToDelete key={g.id} onDelete={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(g.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
-          : <div key={g.id}>{card}</div>;
-      })}
+      {(() => {
+        // Группируем по миксу: ключ = mix_group_id || id. Группа ≥2 → объединённая плашка.
+        const byKey = new Map();
+        games.forEach((g) => { const k = g.mix_group_id || g.id; const a = byKey.get(k) || []; a.push(g); byKey.set(k, a); });
+        const seen = new Set();
+        const order = [];
+        games.forEach((g) => { const k = g.mix_group_id || g.id; if (!seen.has(k)) { seen.add(k); order.push(k); } });
+        return order.map((k) => {
+          const grp = byKey.get(k);
+          if (grp.length >= 2) {
+            const ordered = [...grp].sort((a, b) => new Date(a.created_at || a.starts_at || 0) - new Date(b.created_at || b.starts_at || 0));
+            const card = <MixGroupCard games={ordered} color="#7d9488" onOpenGame={(g) => setSel({ type: "game", data: g })} />;
+            return isGroupMember
+              ? <SwipeToDelete key={"mix-" + k} onDelete={async () => { if (!confirm(t("mix_delete_confirm").replace("{n}", ordered.length))) return; for (const gg of ordered) await deleteGame(gg.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+              : <div key={"mix-" + k}>{card}</div>;
+          }
+          const g = grp[0];
+          const card = <GameRow g={g} color="#7d9488" flush={isGroupMember} onOpen={() => setSel({ type: "game", data: g })} />;
+          return isGroupMember
+            ? <SwipeToDelete key={g.id} onDelete={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(g.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+            : <div key={g.id}>{card}</div>;
+        });
+      })()}
     </div>
   );
 }

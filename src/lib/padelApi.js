@@ -162,12 +162,13 @@ export async function getRatingHistory(groupId, profileId) {
    ===================================================================== */
 
 const GAME_SELECT =
-  "id, invite_code, title, starts_at, place, status, host_id, created_at, " +
+  "id, invite_code, title, starts_at, place, status, host_id, created_at, mix_group_id, " +
   "slots:game_slots(id, team, position, profile_id, guest_name, profile:profiles(name, avatar_url))," +
   "matches(id, sets_a, sets_b, score_detail)";
 
 // Создать игру + 4 слота. slots: [A1, A2, B1, B2] — profileId или null (по ссылке).
-export async function createGame(groupId, { title, startsAt, place, slots = [], hostId } = {}) {
+// mixGroupId — для «Сыграть ещё (микс)»: связывает под-игры одного выхода.
+export async function createGame(groupId, { title, startsAt, place, slots = [], hostId, mixGroupId } = {}) {
   let game = null;
   for (let attempt = 0; attempt < 5; attempt++) {
     const res = await supabase
@@ -179,6 +180,7 @@ export async function createGame(groupId, { title, startsAt, place, slots = [], 
         starts_at: startsAt || null,
         place: place?.trim() || null,
         host_id: hostId || null,
+        mix_group_id: mixGroupId || null,
         status: "open",
       })
       .select()

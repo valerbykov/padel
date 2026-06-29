@@ -255,7 +255,7 @@ function FormatPicker({ selected, onSelect }) {
               }}>{f.emoji}</div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700, fontSize: 16 }}>{f.name}</div>
-                <div style={{ fontSize: 12, color: f.color, fontWeight: 600, marginTop: 1 }}>{f.tagline}</div>
+                <div style={{ fontSize: 12, color: f.id === "americano" ? "var(--lime)" : f.color, fontWeight: 600, marginTop: 1 }}>{f.tagline}</div>
               </div>
               {isSelected && (
                 <div style={{
@@ -323,22 +323,21 @@ function Create({ groupId, profileId, back, open }) {
     { v: 12, label: "12", sub: tr("trn_teams_6") },
   ];
 
+  // Автоназвание = формат + размер. Дата/время НЕ дублируются в названии —
+  // дата показывается отдельно в карточке турнира.
   React.useEffect(() => {
-    if (!date || !format) return;
+    if (!format) return;
     try {
-      const d = new Date(date);
-      const day = d.toLocaleString("ru-RU", { day: "numeric", month: "short" });
-      const time = d.toLocaleString("ru-RU", { hour: "2-digit", minute: "2-digit" });
       if (isKothBtB) {
         const teams = playerCount / 2;
-        const co = COURTS_OPTS.find((o) => o.v === courts);
-        setName(`${fmt.name} · ${day} · ${time} · ${teams} ${tr("trn_teams_" + teams).split(" ")[1] || "teams"}`);
+        setName(`${fmt.name} · ${teams} ${tr("trn_teams_" + teams).split(" ")[1] || "teams"}`);
       } else {
         const c = COURTS_OPTS.find((o) => o.v === courts);
-        setName(`${fmt.name} · ${day} · ${time} · ${c.label}`);
+        if (!c) return;
+        setName(`${fmt.name} · ${c.label}`);
       }
     } catch (e) {}
-  }, [date, courts, playerCount, format]);
+  }, [courts, playerCount, format]);
 
   const go = async () => {
     setBusy(true);
@@ -396,7 +395,7 @@ function Create({ groupId, profileId, back, open }) {
           <span style={{ fontSize: 22 }}>{fmt.emoji}</span>
           <div>
             <div style={{ fontWeight: 700, fontSize: 14 }}>{fmt.name}</div>
-            <div style={{ fontSize: 11, color: fmt.color }}>{fmt.tagline}</div>
+            <div style={{ fontSize: 11, color: fmt.id === "americano" ? "var(--lime)" : fmt.color }}>{fmt.tagline}</div>
           </div>
         </div>
 
@@ -485,6 +484,37 @@ function groupRounds(matches) {
   const r = {};
   matches.forEach((m) => { (r[m.round_number] = r[m.round_number] || []).push(m); });
   return r;
+}
+
+// Свайп влево по строке участника → удаление (как в Истории/слотах игры).
+function SwipeRow({ onDelete, children }) {
+  const [dx, setDx] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const startX = useRef(0), startY = useRef(0), active = useRef(false), busy = useRef(false);
+  const MAX = 72;
+  const down = (e) => { if (busy.current) return; startX.current = e.clientX; startY.current = e.clientY; active.current = true; setDragging(true); try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} };
+  const move = (e) => {
+    if (!active.current) return;
+    const dX = e.clientX - startX.current, dY = e.clientY - startY.current;
+    if (dx === 0 && Math.abs(dY) > Math.abs(dX)) { active.current = false; setDragging(false); return; }
+    setDx(Math.max(-MAX, Math.min(0, dX)));
+  };
+  const up = async () => {
+    if (!active.current) return; active.current = false; setDragging(false);
+    if (dx <= -MAX * 0.55) { setDx(-MAX); busy.current = true; try { await onDelete(); } finally { busy.current = false; } setDx(0); }
+    else setDx(0);
+  };
+  return (
+    <div style={{ position: "relative", borderRadius: 10, overflow: "hidden", background: "var(--coral)" }}>
+      <div style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: MAX, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+        <Trash2 size={16} />
+      </div>
+      <div onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
+        style={{ transform: `translateX(${dx}px)`, transition: dragging ? "none" : "transform .22s ease", touchAction: "pan-y", background: "var(--surface)" }}>
+        {children}
+      </div>
+    </div>
+  );
 }
 
 function AddPlayer({ players, existing, onAdd, disabled }) {
@@ -740,10 +770,14 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
             <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{tr("trn_participants")} {trnData.players.length}/{trnData.target_size}</div>
             <StandingsTable rows={detailedStandings(trnData.players.map((p) => ({ id: p.id, name: p.name })), [])} avatarOf={(row) => ({ url: avatarOfTp(row.id) })} />
             {!readOnly && trnData.players.map((p) => (
-              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
-                <span style={{ flex: 1, fontSize: 13 }}>{p.name}</span>
-                <button style={{ padding: 4, border: "none", background: "none", color: "var(--mut)", cursor: "pointer" }}
-                  onClick={async () => { await removeTournamentPlayer(p.id); load(); }}><X size={14} /></button>
+              <div key={p.id} style={{ marginTop: 6 }}>
+                <SwipeRow onDelete={async () => { await removeTournamentPlayer(p.id); load(); }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 4px" }}>
+                    <span style={{ flex: 1, fontSize: 13 }}>{p.name}</span>
+                    <button style={{ padding: 4, border: "none", background: "none", color: "var(--mut)", cursor: "pointer" }}
+                      onClick={async () => { await removeTournamentPlayer(p.id); load(); }}><X size={14} /></button>
+                  </div>
+                </SwipeRow>
               </div>
             ))}
             {!readOnly && (
