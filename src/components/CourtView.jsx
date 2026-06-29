@@ -26,6 +26,7 @@ function Chip({ name, avatarUrl, x, y, team }) {
       <div style={{
         background: "color-mix(in srgb, var(--surface) 88%, transparent)", border: `1px solid ${color}`,
         borderRadius: 6, padding: "1px 5px",
+        fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
         fontSize: "clamp(8px,2.2vw,10px)", fontWeight: 600, color: "var(--ink)",
         lineHeight: 1.1, textAlign: "center", wordBreak: "break-word",
         display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
@@ -323,7 +324,11 @@ export default function CourtView({
                 <span style={{ color: "var(--mut)", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 14 }}>:</span>
                 <SetChip val={s.b} team="B" editable={editable && !savedAlready} onClick={() => setPickSets({ setIdx: i, team: "B" })} />
               </div>
-              <span style={{ width: 50, flexShrink: 0 }} aria-hidden="true" />
+              <div style={{ width: 50, flexShrink: 0, display: "flex", justifyContent: "flex-end" }}>
+                {editable && !savedAlready && setsDetail.length > 1 && i === setsDetail.length - 1 && (
+                  <button className="cv-setbtn" onClick={removeLastSet} aria-label="удалить сет" style={{ width: 28, height: 28, borderRadius: 8, border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--coral)", cursor: "pointer", fontSize: 14, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+                )}
+              </div>
             </div>
           ))}
           {editable && !savedAlready && !allSetsEntered && (
@@ -331,21 +336,11 @@ export default function CourtView({
               нажми на счёт сета, чтобы ввести
             </div>
           )}
-          {editable && !savedAlready && (
-            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-              {setsDetail.length < 5 && (
-                <button className="cv-setbtn" onClick={addSet} style={{
-                  flex: 1, padding: "10px 0", borderRadius: 10, border: "1px solid color-mix(in srgb, var(--lime) 45%, transparent)",
-                  background: "color-mix(in srgb, var(--lime) 12%, transparent)", color: "var(--lime)", cursor: "pointer", fontSize: 14, fontWeight: 700, fontFamily: "'Outfit',sans-serif",
-                }}>+ Добавить сет</button>
-              )}
-              {setsDetail.length > 1 && (
-                <button className="cv-setbtn" onClick={removeLastSet} style={{
-                  padding: "10px 16px", borderRadius: 10, border: "1px solid var(--line)",
-                  background: "var(--surface2)", color: "var(--mut)", cursor: "pointer", fontSize: 14, fontWeight: 700,
-                }}>−</button>
-              )}
-            </div>
+          {editable && !savedAlready && setsDetail.length < 5 && (
+            <button className="cv-setbtn" onClick={addSet} style={{
+              width: "100%", marginTop: 10, padding: "10px 0", borderRadius: 10, border: "1px solid color-mix(in srgb, var(--lime) 45%, transparent)",
+              background: "color-mix(in srgb, var(--lime) 12%, transparent)", color: "var(--lime)", cursor: "pointer", fontSize: 14, fontWeight: 700, fontFamily: "'Outfit',sans-serif",
+            }}>+ Добавить сет</button>
           )}
         </div>
       )}

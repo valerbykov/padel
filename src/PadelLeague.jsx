@@ -7,7 +7,7 @@ import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
 import { t } from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
-import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound } from "lucide-react";
+import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle } from "lucide-react";
 import Tournaments, { TournamentView, TournamentCard, css as trCss } from "./components/Tournaments";
 import { deleteTournament } from "./lib/tournamentApi";
 import CourtView from "./components/CourtView";
@@ -1330,7 +1330,7 @@ function Games({ groupId, players, reloadLeaderboard, session, archiveNonce, bum
   if (mode === "view") {
     const g = games.find((x) => x.id === selId);
     if (!g) { setMode("list"); return null; }
-    return <GameCard game={g} back={() => setMode("list")} reloadGames={loadGames} reloadLeaderboard={reloadLeaderboard} bumpArchive={bumpArchive} />;
+    return <GameCard game={g} groupId={groupId} back={() => setMode("list")} reloadGames={loadGames} reloadLeaderboard={reloadLeaderboard} bumpArchive={bumpArchive} />;
   }
 
   return (
@@ -1504,7 +1504,61 @@ function CreateGame({ groupId, players, back, done }) {
     </div>
   );
 }
-function GameCard({ game, back, reloadGames, reloadLeaderboard, bumpArchive }) {
+// Микс команд для «сыграть ещё»: 4 игрока, drag & drop для обмена местами.
+function RematchMix({ players, onCreate, onCancel, busy }) {
+  const [arr, setArr] = useState(players);
+  const refs = useRef([]);
+  const [drag, setDrag] = useState(null); // { idx, x, y }
+  const start = (idx) => (e) => { setDrag({ idx, x: e.clientX, y: e.clientY }); try { e.currentTarget.releasePointerCapture?.(e.pointerId); } catch (_) {} };
+  const move = (e) => { if (drag) setDrag((d) => d && { ...d, x: e.clientX, y: e.clientY }); };
+  const end = (e) => {
+    if (!drag) return;
+    let tgt = -1;
+    refs.current.forEach((el, i) => { if (!el) return; const r = el.getBoundingClientRect(); if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) tgt = i; });
+    if (tgt >= 0 && tgt !== drag.idx) setArr((prev) => { const n = [...prev]; const t = n[tgt]; n[tgt] = n[drag.idx]; n[drag.idx] = t; return n; });
+    setDrag(null);
+  };
+  const Chip = ({ idx, ring }) => {
+    const p = arr[idx];
+    return (
+      <div ref={(el) => (refs.current[idx] = el)} onPointerDown={start(idx)}
+        style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 12, background: "var(--surface2)", border: `1.5px solid ${ring}`, cursor: "grab", touchAction: "none", userSelect: "none", opacity: drag?.idx === idx ? .25 : 1 }}>
+        <Avatar url={p.avatar_url} id={p.profile_id || p.guest_name} name={p.name} size={28} />
+        <span style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+      </div>
+    );
+  };
+  return (
+    <div onPointerMove={move} onPointerUp={end} onPointerCancel={end} style={{ touchAction: drag ? "none" : "auto" }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "stretch" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--lime)", letterSpacing: 1, textAlign: "center" }}>A</div>
+          <Chip idx={0} ring="var(--lime)" /><Chip idx={1} ring="var(--lime)" />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", color: "var(--mut)", fontWeight: 700, fontSize: 12 }}>vs</div>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--coral)", letterSpacing: 1, textAlign: "center" }}>B</div>
+          <Chip idx={2} ring="var(--coral)" /><Chip idx={3} ring="var(--coral)" />
+        </div>
+      </div>
+      <div style={{ fontSize: 11, color: "var(--mut)", textAlign: "center", marginTop: 8 }}>{t("mix_hint")}</div>
+      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        <button className="pl-ghost" style={{ padding: "10px 14px" }} onClick={onCancel}>{t("cancel")}</button>
+        <button className="pl-btn" style={{ flex: 1, padding: 10 }} disabled={busy} onClick={() => onCreate(arr)}>{busy ? t("creating_game") : t("mix_create")}</button>
+      </div>
+      {drag && (
+        <div style={{ position: "fixed", left: drag.x, top: drag.y, transform: "translate(-50%,-50%)", pointerEvents: "none", zIndex: 300, padding: "8px 10px", borderRadius: 12, background: "var(--surface)", border: "1.5px solid var(--lime)", display: "flex", alignItems: "center", gap: 8, boxShadow: "0 8px 24px rgba(0,0,0,.4)" }}>
+          <Avatar url={arr[drag.idx].avatar_url} id={arr[drag.idx].profile_id || arr[drag.idx].guest_name} name={arr[drag.idx].name} size={28} />
+          <span style={{ fontSize: 13, fontWeight: 600 }}>{arr[drag.idx].name}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArchive }) {
+  const [mix, setMix] = useState(false);
+  const [mixBusy, setMixBusy] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [toast, setToast] = useState("");
   const slots = [...(game.slots || [])].sort((a, b) => (a.team + a.position).localeCompare(b.team + b.position));
@@ -1519,6 +1573,19 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard, bumpArchive }) {
     const text = `${t("game_share_text")}${game.title ? ` «${game.title}»` : ""}! ${t("game_share_join")}: ${url} (${t("code_label")} ${game.invite_code})`;
     try { if (navigator.share) { await navigator.share({ title: "PadelPack", text, url }); return; } } catch (e) {}
     try { await navigator.clipboard.writeText(text); setToast(t("copied")); setTimeout(() => setToast(""), 1600); } catch (e) { setToast("Скопируй вручную"); }
+  };
+
+  // «Сыграть ещё»: создаём новую игру с теми же игроками в выбранной расстановке.
+  const createMix = async (arr) => {
+    if (!groupId) return;
+    setMixBusy(true);
+    try {
+      const newSlots = arr.map((p) => (p.profile_id ? { profileId: p.profile_id } : { guestName: p.guest_name }));
+      await createGame(groupId, { title: game.title || null, startsAt: new Date().toISOString(), slots: newSlots });
+      bumpArchive && bumpArchive();
+      reloadGames && reloadGames();
+      back && back();
+    } catch (e) { alert("Не удалось создать игру"); setMixBusy(false); }
   };
 
   if (game.status === "played") {
@@ -1540,6 +1607,21 @@ function GameCard({ game, back, reloadGames, reloadLeaderboard, bumpArchive }) {
               editable={false} />
           </div>
         </div>
+        {groupId && filled === 4 && (
+          <div className="pl-card" style={{ padding: 14, marginTop: 10 }}>
+            {!mix ? (
+              <button className="pl-ghost" style={{ width: "100%", padding: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--lime)", borderColor: "color-mix(in srgb, var(--lime) 35%, transparent)", fontWeight: 600 }} onClick={() => setMix(true)}>
+                <Shuffle size={16} /> {t("mix_again")}
+              </button>
+            ) : (
+              <RematchMix
+                players={slots.map((s) => ({ name: nameOf(s), profile_id: s.profile_id, guest_name: s.guest_name, avatar_url: s.profile?.avatar_url }))}
+                busy={mixBusy}
+                onCancel={() => setMix(false)}
+                onCreate={createMix} />
+            )}
+          </div>
+        )}
       </div>
     );
   }
@@ -1665,6 +1747,8 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
   const [games, setGames] = useState(null);  // сыгранные игры
   const [tours, setTours] = useState([]);     // завершённые турниры
   const [sel, setSel] = useState(null);       // { type: 'tour' | 'game', data }
+  const [swipeHint, setSwipeHint] = useState(() => { try { return !localStorage.getItem("pp_swipe_hint"); } catch (e) { return true; } });
+  const dismissHint = () => { try { localStorage.setItem("pp_swipe_hint", "1"); } catch (e) {} setSwipeHint(false); };
 
   const load = useCallback(async () => {
     try { const g = groupId ? await listGames(groupId) : await listMyGames(); setGames((g || []).filter((x) => x.status === "played")); }
@@ -1676,7 +1760,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
 
   // Проваливание в результаты — те же экраны, что на вкладках Игры/Турниры (там и удаление).
   if (sel?.type === "tour") return <TournamentView id={sel.data.id} players={players} back={() => setSel(null)} isGroupMember={isGroupMember} currentProfileId={profileId} onArchiveChange={bumpArchive} />;
-  if (sel?.type === "game") return <GameCard game={sel.data} back={() => setSel(null)} reloadGames={load} reloadLeaderboard={() => {}} bumpArchive={bumpArchive} />;
+  if (sel?.type === "game") return <GameCard game={sel.data} groupId={groupId} back={() => setSel(null)} reloadGames={load} reloadLeaderboard={() => {}} bumpArchive={bumpArchive} />;
 
   const head = (txt, color = "var(--mut)") => <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color, textTransform: "uppercase", margin: "14px 2px 8px", paddingLeft: 4 }}>{txt}</div>;
 
@@ -1686,6 +1770,11 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
   return (
     <div className="pl-pop">
       <style>{trCss}</style>
+      {isGroupMember && swipeHint && (games.length > 0 || tours.length > 0) && (
+        <div onClick={dismissHint} style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 2px 12px", padding: "9px 12px", borderRadius: 12, background: "color-mix(in srgb, var(--coral) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--coral) 30%, transparent)", fontSize: 12.5, color: "var(--mut)", cursor: "pointer" }}>
+          <span style={{ color: "var(--coral)", fontSize: 18, fontWeight: 800, lineHeight: 1 }}>←</span> {t("swipe_hint")} <X size={14} style={{ marginLeft: "auto", color: "var(--mut)", flexShrink: 0 }} />
+        </div>
+      )}
       {tours.length > 0 && head(t("tours_history_heading"), "var(--yellow)")}
       {tours.map((tour) => {
         const card = <TournamentCard trn={tour} color="var(--yellow)" flush={isGroupMember} onClick={() => setSel({ type: "tour", data: tour })} />;

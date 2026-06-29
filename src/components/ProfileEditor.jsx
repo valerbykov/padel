@@ -13,9 +13,13 @@ const PRESETS = Array.from({ length: 15 }, (_, i) => `/avatars/dog-${String(i + 
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
-.pc-root{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;--lime-fg:#0a1612;
+.pc-root{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;--lime-fg:#0a1612;--topbar-bg:rgba(10,22,18,.92);
  font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;color-scheme:dark;}
-.pc-root.pc-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;--ink:#0d1f18;--mut:#4a7060;--lime:#2a7a00;--coral:#d93a1f;--lime-fg:#ffffff;color-scheme:light;}
+.pc-root.pc-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;--ink:#0d1f18;--mut:#4a7060;--lime:#2a7a00;--coral:#d93a1f;--lime-fg:#ffffff;--topbar-bg:rgba(242,247,244,.95);color-scheme:light;}
+.pc-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;padding-top:max(10px,env(safe-area-inset-top));border-bottom:1px solid var(--line);background:var(--topbar-bg);position:sticky;top:0;z-index:60;backdrop-filter:blur(10px);}
+.pc-seg{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:3px;}
+.pc-seg button{border:none;background:none;color:var(--ink);padding:5px 9px;border-radius:9px;cursor:pointer;font-family:'Outfit';font-weight:700;font-size:12px;display:flex;align-items:center;gap:5px;transition:filter .12s;}
+.pc-seg button:hover{filter:brightness(1.1);}
 .pc-d{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;}
 .pc-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;}
 .pc-input{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Outfit';font-size:16px;padding:11px 12px;outline:none;box-sizing:border-box;transition:border-color .15s,box-shadow .15s;}
@@ -105,22 +109,20 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
   return (
     <div className={"pc-root" + (theme === "light" ? " pc-light" : "")}>
       <style>{css}</style>
-      <div style={{ maxWidth: 460, margin: "0 auto", padding: "calc(20px + env(safe-area-inset-top)) 16px 40px" }}>
-        {/* Топбар: назад + язык/тема */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-          <button className="pc-ghost" style={{ padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: 6 }} onClick={onClose}><ArrowLeft size={14} /> {t("back")}</button>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <button className="pc-iconbtn" onClick={cycleLang} aria-label={t("aria_lang")}>{lang.toUpperCase()} <span style={{ opacity: .6, fontWeight: 400 }}>↻</span></button>
-            <button className="pc-iconbtn" onClick={onThemeToggle} aria-label={t("aria_theme")} style={{ padding: "6px 9px" }}>{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}</button>
-          </div>
+      {/* Топбар как у остальных вкладок: назад + сегмент язык/тема */}
+      <div className="pc-topbar">
+        <button className="pc-ghost" style={{ padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: 6 }} onClick={onClose}><ArrowLeft size={14} /> {t("back")}</button>
+        <div className="pc-seg">
+          <button onClick={cycleLang} aria-label={t("aria_lang")}>{lang.toUpperCase()} <span style={{ color: "var(--mut)", fontWeight: 400, fontSize: 13 }}>↻</span></button>
+          <button onClick={onThemeToggle} aria-label={t("aria_theme")} style={{ padding: "5px 8px" }}>{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}</button>
         </div>
-        {/* Заголовок + переход к статистике */}
+      </div>
+      <div style={{ maxWidth: 460, margin: "0 auto", padding: "16px 16px 40px" }}>
+        {/* Заголовок + переход к статистике (кнопка как «Личный кабинет» в карточке игрока) */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
           <h1 className="pc-d" style={{ fontSize: 26, margin: 0, flex: 1, minWidth: 0 }}>{t("pc_title")}</h1>
           {onOpenStats && userId && (
-            <button className="pc-ghost" style={{ padding: "7px 12px", display: "inline-flex", alignItems: "center", gap: 6, color: "var(--lime)", borderColor: "color-mix(in srgb, var(--lime) 35%, transparent)", fontWeight: 600, fontSize: 13, flexShrink: 0 }} onClick={onOpenStats}>
-              <BarChart3 size={14} /> {t("pc_open_stats")}
-            </button>
+            <button className="pc-ghost" style={{ padding: "6px 12px", color: "var(--lime)", borderColor: "color-mix(in srgb, var(--lime) 35%, transparent)", flexShrink: 0 }} onClick={onOpenStats}>{t("pc_open_stats")}</button>
           )}
         </div>
 
