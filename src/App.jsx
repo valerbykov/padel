@@ -2,23 +2,27 @@
 // Показывает приложение лиги сразу. Сверху панель: «Войти» для гостей,
 // имя + «Выйти» для авторизованных. Определяет группы пользователя (leagues)
 // и прокидывает активную лигу в PadelLeague. Ссылка /j/CODE открывает экран гостя.
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, lazy } from "react";
 import { supabase } from "./lib/supabase";
 import { handleAuthCallbackUrl, handleYandexCallback } from "./lib/auth";
-import LoginScreen from "./components/LoginScreen";
-import GuestJoin from "./components/GuestJoin";
-import TournamentJoin from "./components/TournamentJoin";
-import ClaimProfile from "./components/ClaimProfile";
-import PadelLeague from "./PadelLeague";
-import ProfileEditor from "./components/ProfileEditor";
-import LeagueSetup from "./components/LeagueSetup";
-import LeaguePublicPage from "./components/LeaguePublicPage";
 import Landing from "./components/Landing";
 import Avatar from "./components/Avatar";
 import Logo from "./components/Logo";
 import { LogIn, Sun, Moon } from "lucide-react";
 import { getMyLeagues } from "./lib/padelApi";
 import { t, setLang, LANGS, LANG_LABELS, currentLang } from "./lib/i18n";
+
+// Ленивые чанки: тяжёлые и маршрутные экраны грузятся по требованию,
+// чтобы уменьшить стартовый бандл и ускорить первый рендер (LCP).
+// Стартовый экран гостя — Landing — оставлен синхронным (это первый кадр).
+const PadelLeague      = lazy(() => import("./PadelLeague"));
+const LoginScreen      = lazy(() => import("./components/LoginScreen"));
+const ProfileEditor    = lazy(() => import("./components/ProfileEditor"));
+const LeagueSetup      = lazy(() => import("./components/LeagueSetup"));
+const LeaguePublicPage = lazy(() => import("./components/LeaguePublicPage"));
+const GuestJoin        = lazy(() => import("./components/GuestJoin"));
+const TournamentJoin   = lazy(() => import("./components/TournamentJoin"));
+const ClaimProfile     = lazy(() => import("./components/ClaimProfile"));
 
 const BOT_NAME = "padel_league_bot"; // имя твоего Telegram-бота без @
 
@@ -327,7 +331,7 @@ function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme
         </button>
       ) : (
         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-          <img src={theme === "light" ? "/logo-mark-light.png" : "/logo-mark-dark.png"} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0 }} />
+          <img src={theme === "light" ? "/logo-mark-light.webp" : "/logo-mark-dark.webp"} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0 }} />
           <Logo theme={theme} height={21} gap={8} />
         </div>
       )}

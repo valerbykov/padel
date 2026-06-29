@@ -150,7 +150,7 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
       {/* Main content */}
       <div className="lg-body">
         <div className="lg-card">
-          <img className="lg-mark" src={theme === "light" ? "/logo-mark-light.png" : "/logo-mark-dark.png"} alt="PadelPack" />
+          <img className="lg-mark" src={theme === "light" ? "/logo-mark-light.webp" : "/logo-mark-dark.webp"} alt="PadelPack" />
           <div style={{ display: "flex", justifyContent: "center" }}><Logo theme={theme} showTagline /></div>
           <div className="lg-sub">{t("login_subtitle")}</div>
 

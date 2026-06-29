@@ -341,7 +341,7 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLand
     <div className="pl-pop">
       {/* Hero */}
       <div style={{ textAlign: "center", padding: "28px 0 22px" }}>
-        <img src={theme === "light" ? "/logo-mark-light.png" : "/logo-mark-dark.png"} alt="PadelPack" style={{ width: 60, height: 60, borderRadius: 16, margin: "0 auto 12px", display: "block", boxShadow: "0 8px 24px -10px rgba(0,0,0,.6)" }} />
+        <img src={theme === "light" ? "/logo-mark-light.webp" : "/logo-mark-dark.webp"} alt="PadelPack" style={{ width: 60, height: 60, borderRadius: 16, margin: "0 auto 12px", display: "block", boxShadow: "0 8px 24px -10px rgba(0,0,0,.6)" }} />
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}><Logo theme={theme} showTagline /></div>
         <div style={{ fontSize: 14, color: "var(--mut)", lineHeight: 1.6, maxWidth: 270, margin: "10px auto 0" }}>
           {t("welcome_tagline")}

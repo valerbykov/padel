@@ -15,7 +15,7 @@ export default defineConfig({
       manifest: {
         name: "PadelPack",
         short_name: "PadelPack",
-        description: "Игры в падел с друзьями: приглашения по ссылке, результаты и рейтинг.",
+        description: "Игры в падел с друзьями: приглашения по ссылке, счёт матчей, турниры и таблица лиги.",
         lang: "ru",
         theme_color: "#0a1612",
         background_color: "#0a1612",

@@ -66,7 +66,7 @@ export default function Landing({ theme = "dark", lang = "ru", onStart, onBrowse
 
       <div className="ld-top">
         <div className="ld-brand">
-          <img src={isLight ? "/logo-mark-light.png" : "/logo-mark-dark.png"} alt="PadelPack" />
+          <img src={isLight ? "/logo-mark-light.webp" : "/logo-mark-dark.webp"} alt="PadelPack" />
           <span className="ld-word"><span className="a">Padel</span><span className="b">Pack</span></span>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
