@@ -5,6 +5,21 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        // Делим вендоров на отдельные чанки: react/supabase кэшируются
+        // надолго и не перекачиваются при каждом обновлении приложения.
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("@supabase")) return "supabase";
+            if (id.includes("react-dom") || id.includes("/react/") || id.includes("scheduler")) return "react";
+            return "vendor";
+          }
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({

@@ -46,12 +46,13 @@ function getLeaguePublicCode() {
   return m ? m[1].toUpperCase() : null;
 }
 
-export default function App() {
+export default function App({ initialShowLogin = false }) {
   const [session,      setSession]      = useState(null);
   const [profile,      setProfile]      = useState(null);
   const [leagues,      setLeagues]      = useState(null);   // null = загружается
   const [activeLeague, setActiveLeague] = useState(null);   // { id, name, invite_code, role }
-  const [showLogin,    setShowLogin]    = useState(false);
+  // initialShowLogin — гость пришёл с лендинга через «Войти» (см. Root.jsx).
+  const [showLogin,    setShowLogin]    = useState(initialShowLogin);
   const [showProfile,  setShowProfile]  = useState(false);
   const [pNonce,       setPNonce]       = useState(0);
   const [theme,        setTheme]        = useState(() => localStorage.getItem("plTheme") || "dark");
