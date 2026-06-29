@@ -204,6 +204,8 @@ const T = {
     history_empty: 'Пока нет сыгранных игр и турниров.',
     tours_history_heading: 'Турниры',
     games_history_heading: 'Игры',
+    filter_all: 'Все', filter_games: 'Игры', filter_tours: 'Турниры',
+    history_no_games: 'Сыгранных игр пока нет.', history_no_tours: 'Завершённых турниров пока нет.',
     winner_label: 'Победитель',
     set_label: 'Сет',
     // ── Login ─────────────────────────────────────────────────────────────
@@ -505,6 +507,8 @@ const T = {
     history_empty: 'No played games or tournaments yet.',
     tours_history_heading: 'Tournaments',
     games_history_heading: 'Games',
+    filter_all: 'All', filter_games: 'Games', filter_tours: 'Tournaments',
+    history_no_games: 'No played games yet.', history_no_tours: 'No finished tournaments yet.',
     winner_label: 'Winner',
     set_label: 'Set',
     // ── Login ─────────────────────────────────────────────────────────────
@@ -806,6 +810,8 @@ const T = {
     history_empty: 'Todavía no hay partidas ni torneos jugados.',
     tours_history_heading: 'Torneos',
     games_history_heading: 'Partidas',
+    filter_all: 'Todo', filter_games: 'Partidas', filter_tours: 'Torneos',
+    history_no_games: 'Aún no hay partidas jugadas.', history_no_tours: 'Aún no hay torneos finalizados.',
     winner_label: 'Ganador',
     set_label: 'Set',
     // ── Login ─────────────────────────────────────────────────────────────

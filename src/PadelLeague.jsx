@@ -1335,7 +1335,7 @@ function MixGroupCard({ games, color, onOpenGame }) {
   const when = first.starts_at || first.created_at;
   return (
     <div className="pl-card" style={{ padding: 0, overflow: "hidden" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderBottom: "1px solid var(--line)" }}>
+      <div onClick={() => onOpenGame(first)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderBottom: "1px solid var(--line)", cursor: "pointer" }}>
         <Shuffle size={18} color={color} style={{ flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{first.title || t("mix_session_title")}</div>
@@ -1491,12 +1491,11 @@ function GameSlots({ slots, setSlots, players, chosenIds }) {
             <SwipeToDelete onDelete={() => setSlot(i, null)}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface)" }}>
                 <span className="pl-display" style={{ width: 24, fontSize: 12, color: ring }}>{team}</span>
-                <div className="pl-slot" style={{ flex: 1, justifyContent: "space-between" }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                <div className="pl-slot" style={{ flex: 1 }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
                     <span onPointerDown={startDrag(i)} style={{ cursor: "grab", touchAction: "none", color: "var(--mut)", display: "flex", flexShrink: 0 }}><GripVertical size={16} /></span>
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.label}</span>
                   </span>
-                  <button style={{ padding: 4, border: "none", background: "none", color: "var(--mut)", cursor: "pointer", flexShrink: 0 }} onClick={() => setSlot(i, null)}><X size={14} /></button>
                 </div>
               </div>
             </SwipeToDelete>
@@ -1616,21 +1615,21 @@ function RematchMix({ players, onCreate, onCancel, busy }) {
     const p = arr[idx];
     return (
       <div ref={(el) => (refs.current[idx] = el)} onPointerDown={start(idx)}
-        style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 12, background: "var(--surface2)", border: `1.5px solid ${ring}`, cursor: "grab", touchAction: "none", userSelect: "none", opacity: drag?.idx === idx ? .25 : 1 }}>
-        <Avatar url={p.avatar_url} id={p.profile_id || p.guest_name} name={p.name} size={28} />
-        <span style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+        style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 12, background: "var(--surface2)", border: `1.5px solid ${ring}`, cursor: "grab", touchAction: "none", userSelect: "none", minWidth: 0, opacity: drag?.idx === idx ? .25 : 1 }}>
+        <span style={{ flexShrink: 0, display: "flex" }}><Avatar url={p.avatar_url} id={p.profile_id || p.guest_name} name={p.name} size={28} /></span>
+        <span style={{ fontSize: 13, fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
       </div>
     );
   };
   return (
     <div onPointerMove={move} onPointerUp={end} onPointerCancel={end} style={{ touchAction: drag ? "none" : "auto" }}>
       <div style={{ display: "flex", gap: 10, alignItems: "stretch" }}>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: "var(--lime)", letterSpacing: 1, textAlign: "center" }}>A</div>
           <Chip idx={0} ring="var(--lime)" /><Chip idx={1} ring="var(--lime)" />
         </div>
         <div style={{ display: "flex", alignItems: "center", color: "var(--mut)", fontWeight: 700, fontSize: 12 }}>vs</div>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: "var(--coral)", letterSpacing: 1, textAlign: "center" }}>B</div>
           <Chip idx={2} ring="var(--coral)" /><Chip idx={3} ring="var(--coral)" />
         </div>
@@ -1650,11 +1649,73 @@ function RematchMix({ players, onCreate, onCancel, busy }) {
   );
 }
 
+// Один корт внутри страницы (микс-)сессии: сыгранная — просмотр, открытая
+// с полным составом — ввод счёта прямо здесь.
+function GameCourtBlock({ game, index, total, reloadSession, reloadLeaderboard, bumpArchive }) {
+  const slots = [...(game.slots || [])].sort((a, b) => (a.team + a.position).localeCompare(b.team + b.position));
+  const nameOf = (s) => s.profile?.name || s.guest_name;
+  const avatarOf = (s) => s.profile_id ? playerAvatar(s.profile?.avatar_url, s.profile_id) : null;
+  const slotsA = slots.filter((s) => s.team === "A");
+  const slotsB = slots.filter((s) => s.team === "B");
+  const filled = slots.filter((s) => s.profile_id || s.guest_name).length;
+  const played = game.status === "played";
+  const match = (game.matches || [])[0];
+  const del = async () => {
+    if (!confirm(t("delete_game_confirm"))) return;
+    await deleteGame(game.id).catch(() => {});
+    bumpArchive && bumpArchive();
+    await reloadSession();
+  };
+  return (
+    <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <span className="pl-display" style={{ fontSize: 15 }}>{total > 1 ? `${t("mix_game_label")} ${index + 1}` : (game.title || "Padel")}</span>
+        {game.starts_at && <span style={{ fontSize: 12, color: "var(--mut)", display: "inline-flex", alignItems: "center", gap: 4 }}><Calendar size={12} />{fmtDate(game.starts_at)}</span>}
+        <button className="pl-ghost" style={{ marginLeft: "auto", padding: "5px 8px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)" }} onClick={del} title="Удалить"><Trash2 size={13} /></button>
+      </div>
+      {played ? (
+        <CourtView courtNumber={index + 1} mode="sets"
+          teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
+          teamAvatarsA={slotsA.map(avatarOf)} teamAvatarsB={slotsB.map(avatarOf)}
+          scoreA={match?.sets_a ?? null} scoreB={match?.sets_b ?? null}
+          scoreDetail={match?.score_detail || null} editable={false} />
+      ) : filled === 4 ? (
+        <CourtView courtNumber={index + 1} mode="sets" editable
+          teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
+          teamAvatarsA={slotsA.map(avatarOf)} teamAvatarsB={slotsB.map(avatarOf)}
+          onSave={async (a, b, detail) => { await submitResult(game.id, a, b, detail); await reloadSession(); reloadLeaderboard && reloadLeaderboard(); }} />
+      ) : (
+        <>
+          <CourtView courtNumber={index + 1}
+            teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
+            teamAvatarsA={slotsA.map(avatarOf)} teamAvatarsB={slotsB.map(avatarOf)}
+            editable={false} />
+          <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginTop: 6 }}>{filled}/4 — {t("waiting_via_link")}</div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArchive }) {
   const [mix, setMix] = useState(false);
   const [mixBusy, setMixBusy] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [toast, setToast] = useState("");
+  // Страница (микс-)сессии: все игры одной группы (mix_group_id || id).
+  const mixKey = game.mix_group_id || game.id;
+  const [session, setSession] = useState(null);
+  const loadSession = useCallback(async () => {
+    try {
+      const all = groupId ? await listGames(groupId) : await listMyGames();
+      const grp = (all || []).filter((g) => (g.mix_group_id || g.id) === mixKey)
+        .sort((a, b) => new Date(a.created_at || a.starts_at || 0) - new Date(b.created_at || b.starts_at || 0));
+      setSession(grp);
+    } catch (e) { setSession([game]); }
+  }, [groupId, mixKey, game]);
+  useEffect(() => { if (game.status === "played") loadSession(); }, [loadSession, game.status]);
+  // Если из сессии удалили все игры — выходим назад (к списку/Истории).
+  useEffect(() => { if (session && session.length === 0) back && back(); }, [session, back]);
   const slots = [...(game.slots || [])].sort((a, b) => (a.team + a.position).localeCompare(b.team + b.position));
   const nameOf = (s) => s.profile?.name || s.guest_name;
   const avatarOf = (s) => s.profile_id ? playerAvatar(s.profile?.avatar_url, s.profile_id) : null;
@@ -1676,41 +1737,45 @@ function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArc
     try {
       const newSlots = arr.map((p) => (p.profile_id ? { profileId: p.profile_id } : { guestName: p.guest_name }));
       // Связываем под-игры микса: общий mix_group_id = id исходной игры (или её группы).
-      await createGame(groupId, { title: game.title || null, startsAt: new Date().toISOString(), slots: newSlots, mixGroupId: game.mix_group_id || game.id });
+      await createGame(groupId, { title: game.title || null, startsAt: new Date().toISOString(), slots: newSlots, mixGroupId: mixKey });
+      setMix(false); setMixBusy(false);
       bumpArchive && bumpArchive();
       reloadGames && reloadGames();
-      back && back();
+      await loadSession(); // новая игра появляется ниже на той же странице (ввод счёта inline)
     } catch (e) { alert("Не удалось создать игру"); setMixBusy(false); }
   };
 
   if (game.status === "played") {
-    const match = (game.matches || [])[0];
+    const list = session || [game];
+    const last = list[list.length - 1];
+    const lastSlots = [...(last.slots || [])].sort((a, b) => (a.team + a.position).localeCompare(b.team + b.position));
+    const lastFilled = lastSlots.filter((s) => s.profile_id || s.guest_name).length;
+    // Микс предлагаем только когда последняя игра уже сыграна (иначе плодим пустые).
+    const canMix = groupId && last.status === "played" && lastFilled === 4;
+    const reloadSession = async () => { await loadSession(); reloadGames && reloadGames(); };
     return (
       <div className="pl-pop">
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        {back && <button className="pl-ghost" style={{ padding: "6px 12px" }} onClick={back}>{t("to_list")}</button>}
-        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(game.id); bumpArchive && bumpArchive(); reloadGames && reloadGames(); back && back(); }} title="Удалить"><Trash2 size={14} /></button>
-      </div>
-        <div className="pl-card" style={{ padding: 14 }}>
-          <div className="pl-display" style={{ fontSize: 18 }}>{game.title || "Padel"} · {t("game_played_label")}</div>
-          <div style={{ marginTop: 10 }}>
-            <CourtView courtNumber={1} mode="sets"
-              teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
-              teamAvatarsA={slotsA.map(avatarOf)} teamAvatarsB={slotsB.map(avatarOf)}
-              scoreA={match?.sets_a ?? null} scoreB={match?.sets_b ?? null}
-              scoreDetail={match?.score_detail || null}
-              editable={false} />
-          </div>
+          {back && <button className="pl-ghost" style={{ padding: "6px 12px" }} onClick={back}>{t("to_list")}</button>}
         </div>
-        {groupId && filled === 4 && (
-          <div className="pl-card" style={{ padding: 14, marginTop: 10 }}>
+        {list.length > 1 && (
+          <div className="pl-display" style={{ fontSize: 18, margin: "0 2px 12px", display: "flex", alignItems: "center", gap: 8 }}>
+            <Shuffle size={18} color="var(--lime)" /> {last.title || t("mix_session_title")} · {nGames(list.length)}
+          </div>
+        )}
+        {list.map((g, i) => (
+          <GameCourtBlock key={g.id} game={g} index={i} total={list.length}
+            reloadSession={reloadSession} reloadLeaderboard={reloadLeaderboard} bumpArchive={bumpArchive} />
+        ))}
+        {canMix && (
+          <div className="pl-card" style={{ padding: 14, marginTop: 4 }}>
             {!mix ? (
               <button className="pl-ghost" style={{ width: "100%", padding: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--lime)", borderColor: "color-mix(in srgb, var(--lime) 35%, transparent)", fontWeight: 600 }} onClick={() => setMix(true)}>
                 <Shuffle size={16} /> {t("mix_again")}
               </button>
             ) : (
               <RematchMix
-                players={slots.map((s) => ({ name: nameOf(s), profile_id: s.profile_id, guest_name: s.guest_name, avatar_url: s.profile?.avatar_url }))}
+                players={lastSlots.map((s) => ({ name: nameOf(s), profile_id: s.profile_id, guest_name: s.guest_name, avatar_url: s.profile?.avatar_url }))}
                 busy={mixBusy}
                 onCancel={() => setMix(false)}
                 onCreate={createMix} />
@@ -1844,6 +1909,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
   const [sel, setSel] = useState(null);       // { type: 'tour' | 'game', data }
   const [swipeHint, setSwipeHint] = useState(() => { try { return !localStorage.getItem("pp_swipe_hint"); } catch (e) { return true; } });
   const dismissHint = () => { try { localStorage.setItem("pp_swipe_hint", "1"); } catch (e) {} setSwipeHint(false); };
+  const [filter, setFilter] = useState("all"); // all | games | tours
 
   const load = useCallback(async () => {
     try { const g = groupId ? await listGames(groupId) : await listMyGames(); setGames((g || []).filter((x) => x.status === "played")); }
@@ -1865,21 +1931,35 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
   return (
     <div className="pl-pop">
       <style>{trCss}</style>
+      {/* Фильтр: Все / Игры / Турниры — всегда виден сверху. */}
+      <div style={{ display: "flex", gap: 4, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, padding: 3, marginBottom: 12 }}>
+        {[["all", t("filter_all")], ["games", t("filter_games")], ["tours", t("filter_tours")]].map(([key, label]) => (
+          <button key={key} onClick={() => setFilter(key)} style={{
+            flex: 1, border: "none", borderRadius: 9, padding: "8px 0", cursor: "pointer",
+            fontFamily: "'Outfit',sans-serif", fontSize: 13, fontWeight: 700,
+            background: filter === key ? "var(--lime)" : "transparent",
+            color: filter === key ? "var(--lime-fg)" : "var(--mut)",
+            transition: "background .12s, color .12s",
+          }}>{label}</button>
+        ))}
+      </div>
       {isGroupMember && swipeHint && (games.length > 0 || tours.length > 0) && (
         <div onClick={dismissHint} style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 2px 12px", padding: "9px 12px", borderRadius: 12, background: "color-mix(in srgb, var(--coral) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--coral) 30%, transparent)", fontSize: 12.5, color: "var(--mut)", cursor: "pointer" }}>
           <span style={{ color: "var(--coral)", fontSize: 18, fontWeight: 800, lineHeight: 1 }}>←</span> {t("swipe_hint")} <X size={14} style={{ marginLeft: "auto", color: "var(--mut)", flexShrink: 0 }} />
         </div>
       )}
-      {tours.length > 0 && head(t("tours_history_heading"), "var(--yellow)")}
-      {tours.map((tour) => {
+      {filter === "games" && games.length === 0 && <EmptyState text={t("history_no_games")} />}
+      {filter === "tours" && tours.length === 0 && <EmptyState text={t("history_no_tours")} />}
+      {filter !== "games" && tours.length > 0 && head(t("tours_history_heading"), "var(--yellow)")}
+      {filter !== "games" && tours.map((tour) => {
         const card = <TournamentCard trn={tour} color="var(--yellow)" flush={isGroupMember} onClick={() => setSel({ type: "tour", data: tour })} />;
         return isGroupMember
           ? <SwipeToDelete key={tour.id} onDelete={async () => { if (!confirm(t("trn_delete_confirm"))) return; await deleteTournament(tour.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
           : <div key={tour.id}>{card}</div>;
       })}
 
-      {games.length > 0 && head(t("games_history_heading"))}
-      {(() => {
+      {filter !== "tours" && games.length > 0 && head(t("games_history_heading"))}
+      {filter !== "tours" && (() => {
         // Группируем по миксу: ключ = mix_group_id || id. Группа ≥2 → объединённая плашка.
         const byKey = new Map();
         games.forEach((g) => { const k = g.mix_group_id || g.id; const a = byKey.get(k) || []; a.push(g); byKey.set(k, a); });

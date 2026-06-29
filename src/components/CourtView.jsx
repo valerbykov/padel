@@ -10,25 +10,25 @@ import { dogAvatar } from "../lib/avatar";
 const COURT_IMG = "/padel-court.png";
 
 function Chip({ name, avatarUrl, x, y, team }) {
-  const color = team === "A" ? "#c8ff2d" : "#5fd0ff";
+  const color = team === "A" ? "var(--lime)" : "var(--coral)";
   return (
     <div style={{
       position: "absolute", left: `${x}%`, top: `${y}%`,
       transform: "translate(-50%,-50%)",
-      display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-      maxWidth: "27%",
+      display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+      maxWidth: "36%",
     }}>
       <img src={avatarUrl || dogAvatar(name)} alt="" loading="lazy" decoding="async" style={{
-        width: "clamp(22px,7vw,32px)", height: "clamp(22px,7vw,32px)",
+        width: "clamp(26px,8vw,36px)", height: "clamp(26px,8vw,36px)",
         borderRadius: "50%", objectFit: "cover",
         border: `2px solid ${color}`, background: "var(--surface)", flexShrink: 0,
       }} />
       <div style={{
         background: "color-mix(in srgb, var(--surface) 88%, transparent)", border: `1px solid ${color}`,
-        borderRadius: 6, padding: "1px 5px",
+        borderRadius: 7, padding: "2px 7px",
         fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-        fontSize: "clamp(8px,2.2vw,10px)", fontWeight: 600, color: "var(--ink)",
-        lineHeight: 1.1, textAlign: "center", wordBreak: "break-word",
+        fontSize: "clamp(11px,3.2vw,14px)", fontWeight: 600, color: "var(--ink)",
+        lineHeight: 1.15, textAlign: "center", wordBreak: "break-word",
         display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
         maxWidth: "100%",
       }}>{name || "—"}</div>
@@ -37,7 +37,7 @@ function Chip({ name, avatarUrl, x, y, team }) {
 }
 
 function SetChip({ val, team, onClick, editable }) {
-  const color = team === "A" ? "var(--lime)" : "#3aa6e0";
+  const color = team === "A" ? "var(--lime)" : "var(--coral)";
   return (
     <div onClick={editable ? onClick : undefined} style={{
       minWidth: "clamp(40px,12vw,52px)", padding: "clamp(7px,2.6vw,10px) clamp(10px,3.5vw,14px)",
@@ -142,7 +142,7 @@ export default function CourtView({
   // Picker state (общий для sum/free и sets)
   const pickerOpen = pickFor || pickSets;
   const pickerMax = pickSets ? 7 : max;
-  const pickerColor = ((pickFor || pickSets?.team) === "A") ? "#c8ff2d" : "#5fd0ff";
+  const pickerColor = ((pickFor || pickSets?.team) === "A") ? "var(--lime)" : "var(--coral)";
   const pickerCurVal = pickSets
     ? setsDetail[pickSets.setIdx]?.[pickSets.team.toLowerCase()]
     : (pickFor === "A" ? dA : dB);
