@@ -328,6 +328,11 @@ export function subscribeToGame(gameId, onChange) {
 }
 
 export async function deleteGame(gameId) {
+  // Сначала удаляем связанный матч (его game_id обнулится при удалении игры —
+  // on delete set null — и матч «повис» бы в статистике). rating_changes
+  // удалятся каскадом (on delete cascade от matches). Политика RLS
+  // "members delete matches" это разрешает.
+  await supabase.from("matches").delete().eq("game_id", gameId);
   const { error } = await supabase.from("games").delete().eq("id", gameId);
   if (error) throw error;
   bustCache();

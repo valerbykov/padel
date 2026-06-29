@@ -157,7 +157,7 @@ const T = {
     tour_h2h_header: 'В турнирах вместе',
     stat_same_team_tour: 'В одной команде',
     stat_vs_each_other_tour: 'Против друг друга',
-    tours_heading: 'Турниры', games_heading: 'Игры', show_more: 'Ещё',
+    tours_heading: 'Турниры', games_heading: 'Игры', show_more: 'Ещё', stat_last10: 'Последние 10',
     leagues_heading: 'Лиги',
     // ── Games ─────────────────────────────────────────────────────────────
     sign_in_to_create_games: 'Войди, чтобы создавать игры и фиксировать результаты',
@@ -461,7 +461,7 @@ const T = {
     tour_h2h_header: 'In tournaments together',
     stat_same_team_tour: 'Same team',
     stat_vs_each_other_tour: 'Against each other',
-    tours_heading: 'Tournaments', games_heading: 'Games', show_more: 'More',
+    tours_heading: 'Tournaments', games_heading: 'Games', show_more: 'More', stat_last10: 'Last 10',
     leagues_heading: 'Leagues',
     // ── Games ─────────────────────────────────────────────────────────────
     sign_in_to_create_games: 'Sign in to create games and record scores',
@@ -765,7 +765,7 @@ const T = {
     tour_h2h_header: 'En torneos juntos',
     stat_same_team_tour: 'Mismo equipo',
     stat_vs_each_other_tour: 'Uno contra otro',
-    tours_heading: 'Torneos', games_heading: 'Partidas', show_more: 'Más',
+    tours_heading: 'Torneos', games_heading: 'Partidas', show_more: 'Más', stat_last10: 'Últimos 10',
     leagues_heading: 'Ligas',
     // ── Games ─────────────────────────────────────────────────────────────
     sign_in_to_create_games: 'Entra para crear partidas y registrar resultados',

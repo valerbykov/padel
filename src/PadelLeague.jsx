@@ -505,14 +505,6 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
 
   return (
     <div className="pl-pop">
-      {/* Шапка доски: логотип лиги + название. Управление лигой — в переключателе лиг (шестерёнка). */}
-      {activeLeague && (
-        <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 14 }}>
-          <LeagueLogo url={activeLeague.logo_url} name={activeLeague.name} size={42} radius={13} />
-          <div style={{ flex: 1, minWidth: 0, fontWeight: 800, fontSize: 19, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeLeague.name}</div>
-        </div>
-      )}
-
       {/* Без лиги — короткая подсказка; выбор/создание лиги теперь в переключателе в шапке. */}
       {(!leagues || leagues.length === 0) && (
         <div className="pl-card pl-pop" style={{ padding: 16, marginBottom: 12, textAlign: "center" }}>
@@ -521,19 +513,21 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         </div>
       )}
 
-      {/* Код приглашения + публичная страница */}
+      {/* Компактная плашка: логотип лиги + код приглашения + копировать/поделиться.
+          Название лиги не дублируем — оно в переключателе сверху. */}
       {activeLeague?.invite_code && (
-        <div style={{ width: "100%", marginBottom: 12, padding: "12px 16px", background: "color-mix(in srgb, var(--lime) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", borderRadius: 14, fontFamily: "'Outfit'" }}>
-          <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 4 }}>{t("league_invite_label")}</div>
-          <div style={{ fontFamily: "'Anton'", fontSize: 24, letterSpacing: 5, color: "var(--lime)", marginBottom: 10 }}>{activeLeague.invite_code}</div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={copyInvite} style={{ flex: 1, padding: "7px 0", background: "color-mix(in srgb, var(--lime) 18%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", borderRadius: 10, color: "var(--lime)", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, fontFamily: "'Outfit'" }}>
-              {inviteCopied ? t("code_copied") : <><Copy size={12} /> {t("copy_code")}</>}
-            </button>
-            <button onClick={copyPublicLink} style={{ flex: 1, padding: "7px 0", background: "color-mix(in srgb, var(--lime) 18%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", borderRadius: 10, color: "var(--lime)", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, fontFamily: "'Outfit'" }}>
-              {publicLinkCopied ? t("page_copied") : <><Share2 size={12} /> {t("league_page")}</>}
-            </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, padding: "8px 10px 8px 8px", background: "color-mix(in srgb, var(--lime) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", borderRadius: 14, fontFamily: "'Outfit',sans-serif" }}>
+          <LeagueLogo url={activeLeague.logo_url} name={activeLeague.name} size={38} radius={12} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 10, color: "var(--mut)", lineHeight: 1 }}>{t("league_invite_label")}</div>
+            <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 22, letterSpacing: 3, color: "var(--lime)", lineHeight: 1.15 }}>{activeLeague.invite_code}</div>
           </div>
+          <button onClick={copyInvite} title={t("copy_code")} aria-label={t("copy_code")} style={{ flexShrink: 0, width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--lime) 18%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", borderRadius: 11, color: "var(--lime)", cursor: "pointer" }}>
+            {inviteCopied ? <Check size={16} /> : <Copy size={16} />}
+          </button>
+          <button onClick={copyPublicLink} title={t("league_page")} aria-label={t("league_page")} style={{ flexShrink: 0, width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--lime) 18%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", borderRadius: 11, color: "var(--lime)", cursor: "pointer" }}>
+            {publicLinkCopied ? <Check size={16} /> : <Share2 size={16} />}
+          </button>
         </div>
       )}
 
@@ -749,9 +743,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
   const [playerLeagues, setPlayerLeagues] = useState(null);
   const [localClaimCode, setLocalClaimCode] = useState(player.claim_code || null);
   const [genBusy, setGenBusy] = useState(false);
-  const [showG, setShowG] = useState(false); // развернуть списки игр/турниров/лиг
-  const [showT, setShowT] = useState(false);
-  const [showL, setShowL] = useState(false);
+  const [showL, setShowL] = useState(false); // развернуть список лиг
   const isInLeague = players.some((p) => p.id === player.id);
 
   const generateClaimCode = async () => {
@@ -802,8 +794,11 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
           total: table.length,
           points: row.points || 0,
           played: row.played || 0,
+          date: tour.starts_at || tour.created_at || null,
         };
       });
+      // по дате — свежие первыми (для «последних 10» в статистике)
+      rows.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
       setPlayerTours(rows);
     }).catch(() => setPlayerTours([]));
   }, [groupId, player.id]);
@@ -1188,52 +1183,48 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
           })}
         </div>
       )}
-      {/* Игры */}
+      {/* Игры — «форма» за последние 10: кружок В / Н / П */}
       {playerMatches.length > 0 && (
         <div className="pl-card" style={{ padding: 14, marginTop: 10 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>{t("games_heading")} ({playerMatches.length})</div>
-          {(showG ? playerMatches : playerMatches.slice(0, 3)).map((m) => {
-            const inA = (m.team_a || []).includes(player.id);
-            const draw = m.sets_a === m.sets_b;
-            const won = inA ? m.sets_a > m.sets_b : m.sets_b > m.sets_a;
-            const rc = draw ? "var(--mut)" : won ? "#3ddc84" : "var(--coral)";
-            const teamA = (m.team_a || []).map(nameOf).join(" & ");
-            const teamB = (m.team_b || []).map(nameOf).join(" & ");
-            return (
-              <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderBottom: "1px solid var(--line)" }}>
-                <div style={{ width: 20, height: 20, borderRadius: "50%", background: draw ? "var(--surface2)" : won ? "rgba(61,220,132,.15)" : "rgba(255,106,82,.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: rc, flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}><Swords size={14} /> {t("games_heading")}</div>
+            <div style={{ fontSize: 11, color: "var(--mut)" }}>{t("stat_last10")}</div>
+          </div>
+          <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+            {playerMatches.slice(0, 10).reverse().map((m) => {
+              const inA = (m.team_a || []).includes(player.id);
+              const draw = m.sets_a === m.sets_b;
+              const won = inA ? m.sets_a > m.sets_b : m.sets_b > m.sets_a;
+              const c = draw ? "var(--mut)" : won ? "#3ddc84" : "var(--coral)";
+              return (
+                <span key={m.id} title={`${(m.team_a || []).map(nameOf).join(" & ")} ${m.sets_a}:${m.sets_b} ${(m.team_b || []).map(nameOf).join(" & ")}${m.played_at ? " · " + fmtDate(m.played_at) : ""}`}
+                  style={{ width: 28, height: 28, borderRadius: "50%", background: `color-mix(in srgb, ${c} 16%, transparent)`, border: `1.5px solid color-mix(in srgb, ${c} 55%, transparent)`, color: c, display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 12, fontFamily: "'Outfit',sans-serif", flexShrink: 0 }}>
                   {draw ? t("result_draw") : won ? t("result_win") : t("result_loss")}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 11, color: "var(--mut)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{teamA} <span style={{ color: "var(--line)" }}>vs</span> {teamB}</div>
-                  {m.played_at && <div style={{ fontSize: 10, color: "var(--mut)" }}>{fmtDate(m.played_at)}</div>}
-                </div>
-                <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>{m.sets_a}:{m.sets_b}</div>
-              </div>
-            );
-          })}
-          {moreBtn(playerMatches.length, showG, () => setShowG((v) => !v))}
+                </span>
+              );
+            })}
+          </div>
         </div>
       )}
-      {/* Турниры */}
+      {/* Турниры — последние 10: кружок = занятое место */}
       {playerTours && playerTours.length > 0 && (
         <div className="pl-card" style={{ padding: 14, marginTop: 10 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>
-            {t("tours_heading")} ({playerTours.length})
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}><Award size={14} /> {t("tours_heading")}</div>
+            <div style={{ fontSize: 11, color: "var(--mut)" }}>{t("stat_last10")}</div>
           </div>
-          {(showT ? playerTours : playerTours.slice(0, 3)).map((tour) => (
-            <div key={tour.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--line)" }}>
-              <div style={{ width: 28, height: 28, borderRadius: "50%", background: tour.position === 1 ? "rgba(200,255,45,.12)" : "var(--surface2)", border: `1px solid ${tour.position === 1 ? "var(--lime)" : "var(--line)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 13, color: tour.position === 1 ? "var(--lime)" : tour.position <= 3 ? "var(--yellow)" : "var(--mut)" }}>{tour.position}</span>
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tour.name || t("fmt_americano_name")}</div>
-                <div style={{ fontSize: 11, color: "var(--mut)" }}>{tour.played} {t("matches_abbr")} · {tour.points} {t("points_abbr")}</div>
-              </div>
-              <div style={{ fontSize: 11, color: "var(--mut)", flexShrink: 0 }}>{t("games_of")} {tour.total}</div>
-            </div>
-          ))}
-          {moreBtn(playerTours.length, showT, () => setShowT((v) => !v))}
+          <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+            {playerTours.slice(0, 10).reverse().map((tour) => {
+              const pos = tour.position;
+              const c = pos === 1 ? "var(--yellow)" : pos === 2 ? "#cfd8d0" : pos === 3 ? "#cd7f4d" : "var(--mut)";
+              return (
+                <span key={tour.id} title={`${tour.name || t("fmt_americano_name")} · ${pos}/${tour.total}`}
+                  style={{ width: 28, height: 28, borderRadius: "50%", background: `color-mix(in srgb, ${c} 16%, transparent)`, border: `1.5px solid color-mix(in srgb, ${c} 55%, transparent)`, color: c, display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13, fontFamily: "'Outfit',sans-serif", flexShrink: 0 }}>
+                  {pos}
+                </span>
+              );
+            })}
+          </div>
         </div>
       )}
       {/* Лиги игрока */}
