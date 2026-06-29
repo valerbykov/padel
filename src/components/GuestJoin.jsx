@@ -5,6 +5,7 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import LoginScreen from "./LoginScreen";
+import Logo from "./Logo";
 import { Calendar, MapPin, Check, AlertCircle, LogIn, UserCheck } from "lucide-react";
 import { t } from "../lib/i18n";
 import { usePublicChrome, PublicToggles } from "./publicChrome";
@@ -88,7 +89,10 @@ export default function GuestJoin({ code, botName }) {
   return (
     <div className="gj-root" style={{ ...vars, flexDirection: "column", gap: 20 }}>
       <style>{css}</style>
-      <div style={{ width: "100%", maxWidth: 400 }}><PublicToggles theme={theme} lang={lang} onTheme={toggleTheme} onLang={cycleLang} /></div>
+      <div style={{ width: "100%", maxWidth: 400, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <span onClick={() => window.location.assign("/")} style={{ cursor: "pointer" }} title={t("pub_to_app")}><Logo height={18} /></span>
+        <PublicToggles theme={theme} lang={lang} onTheme={toggleTheme} onLang={cycleLang} />
+      </div>
       <div className="gj-card">
         <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2 }}>{t("pub_game_invite")}</div>
 

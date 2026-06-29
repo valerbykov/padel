@@ -162,9 +162,16 @@ export async function getRatingHistory(groupId, profileId) {
    ===================================================================== */
 
 const GAME_SELECT =
-  "id, invite_code, title, starts_at, place, status, host_id, created_at, mix_group_id, " +
+  "id, invite_code, title, starts_at, place, status, host_id, created_at, mix_group_id, court_name, " +
   "slots:game_slots(id, team, position, profile_id, guest_name, profile:profiles(name, avatar_url))," +
   "matches(id, sets_a, sets_b, score_detail)";
+
+// Переименовать корт игры (court_name). name="" — сброс к «Корт N».
+export async function updateGameCourtName(gameId, name) {
+  const { error } = await supabase.from("games").update({ court_name: name?.trim() || null }).eq("id", gameId);
+  if (error) throw error;
+  bustCache();
+}
 
 // Создать игру + 4 слота. slots: [A1, A2, B1, B2] — profileId или null (по ссылке).
 // mixGroupId — для «Сыграть ещё (микс)»: связывает под-игры одного выхода.

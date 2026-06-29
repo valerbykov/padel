@@ -1,7 +1,7 @@
 // PadelLeague.jsx — основной экран на реальных данных Supabase.
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "./lib/supabase";
-import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches } from "./lib/padelApi";
+import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName } from "./lib/padelApi";
 import { getRatingHistory } from "./lib/statsApi";
 import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
 import { t, nGames } from "./lib/i18n";
@@ -127,6 +127,10 @@ function ContactLinks({ contacts = {} }) {
 
 export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin, onOpenLanding, onEditProfile, openSelfStatsNonce = 0 }) {
   const [tab, setTab] = useState(session ? "board" : "welcome");
+  // Повторный тап по активной вкладке должен возвращать к её корню (закрыть
+  // открытую детализацию). Меняем navNonce → key вкладки → ремоунт → сброс.
+  const [navNonce, setNavNonce] = useState(0);
+  const goTab = useCallback((x) => { setNavNonce((n) => (x === tab ? n + 1 : n)); setTab(x); }, [tab]);
   const [players, setPlayers] = useState([]);
   const [archiveNonce, setArchiveNonce] = useState(0);
   const bumpArchive = useCallback(() => setArchiveNonce((n) => n + 1), []);
@@ -187,20 +191,20 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
           </div>
         )}
 
-        {tab === "welcome" && !session && <WelcomeScreen onLogin={onLogin} onBrowseGames={() => setTab("games")} onBrowseTournaments={() => setTab("tournaments")} onOpenLanding={onOpenLanding} theme={theme} lang={lang} onThemeToggle={onThemeToggle} onLangChange={onLangChange} />}
-        {tab === "board" && (session ? <Board groupId={groupId} players={players} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsNonce={openSelfStatsNonce} /> : <GateScreen />)}
-        {tab === "games" && <Games groupId={groupId} players={players} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} />}
-        {tab === "tournaments" && <Tournaments groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} />}
-        {tab === "history" && (session ? <HistoryView groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} archiveNonce={archiveNonce} bumpArchive={bumpArchive} /> : <GateScreen />)}
+        {tab === "welcome" && !session && <WelcomeScreen onLogin={onLogin} onBrowseGames={() => goTab("games")} onBrowseTournaments={() => goTab("tournaments")} onOpenLanding={onOpenLanding} theme={theme} lang={lang} onThemeToggle={onThemeToggle} onLangChange={onLangChange} />}
+        {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsNonce={openSelfStatsNonce} /> : <GateScreen />)}
+        {tab === "games" && <Games key={navNonce} groupId={groupId} players={players} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} />}
+        {tab === "tournaments" && <Tournaments key={navNonce} groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} />}
+        {tab === "history" && (session ? <HistoryView key={navNonce} groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} archiveNonce={archiveNonce} bumpArchive={bumpArchive} /> : <GateScreen />)}
       </div>
 
       <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--topbar-bg)", borderTop: "1px solid var(--line)", backdropFilter: "blur(8px)", paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div style={{ maxWidth: 460, margin: "0 auto", display: "flex" }}>
-          {!session && <button className={`pl-tab ${tab === "welcome" ? "on" : ""}`} onClick={() => setTab("welcome")}><LogIn size={20} strokeWidth={tab === "welcome" ? 2.6 : 2} />{t("tab_start")}</button>}
-          {session && <button className={`pl-tab ${tab === "board" ? "on" : ""}`} onClick={() => setTab("board")}><Trophy size={20} strokeWidth={tab === "board" ? 2.6 : 2} />{t("tab_friends")}</button>}
-          <button className={`pl-tab ${tab === "games" ? "on" : ""}`} onClick={() => setTab("games")}><Swords size={20} strokeWidth={tab === "games" ? 2.6 : 2} />{t("tab_games")}</button>
-          <button className={`pl-tab ${tab === "tournaments" ? "on" : ""}`} onClick={() => setTab("tournaments")}><Award size={20} strokeWidth={tab === "tournaments" ? 2.6 : 2} />{t("tab_tournaments")}</button>
-          {session && <button className={`pl-tab ${tab === "history" ? "on" : ""}`} onClick={() => setTab("history")}><History size={20} strokeWidth={tab === "history" ? 2.6 : 2} />{t("tab_history")}</button>}
+          {!session && <button className={`pl-tab ${tab === "welcome" ? "on" : ""}`} onClick={() => goTab("welcome")}><LogIn size={20} strokeWidth={tab === "welcome" ? 2.6 : 2} />{t("tab_start")}</button>}
+          {session && <button className={`pl-tab ${tab === "board" ? "on" : ""}`} onClick={() => goTab("board")}><Trophy size={20} strokeWidth={tab === "board" ? 2.6 : 2} />{t("tab_friends")}</button>}
+          <button className={`pl-tab ${tab === "games" ? "on" : ""}`} onClick={() => goTab("games")}><Swords size={20} strokeWidth={tab === "games" ? 2.6 : 2} />{t("tab_games")}</button>
+          <button className={`pl-tab ${tab === "tournaments" ? "on" : ""}`} onClick={() => goTab("tournaments")}><Award size={20} strokeWidth={tab === "tournaments" ? 2.6 : 2} />{t("tab_tournaments")}</button>
+          {session && <button className={`pl-tab ${tab === "history" ? "on" : ""}`} onClick={() => goTab("history")}><History size={20} strokeWidth={tab === "history" ? 2.6 : 2} />{t("tab_history")}</button>}
         </div>
       </nav>
     </div>
@@ -1593,7 +1597,7 @@ function RematchMix({ players, onCreate, onCancel, busy }) {
 
 // Один корт внутри страницы (микс-)сессии: сыгранная — просмотр, открытая
 // с полным составом — ввод счёта прямо здесь.
-function GameCourtBlock({ game, index, total, reloadSession, reloadLeaderboard, bumpArchive }) {
+function GameCourtBlock({ game, index, total, groupId, reloadSession, reloadLeaderboard, bumpArchive }) {
   const slots = [...(game.slots || [])].sort((a, b) => (a.team + a.position).localeCompare(b.team + b.position));
   const nameOf = (s) => s.profile?.name || s.guest_name;
   const avatarOf = (s) => s.profile_id ? playerAvatar(s.profile?.avatar_url, s.profile_id) : null;
@@ -1602,6 +1606,8 @@ function GameCourtBlock({ game, index, total, reloadSession, reloadLeaderboard, 
   const filled = slots.filter((s) => s.profile_id || s.guest_name).length;
   const played = game.status === "played";
   const match = (game.matches || [])[0];
+  // Переименование корта — только в лиге (court_name возвращается в выборке лиги).
+  const renameCourt = groupId ? (name) => updateGameCourtName(game.id, name).then(reloadSession).catch(() => {}) : undefined;
   const del = async () => {
     if (!confirm(t("delete_game_confirm"))) return;
     await deleteGame(game.id).catch(() => {});
@@ -1616,19 +1622,19 @@ function GameCourtBlock({ game, index, total, reloadSession, reloadLeaderboard, 
         <button className="pl-ghost" style={{ marginLeft: "auto", padding: "5px 8px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)" }} onClick={del} title="Удалить"><Trash2 size={13} /></button>
       </div>
       {played ? (
-        <CourtView courtNumber={index + 1} mode="sets"
+        <CourtView courtNumber={index + 1} mode="sets" courtName={game.court_name} onRenameCourt={renameCourt}
           teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
           teamAvatarsA={slotsA.map(avatarOf)} teamAvatarsB={slotsB.map(avatarOf)}
           scoreA={match?.sets_a ?? null} scoreB={match?.sets_b ?? null}
           scoreDetail={match?.score_detail || null} editable={false} />
       ) : filled === 4 ? (
-        <CourtView courtNumber={index + 1} mode="sets" editable
+        <CourtView courtNumber={index + 1} mode="sets" editable courtName={game.court_name} onRenameCourt={renameCourt}
           teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
           teamAvatarsA={slotsA.map(avatarOf)} teamAvatarsB={slotsB.map(avatarOf)}
           onSave={async (a, b, detail) => { await submitResult(game.id, a, b, detail); await reloadSession(); reloadLeaderboard && reloadLeaderboard(); }} />
       ) : (
         <>
-          <CourtView courtNumber={index + 1}
+          <CourtView courtNumber={index + 1} courtName={game.court_name} onRenameCourt={renameCourt}
             teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
             teamAvatarsA={slotsA.map(avatarOf)} teamAvatarsB={slotsB.map(avatarOf)}
             editable={false} />
@@ -1706,7 +1712,7 @@ function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArc
           </div>
         )}
         {list.map((g, i) => (
-          <GameCourtBlock key={g.id} game={g} index={i} total={list.length}
+          <GameCourtBlock key={g.id} game={g} index={i} total={list.length} groupId={groupId}
             reloadSession={reloadSession} reloadLeaderboard={reloadLeaderboard} bumpArchive={bumpArchive} />
         ))}
         {canMix && (
@@ -1770,13 +1776,13 @@ function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArc
 
       <div style={{ marginTop: 12 }}>
         {filled === 4 ? (
-          <CourtView courtNumber={1} mode="sets" editable
+          <CourtView courtNumber={1} mode="sets" editable courtName={game.court_name} onRenameCourt={groupId ? (name) => updateGameCourtName(game.id, name).then(reloadGames).catch(() => {}) : undefined}
             teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
             teamAvatarsA={slotsA.map(avatarOf)} teamAvatarsB={slotsB.map(avatarOf)}
             onSave={async (a, b, detail) => { await submitResult(game.id, a, b, detail); await Promise.all([reloadGames(), reloadLeaderboard()]); }} />
         ) : (
           <>
-            <CourtView courtNumber={1}
+            <CourtView courtNumber={1} courtName={game.court_name} onRenameCourt={groupId ? (name) => updateGameCourtName(game.id, name).then(reloadGames).catch(() => {}) : undefined}
               teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
               teamAvatarsA={slotsA.map(avatarOf)} teamAvatarsB={slotsB.map(avatarOf)}
               editable={false} />

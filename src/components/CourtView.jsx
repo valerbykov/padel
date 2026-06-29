@@ -219,7 +219,7 @@ export default function CourtView({
         {(courtNumber != null || courtName) && (
           <div
             onClick={onRenameCourt && courtNumber != null ? () => { const v = window.prompt("Название корта", courtName || ("Корт " + courtNumber)); if (v !== null) onRenameCourt(v.trim()); } : undefined}
-            style={{ position: "absolute", top: 8, left: 10, fontFamily: "'Outfit',sans-serif", fontWeight: 800, textTransform: "uppercase", fontSize: 13, letterSpacing: 1, color: "var(--ink)", background: "color-mix(in srgb, var(--surface) 80%, transparent)", padding: "2px 8px", borderRadius: 8, cursor: onRenameCourt && courtNumber != null ? "pointer" : "default" }}
+            style={{ position: "absolute", top: 6, left: "50%", transform: "translateX(-50%)", whiteSpace: "nowrap", maxWidth: "70%", overflow: "hidden", textOverflow: "ellipsis", fontFamily: "'Outfit',sans-serif", fontWeight: 800, textTransform: "uppercase", fontSize: 13, letterSpacing: 1, color: "var(--ink)", background: "color-mix(in srgb, var(--surface) 80%, transparent)", padding: "2px 10px", borderRadius: 8, cursor: onRenameCourt && courtNumber != null ? "pointer" : "default", zIndex: 2 }}
           >
             {courtName || ("Корт " + courtNumber)}{onRenameCourt && courtNumber != null ? " ✎" : ""}
           </div>

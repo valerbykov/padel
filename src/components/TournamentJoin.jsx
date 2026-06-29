@@ -106,7 +106,7 @@ export default function TournamentJoin({ code, botName }) {
         <PublicToggles theme={theme} lang={lang} onTheme={toggleTheme} onLang={cycleLang} />
         {/* Шапка */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-          <Logo height={18} />
+          <span onClick={() => window.location.assign("/")} style={{ cursor: "pointer" }} title={tr("pub_to_app")}><Logo height={18} /></span>
           {session ? (
             <button className="tj-ghost" style={{ fontSize: 12 }} onClick={() => window.location.assign("/")}>{tr("pub_to_app")}</button>
           ) : (
