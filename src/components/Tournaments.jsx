@@ -14,7 +14,7 @@ import { getAllKotHTeams } from "../lib/mexicano";
 import CourtView from "./CourtView";
 import StandingsTable from "./StandingsTable";
 import EmptyState from "./EmptyState";
-import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Share2, Trash2, Plus, Check } from "lucide-react";
+import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Share2, Trash2, Plus, Check, Calendar, MapPin } from "lucide-react";
 import { t as tr } from "../lib/i18n";
 const nowLocalDT = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
 
@@ -300,6 +300,7 @@ function Create({ groupId, profileId, back, open }) {
   const [day, setDay] = useState(() => nowLocalDT().slice(0, 10));
   const [time, setTime] = useState(() => nowLocalDT().slice(11, 16));
   const date = day ? `${day}T${time || "00:00"}` : "";
+  const [place, setPlace] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -343,7 +344,7 @@ function Create({ groupId, profileId, back, open }) {
     setBusy(true);
     try {
       const targetSize = isKothBtB ? playerCount : courts * 4;
-      const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format, createdBy: profileId });
+      const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format, createdBy: profileId, startsAt: date || null, place });
       open(trn.id);
     } catch (e) { alert("Не удалось создать турнир"); setBusy(false); }
   };
@@ -447,10 +448,16 @@ function Create({ groupId, profileId, back, open }) {
           </div>
         </div>
 
+        {/* Place */}
+        <div>
+          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("game_where_label")}</div>
+          <input className="tr-input" placeholder={tr("court_club_placeholder")} value={place} onChange={(e) => setPlace(e.target.value)} />
+        </div>
+
         {/* Name */}
         <div>
           <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_name_label")}</div>
-          <input className="tr-input" placeholder={`${fmt.name} · 15 jun · 18:00`} value={name} onChange={(e) => setName(e.target.value)} />
+          <input className="tr-input" placeholder={fmt.name} value={name} onChange={(e) => setName(e.target.value)} />
         </div>
 
         {/* Превью: что получится из настроек */}
@@ -726,6 +733,12 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
         <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>
           {trnData.players.length}/{trnData.target_size} {tr("trn_players_label").toLowerCase()} · {trnData.points_per_game} {tr("trn_winner_points")} · {fmt.emoji} {fmt.name} · {statusLabel(trnData.status)}
         </div>
+        {(trnData.starts_at || trnData.place) && (
+          <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 4, display: "flex", gap: 12, flexWrap: "wrap" }}>
+            {trnData.starts_at && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={12} />{(() => { try { return new Date(trnData.starts_at).toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } })()}</span>}
+            {trnData.place && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><MapPin size={12} />{trnData.place}</span>}
+          </div>
+        )}
       </div>
 
       {trnData.status === "active" && !readOnly && (

@@ -325,18 +325,12 @@ function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme
     }}>
       {/* Лёгкий hover/active без переезда на CSS-файл */}
       <style>{`.tb-btn:hover{filter:brightness(1.07)}.tb-btn:active{transform:translateY(1px)}.tb-profile:hover{background:var(--surface2)}`}</style>
-      {session ? (
-        <button onClick={onProfile} className="tb-profile" style={{ display: "flex", alignItems: "center", gap: 9, background: "none", border: "1px solid transparent", borderRadius: 999, cursor: "pointer", color: "var(--ink)", padding: "4px 10px 4px 4px", transition: "background .15s" }}>
-          <Avatar url={avatarUrl} name={name} size={32} />
-          <span style={{ fontSize: 14, fontWeight: 600, maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name || "Профиль"}</span>
-        </button>
-      ) : (
-        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-          <img src={theme === "light" ? "/logo-mark-light.webp" : "/logo-mark-dark.webp"} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0 }} />
-          <Logo theme={theme} height={21} gap={8} />
-        </div>
-      )}
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      {/* СЛЕВА: бренд всегда (гость и залогиненный) */}
+      <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+        <img src={theme === "light" ? "/logo-mark-light.webp" : "/logo-mark-dark.webp"} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0 }} />
+        <Logo theme={theme} height={21} gap={8} />
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {/* lang + theme — единая группа-сегмент */}
         <div style={{ display: "flex", gap: 4, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, padding: 3 }}>
           <button className="tb-btn" onClick={() => { const o = ["ru","en","es"]; onLangChange?.(o[(o.indexOf(lang) + 1) % o.length]); }}
@@ -349,7 +343,13 @@ function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme
             {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
           </button>
         </div>
-        {!session && (
+        {/* СПРАВА: профиль (только иконка) для залогиненного, иначе «Войти» */}
+        {session ? (
+          <button onClick={onProfile} className="tb-profile" aria-label={name || "Профиль"} title={name || "Профиль"}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "1px solid transparent", borderRadius: 999, cursor: "pointer", padding: 2, transition: "background .15s" }}>
+            <Avatar url={avatarUrl} name={name} size={32} />
+          </button>
+        ) : (
           <button className="tb-btn" onClick={onLogin} style={{ ...base, background: "var(--lime)", color: "var(--lime-fg)", border: "none", fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
             <LogIn size={15} /> {t("sign_in")}
           </button>

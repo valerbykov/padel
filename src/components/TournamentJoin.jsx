@@ -7,10 +7,22 @@ import { supabase } from "../lib/supabase";
 import { getTournamentByCode, getTournament, joinTournamentByCode } from "../lib/tournamentApi";
 import { TournamentView } from "./Tournaments";
 import LoginScreen from "./LoginScreen";
-import { Trophy, AlertCircle, Check, LogIn, UserCheck } from "lucide-react";
+import { Trophy, AlertCircle, Check, LogIn, UserCheck, Calendar, MapPin } from "lucide-react";
 import { t as tr } from "../lib/i18n";
 import { usePublicChrome, PublicToggles, plural } from "./publicChrome";
 import Logo from "./Logo";
+
+const fmtDate = (iso) => {
+  if (!iso) return "";
+  try { return new Date(iso).toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
+  catch (e) { return ""; }
+};
+const TrnMeta = ({ trn }) => ((trn.starts_at || trn.created_at || trn.place) ? (
+  <div style={{ fontSize: 13, color: "var(--mut)", display: "flex", gap: 12, margin: "6px 0 12px", flexWrap: "wrap" }}>
+    {(trn.starts_at || trn.created_at) && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={13} />{fmtDate(trn.starts_at || trn.created_at)}</span>}
+    {trn.place && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><MapPin size={13} />{trn.place}</span>}
+  </div>
+) : null);
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
@@ -118,6 +130,7 @@ export default function TournamentJoin({ code, botName }) {
             {t.status === "open" && !joined && (
               <div className="tj-card">
                 <div className="tj-d" style={{ fontSize: 20, marginBottom: 4 }}>{t.name || tr("pub_americano")}</div>
+                <TrnMeta trn={t} />
                 <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 14 }}>
                   {(t.players || []).length}/{t.target_size} {plural(t.target_size, "players")} · {tr("pub_upto")} {t.points_per_game} {tr("pub_points")}
                 </div>

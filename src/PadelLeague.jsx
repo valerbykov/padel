@@ -331,11 +331,12 @@ function GateScreen() {
 
 /* ------------------------------ WelcomeScreen ----------------------------- */
 function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLanding, theme = "dark", lang = "ru", onThemeToggle, onLangChange }) {
+  // Карточки = «что делать дальше» (онбординг), а не повтор витрины с лендинга.
   const features = [
-    { icon: "🏆", title: t("feat_board_title"), sub: t("feat_board_sub") },
-    { icon: "📊", title: t("feat_stats_title"), sub: t("feat_stats_sub") },
-    { icon: "🥇", title: t("feat_tour_title"), sub: t("feat_tour_sub") },
-    { icon: "📲", title: t("feat_pwa_title"), sub: t("feat_pwa_sub") },
+    { icon: "🏆", title: t("feat_board_title"), sub: t("feat_board_sub") },   // создать/вступить в лигу
+    { icon: "🔗", title: t("feat_stats_title"), sub: t("feat_stats_sub") },   // игры по ссылке
+    { icon: "🎖️", title: t("feat_tour_title"), sub: t("feat_tour_sub") },     // уровни и ачивки
+    { icon: "🎾", title: t("feat_pwa_title"), sub: t("feat_pwa_sub") },       // турниры
   ];
   return (
     <div className="pl-pop">
@@ -1458,23 +1459,16 @@ function SlotPicker({ value, players, taken, onChange, teamLabel }) {
 // «ручку» (обмен местами A↔B) и удаление смахиванием влево.
 function GameSlots({ slots, setSlots, players, chosenIds }) {
   const refs = useRef([]);
-  const [drag, setDrag] = useState(null); // { idx, x, y }
+  const [drag, setDrag] = useState(null); // { idx, x, y } во время перемещения
   const setSlot = (i, v) => setSlots((s) => s.map((x, j) => (j === i ? v : x)));
-  const startDrag = (idx) => (e) => {
-    e.stopPropagation();
-    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
-    setDrag({ idx, x: e.clientX, y: e.clientY });
-  };
-  const moveDrag = (e) => { if (drag) setDrag((d) => d && { ...d, x: e.clientX, y: e.clientY }); };
-  const endDrag = (e) => {
-    if (!drag) return;
+  const dropAt = (fromIdx, x, y) => {
     let tgt = -1;
-    refs.current.forEach((el, i) => { if (!el) return; const r = el.getBoundingClientRect(); if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) tgt = i; });
-    if (tgt >= 0 && tgt !== drag.idx) setSlots((prev) => { const n = [...prev]; const t = n[tgt]; n[tgt] = n[drag.idx]; n[drag.idx] = t; return n; });
+    refs.current.forEach((el, i) => { if (!el) return; const r = el.getBoundingClientRect(); if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) tgt = i; });
+    if (tgt >= 0 && tgt !== fromIdx) setSlots((prev) => { const n = [...prev]; const t = n[tgt]; n[tgt] = n[fromIdx]; n[fromIdx] = t; return n; });
     setDrag(null);
   };
   return (
-    <div onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag} style={{ touchAction: drag ? "none" : "auto" }}>
+    <div style={{ touchAction: drag ? "none" : "auto" }}>
       {[0, 1, 2, 3].map((i) => {
         const v = slots[i];
         const team = i < 2 ? "A" : "B";
@@ -1487,27 +1481,77 @@ function GameSlots({ slots, setSlots, players, chosenIds }) {
           );
         }
         return (
-          <div key={i} ref={(el) => (refs.current[i] = el)} style={{ opacity: drag?.idx === i ? 0.3 : 1 }}>
-            <SwipeToDelete onDelete={() => setSlot(i, null)}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface)" }}>
-                <span className="pl-display" style={{ width: 24, fontSize: 12, color: ring }}>{team}</span>
-                <div className="pl-slot" style={{ flex: 1 }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
-                    <span onPointerDown={startDrag(i)} style={{ cursor: "grab", touchAction: "none", color: "var(--mut)", display: "flex", flexShrink: 0 }}><GripVertical size={16} /></span>
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.label}</span>
-                  </span>
-                </div>
-              </div>
-            </SwipeToDelete>
-          </div>
+          <SlotRow key={i} idx={i} value={v} team={team} ring={ring}
+            registerRef={(el) => (refs.current[i] = el)}
+            dragging={drag?.idx === i}
+            onClear={() => setSlot(i, null)}
+            onDragStart={(x, y) => setDrag({ idx: i, x, y })}
+            onDragMove={(x, y) => setDrag((d) => d && { ...d, x, y })}
+            onDrop={dropAt} />
         );
       })}
       <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 2, lineHeight: 1.4 }}>{t("slots_dnd_hint")}</div>
       {drag && slots[drag.idx] && (
-        <div style={{ position: "fixed", left: drag.x, top: drag.y, transform: "translate(-50%,-50%)", pointerEvents: "none", zIndex: 300, padding: "8px 12px", borderRadius: 12, background: "var(--surface)", border: "1.5px solid var(--lime)", display: "flex", alignItems: "center", gap: 8, boxShadow: "0 8px 24px rgba(0,0,0,.4)" }}>
-          <span style={{ fontSize: 13, fontWeight: 600 }}>{slots[drag.idx].label}</span>
+        <div style={{ position: "fixed", left: drag.x, top: drag.y, transform: "translate(-50%,-50%)", pointerEvents: "none", zIndex: 300, padding: "8px 12px", borderRadius: 12, background: "var(--surface)", border: "1.5px solid var(--lime)", boxShadow: "0 8px 24px rgba(0,0,0,.4)", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>
+          {slots[drag.idx].label}
         </div>
       )}
+    </div>
+  );
+}
+
+// Одна строка слота с единым жестом (надёжно на тач, как в RematchMix):
+//  • долгое нажатие (~260мс) → перетаскивание плитки за пальцем (обмен/перенос);
+//  • быстрый свайп влево → удаление; вертикаль → обычный скролл.
+// Никаких вложенных обработчиков — строка сама владеет указателем.
+function SlotRow({ idx, value, team, ring, registerRef, dragging, onClear, onDragStart, onDragMove, onDrop }) {
+  const ref = useRef(null);
+  const g = useRef({ x0: 0, y0: 0, mode: "idle", pid: null, timer: null });
+  const [dx, setDx] = useState(0);
+  const MAX = 88, LONG = 260, TH = 8;
+  const clearTimer = () => { if (g.current.timer) { clearTimeout(g.current.timer); g.current.timer = null; } };
+  const beginDrag = () => {
+    g.current.mode = "drag";
+    try { ref.current.setPointerCapture(g.current.pid); } catch (_) {}
+    if (ref.current) ref.current.style.touchAction = "none";
+    try { navigator.vibrate?.(12); } catch (_) {}
+    onDragStart?.(g.current.x0, g.current.y0);
+  };
+  const down = (e) => {
+    g.current.x0 = e.clientX; g.current.y0 = e.clientY; g.current.pid = e.pointerId; g.current.mode = "pending";
+    clearTimer();
+    g.current.timer = setTimeout(() => { if (g.current.mode === "pending") beginDrag(); }, LONG);
+  };
+  const move = (e) => {
+    const dX = e.clientX - g.current.x0, dY = e.clientY - g.current.y0;
+    if (g.current.mode === "pending") {
+      if (Math.abs(dY) > Math.abs(dX) && Math.abs(dY) > 6) { clearTimer(); g.current.mode = "idle"; return; } // вертикаль → скролл
+      if (dX < -TH) { clearTimer(); g.current.mode = "swipe"; try { ref.current.setPointerCapture(e.pointerId); } catch (_) {} }
+      else if (dX > TH) { clearTimer(); g.current.mode = "idle"; return; }
+      else return;
+    }
+    if (g.current.mode === "swipe") setDx(Math.max(-MAX, Math.min(0, dX)));
+    else if (g.current.mode === "drag") onDragMove?.(e.clientX, e.clientY);
+  };
+  const up = async (e) => {
+    clearTimer();
+    const m = g.current.mode; g.current.mode = "idle";
+    if (ref.current) ref.current.style.touchAction = "";
+    if (m === "drag") { onDrop?.(idx, e.clientX, e.clientY); return; }
+    if (m === "swipe") { if (dx <= -MAX * 0.55) { setDx(-MAX); await onClear(); setDx(0); } else setDx(0); }
+  };
+  return (
+    <div ref={(el) => { ref.current = el; registerRef(el); }}
+      onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
+      style={{ position: "relative", marginBottom: 8, borderRadius: 12, overflow: "hidden", background: "var(--coral)", touchAction: dragging ? "none" : "pan-y", opacity: dragging ? 0.3 : 1 }}>
+      <div style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: MAX, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}><Trash2 size={18} /></div>
+      <div style={{ transform: `translateX(${dx}px)`, transition: g.current.mode === "swipe" ? "none" : "transform .2s ease", display: "flex", alignItems: "center", gap: 8, background: "var(--surface)" }}>
+        <span className="pl-display" style={{ width: 24, fontSize: 12, color: ring, flexShrink: 0 }}>{team}</span>
+        <div className="pl-slot" style={{ flex: 1, gap: 8 }}>
+          <GripVertical size={16} style={{ color: "var(--mut)", flexShrink: 0 }} />
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value.label}</span>
+        </div>
+      </div>
     </div>
   );
 }

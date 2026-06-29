@@ -9,17 +9,18 @@ const genCode = () => Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math
 export const tournamentLink = (code) => `${window.location.origin}/t/${code}`;
 
 const T_SELECT =
-  "id, invite_code, name, format, points_per_game, target_size, status, court_names, created_by, created_at, " +
+  "id, invite_code, name, format, points_per_game, target_size, status, court_names, created_by, created_at, starts_at, place, " +
   "players:tournament_players(id, profile_id, name, created_at), " +
   "matches:tournament_matches(id, round_number, court, team_a, team_b, score_a, score_b)";
 
-export async function createTournament(groupId, { name, pointsPerGame = 32, targetSize = 8, createdBy, format = "americano" } = {}) {
+export async function createTournament(groupId, { name, pointsPerGame = 32, targetSize = 8, createdBy, format = "americano", startsAt, place } = {}) {
   let t = null;
   for (let i = 0; i < 5; i++) {
     const res = await supabase.from("tournaments").insert({
       group_id: groupId, invite_code: genCode(), name: name?.trim() || null,
       points_per_game: pointsPerGame, target_size: targetSize, created_by: createdBy || null,
       status: "open", format,
+      starts_at: startsAt || null, place: place?.trim() || null,
     }).select().single();
     if (!res.error) { t = res.data; break; }
     if (res.error.code !== "23505") throw res.error;

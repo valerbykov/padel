@@ -16,19 +16,19 @@ function Chip({ name, avatarUrl, x, y, team }) {
       position: "absolute", left: `${x}%`, top: `${y}%`,
       transform: "translate(-50%,-50%)",
       display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-      maxWidth: "36%",
+      maxWidth: "28%",
     }}>
       <img src={avatarUrl || dogAvatar(name)} alt="" loading="lazy" decoding="async" style={{
-        width: "clamp(26px,8vw,36px)", height: "clamp(26px,8vw,36px)",
+        width: "clamp(24px,7vw,32px)", height: "clamp(24px,7vw,32px)",
         borderRadius: "50%", objectFit: "cover",
         border: `2px solid ${color}`, background: "var(--surface)", flexShrink: 0,
       }} />
       <div style={{
         background: "color-mix(in srgb, var(--surface) 88%, transparent)", border: `1px solid ${color}`,
-        borderRadius: 7, padding: "2px 7px",
+        borderRadius: 7, padding: "2px 6px",
         fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-        fontSize: "clamp(11px,3.2vw,14px)", fontWeight: 600, color: "var(--ink)",
-        lineHeight: 1.15, textAlign: "center", wordBreak: "break-word",
+        fontSize: "clamp(11px,2.9vw,13px)", fontWeight: 600, color: "var(--ink)",
+        lineHeight: 1.15, textAlign: "center", wordBreak: "normal", overflowWrap: "break-word", hyphens: "none",
         display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
         maxWidth: "100%",
       }}>{name || "—"}</div>
