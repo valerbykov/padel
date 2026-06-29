@@ -17,9 +17,11 @@ const fmtDate = (iso) => {
   try { return new Date(iso).toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
   catch (e) { return ""; }
 };
-const TrnMeta = ({ trn }) => ((trn.starts_at || trn.created_at || trn.place) ? (
+// Показываем только реальное время начала (starts_at). created_at как «время начала»
+// вводил в заблуждение (показывал момент создания), поэтому фолбэк убран.
+const TrnMeta = ({ trn }) => ((trn.starts_at || trn.place) ? (
   <div style={{ fontSize: 13, color: "var(--mut)", display: "flex", gap: 12, margin: "6px 0 12px", flexWrap: "wrap" }}>
-    {(trn.starts_at || trn.created_at) && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={13} />{fmtDate(trn.starts_at || trn.created_at)}</span>}
+    {trn.starts_at && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={13} />{fmtDate(trn.starts_at)}</span>}
     {trn.place && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><MapPin size={13} />{trn.place}</span>}
   </div>
 ) : null);

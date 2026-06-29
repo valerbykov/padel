@@ -1473,7 +1473,10 @@ function CreateGame({ groupId, players, back, done }) {
 
   const create = async () => {
     setBusy(true);
-    try { await createGame(groupId, { title: title.trim() || null, startsAt: date || null, place, slots }); done(); }
+    // ISO с таймзоной — чтобы введённое локальное время совпадало с показанным.
+    let startsAtIso = null;
+    try { if (date) startsAtIso = new Date(date).toISOString(); } catch (e) { startsAtIso = null; }
+    try { await createGame(groupId, { title: title.trim() || null, startsAt: startsAtIso, place, slots }); done(); }
     catch (e) { alert("Не удалось создать игру"); setBusy(false); }
   };
 

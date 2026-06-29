@@ -99,7 +99,9 @@ export function TournamentCard({ trn, color, onClick, onCopy, flush }) {
       winner = tbl[0]?.name || null;
     } catch (e) {}
   }
-  const dateStr = trn.created_at ? (() => { try { return new Date(trn.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short" }); } catch (e) { return null; } })() : null;
+  // Дата+время начала, если заданы; иначе — дата создания (без времени) как запасной вариант.
+  const whenIso = trn.starts_at || trn.created_at;
+  const dateStr = whenIso ? (() => { try { return new Date(whenIso).toLocaleString(undefined, trn.starts_at ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" } : { day: "numeric", month: "short" }); } catch (e) { return null; } })() : null;
   return (
     <div className="tr-card" style={{ marginBottom: flush ? 0 : 8, display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={onClick}>
       <Trophy size={20} color={color} />
@@ -344,7 +346,11 @@ function Create({ groupId, profileId, back, open }) {
     setBusy(true);
     try {
       const targetSize = isKothBtB ? playerCount : courts * 4;
-      const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format, createdBy: profileId, startsAt: date || null, place });
+      // Сохраняем КОНКРЕТНЫЙ момент (ISO с таймзоной), чтобы введённое локальное
+      // время совпадало с показанным при чтении (без сдвига часовых поясов).
+      let startsAtIso = null;
+      try { if (date) startsAtIso = new Date(date).toISOString(); } catch (e) { startsAtIso = null; }
+      const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format, createdBy: profileId, startsAt: startsAtIso, place });
       open(trn.id);
     } catch (e) { alert("Не удалось создать турнир"); setBusy(false); }
   };
