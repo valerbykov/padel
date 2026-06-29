@@ -27,7 +27,8 @@ function Chip({ name, avatarUrl, x, y, team }) {
         background: "color-mix(in srgb, var(--surface) 88%, transparent)", border: `1px solid ${color}`,
         borderRadius: 6, padding: "1px 5px",
         fontSize: "clamp(8px,2.2vw,10px)", fontWeight: 600, color: "var(--ink)",
-        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+        lineHeight: 1.1, textAlign: "center", wordBreak: "break-word",
+        display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
         maxWidth: "100%",
       }}>{name || "—"}</div>
     </div>

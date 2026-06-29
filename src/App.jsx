@@ -221,6 +221,7 @@ export default function App() {
 
   if (showProfile && session)
     return <ProfileEditor onClose={() => setShowProfile(false)} onSaved={() => setPNonce((n) => n + 1)} theme={theme}
+      lang={lang} onThemeToggle={toggleTheme} onLangChange={handleLangChange}
       onOpenStats={() => { setShowProfile(false); setStatsNonce((n) => n + 1); }} />;
 
   // Переход по ?join=CODE — показываем экран вступления с предзаполненным кодом.

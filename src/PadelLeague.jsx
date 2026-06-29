@@ -8,7 +8,8 @@ import { t } from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
 import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound } from "lucide-react";
-import Tournaments, { TournamentView, TournamentCard } from "./components/Tournaments";
+import Tournaments, { TournamentView, TournamentCard, css as trCss } from "./components/Tournaments";
+import { deleteTournament } from "./lib/tournamentApi";
 import CourtView from "./components/CourtView";
 import EmptyState from "./components/EmptyState";
 import Avatar from "./components/Avatar";
@@ -1267,7 +1268,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
 
 /* --------------------------------- Games ---------------------------------- */
 // Карточка игры в списке: состав (аватары команд) + счёт у сыгранных.
-export function GameRow({ g, color, onOpen }) {
+export function GameRow({ g, color, onOpen, flush }) {
   const gslots = [...(g.slots || [])].sort((a, b) => ((a.team || "") + (a.position || "")).localeCompare((b.team || "") + (b.position || "")));
   const tA = gslots.filter(s => s.team === "A");
   const tB = gslots.filter(s => s.team === "B");
@@ -1289,7 +1290,7 @@ export function GameRow({ g, color, onOpen }) {
     </div>
   );
   return (
-    <div className="pl-card" style={{ marginBottom: 8, cursor: "pointer", padding: "12px 14px" }} onClick={onOpen}>
+    <div className="pl-card" style={{ marginBottom: flush ? 0 : 8, cursor: "pointer", padding: "12px 14px" }} onClick={onOpen}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <Swords size={18} color={color} style={{ flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -1361,7 +1362,12 @@ function Games({ groupId, players, reloadLeaderboard, session, archiveNonce, bum
         return [
           section(t("upcoming_section"), "var(--mut)", upcoming),
           section(t("active_section"), "var(--lime)", active),
-          section(t("played_section"), "#7d9488", played),
+          // Сыгранные игры показываем только во вкладке «История».
+          played.length > 0 && (
+            <div key="hist-hint" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, padding: "10px 12px", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--line)", fontSize: 12.5, color: "var(--mut)" }}>
+              <History size={15} style={{ flexShrink: 0, color: "var(--lime)" }} /> {t("games_in_history")}
+            </div>
+          ),
         ];
       })()}
     </div>
@@ -1621,6 +1627,40 @@ function EnterScore({ gameId, reloadGames, reloadLeaderboard }) {
 }
 
 /* ------------------------------- HistoryView ------------------------------ */
+// Свайп влево по карточке → раскрывается красная зона с корзиной → удаление.
+function SwipeToDelete({ onDelete, children }) {
+  const [dx, setDx] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const startX = useRef(0), startY = useRef(0), active = useRef(false), busy = useRef(false);
+  const MAX = 88;
+  const down = (e) => { if (busy.current) return; startX.current = e.clientX; startY.current = e.clientY; active.current = true; setDragging(true); try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} };
+  const move = (e) => {
+    if (!active.current) return;
+    const dX = e.clientX - startX.current, dY = e.clientY - startY.current;
+    if (dx === 0 && Math.abs(dY) > Math.abs(dX)) { active.current = false; setDragging(false); return; } // вертикальный скролл
+    setDx(Math.max(-MAX, Math.min(0, dX)));
+  };
+  const up = async () => {
+    if (!active.current) return; active.current = false; setDragging(false);
+    if (dx <= -MAX * 0.55) {
+      setDx(-MAX); busy.current = true;
+      try { await onDelete(); } finally { busy.current = false; }
+      setDx(0);
+    } else setDx(0);
+  };
+  return (
+    <div style={{ position: "relative", marginBottom: 8, borderRadius: 16, overflow: "hidden", background: "var(--coral)" }}>
+      <div style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: MAX, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+        <Trash2 size={20} />
+      </div>
+      <div onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
+        style={{ transform: `translateX(${dx}px)`, transition: dragging ? "none" : "transform .22s ease", touchAction: "pan-y" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce, bumpArchive }) {
   const [games, setGames] = useState(null);  // сыгранные игры
   const [tours, setTours] = useState([]);     // завершённые турниры
@@ -1645,11 +1685,22 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
 
   return (
     <div className="pl-pop">
+      <style>{trCss}</style>
       {tours.length > 0 && head(t("tours_history_heading"), "var(--yellow)")}
-      {tours.map((tour) => <TournamentCard key={tour.id} trn={tour} color="var(--yellow)" onClick={() => setSel({ type: "tour", data: tour })} />)}
+      {tours.map((tour) => {
+        const card = <TournamentCard trn={tour} color="var(--yellow)" flush={isGroupMember} onClick={() => setSel({ type: "tour", data: tour })} />;
+        return isGroupMember
+          ? <SwipeToDelete key={tour.id} onDelete={async () => { if (!confirm(t("trn_delete_confirm"))) return; await deleteTournament(tour.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+          : <div key={tour.id}>{card}</div>;
+      })}
 
       {games.length > 0 && head(t("games_history_heading"))}
-      {games.map((g) => <GameRow key={g.id} g={g} color="#7d9488" onOpen={() => setSel({ type: "game", data: g })} />)}
+      {games.map((g) => {
+        const card = <GameRow g={g} color="#7d9488" flush={isGroupMember} onOpen={() => setSel({ type: "game", data: g })} />;
+        return isGroupMember
+          ? <SwipeToDelete key={g.id} onDelete={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(g.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+          : <div key={g.id}>{card}</div>;
+      })}
     </div>
   );
 }

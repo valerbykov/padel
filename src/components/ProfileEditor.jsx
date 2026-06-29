@@ -5,9 +5,9 @@
 // props: { onClose, onSaved, theme }
 import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import { ArrowLeft, Camera, Check, Loader, LogOut, BarChart3 } from "lucide-react";
+import { ArrowLeft, Camera, Check, Loader, LogOut, BarChart3, Sun, Moon } from "lucide-react";
 import Avatar from "./Avatar";
-import { t } from "../lib/i18n";
+import { t, setLang } from "../lib/i18n";
 
 const PRESETS = Array.from({ length: 15 }, (_, i) => `/avatars/dog-${String(i + 1).padStart(2, "0")}.png`);
 
@@ -28,11 +28,13 @@ const css = `
 .pc-btn:disabled{filter:grayscale(.6) brightness(.7);cursor:not-allowed;}
 .pc-ghost{background:var(--surface2);color:var(--ink);border:1px solid var(--line);border-radius:12px;cursor:pointer;transition:border-color .15s;}
 .pc-ghost:hover{border-color:color-mix(in srgb,var(--lime) 35%,transparent);}
+.pc-iconbtn{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:6px 10px;cursor:pointer;color:var(--mut);font-family:'Outfit';font-size:12px;font-weight:700;display:flex;align-items:center;gap:5px;}
 .pc-preset{width:46px;height:46px;border-radius:50%;cursor:pointer;background:var(--surface2);transition:transform .12s;}
 .pc-preset:hover{transform:scale(1.08);}
 `;
 
-export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpenStats }) {
+export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpenStats, lang = "ru", onThemeToggle, onLangChange }) {
+  const cycleLang = () => { const o = ["ru", "en", "es"]; const next = o[(o.indexOf(lang) + 1) % o.length]; setLang(next); onLangChange?.(next); };
   const [userId, setUserId] = useState(null);
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -104,8 +106,23 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
     <div className={"pc-root" + (theme === "light" ? " pc-light" : "")}>
       <style>{css}</style>
       <div style={{ maxWidth: 460, margin: "0 auto", padding: "calc(20px + env(safe-area-inset-top)) 16px 40px" }}>
-        <button className="pc-ghost" style={{ padding: "6px 12px", marginBottom: 16, display: "inline-flex", alignItems: "center", gap: 6 }} onClick={onClose}><ArrowLeft size={14} /> {t("back")}</button>
-        <h1 className="pc-d" style={{ fontSize: 26, marginBottom: 16 }}>{t("pc_title")}</h1>
+        {/* Топбар: назад + язык/тема */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <button className="pc-ghost" style={{ padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: 6 }} onClick={onClose}><ArrowLeft size={14} /> {t("back")}</button>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <button className="pc-iconbtn" onClick={cycleLang} aria-label={t("aria_lang")}>{lang.toUpperCase()} <span style={{ opacity: .6, fontWeight: 400 }}>↻</span></button>
+            <button className="pc-iconbtn" onClick={onThemeToggle} aria-label={t("aria_theme")} style={{ padding: "6px 9px" }}>{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}</button>
+          </div>
+        </div>
+        {/* Заголовок + переход к статистике */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+          <h1 className="pc-d" style={{ fontSize: 26, margin: 0, flex: 1, minWidth: 0 }}>{t("pc_title")}</h1>
+          {onOpenStats && userId && (
+            <button className="pc-ghost" style={{ padding: "7px 12px", display: "inline-flex", alignItems: "center", gap: 6, color: "var(--lime)", borderColor: "color-mix(in srgb, var(--lime) 35%, transparent)", fontWeight: 600, fontSize: 13, flexShrink: 0 }} onClick={onOpenStats}>
+              <BarChart3 size={14} /> {t("pc_open_stats")}
+            </button>
+          )}
+        </div>
 
         {loading ? (
           <div className="pc-card" style={{ textAlign: "center", color: "var(--mut)" }}>{t("loading")}</div>
@@ -161,17 +178,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
             </button>
             {msg && <div style={{ textAlign: "center", marginTop: 10, fontSize: 13, color: msg.ok ? "var(--lime)" : "var(--coral)" }}>{msg.text}{msg.ok ? " ✓" : ""}</div>}
 
-            {/* Переход к статистике (она в карточке профиля игрока) + выход */}
-            {onOpenStats ? (
-              <button className="pc-ghost" style={{ width: "100%", padding: 14, marginTop: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--lime)", borderColor: "color-mix(in srgb, var(--lime) 35%, transparent)", fontWeight: 600 }} onClick={onOpenStats}>
-                <BarChart3 size={16} /> {t("pc_open_stats")}
-              </button>
-            ) : (
-              <div className="pc-card" style={{ marginTop: 16, display: "flex", alignItems: "flex-start", gap: 10, fontSize: 12.5, color: "var(--mut)", lineHeight: 1.45 }}>
-                <BarChart3 size={16} style={{ color: "var(--lime)", flexShrink: 0, marginTop: 1 }} /> {t("pc_stats_hint")}
-              </div>
-            )}
-            <button className="pc-ghost" style={{ width: "100%", padding: 12, marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--coral)" }} onClick={signOut}>
+            <button className="pc-ghost" style={{ width: "100%", padding: 12, marginTop: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--coral)" }} onClick={signOut}>
               <LogOut size={15} /> {t("sign_out")}
             </button>
           </>

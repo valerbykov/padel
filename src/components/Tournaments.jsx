@@ -18,7 +18,7 @@ import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, C
 import { t as tr } from "../lib/i18n";
 const nowLocalDT = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
 
-const css = `
+export const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
 .tr-root{font-family:'Outfit',sans-serif;color:var(--ink);}
 .tr-d{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;}
@@ -89,7 +89,7 @@ export default function Tournaments({ groupId, players, profileId, bumpArchive, 
 
 // ─── TournamentCard ────────────────────────────────────────────────────────────
 
-export function TournamentCard({ trn, color, onClick, onCopy }) {
+export function TournamentCard({ trn, color, onClick, onCopy, flush }) {
   const fmt = fmtById(trn.format);
   // Завершённый турнир — считаем победителя и дату прямо на карточке (matches есть в выборке).
   let winner = null;
@@ -101,7 +101,7 @@ export function TournamentCard({ trn, color, onClick, onCopy }) {
   }
   const dateStr = trn.created_at ? (() => { try { return new Date(trn.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short" }); } catch (e) { return null; } })() : null;
   return (
-    <div className="tr-card" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={onClick}>
+    <div className="tr-card" style={{ marginBottom: flush ? 0 : 8, display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={onClick}>
       <Trophy size={20} color={color} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{trn.name || fmt.name}</div>
@@ -160,7 +160,7 @@ function List({ groupId, profileId, create, open, session, onLogin }) {
         <EmptyState className="tr-card" variant="podium"
           text={!session ? tr("trn_empty_guest") : groupId ? tr("trn_empty_session") : tr("solo_tours_empty")} />
       )}
-      {items !== null && getSections().map((sec) => {
+      {items !== null && getSections().filter((sec) => sec.status !== "finished").map((sec) => {
         const list = byStatus[sec.status];
         if (!list.length) return null;
         const hidden = sec.limit && !showAll ? list.length - sec.limit : 0;
@@ -179,6 +179,12 @@ function List({ groupId, profileId, create, open, session, onLogin }) {
           </div>
         );
       })}
+      {/* Завершённые турниры — только во вкладке «История». */}
+      {items !== null && byStatus.finished.length > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, padding: "10px 12px", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--line)", fontSize: 12.5, color: "var(--mut)" }}>
+          <Trophy size={15} style={{ flexShrink: 0, color: "var(--yellow)" }} /> {tr("tours_in_history")}
+        </div>
+      )}
       {copySrc && (
         <CopyDialog src={copySrc} groupId={groupId} profileId={profileId}
           onClose={() => setCopySrc(null)} onCopied={(id) => { setCopySrc(null); open(id); }} />
