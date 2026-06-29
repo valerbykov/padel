@@ -8,7 +8,7 @@ import { t } from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
 import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound } from "lucide-react";
-import Tournaments, { TournamentView } from "./components/Tournaments";
+import Tournaments, { TournamentView, TournamentCard } from "./components/Tournaments";
 import CourtView from "./components/CourtView";
 import EmptyState from "./components/EmptyState";
 import Avatar from "./components/Avatar";
@@ -1622,124 +1622,34 @@ function EnterScore({ gameId, reloadGames, reloadLeaderboard }) {
 
 /* ------------------------------- HistoryView ------------------------------ */
 function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce, bumpArchive }) {
-  const [matches, setMatches] = useState(null);
-  const [tours, setTours] = useState([]);
-  const [extraMap, setExtraMap] = useState({});
-  const [sel, setSel] = useState(null);
-  const [expanded, setExpanded] = useState(null);
+  const [games, setGames] = useState(null);  // сыгранные игры
+  const [tours, setTours] = useState([]);     // завершённые турниры
+  const [sel, setSel] = useState(null);       // { type: 'tour' | 'game', data }
 
-  useEffect(() => {
-    if (sel) return;
-    (async () => {
-      let mData;
-      if (groupId) {
-        mData = await getHistoryMatches(groupId);
-      } else {
-        mData = await listMyHistoryMatches().catch(() => []);
-      }
-      setMatches(mData);
-      // Имена игроков, которые играли в группе, но больше не состоят в лиге
-      // (удалены из лиги) — резолвим через group_profiles, чтобы в истории
-      // показывалось их настоящее имя, а не «Удалён».
-      try {
-        const ids = [...new Set(mData.flatMap((m) => [...(m.team_a || []), ...(m.team_b || [])]).filter(Boolean))];
-        const unknown = ids.filter((id) => !players.some((p) => p.id === id));
-        if (groupId && unknown.length > 0) {
-          const profs = await getGroupProfiles(groupId, unknown).catch(() => []);
-          const map = {};
-          (profs || []).forEach((p) => { map[p.id] = p; });
-          setExtraMap(map);
-        } else { setExtraMap({}); }
-      } catch (e) { setExtraMap({}); }
-      try { const all = groupId ? await listTournaments(groupId) : await listMyTournaments(); setTours(all.filter((tour) => tour.status === "finished")); }
-      catch (e) { setTours([]); }
-    })();
-  }, [groupId, sel, archiveNonce, players]);
+  const load = useCallback(async () => {
+    try { const g = groupId ? await listGames(groupId) : await listMyGames(); setGames((g || []).filter((x) => x.status === "played")); }
+    catch (e) { setGames([]); }
+    try { const all = groupId ? await listTournaments(groupId) : await listMyTournaments(); setTours((all || []).filter((tr) => tr.status === "finished")); }
+    catch (e) { setTours([]); }
+  }, [groupId]);
+  useEffect(() => { if (!sel) load(); }, [load, sel, archiveNonce]);
 
-  if (sel) return <TournamentView id={sel.id} players={players} back={() => setSel(null)} isGroupMember={isGroupMember} currentProfileId={profileId} />;
+  // Проваливание в результаты — те же экраны, что на вкладках Игры/Турниры (там и удаление).
+  if (sel?.type === "tour") return <TournamentView id={sel.data.id} players={players} back={() => setSel(null)} isGroupMember={isGroupMember} currentProfileId={profileId} onArchiveChange={bumpArchive} />;
+  if (sel?.type === "game") return <GameCard game={sel.data} back={() => setSel(null)} reloadGames={load} reloadLeaderboard={() => {}} bumpArchive={bumpArchive} />;
 
-  const nameOf = (id) => players.find((p) => p.id === id)?.name || extraMap[id]?.name || t("player_deleted");
-  const avatarOf = (id) => { const gp = players.find((p) => p.id === id) || extraMap[id]; return gp ? playerAvatar(gp.avatar_url, id) : null; };
   const head = (txt, color = "var(--mut)") => <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color, textTransform: "uppercase", margin: "14px 2px 8px", paddingLeft: 4 }}>{txt}</div>;
 
-  if (matches === null) return <div className="pl-card pl-pop" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>{t("loading")}</div>;
-  if (matches.length === 0 && tours.length === 0) return <EmptyState className="pl-card pl-pop" variant="clock" text={t("history_empty")} />;
+  if (games === null) return <div className="pl-card pl-pop" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>{t("loading")}</div>;
+  if (games.length === 0 && tours.length === 0) return <EmptyState className="pl-card pl-pop" variant="clock" text={t("history_empty")} />;
 
   return (
     <div className="pl-pop">
       {tours.length > 0 && head(t("tours_history_heading"), "var(--yellow)")}
-      {tours.map((tour) => {
-        const table = standings((tour.players || []).map((p) => ({ id: p.id, name: p.name })), tour.matches || []);
-        const w = table[0];
-        return (
-          <div key={tour.id} className="pl-card" style={{ padding: 14, marginBottom: 8, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }} onClick={() => setSel(tour)}>
-            <Trophy size={18} color="var(--yellow)" />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tour.name || t("fmt_americano_name")}</div>
-              <div style={{ fontSize: 12, color: "var(--mut)" }}>{w ? `${t("winner_label")}: ${w.name} · ${w.points} ${t("points_abbr")}` : "-"}</div>
-            </div>
-            <span style={{ fontSize: 16, color: "var(--lime)", flexShrink: 0 }}>→</span>
-          </div>
-        );
-      })}
+      {tours.map((tour) => <TournamentCard key={tour.id} trn={tour} color="var(--yellow)" onClick={() => setSel({ type: "tour", data: tour })} />)}
 
-      {matches.length > 0 && head(t("games_history_heading"))}
-      {matches.map((m) => {
-        const aWon = m.sets_a > m.sets_b;
-        const rawDetail = m.score_detail;
-        const detail = (() => {
-          if (!rawDetail) return null;
-          if (Array.isArray(rawDetail) && rawDetail.length > 0) return rawDetail;
-          try { const p = typeof rawDetail === "string" ? JSON.parse(rawDetail) : rawDetail; return Array.isArray(p) && p.length > 0 ? p : null; }
-          catch (e) { return null; }
-        })();
-        const isExpanded = expanded === m.id;
-        return (
-          <div key={m.id} className="pl-card" style={{ padding: 12, marginBottom: 8, cursor: detail ? "pointer" : "default" }}
-            onClick={() => detail && setExpanded(isExpanded ? null : m.id)}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {isGroupMember && <span style={{ width: 32, flexShrink: 0 }} aria-hidden="true" />}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                {(m.team_a || []).map((id) => (
-                  <div key={id} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                    <Avatar url={avatarOf(id)} id={id} name={nameOf(id)} size={20} />
-                    <span style={{ fontSize: 13, fontWeight: aWon ? 700 : 400, color: aWon ? "var(--lime)" : "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nameOf(id)}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{ textAlign: "center", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                <div className="pl-display" style={{ fontSize: 22 }}>{m.sets_a}:{m.sets_b}</div>
-                {detail && <div style={{ fontSize: 10, color: "var(--lime)" }}>{isExpanded ? "▲" : "▼"}</div>}
-              </div>
-              <div style={{ flex: 1, minWidth: 0, textAlign: "right" }}>
-                {(m.team_b || []).map((id) => (
-                  <div key={id} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, justifyContent: "flex-end" }}>
-                    <span style={{ fontSize: 13, fontWeight: !aWon ? 700 : 400, color: !aWon ? "var(--lime)" : "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nameOf(id)}</span>
-                    <Avatar url={avatarOf(id)} id={id} name={nameOf(id)} size={20} />
-                  </div>
-                ))}
-              </div>
-              {isGroupMember && (
-                <button style={{ flexShrink: 0, padding: 8, border: "1px solid rgba(255,106,82,.2)", borderRadius: 8, background: "none", color: "rgba(255,106,82,.5)", cursor: "pointer", alignSelf: "center" }}
-                  onClick={(e) => { e.stopPropagation(); if (!confirm(t("delete_match_confirm"))) return; supabase.from("matches").delete().eq("id", m.id).then(() => { setMatches((prev) => prev.filter((x) => x.id !== m.id)); bumpArchive && bumpArchive(); }); }}
-                  title="Удалить"><Trash2 size={14} /></button>
-              )}
-            </div>
-            {isExpanded && detail && (
-              <div style={{ marginTop: 10, borderTop: "1px solid var(--line)", paddingTop: 8, display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-                {detail.map((s, i) => (
-                  <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, minWidth: 52 }}>
-                    <div style={{ fontSize: 10, color: "var(--mut)" }}>{t("set_label")} {i + 1}</div>
-                    <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 18, color: s.a > s.b ? "var(--lime)" : s.b > s.a ? "var(--coral)" : "var(--ink)" }}>
-                      {s.a}<span style={{ color: "var(--mut)", fontSize: 14 }}>:</span>{s.b}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })}
+      {games.length > 0 && head(t("games_history_heading"))}
+      {games.map((g) => <GameRow key={g.id} g={g} color="#7d9488" onOpen={() => setSel({ type: "game", data: g })} />)}
     </div>
   );
 }

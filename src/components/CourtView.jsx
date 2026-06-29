@@ -21,12 +21,12 @@ function Chip({ name, avatarUrl, x, y, team }) {
       <img src={avatarUrl || dogAvatar(name)} alt="" loading="lazy" decoding="async" style={{
         width: "clamp(22px,7vw,32px)", height: "clamp(22px,7vw,32px)",
         borderRadius: "50%", objectFit: "cover",
-        border: `2px solid ${color}`, background: "#0a1612", flexShrink: 0,
+        border: `2px solid ${color}`, background: "var(--surface)", flexShrink: 0,
       }} />
       <div style={{
-        background: "rgba(10,22,18,.82)", border: `1px solid ${color}`,
+        background: "color-mix(in srgb, var(--surface) 88%, transparent)", border: `1px solid ${color}`,
         borderRadius: 6, padding: "1px 5px",
-        fontSize: "clamp(8px,2.2vw,10px)", fontWeight: 600, color: "#eef3ee",
+        fontSize: "clamp(8px,2.2vw,10px)", fontWeight: 600, color: "var(--ink)",
         whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
         maxWidth: "100%",
       }}>{name || "—"}</div>
@@ -172,8 +172,8 @@ export default function CourtView({
         fontSize: "clamp(18px,7.5vw,30px)", minWidth: "clamp(38px,12vw,54px)",
         textAlign: "center", padding: "clamp(5px,2vw,8px) clamp(7px,3vw,12px)",
         borderRadius: 10, lineHeight: 1, cursor: editable && mode !== "sets" ? "pointer" : "default",
-        background: win ? "#c8ff2d" : "rgba(10,22,18,.82)", color: win ? "#0a1612" : "#eef3ee",
-        border: `2px solid ${win ? "#c8ff2d" : "rgba(255,255,255,.4)"}`,
+        background: win ? "#c8ff2d" : "color-mix(in srgb, var(--surface) 88%, transparent)", color: win ? "#0a1612" : "var(--ink)",
+        border: `2px solid ${win ? "#c8ff2d" : "var(--line)"}`,
         boxShadow: win ? "0 0 16px rgba(200,255,45,.5)" : "none",
       }}
     >{val == null ? "–" : val}</div>
@@ -191,10 +191,22 @@ export default function CourtView({
         .cv-setbtn{transition:filter .12s, transform .1s;}
         .cv-setbtn:hover{filter:brightness(1.1);}
         .cv-setbtn:active{transform:scale(.96);}
+        .cv-court{--court:#1f4f86;--court-line:rgba(255,255,255,.85);--court-net:#15365e;display:block;width:100%;}
+        body.pl-light .cv-court{--court:#cfe6f7;--court-line:rgba(20,45,80,.5);--court-net:#a7c6e2;}
       `}</style>
       {/* Корт */}
       <div style={{ position: "relative", width: "100%", borderRadius: 14, overflow: "hidden", minHeight: (pickFor && useKeypad) ? 408 : undefined }}>
-        <img src={bgUrl} alt="корт" style={{ width: "100%", display: "block" }} />
+        <svg className="cv-court" viewBox="0 0 320 180" preserveAspectRatio="none" aria-label="корт" style={{ aspectRatio: "16 / 9", height: "auto" }}>
+          <rect x="0" y="0" width="320" height="180" style={{ fill: "var(--court)" }} />
+          <g style={{ fill: "none", stroke: "var(--court-line)" }} strokeWidth="2.4">
+            <rect x="7" y="7" width="306" height="166" />
+            <line x1="52" y1="7" x2="52" y2="173" />
+            <line x1="268" y1="7" x2="268" y2="173" />
+            <line x1="52" y1="90" x2="268" y2="90" />
+          </g>
+          <rect x="155" y="7" width="10" height="166" style={{ fill: "var(--court-net)" }} />
+          <line x1="160" y1="7" x2="160" y2="173" style={{ stroke: "var(--court-line)" }} strokeWidth="1.4" />
+        </svg>
         {editable && mode !== "sets" && !savedAlready && !pickFor && (
           <>
             <div onClick={() => openPick("A")} style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "50%", cursor: "pointer" }} aria-label="ввести счёт команды A" />
@@ -205,7 +217,7 @@ export default function CourtView({
         {(courtNumber != null || courtName) && (
           <div
             onClick={onRenameCourt && courtNumber != null ? () => { const v = window.prompt("Название корта", courtName || ("Корт " + courtNumber)); if (v !== null) onRenameCourt(v.trim()); } : undefined}
-            style={{ position: "absolute", top: 8, left: 10, fontFamily: "'Outfit',sans-serif", fontWeight: 800, textTransform: "uppercase", fontSize: 13, letterSpacing: 1, color: "#fff", background: "rgba(10,22,18,.55)", padding: "2px 8px", borderRadius: 8, cursor: onRenameCourt && courtNumber != null ? "pointer" : "default" }}
+            style={{ position: "absolute", top: 8, left: 10, fontFamily: "'Outfit',sans-serif", fontWeight: 800, textTransform: "uppercase", fontSize: 13, letterSpacing: 1, color: "var(--ink)", background: "color-mix(in srgb, var(--surface) 80%, transparent)", padding: "2px 8px", borderRadius: 8, cursor: onRenameCourt && courtNumber != null ? "pointer" : "default" }}
           >
             {courtName || ("Корт " + courtNumber)}{onRenameCourt && courtNumber != null ? " ✎" : ""}
           </div>
@@ -218,12 +230,12 @@ export default function CourtView({
 
         <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", display: "flex", alignItems: "center", gap: 8 }}>
           {box(mode === "sets" ? setsWonA : dA, aWin, "A")}
-          <span style={{ color: "#fff", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22 }}>:</span>
+          <span style={{ color: "var(--ink)", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22 }}>:</span>
           {box(mode === "sets" ? setsWonB : dB, bWin, "B")}
         </div>
 
         {editable && mode !== "sets" && !savedAlready && !pickFor && (
-          <div style={{ position: "absolute", left: "50%", bottom: "5%", transform: "translateX(-50%)", fontSize: 11, color: "#fff", background: "rgba(10,22,18,.55)", padding: "2px 8px", borderRadius: 8 }}>
+          <div style={{ position: "absolute", left: "50%", bottom: "5%", transform: "translateX(-50%)", fontSize: 11, color: "var(--ink)", background: "color-mix(in srgb, var(--surface) 80%, transparent)", padding: "2px 8px", borderRadius: 8, whiteSpace: "nowrap" }}>
             нажми на свою половину поля, чтобы ввести счёт
           </div>
         )}

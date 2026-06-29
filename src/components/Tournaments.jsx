@@ -89,7 +89,7 @@ export default function Tournaments({ groupId, players, profileId, bumpArchive, 
 
 // ─── TournamentCard ────────────────────────────────────────────────────────────
 
-function TournamentCard({ trn, color, onClick, onCopy }) {
+export function TournamentCard({ trn, color, onClick, onCopy }) {
   const fmt = fmtById(trn.format);
   // Завершённый турнир — считаем победителя и дату прямо на карточке (matches есть в выборке).
   let winner = null;

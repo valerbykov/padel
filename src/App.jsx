@@ -343,9 +343,7 @@ function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme
             {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
           </button>
         </div>
-        {session ? (
-          <button className="tb-btn" onClick={onSignOut} style={{ ...base, background: "var(--surface2)", color: "var(--mut)", whiteSpace: "nowrap" }}>{t("sign_out")}</button>
-        ) : (
+        {!session && (
           <button className="tb-btn" onClick={onLogin} style={{ ...base, background: "var(--lime)", color: "var(--lime-fg)", border: "none", fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
             <LogIn size={15} /> {t("sign_in")}
           </button>
