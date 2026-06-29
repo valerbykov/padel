@@ -15,7 +15,7 @@ import CourtView from "./components/CourtView";
 import EmptyState from "./components/EmptyState";
 import Avatar from "./components/Avatar";
 import LeagueLogo from "./components/LeagueLogo";
-import { dogAvatar, playerAvatar } from "./lib/avatar";
+import { dogAvatar, playerAvatar, DOG_COUNT } from "./lib/avatar";
 
 // Текущая дата-время в формате datetime-local (YYYY-MM-DDTHH:MM) с учётом таймзоны.
 const nowLocalDT = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
@@ -228,6 +228,14 @@ function GateScreen() {
 
 /* ------------------------------ WelcomeScreen ----------------------------- */
 function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLanding, theme = "dark", lang = "ru", onThemeToggle, onLangChange }) {
+  // 4 случайные собаки из 15 (как игроки на корте). Считаем один раз на маунте —
+  // выбор стабилен между ререндерами (без мерцания). Картинки прекэшируются PWA,
+  // так что на быстродействие это не влияет — грузятся те же 4 файла из кэша.
+  const [heroDogs] = useState(() => {
+    const nums = Array.from({ length: DOG_COUNT }, (_, i) => i + 1);
+    for (let i = nums.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [nums[i], nums[j]] = [nums[j], nums[i]]; }
+    return nums.slice(0, 4).map((n) => `dog-${String(n).padStart(2, "0")}`);
+  });
   // Карточки = «что делать дальше» (онбординг), а не повтор витрины с лендинга.
   const features = [
     { icon: "🏆", title: t("feat_board_title"), sub: t("feat_board_sub") },   // создать/вступить в лигу
@@ -241,7 +249,7 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLand
       <div style={{ textAlign: "center", padding: "26px 0 22px" }}>
         {/* «Стая» — брендовые собаки-игроки, чтобы было понятно, про какую стаю речь. */}
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-          {["dog-03", "dog-09", "dog-01", "dog-05"].map((d, i) => (
+          {heroDogs.map((d, i) => (
             <img key={d} src={`/avatars/${d}.png`} alt="" loading="lazy" decoding="async"
               style={{ width: 54, height: 54, borderRadius: "50%", objectFit: "cover", border: "2.5px solid var(--bg)", marginLeft: i ? -15 : 0, boxShadow: "0 4px 14px -6px rgba(0,0,0,.55)", background: "var(--surface)", position: "relative", zIndex: i }} />
           ))}
