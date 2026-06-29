@@ -1,5 +1,6 @@
 // PadelLeague.jsx — основной экран на реальных данных Supabase.
 import React, { useEffect, useState, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "./lib/supabase";
 import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName } from "./lib/padelApi";
 import { getRatingHistory } from "./lib/statsApi";
@@ -7,15 +8,13 @@ import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
 import { t, nGames } from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
-import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, Settings } from "lucide-react";
+import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical } from "lucide-react";
 import Tournaments, { TournamentView, TournamentCard, css as trCss } from "./components/Tournaments";
 import { deleteTournament } from "./lib/tournamentApi";
 import CourtView from "./components/CourtView";
 import EmptyState from "./components/EmptyState";
 import Avatar from "./components/Avatar";
-import Logo from "./components/Logo";
 import LeagueLogo from "./components/LeagueLogo";
-import LeagueManager from "./components/LeagueManager";
 import { dogAvatar, playerAvatar } from "./lib/avatar";
 
 // Текущая дата-время в формате datetime-local (YYYY-MM-DDTHH:MM) с учётом таймзоны.
@@ -127,7 +126,7 @@ function ContactLinks({ contacts = {} }) {
 
 /* --------------------------------- root ----------------------------------- */
 
-export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, onLeagueUpdated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin, onOpenLanding, onEditProfile, openSelfStatsNonce = 0 }) {
+export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin, onOpenLanding, onEditProfile, openSelfStatsNonce = 0 }) {
   const [tab, setTab] = useState(session ? "board" : "welcome");
   // Повторный тап по активной вкладке должен возвращать к её корню (закрыть
   // открытую детализацию). Меняем navNonce → key вкладки → ремоунт → сброс.
@@ -194,7 +193,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
         )}
 
         {tab === "welcome" && !session && <WelcomeScreen onLogin={onLogin} onBrowseGames={() => goTab("games")} onBrowseTournaments={() => goTab("tournaments")} onOpenLanding={onOpenLanding} theme={theme} lang={lang} onThemeToggle={onThemeToggle} onLangChange={onLangChange} />}
-        {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onLeagueUpdated={onLeagueUpdated} onEditProfile={onEditProfile} selfStatsNonce={openSelfStatsNonce} /> : <GateScreen />)}
+        {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsNonce={openSelfStatsNonce} /> : <GateScreen />)}
         {tab === "games" && <Games key={navNonce} groupId={groupId} players={players} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} />}
         {tab === "tournaments" && <Tournaments key={navNonce} groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} />}
         {tab === "history" && (session ? <HistoryView key={navNonce} groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} archiveNonce={archiveNonce} bumpArchive={bumpArchive} /> : <GateScreen />)}
@@ -238,10 +237,26 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLand
   ];
   return (
     <div className="pl-pop">
-      {/* Hero */}
-      <div style={{ textAlign: "center", padding: "28px 0 22px" }}>
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}><Logo theme={theme} showTagline /></div>
-        <div style={{ fontSize: 14, color: "var(--mut)", lineHeight: 1.6, maxWidth: 270, margin: "10px auto 0" }}>
+      {/* Hero — логотип теперь в топбаре; здесь крупный двухчастный слоган. */}
+      <div style={{ textAlign: "center", padding: "26px 0 22px" }}>
+        {/* «Стая» — брендовые собаки-игроки, чтобы было понятно, про какую стаю речь. */}
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+          {["dog-03", "dog-09", "dog-01", "dog-05"].map((d, i) => (
+            <img key={d} src={`/avatars/${d}.png`} alt="" loading="lazy" decoding="async"
+              style={{ width: 54, height: 54, borderRadius: "50%", objectFit: "cover", border: "2.5px solid var(--bg)", marginLeft: i ? -15 : 0, boxShadow: "0 4px 14px -6px rgba(0,0,0,.55)", background: "var(--surface)", position: "relative", zIndex: i }} />
+          ))}
+        </div>
+        {(() => {
+          const [a, b] = t("tagline").split(" · ");
+          const cap = (s = "") => s.charAt(0).toUpperCase() + s.slice(1);
+          return (
+            <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 30, lineHeight: 1.18, letterSpacing: "-0.5px", maxWidth: 340, margin: "0 auto" }}>
+              <span style={{ color: "var(--lime)" }}>{cap(a)}</span>
+              {b && <><span style={{ color: "var(--mut)", fontWeight: 500 }}> ·</span><span style={{ color: "var(--ink)", display: "block" }}>{cap(b)}</span></>}
+            </div>
+          );
+        })()}
+        <div style={{ fontSize: 14, color: "var(--mut)", lineHeight: 1.6, maxWidth: 270, margin: "14px auto 0" }}>
           {t("welcome_tagline")}
         </div>
       </div>
@@ -294,8 +309,7 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLand
 }
 
 /* --------------------------------- Board ---------------------------------- */
-function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leagues, activeLeague, onLeagueChange, onLeagueCreated, onLeagueUpdated, onEditProfile, selfStatsNonce = 0 }) {
-  const [manage, setManage] = useState(false);   // окно управления лигой
+function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leagues, activeLeague, onLeagueChange, onLeagueCreated, onEditProfile, selfStatsNonce = 0 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [netPlayers, setNetPlayers] = useState([]);
@@ -483,19 +497,12 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
 
   return (
     <div className="pl-pop">
-      {/* Шапка доски: логотип лиги + название + вход в окно управления. */}
+      {/* Шапка доски: логотип лиги + название. Управление лигой — в переключателе лиг (шестерёнка). */}
       {activeLeague && (
         <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 14 }}>
           <LeagueLogo url={activeLeague.logo_url} name={activeLeague.name} size={42} radius={13} />
           <div style={{ flex: 1, minWidth: 0, fontWeight: 800, fontSize: 19, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeLeague.name}</div>
-          <button onClick={() => setManage(true)} title={t("league_manage")} aria-label={t("league_manage")}
-            style={{ flexShrink: 0, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 11, color: "var(--mut)", cursor: "pointer", padding: 9, display: "flex" }}>
-            <Settings size={17} />
-          </button>
         </div>
-      )}
-      {manage && activeLeague && (
-        <LeagueManager groupId={activeLeague.id} canEdit={isAdmin} onClose={() => setManage(false)} onUpdated={onLeagueUpdated} />
       )}
 
       {/* Без лиги — короткая подсказка; выбор/создание лиги теперь в переключателе в шапке. */}
@@ -584,36 +591,41 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         <EmptyState text={t("solo_friends_empty")} />
       ))}
 
-      {groupId && (open ? (
-        <div className="pl-card" style={{ padding: 14, marginTop: 8 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            <span style={{ fontWeight: 600 }}>{t("add_player_form_title")}</span>
-            <button className="pl-ghost" style={{ padding: "2px 8px" }} onClick={() => { setQuery(""); setOpen(false); }}><X size={16} /></button>
-          </div>
-          <input className="pl-input" style={{ padding: "10px 12px" }} placeholder={t("add_search_placeholder")} value={query}
-            onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addGuest()} autoFocus />
-          {query.trim() && (
-            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
-              {netPlayers.filter((p) => (p.name || "").toLowerCase().includes(query.trim().toLowerCase())).slice(0, 6).map((p) => (
-                <button key={p.id} disabled={busy} onClick={() => addExisting(p)}
-                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, cursor: "pointer", color: "var(--ink)", fontFamily: "'Outfit'", textAlign: "left" }}>
-                  <img src={playerAvatar(p.avatar_url, p.id)} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
-                  {p.registered && <span style={{ fontSize: 10, color: "var(--lime)", flexShrink: 0 }}>{t("account_badge")}</span>}
-                </button>
-              ))}
-              <button className="pl-btn" disabled={busy} style={{ padding: 10, textAlign: "left" }} onClick={addGuest}>
-                {t("add_guest_prefix")} «{query.trim()}»
-              </button>
-            </div>
-          )}
-          <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 10, lineHeight: 1.4 }}>{t("add_player_hint")}</div>
-        </div>
-      ) : (
+      {groupId && (
         <button className="pl-ghost" style={{ width: "100%", padding: 12, marginTop: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontWeight: 600 }} onClick={() => setOpen(true)}>
           <Users size={18} /> {t("add_player")}
         </button>
-      ))}
+      )}
+      {/* Форма добавления — модалка-лист (портал в body), всегда видна, даже при длинном списке. */}
+      {groupId && open && createPortal(
+        <div onClick={() => { setQuery(""); setOpen(false); }} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-end", justifyContent: "center", fontFamily: "'Outfit',sans-serif" }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 460, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "20px 20px 0 0", padding: 16, paddingBottom: "max(16px, env(safe-area-inset-bottom))", boxShadow: "0 -8px 40px rgba(0,0,0,.5)", maxHeight: "85vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <span style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)" }}>{t("add_player_form_title")}</span>
+              <button className="pl-ghost" style={{ padding: "2px 8px" }} onClick={() => { setQuery(""); setOpen(false); }}><X size={16} /></button>
+            </div>
+            <input className="pl-input" style={{ padding: "10px 12px" }} placeholder={t("add_search_placeholder")} value={query}
+              onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addGuest()} autoFocus />
+            {query.trim() && (
+              <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                {netPlayers.filter((p) => (p.name || "").toLowerCase().includes(query.trim().toLowerCase())).slice(0, 6).map((p) => (
+                  <button key={p.id} disabled={busy} onClick={() => addExisting(p)}
+                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, cursor: "pointer", color: "var(--ink)", fontFamily: "'Outfit'", textAlign: "left" }}>
+                    <img src={playerAvatar(p.avatar_url, p.id)} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                    {p.registered && <span style={{ fontSize: 10, color: "var(--lime)", flexShrink: 0 }}>{t("account_badge")}</span>}
+                  </button>
+                ))}
+                <button className="pl-btn" disabled={busy} style={{ padding: 10, textAlign: "left" }} onClick={addGuest}>
+                  {t("add_guest_prefix")} «{query.trim()}»
+                </button>
+              </div>
+            )}
+            <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 10, lineHeight: 1.4 }}>{t("add_player_hint")}</div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {extraPlayers.length > 0 && (
         <>
@@ -721,6 +733,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
   const [hist, setHist] = useState(null);
   const [myId, setMyId] = useState(null);
   const [allMatches, setAllMatches] = useState(null);
+  const [nameMap, setNameMap] = useState({}); // id→имя для участников вне текущего ростера лиги
   const [playerTours, setPlayerTours] = useState(null);
   const [rawTours, setRawTours] = useState(null);
   const [tourH2H, setTourH2H] = useState(null);
@@ -816,7 +829,22 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
     setTourH2H(toTotal + vsTotal > 0 ? { toWins, toLosses, toDraws, toTotal, vsWins, vsLosses, vsDraws, vsTotal } : null);
   }, [rawTours, myId, player.id]);
 
-  const nameOf = (id) => players.find((p) => p.id === id)?.name || t("player_deleted");
+  // Подтягиваем имена участников, которых нет в текущем ростере лиги (например,
+  // удалённых ИЗ ЛИГИ — их профиль не удаляется, имя всё равно показываем).
+  useEffect(() => {
+    if (!allMatches) return;
+    const ids = new Set();
+    allMatches.forEach((m) => [...(m.team_a || []), ...(m.team_b || [])].forEach((id) => id && ids.add(id)));
+    const missing = [...ids].filter((id) => !players.some((p) => p.id === id) && !nameMap[id]);
+    if (missing.length === 0) return;
+    supabase.from("profiles").select("id, name").in("id", missing).then(({ data }) => {
+      if (!data || !data.length) return;
+      setNameMap((prev) => { const n = { ...prev }; data.forEach((r) => { n[r.id] = r.name; }); return n; });
+    });
+  }, [allMatches, players]);
+
+  // Имя по id: ростер лиги → подтянутые профили → нейтральный прочерк (без «Удалён»).
+  const nameOf = (id) => players.find((p) => p.id === id)?.name || nameMap[id] || "—";
 
   // Матчи, в которых участвуют оба (я + выбранный игрок)
   const withPlayer = !myId || !allMatches ? [] : allMatches.filter((m) => {
@@ -868,6 +896,59 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
     });
     return best;
   })();
+
+  // Best partner в ТУРНИРАХ (по матчам завершённых турниров игрока, rawTours).
+  // team_a/team_b хранят id участников турнира (tp.id) → маппим к профилю/имени.
+  const bestPartnerTour = (() => {
+    if (!rawTours || rawTours.length === 0) return null;
+    const stats = {}; // ключ: profile_id || ("g:"+имя)
+    rawTours.forEach((tour) => {
+      const myTp = (tour.players || []).find((p) => p.profile_id === player.id);
+      if (!myTp) return;
+      const byTpId = {};
+      (tour.players || []).forEach((p) => { byTpId[p.id] = p; });
+      (tour.matches || []).forEach((m) => {
+        if (m.score_a == null) return;
+        const inA = (m.team_a || []).includes(myTp.id);
+        const inB = (m.team_b || []).includes(myTp.id);
+        if (!inA && !inB) return;
+        const mates = inA ? (m.team_a || []) : (m.team_b || []);
+        const won = inA ? m.score_a > m.score_b : m.score_b > m.score_a;
+        const draw = m.score_a === m.score_b;
+        mates.forEach((tid) => {
+          if (tid === myTp.id) return;
+          const tp = byTpId[tid];
+          if (!tp) return;
+          const key = tp.profile_id || ("g:" + (tp.name || tid));
+          if (!stats[key]) stats[key] = { id: tp.profile_id || null, name: tp.name || "?", w: 0, l: 0, d: 0 };
+          if (draw) stats[key].d++; else if (won) stats[key].w++; else stats[key].l++;
+        });
+      });
+    });
+    let best = null, bestRate = -1;
+    Object.values(stats).forEach((s) => {
+      const total = s.w + s.l + s.d;
+      if (total < 2) return;
+      const rate = s.w / total;
+      if (rate > bestRate) { bestRate = rate; best = { ...s, total, rate }; }
+    });
+    return best;
+  })();
+
+  // Карточка «лучший партнёр» (общая для игр и турниров).
+  const partnerCard = (key, label, bp, name, avatarUrl) => (
+    <div key={key} className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
+      <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{label}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <img src={avatarUrl} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 600, fontSize: 14 }}>{name || "?"}</div>
+          <div style={{ fontSize: 12, color: "var(--mut)" }}>{bp.w} {t("wins_short")} · {bp.l} {t("losses_short")} · {bp.total} {t("matches")}</div>
+        </div>
+        <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22, color: "var(--lime)", flexShrink: 0 }}>{Math.round(bp.rate * 100)}%</div>
+      </div>
+    </div>
+  );
 
   // Ачивки
   const badges = (() => {
@@ -1040,23 +1121,12 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
         </div>
       </div>
 
-      {/* Лучший партнёр */}
+      {/* Лучший партнёр — отдельно по играм и по турнирам */}
       {bestPartner && (() => {
         const bp = players.find((p) => p.id === bestPartner.id);
-        return (
-          <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
-            <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{t("best_partner")}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <img src={playerAvatar(bp?.avatar_url, bestPartner.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{bp?.name || "?"}</div>
-                <div style={{ fontSize: 12, color: "var(--mut)" }}>{bestPartner.w} {t("wins_short")} · {bestPartner.l} {t("losses_short")} · {bestPartner.total} {t("matches")}</div>
-              </div>
-              <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22, color: "var(--lime)", flexShrink: 0 }}>{Math.round(bestPartner.rate * 100)}%</div>
-            </div>
-          </div>
-        );
+        return partnerCard("bp-games", t("best_partner_games"), bestPartner, bp?.name || nameMap[bestPartner.id] || "?", playerAvatar(bp?.avatar_url, bestPartner.id));
       })()}
+      {bestPartnerTour && partnerCard("bp-tour", t("best_partner_tour"), bestPartnerTour, bestPartnerTour.name, playerAvatar(players.find((p) => p.id === bestPartnerTour.id)?.avatar_url, bestPartnerTour.id || bestPartnerTour.name))}
 
       {/* Статистика с этим игроком */}
       {myId && myId !== player.id && withPlayer.length > 0 && (

@@ -37,7 +37,7 @@ const T = {
     level_master: 'Мастер', level_legend: 'Легенда',
     // ── Stats labels ──────────────────────────────────────────────────────
     matches: 'игр', tournaments: 'турниров',
-    best_partner: 'Лучший партнёр',
+    best_partner: 'Лучший партнёр', best_partner_games: 'Лучший партнёр — игры', best_partner_tour: 'Лучший партнёр — турниры',
     wins: 'победы', draws: 'ничьи', losses: 'поражения',
     stat_wins: 'победы', stat_draws: 'ничьи', stat_losses: 'поражения',
     rating: 'рейтинг', level: 'уровень',
@@ -341,7 +341,7 @@ const T = {
     level_master: 'Master', level_legend: 'Legend',
     // ── Stats labels ──────────────────────────────────────────────────────
     matches: 'games', tournaments: 'cups',
-    best_partner: 'Best partner',
+    best_partner: 'Best partner', best_partner_games: 'Best partner — games', best_partner_tour: 'Best partner — tournaments',
     wins: 'wins', draws: 'draws', losses: 'losses',
     stat_wins: 'wins', stat_draws: 'draws', stat_losses: 'losses',
     rating: 'rating', level: 'level',
@@ -645,7 +645,7 @@ const T = {
     level_master: 'Maestro', level_legend: 'Leyenda',
     // ── Stats labels ──────────────────────────────────────────────────────
     matches: 'partidas', tournaments: 'torneos',
-    best_partner: 'Mejor compañero',
+    best_partner: 'Mejor compañero', best_partner_games: 'Mejor compañero — juegos', best_partner_tour: 'Mejor compañero — torneos',
     wins: 'victorias', draws: 'empates', losses: 'derrotas',
     stat_wins: 'victorias', stat_draws: 'empates', stat_losses: 'derrotas',
     rating: 'puntos', level: 'nivel',

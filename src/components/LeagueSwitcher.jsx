@@ -2,14 +2,16 @@
 // Глобальный переключатель лиги — живёт в топбаре (App.jsx), действует на все
 // вкладки. Вынесен из PadelLeague, чтобы App не тянул весь тяжёлый чанк лиги.
 import React, { useState } from "react";
-import { Trophy, Check, X, PlusCircle, ChevronUp, ChevronDown, KeyRound } from "lucide-react";
+import { Trophy, Check, X, PlusCircle, ChevronUp, ChevronDown, KeyRound, Settings } from "lucide-react";
 import { createLeague, joinLeague } from "../lib/padelApi";
 import LeagueLogo from "./LeagueLogo";
+import LeagueManager from "./LeagueManager";
 import { t } from "../lib/i18n";
 
-export default function LeagueSwitcher({ leagues, activeLeague, isAdmin, onLeagueChange, onLeagueCreated }) {
+export default function LeagueSwitcher({ leagues, activeLeague, isAdmin, onLeagueChange, onLeagueCreated, onLeagueUpdated }) {
   const [menu, setMenu] = useState(false);
   const [mode, setMode] = useState(false); // false | "create" | "join"
+  const [manage, setManage] = useState(null); // { id, role } — открытое окно управления
   const [newName, setNewName] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -71,15 +73,21 @@ export default function LeagueSwitcher({ leagues, activeLeague, isAdmin, onLeagu
               {has && leagues.map((lg) => {
                 const active = lg.id === activeLeague?.id;
                 return (
-                  <button key={lg.id} className="ls-item" onClick={() => { onLeagueChange && onLeagueChange(lg.id); close(); }}
-                    style={{ width: "100%", padding: "9px 12px", textAlign: "left", background: active ? "color-mix(in srgb,var(--lime) 10%,transparent)" : "none", border: "none", color: "var(--ink)", fontFamily: "'Outfit'", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
-                    <LeagueLogo url={lg.logo_url} name={lg.name} size={30} radius={9} />
-                    <span style={{ flex: 1, minWidth: 0, fontWeight: active ? 700 : 500, color: active ? "var(--lime)" : "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {lg.name}
-                      {lg.role !== "member" && <span style={{ marginLeft: 6, fontSize: 11, color: "var(--mut)" }}>{roleLabel(lg.role)}</span>}
-                    </span>
-                    {active && <Check size={16} style={{ color: "var(--lime)", flexShrink: 0 }} />}
-                  </button>
+                  <div key={lg.id} className="ls-item" style={{ display: "flex", alignItems: "stretch", background: active ? "color-mix(in srgb,var(--lime) 10%,transparent)" : "none" }}>
+                    <button onClick={() => { onLeagueChange && onLeagueChange(lg.id); close(); }}
+                      style={{ flex: 1, minWidth: 0, padding: "9px 12px", textAlign: "left", background: "none", border: "none", color: "var(--ink)", fontFamily: "'Outfit'", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
+                      <LeagueLogo url={lg.logo_url} name={lg.name} size={30} radius={9} />
+                      <span style={{ flex: 1, minWidth: 0, fontWeight: active ? 700 : 500, color: active ? "var(--lime)" : "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {lg.name}
+                        {lg.role !== "member" && <span style={{ marginLeft: 6, fontSize: 11, color: "var(--mut)" }}>{roleLabel(lg.role)}</span>}
+                      </span>
+                      {active && <Check size={16} style={{ color: "var(--lime)", flexShrink: 0 }} />}
+                    </button>
+                    <button onClick={() => { setManage({ id: lg.id, role: lg.role }); setMenu(false); }} title={t("league_manage")} aria-label={t("league_manage")}
+                      style={{ flexShrink: 0, padding: "0 12px", background: "none", border: "none", borderLeft: "1px solid var(--line)", color: "var(--mut)", cursor: "pointer", display: "flex", alignItems: "center" }}>
+                      <Settings size={16} />
+                    </button>
+                  </div>
                 );
               })}
               <div style={{ borderTop: has ? "1px solid var(--line)" : "none", display: "flex" }}>
@@ -113,6 +121,15 @@ export default function LeagueSwitcher({ leagues, activeLeague, isAdmin, onLeagu
             </div>
           )}
         </div>
+      )}
+
+      {manage && (
+        <LeagueManager
+          groupId={manage.id}
+          canEdit={manage.role === "owner" || manage.role === "admin"}
+          onClose={() => setManage(null)}
+          onUpdated={(lg) => onLeagueUpdated && onLeagueUpdated(lg)}
+        />
       )}
     </div>
   );

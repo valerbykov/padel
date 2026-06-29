@@ -3,6 +3,7 @@
 // код приглашения. Админ/владелец редактирует, участник — только смотрит.
 // Данные тянет через get_league_details (RPC), сохраняет в groups (RLS).
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Upload, Send, Copy, Check, Crown } from "lucide-react";
 import { getLeagueDetails, updateLeague, uploadLeagueLogo } from "../lib/padelApi";
 import Avatar from "./Avatar";
@@ -69,7 +70,9 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
   const initial = (name.trim()[0] || "?").toUpperCase();
   const inp = { width: "100%", boxSizing: "border-box", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, color: "var(--ink)", fontFamily: "'Outfit',sans-serif", outline: "none" };
 
-  return (
+  // Портал в body: иначе fixed-оверлей попадает в трансформируемого предка
+  // (.pl-pop с анимацией) и «уезжает» вместе с нижней навигацией.
+  return createPortal(
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-end", justifyContent: "center", fontFamily: "'Outfit',sans-serif" }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 460, maxHeight: "92vh", overflowY: "auto", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "20px 20px 0 0", padding: 18, paddingBottom: "max(18px, env(safe-area-inset-bottom))", boxShadow: "0 -8px 40px rgba(0,0,0,.5)" }}>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
@@ -152,6 +155,7 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
