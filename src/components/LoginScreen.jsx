@@ -22,7 +22,6 @@ const mkCss = (isLight) => `
 .lg-body{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;}
 .lg-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(10px);}
 .lg-card{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:26px 24px 22px;width:100%;max-width:400px;box-shadow:0 24px 60px -28px rgba(0,0,0,.6);}
-.lg-mark{width:54px;height:54px;border-radius:15px;display:block;margin:0 auto 12px;box-shadow:0 8px 24px -10px rgba(0,0,0,.6);}
 .lg-sub{font-family:'Outfit',sans-serif;font-size:13.5px;color:var(--mut);text-align:center;line-height:1.45;margin:6px auto 2px;max-width:300px;}
 .lg-trust{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line);color:var(--mut);font-size:12px;}
 .lg-trust .dot{width:5px;height:5px;border-radius:50%;background:var(--lime);}
@@ -152,7 +151,6 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
       {/* Main content */}
       <div className="lg-body">
         <div className="lg-card">
-          <img className="lg-mark" src={theme === "light" ? "/logo-mark-light.webp" : "/logo-mark-dark.webp"} alt="PadelPack" />
           <div style={{ display: "flex", justifyContent: "center" }}><Logo theme={theme} showTagline /></div>
           <div className="lg-sub">{t("login_subtitle")}</div>
 

@@ -6,6 +6,7 @@ import React, { useEffect, useState, useCallback, lazy } from "react";
 import { supabase } from "./lib/supabase";
 import { handleAuthCallbackUrl, handleYandexCallback } from "./lib/auth";
 import Avatar from "./components/Avatar";
+import Logo from "./components/Logo"; // текстовый логотип в топбаре для гостя
 import LeagueSwitcher from "./components/LeagueSwitcher"; // глобальный переключатель лиги в топбаре
 import { LogIn, Sun, Moon } from "lucide-react";
 import { getMyLeagues } from "./lib/padelApi";
@@ -198,6 +199,13 @@ export default function App({ initialShowLogin = false }) {
     setActiveLeague((prev) => leagues?.find((l) => l.id === leagueId) || prev);
   }, [leagues]);
 
+  // Лигу отредактировали в окне управления (имя/логотип/телеграм) — мёржим.
+  const handleLeagueUpdated = useCallback((lg) => {
+    if (!lg?.id) return;
+    setLeagues((prev) => (prev || []).map((l) => (l.id === lg.id ? { ...l, ...lg } : l)));
+    setActiveLeague((prev) => (prev && prev.id === lg.id ? { ...prev, ...lg } : prev));
+  }, []);
+
   const isAdmin = !!(activeLeague && (activeLeague.role === "owner" || activeLeague.role === "admin"));
 
   // Публичная страница лиги — без логина.
@@ -295,6 +303,7 @@ export default function App({ initialShowLogin = false }) {
         isAdmin={isAdmin}
         onLeagueChange={handleLeagueChange}
         onLeagueCreated={handleLeagueDone}
+        onLeagueUpdated={handleLeagueUpdated}
         theme={theme}
         lang={lang}
         onThemeToggle={toggleTheme}
@@ -320,9 +329,11 @@ function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme
     }}>
       {/* Лёгкий hover/active без переезда на CSS-файл */}
       <style>{`.tb-btn:hover{filter:brightness(1.07)}.tb-btn:active{transform:translateY(1px)}.tb-profile:hover{background:var(--surface2)}`}</style>
-      {/* СЛЕВА: глобальный переключатель лиги (действует на все вкладки). У гостя — пусто. */}
+      {/* СЛЕВА: у залогиненного — переключатель лиги; у гостя — текстовый логотип. */}
       <div style={{ display: "flex", alignItems: "center", minWidth: 0, flex: 1 }}>
-        {session && <LeagueSwitcher leagues={leagues} activeLeague={activeLeague} isAdmin={isAdmin} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} />}
+        {session
+          ? <LeagueSwitcher leagues={leagues} activeLeague={activeLeague} isAdmin={isAdmin} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} />
+          : <span onClick={() => window.location.assign("/")} style={{ cursor: "pointer", display: "inline-flex" }} title={t("pub_to_app")}><Logo height={20} /></span>}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
         {/* lang + theme — единая группа-сегмент */}

@@ -4,6 +4,7 @@
 import React, { useState } from "react";
 import { Trophy, Check, X, PlusCircle, ChevronUp, ChevronDown, KeyRound } from "lucide-react";
 import { createLeague, joinLeague } from "../lib/padelApi";
+import LeagueLogo from "./LeagueLogo";
 import { t } from "../lib/i18n";
 
 export default function LeagueSwitcher({ leagues, activeLeague, isAdmin, onLeagueChange, onLeagueCreated }) {
@@ -34,7 +35,6 @@ export default function LeagueSwitcher({ leagues, activeLeague, isAdmin, onLeagu
     } finally { setBusy(false); }
   };
 
-  const initialOf = (n = "") => (n.trim()[0] || "?").toUpperCase();
   const roleLabel = (r) => r === "owner" ? "★" : r === "admin" ? "⚙" : "";
 
   return (
@@ -54,9 +54,11 @@ export default function LeagueSwitcher({ leagues, activeLeague, isAdmin, onLeagu
       `}</style>
       <button className="ls-trigger" onClick={() => { setMenu((v) => !v); setMode(false); setErr(""); }}
         style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px 6px 7px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 999, cursor: "pointer", color: "var(--ink)", fontFamily: "'Outfit'", fontSize: 13, maxWidth: 210, minWidth: 0 }}>
-        <span style={{ width: 26, height: 26, borderRadius: "50%", background: "color-mix(in srgb,var(--lime) 16%,transparent)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <Trophy size={14} style={{ color: "var(--lime)" }} />
-        </span>
+        {activeLeague
+          ? <LeagueLogo url={activeLeague.logo_url} name={activeLeague.name} size={26} radius={999} />
+          : <span style={{ width: 26, height: 26, borderRadius: "50%", background: "color-mix(in srgb,var(--lime) 16%,transparent)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Trophy size={14} style={{ color: "var(--lime)" }} />
+            </span>}
         <span style={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeLeague?.name || t("no_league_chip")}</span>
         {menu ? <ChevronUp size={15} style={{ color: "var(--mut)", flexShrink: 0 }} /> : <ChevronDown size={15} style={{ color: "var(--mut)", flexShrink: 0 }} />}
       </button>
@@ -71,7 +73,7 @@ export default function LeagueSwitcher({ leagues, activeLeague, isAdmin, onLeagu
                 return (
                   <button key={lg.id} className="ls-item" onClick={() => { onLeagueChange && onLeagueChange(lg.id); close(); }}
                     style={{ width: "100%", padding: "9px 12px", textAlign: "left", background: active ? "color-mix(in srgb,var(--lime) 10%,transparent)" : "none", border: "none", color: "var(--ink)", fontFamily: "'Outfit'", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, background: active ? "var(--lime)" : "var(--surface2)", color: active ? "var(--lime-fg)" : "var(--ink)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13 }}>{initialOf(lg.name)}</span>
+                    <LeagueLogo url={lg.logo_url} name={lg.name} size={30} radius={9} />
                     <span style={{ flex: 1, minWidth: 0, fontWeight: active ? 700 : 500, color: active ? "var(--lime)" : "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {lg.name}
                       {lg.role !== "member" && <span style={{ marginLeft: 6, fontSize: 11, color: "var(--mut)" }}>{roleLabel(lg.role)}</span>}

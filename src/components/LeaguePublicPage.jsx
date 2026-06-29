@@ -2,10 +2,12 @@
 // Публичная страница лиги /l/:code — без авторизации.
 // Показывает рейтинг игроков, кнопку «Вступить» и вирусный CTA «Создать лигу».
 import React, { useEffect, useState } from "react";
+import { Send } from "lucide-react";
 import { getPublicLeague } from "../lib/padelApi";
 import { t } from "../lib/i18n";
 import { usePublicChrome, PublicToggles, plural } from "./publicChrome";
 import Logo from "./Logo";
+import LeagueLogo from "./LeagueLogo";
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
@@ -84,13 +86,23 @@ export default function LeaguePublicPage({ code }) {
 
         {league && (
           <>
-            {/* Название лиги */}
-            <div className="lp-d" style={{ fontSize: 38, lineHeight: 1, marginBottom: 6, color: "var(--ink)" }}>
-              {league.name}
+            {/* Название лиги + логотип клуба */}
+            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: league.telegram_url ? 12 : 28 }}>
+              {league.logo_url && <LeagueLogo url={league.logo_url} name={league.name} size={60} radius={16} />}
+              <div style={{ minWidth: 0 }}>
+                <div className="lp-d" style={{ fontSize: 34, lineHeight: 1.05, marginBottom: 6, color: "var(--ink)" }}>
+                  {league.name}
+                </div>
+                <div style={{ fontSize: 13, color: "var(--mut)" }}>
+                  {league.member_count} {plural(league.member_count, "players")}
+                </div>
+              </div>
             </div>
-            <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 28 }}>
-              {league.member_count} {plural(league.member_count, "players")}
-            </div>
+            {league.telegram_url && (
+              <a href={league.telegram_url} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--lime)", fontWeight: 600, fontSize: 14, textDecoration: "none", marginBottom: 26 }}>
+                <Send size={14} /> {t("league_open_channel")}
+              </a>
+            )}
 
             {/* Заголовок таблицы */}
             <div style={{ fontSize: 10, fontWeight: 700, color: "var(--mut)", letterSpacing: 2, marginBottom: 10 }}>

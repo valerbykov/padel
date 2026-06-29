@@ -7,13 +7,15 @@ import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
 import { t, nGames } from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
-import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical } from "lucide-react";
+import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, Settings } from "lucide-react";
 import Tournaments, { TournamentView, TournamentCard, css as trCss } from "./components/Tournaments";
 import { deleteTournament } from "./lib/tournamentApi";
 import CourtView from "./components/CourtView";
 import EmptyState from "./components/EmptyState";
 import Avatar from "./components/Avatar";
 import Logo from "./components/Logo";
+import LeagueLogo from "./components/LeagueLogo";
+import LeagueManager from "./components/LeagueManager";
 import { dogAvatar, playerAvatar } from "./lib/avatar";
 
 // Текущая дата-время в формате datetime-local (YYYY-MM-DDTHH:MM) с учётом таймзоны.
@@ -125,7 +127,7 @@ function ContactLinks({ contacts = {} }) {
 
 /* --------------------------------- root ----------------------------------- */
 
-export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin, onOpenLanding, onEditProfile, openSelfStatsNonce = 0 }) {
+export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, onLeagueUpdated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin, onOpenLanding, onEditProfile, openSelfStatsNonce = 0 }) {
   const [tab, setTab] = useState(session ? "board" : "welcome");
   // Повторный тап по активной вкладке должен возвращать к её корню (закрыть
   // открытую детализацию). Меняем navNonce → key вкладки → ремоунт → сброс.
@@ -192,7 +194,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
         )}
 
         {tab === "welcome" && !session && <WelcomeScreen onLogin={onLogin} onBrowseGames={() => goTab("games")} onBrowseTournaments={() => goTab("tournaments")} onOpenLanding={onOpenLanding} theme={theme} lang={lang} onThemeToggle={onThemeToggle} onLangChange={onLangChange} />}
-        {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsNonce={openSelfStatsNonce} /> : <GateScreen />)}
+        {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onLeagueUpdated={onLeagueUpdated} onEditProfile={onEditProfile} selfStatsNonce={openSelfStatsNonce} /> : <GateScreen />)}
         {tab === "games" && <Games key={navNonce} groupId={groupId} players={players} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} />}
         {tab === "tournaments" && <Tournaments key={navNonce} groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} />}
         {tab === "history" && (session ? <HistoryView key={navNonce} groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} archiveNonce={archiveNonce} bumpArchive={bumpArchive} /> : <GateScreen />)}
@@ -238,7 +240,6 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLand
     <div className="pl-pop">
       {/* Hero */}
       <div style={{ textAlign: "center", padding: "28px 0 22px" }}>
-        <img src={theme === "light" ? "/logo-mark-light.webp" : "/logo-mark-dark.webp"} alt="PadelPack" style={{ width: 60, height: 60, borderRadius: 16, margin: "0 auto 12px", display: "block", boxShadow: "0 8px 24px -10px rgba(0,0,0,.6)" }} />
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}><Logo theme={theme} showTagline /></div>
         <div style={{ fontSize: 14, color: "var(--mut)", lineHeight: 1.6, maxWidth: 270, margin: "10px auto 0" }}>
           {t("welcome_tagline")}
@@ -293,7 +294,8 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLand
 }
 
 /* --------------------------------- Board ---------------------------------- */
-function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leagues, activeLeague, onLeagueChange, onLeagueCreated, onEditProfile, selfStatsNonce = 0 }) {
+function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leagues, activeLeague, onLeagueChange, onLeagueCreated, onLeagueUpdated, onEditProfile, selfStatsNonce = 0 }) {
+  const [manage, setManage] = useState(false);   // окно управления лигой
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [netPlayers, setNetPlayers] = useState([]);
@@ -481,6 +483,21 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
 
   return (
     <div className="pl-pop">
+      {/* Шапка доски: логотип лиги + название + вход в окно управления. */}
+      {activeLeague && (
+        <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 14 }}>
+          <LeagueLogo url={activeLeague.logo_url} name={activeLeague.name} size={42} radius={13} />
+          <div style={{ flex: 1, minWidth: 0, fontWeight: 800, fontSize: 19, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeLeague.name}</div>
+          <button onClick={() => setManage(true)} title={t("league_manage")} aria-label={t("league_manage")}
+            style={{ flexShrink: 0, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 11, color: "var(--mut)", cursor: "pointer", padding: 9, display: "flex" }}>
+            <Settings size={17} />
+          </button>
+        </div>
+      )}
+      {manage && activeLeague && (
+        <LeagueManager groupId={activeLeague.id} canEdit={isAdmin} onClose={() => setManage(false)} onUpdated={onLeagueUpdated} />
+      )}
+
       {/* Без лиги — короткая подсказка; выбор/создание лиги теперь в переключателе в шапке. */}
       {(!leagues || leagues.length === 0) && (
         <div className="pl-card pl-pop" style={{ padding: 16, marginBottom: 12, textAlign: "center" }}>
@@ -1547,10 +1564,19 @@ function CreateGame({ groupId, players, back, done }) {
 function RematchMix({ players, onCreate, onCancel, busy }) {
   const [arr, setArr] = useState(players);
   const refs = useRef([]);
+  const wrap = useRef(null);              // контейнер — на него вешаем pointer capture
+  const pid = useRef(null);
   const [drag, setDrag] = useState(null); // { idx, x, y }
-  const start = (idx) => (e) => { setDrag({ idx, x: e.clientX, y: e.clientY }); try { e.currentTarget.releasePointerCapture?.(e.pointerId); } catch (_) {} };
+  // Захват указателя на контейнере: браузер не «уводит» жест в скролл,
+  // поэтому призрак не улетает от пальца (как в GameSlots).
+  const start = (idx) => (e) => {
+    pid.current = e.pointerId;
+    try { wrap.current.setPointerCapture(e.pointerId); } catch (_) {}
+    setDrag({ idx, x: e.clientX, y: e.clientY });
+  };
   const move = (e) => { if (drag) setDrag((d) => d && { ...d, x: e.clientX, y: e.clientY }); };
   const end = (e) => {
+    try { wrap.current.releasePointerCapture(pid.current); } catch (_) {}
     if (!drag) return;
     let tgt = -1;
     refs.current.forEach((el, i) => { if (!el) return; const r = el.getBoundingClientRect(); if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) tgt = i; });
@@ -1568,7 +1594,7 @@ function RematchMix({ players, onCreate, onCancel, busy }) {
     );
   };
   return (
-    <div onPointerMove={move} onPointerUp={end} onPointerCancel={end} style={{ touchAction: drag ? "none" : "auto" }}>
+    <div ref={wrap} onPointerMove={move} onPointerUp={end} onPointerCancel={end} style={{ touchAction: drag ? "none" : "auto" }}>
       <div style={{ display: "flex", gap: 10, alignItems: "stretch" }}>
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: "var(--lime)", letterSpacing: 1, textAlign: "center" }}>A</div>

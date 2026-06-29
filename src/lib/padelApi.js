@@ -377,19 +377,56 @@ export async function joinLeague(code) {
   return data;
 }
 
-// Все лиги, в которых состоит профиль. Возвращает массив { id, name, invite_code, role }.
+// Все лиги, в которых состоит профиль. Возвращает массив
+// { id, name, invite_code, logo_url, telegram_url, role }.
 export async function getMyLeagues(profileId) {
   const { data, error } = await supabase
     .from("group_members")
-    .select("role, group:groups(id, name, invite_code)")
+    .select("role, group:groups(id, name, invite_code, logo_url, telegram_url)")
     .eq("profile_id", profileId);
   if (error) throw error;
   return (data || []).map((r) => ({
     id: r.group.id,
     name: r.group.name,
     invite_code: r.group.invite_code,
+    logo_url: r.group.logo_url,
+    telegram_url: r.group.telegram_url,
     role: r.role,
   }));
+}
+
+// Детали лиги для окна управления: + организатор (владелец) и роль вызывающего.
+export async function getLeagueDetails(groupId) {
+  const { data, error } = await supabase.rpc("get_league_details", { p_group_id: groupId });
+  if (error) throw error;
+  return data;
+}
+
+// Сохранить поля лиги (имя/логотип/телеграм). Доступно владельцу/админу (RLS).
+export async function updateLeague(groupId, fields) {
+  const patch = {};
+  if (fields.name !== undefined) patch.name = fields.name?.trim() || null;
+  if (fields.logo_url !== undefined) patch.logo_url = fields.logo_url || null;
+  if (fields.telegram_url !== undefined) patch.telegram_url = fields.telegram_url?.trim() || null;
+  const { data, error } = await supabase
+    .from("groups")
+    .update(patch)
+    .eq("id", groupId)
+    .select("id, name, invite_code, logo_url, telegram_url")
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+// Загрузить логотип лиги в бакет league-logos. Путь "<groupId>/logo_<ts>.<ext>"
+// (первый сегмент = id лиги — на нём держится storage-политика). Возвращает URL.
+export async function uploadLeagueLogo(groupId, file) {
+  const ext = (file.name.split(".").pop() || "png").toLowerCase();
+  const path = `${groupId}/logo_${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from("league-logos").upload(path, file, { upsert: true, cacheControl: "31536000" });
+  if (error) throw error;
+  const { data } = supabase.storage.from("league-logos").getPublicUrl(path);
+  return data.publicUrl;
 }
 
 // Публичный профиль лиги — без авторизации (используется на /l/CODE).
