@@ -1,125 +1,182 @@
-// components/PlayerProfile.jsx
-// Экран профиля игрока: рейтинг, место, винрейт, график и последние матчи.
+// components/ProfileEditor.jsx
+// Личный кабинет = НАСТРОЙКИ профиля: фото/аватар, имя, телефон, WhatsApp/Telegram, почта.
+// Статистика/история/уровень живут в карточке профиля игрока (вкладка «Друзья» → ты),
+// поэтому здесь их не дублируем — даём указатель.
+// props: { onClose, onSaved, theme }
 import React, { useEffect, useState } from "react";
-import { getPlayerStats, getPlayerRecentMatches, getRatingHistory } from "../lib/statsApi";
-import { ArrowLeft, Trophy, Percent, Swords } from "lucide-react";
+import { supabase } from "../lib/supabase";
+import { ArrowLeft, Camera, Check, Loader, LogOut, BarChart3 } from "lucide-react";
+import Avatar from "./Avatar";
+import { t } from "../lib/i18n";
+
+const PRESETS = Array.from({ length: 15 }, (_, i) => `/avatars/dog-${String(i + 1).padStart(2, "0")}.png`);
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
-.pp-root{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;
- font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;padding:18px 16px 40px;
- background-image:radial-gradient(circle at 80% -10%,rgba(200,255,45,.10),transparent 45%);}
-.pp-display{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;}
-.pp-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;}
-.pp-tile{flex:1;text-align:center;}
-.pp-back{background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);
- padding:7px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-family:'Outfit';margin-bottom:14px;}
+.pc-root{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;--lime-fg:#0a1612;
+ font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;color-scheme:dark;}
+.pc-root.pc-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;--ink:#0d1f18;--mut:#4a7060;--lime:#2a7a00;--coral:#d93a1f;--lime-fg:#ffffff;color-scheme:light;}
+.pc-d{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;}
+.pc-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;}
+.pc-input{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Outfit';font-size:16px;padding:11px 12px;outline:none;box-sizing:border-box;transition:border-color .15s,box-shadow .15s;}
+.pc-input:focus{border-color:var(--lime);box-shadow:0 0 0 3px color-mix(in srgb,var(--lime) 18%,transparent);}
+.pc-input::placeholder{color:var(--mut);}
+.pc-input:disabled{color:var(--mut);}
+.pc-label{font-size:12px;color:var(--mut);margin:0 0 5px 2px;}
+.pc-btn{background:var(--lime);color:var(--lime-fg);font-weight:700;border:none;border-radius:14px;cursor:pointer;transition:transform .12s,filter .15s;}
+.pc-btn:hover:not(:disabled){filter:brightness(1.05);} .pc-btn:active:not(:disabled){transform:scale(.98);}
+.pc-btn:disabled{filter:grayscale(.6) brightness(.7);cursor:not-allowed;}
+.pc-ghost{background:var(--surface2);color:var(--ink);border:1px solid var(--line);border-radius:12px;cursor:pointer;transition:border-color .15s;}
+.pc-ghost:hover{border-color:color-mix(in srgb,var(--lime) 35%,transparent);}
+.pc-preset{width:46px;height:46px;border-radius:50%;cursor:pointer;background:var(--surface2);transition:transform .12s;}
+.pc-preset:hover{transform:scale(1.08);}
 `;
 
-function LineChart({ values }) {
-  const w = 320, h = 130, pad = 12;
-  if (!values || values.length < 2)
-    return <div style={{ color: "#7d9488", fontSize: 13, textAlign: "center", padding: "26px 0" }}>Мало данных для графика — сыграй ещё.</div>;
-  const min = Math.min(...values), max = Math.max(...values), span = max - min || 1;
-  const x = (i) => pad + (i * (w - 2 * pad)) / (values.length - 1);
-  const y = (v) => h - pad - ((v - min) / span) * (h - 2 * pad);
-  const pts = values.map((v, i) => `${x(i)},${y(v)}`).join(" ");
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: "auto" }}>
-      <defs><linearGradient id="ppg" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#c8ff2d" stopOpacity="0.32" /><stop offset="100%" stopColor="#c8ff2d" stopOpacity="0" />
-      </linearGradient></defs>
-      <polygon points={`${pad},${h - pad} ${pts} ${w - pad},${h - pad}`} fill="url(#ppg)" />
-      <polyline points={pts} fill="none" stroke="#c8ff2d" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-      {values.map((v, i) => <circle key={i} cx={x(i)} cy={y(v)} r="2.5" fill="#0a1612" stroke="#c8ff2d" strokeWidth="2" />)}
-    </svg>
-  );
-}
-
-const Tile = ({ icon, label, value, color }) => (
-  <div className="pp-card pp-tile">
-    <div style={{ display: "flex", justifyContent: "center", color: color || "var(--mut)", marginBottom: 4 }}>{icon}</div>
-    <div className="pp-display" style={{ fontSize: 22, color: color || "var(--ink)" }}>{value}</div>
-    <div style={{ fontSize: 11, color: "var(--mut)" }}>{label}</div>
-  </div>
-);
-
-export default function PlayerProfile({ groupId, profileId, onBack }) {
-  const [stats, setStats] = useState(undefined);
-  const [history, setHistory] = useState([]);
-  const [matches, setMatches] = useState([]);
+export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpenStats }) {
+  const [userId, setUserId] = useState(null);
+  const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [msg, setMsg] = useState(null); // { ok, text }
+  const [whatsapp, setWhatsapp] = useState("");
+  const [telegram, setTelegram] = useState("");
 
   useEffect(() => {
-    let active = true;
     (async () => {
-      try {
-        const [s, h, m] = await Promise.all([
-          getPlayerStats(groupId, profileId),
-          getRatingHistory(groupId, profileId),
-          getPlayerRecentMatches(groupId, profileId, 10),
-        ]);
-        if (!active) return;
-        setStats(s); setHistory(h); setMatches(m);
-      } catch (e) { if (active) setStats(null); }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoading(false); return; }
+      setUserId(user.id);
+      setEmail(user.email || "");
+      const { data } = await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle();
+      if (data) {
+        setFirstName(data.first_name || "");
+        setLastName(data.last_name || "");
+        setPhone(data.phone || "");
+        setAvatarUrl(data.avatar_url || "");
+        setWhatsapp(data.contacts?.whatsapp || "");
+        setTelegram(data.contacts?.telegram || "");
+      }
+      setLoading(false);
     })();
-    return () => { active = false; };
-  }, [groupId, profileId]);
+  }, []);
 
-  const initials = (stats?.name || "?").split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
+  const fullName = `${firstName} ${lastName}`.trim();
+
+  const upload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !userId) return;
+    setUploading(true); setMsg(null);
+    try {
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const path = `${userId}/avatar_${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, cacheControl: "31536000" });
+      if (error) throw error;
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      setAvatarUrl(data.publicUrl);
+    } catch (err) { setMsg({ ok: false, text: `${t("pc_upload_fail")}: ${err.message}` }); }
+    finally { setUploading(false); }
+  };
+
+  const save = async () => {
+    if (!userId) return;
+    setBusy(true); setMsg(null);
+    try {
+      const { error } = await supabase.from("profiles").update({
+        first_name: firstName || null, last_name: lastName || null,
+        name: fullName || null, phone: phone || null, avatar_url: avatarUrl || null,
+        contacts: { whatsapp: whatsapp.trim() || undefined, telegram: telegram.trim() || undefined },
+      }).eq("user_id", userId);
+      if (error) throw error;
+      setMsg({ ok: true, text: t("pc_saved") });
+      onSaved?.();
+    } catch (err) { setMsg({ ok: false, text: `${t("pc_error")}: ${err.message}` }); }
+    finally { setBusy(false); }
+  };
+
+  const signOut = async () => { try { await supabase.auth.signOut(); } catch (e) {} onClose?.(); };
 
   return (
-    <div className="pp-root">
+    <div className={"pc-root" + (theme === "light" ? " pc-light" : "")}>
       <style>{css}</style>
-      {onBack && <button className="pp-back" onClick={onBack}><ArrowLeft size={16} /> Назад</button>}
+      <div style={{ maxWidth: 460, margin: "0 auto", padding: "calc(20px + env(safe-area-inset-top)) 16px 40px" }}>
+        <button className="pc-ghost" style={{ padding: "6px 12px", marginBottom: 16, display: "inline-flex", alignItems: "center", gap: 6 }} onClick={onClose}><ArrowLeft size={14} /> {t("back")}</button>
+        <h1 className="pc-d" style={{ fontSize: 26, marginBottom: 16 }}>{t("pc_title")}</h1>
 
-      {stats === undefined && <p style={{ color: "var(--mut)" }}>Загрузка…</p>}
-      {stats === null && <p style={{ color: "var(--coral)" }}>Не удалось загрузить профиль.</p>}
-
-      {stats && (
-        <>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
-            <div className="pp-display" style={{ width: 60, height: 60, borderRadius: 16, background: "var(--lime)", color: "#0a1612",
-              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{initials}</div>
-            <div>
-              <div className="pp-display" style={{ fontSize: 26 }}>{stats.name}</div>
-              <div style={{ fontSize: 13, color: "var(--mut)" }}>#{stats.rank} из {stats.total_players} в рейтинге</div>
+        {loading ? (
+          <div className="pc-card" style={{ textAlign: "center", color: "var(--mut)" }}>{t("loading")}</div>
+        ) : !userId ? (
+          <div className="pc-card" style={{ textAlign: "center", color: "var(--mut)" }}>{t("pc_login_to_edit")}</div>
+        ) : (
+          <>
+            <div className="pc-card" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <Avatar url={avatarUrl} name={fullName} id={userId} size={96} style={{ border: "2px solid var(--line)" }} />
+              <label className="pc-ghost" style={{ padding: "8px 14px", display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+                {uploading ? <Loader size={15} /> : <Camera size={15} />} {uploading ? t("pc_uploading") : t("pc_upload_photo")}
+                <input type="file" accept="image/*" style={{ display: "none" }} onChange={upload} disabled={uploading} />
+              </label>
+              <div style={{ fontSize: 12, color: "var(--mut)" }}>{t("pc_or_pick")}</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+                {PRESETS.map((u) => (
+                  <img key={u} src={u} alt="" loading="lazy" onClick={() => setAvatarUrl(u)} className="pc-preset" style={{
+                    border: avatarUrl === u ? "2px solid var(--lime)" : "2px solid transparent",
+                  }} />
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            <Tile icon={<Trophy size={18} />} label="Рейтинг" value={stats.rating} color="var(--lime)" />
-            <Tile icon={<Percent size={18} />} label="Винрейт" value={`${stats.win_rate}%`} />
-            <Tile icon={<Swords size={18} />} label="Игр" value={stats.matches} />
-          </div>
-
-          <div className="pp-card" style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 6 }}>Динамика рейтинга</div>
-            <LineChart values={history} />
-          </div>
-
-          <div className="pp-display" style={{ fontSize: 14, color: "var(--mut)", marginBottom: 8 }}>Последние матчи</div>
-          {matches.length === 0 && <div className="pp-card" style={{ color: "var(--mut)", textAlign: "center" }}>Матчей пока нет.</div>}
-          {matches.map((m) => {
-            const my = m.on_team_a ? m.team_a : m.team_b;
-            const opp = m.on_team_a ? m.team_b : m.team_a;
-            const myScore = m.on_team_a ? m.sets_a : m.sets_b;
-            const oppScore = m.on_team_a ? m.sets_b : m.sets_a;
-            return (
-              <div key={m.id} className="pp-card" style={{ marginBottom: 6, display: "flex", alignItems: "center", gap: 10 }}>
-                <span className="pp-display" style={{ fontSize: 12, width: 38, color: m.won ? "var(--lime)" : "var(--coral)" }}>{m.won ? "WIN" : "LOSS"}</span>
-                <div style={{ flex: 1, fontSize: 13 }}>
-                  <span style={{ color: "var(--mut)" }}>с</span> {(my || []).join(" / ")}<br />
-                  <span style={{ color: "var(--mut)" }}>против</span> {(opp || []).join(" / ")}
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <div className="pp-display" style={{ fontSize: 18 }}>{myScore}:{oppScore}</div>
-                  <div style={{ fontSize: 12, color: m.delta >= 0 ? "var(--lime)" : "var(--coral)" }}>{m.delta >= 0 ? "+" : ""}{m.delta}</div>
+            <div className="pc-card" style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 12 }}>
+              <div><div className="pc-label">{t("pc_first_name")}</div><input className="pc-input" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder={t("pc_first_name")} /></div>
+              <div><div className="pc-label">{t("pc_last_name")}</div><input className="pc-input" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder={t("pc_last_name")} /></div>
+              <div><div className="pc-label">{t("pc_phone")}</div><input className="pc-input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+7…" inputMode="tel" /></div>
+              <div>
+                <div className="pc-label">WhatsApp</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input className="pc-input" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="+7 999 000-00-00" inputMode="tel" />
+                  {whatsapp.trim() && (
+                    <a href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
+                      style={{ flexShrink: 0, width: 36, height: 36, borderRadius: "50%", background: "#25d366", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", fontSize: 17 }}>💬</a>
+                  )}
                 </div>
               </div>
-            );
-          })}
-        </>
-      )}
+              <div>
+                <div className="pc-label">Telegram</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input className="pc-input" value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="@username" />
+                  {telegram.trim() && (
+                    <a href={`https://t.me/${telegram.replace(/^@/, "")}`} target="_blank" rel="noopener noreferrer"
+                      style={{ flexShrink: 0, width: 36, height: 36, borderRadius: "50%", background: "#229ed9", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", fontSize: 17 }}>✈️</a>
+                  )}
+                </div>
+              </div>
+              <div><div className="pc-label">{t("pc_email")}</div><input className="pc-input" value={email} disabled /></div>
+            </div>
+
+            <button className="pc-btn" style={{ width: "100%", padding: 14, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} disabled={busy} onClick={save}>
+              <Check size={18} /> {busy ? t("pc_saving") : t("pc_save")}
+            </button>
+            {msg && <div style={{ textAlign: "center", marginTop: 10, fontSize: 13, color: msg.ok ? "var(--lime)" : "var(--coral)" }}>{msg.text}{msg.ok ? " ✓" : ""}</div>}
+
+            {/* Переход к статистике (она в карточке профиля игрока) + выход */}
+            {onOpenStats ? (
+              <button className="pc-ghost" style={{ width: "100%", padding: 14, marginTop: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--lime)", borderColor: "color-mix(in srgb, var(--lime) 35%, transparent)", fontWeight: 600 }} onClick={onOpenStats}>
+                <BarChart3 size={16} /> {t("pc_open_stats")}
+              </button>
+            ) : (
+              <div className="pc-card" style={{ marginTop: 16, display: "flex", alignItems: "flex-start", gap: 10, fontSize: 12.5, color: "var(--mut)", lineHeight: 1.45 }}>
+                <BarChart3 size={16} style={{ color: "var(--lime)", flexShrink: 0, marginTop: 1 }} /> {t("pc_stats_hint")}
+              </div>
+            )}
+            <button className="pc-ghost" style={{ width: "100%", padding: 12, marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--coral)" }} onClick={signOut}>
+              <LogOut size={15} /> {t("sign_out")}
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

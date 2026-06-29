@@ -224,7 +224,7 @@ function LeagueSwitcher({ leagues, activeLeague, isAdmin, onLeagueChange, onLeag
   );
 }
 
-export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin, onOpenLanding, onEditProfile }) {
+export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin, onOpenLanding, onEditProfile, openSelfStatsNonce = 0 }) {
   const [tab, setTab] = useState(session ? "board" : "welcome");
   const [players, setPlayers] = useState([]);
   const [archiveNonce, setArchiveNonce] = useState(0);
@@ -270,6 +270,9 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
   // обрезается остаточной прокруткой прошлой вкладки).
   useEffect(() => { window.scrollTo({ top: 0, left: 0 }); }, [tab]);
 
+  // «Моя статистика» из кабинета → вкладка «Друзья» (Board сам выберет себя).
+  useEffect(() => { if (openSelfStatsNonce > 0) setTab("board"); }, [openSelfStatsNonce]);
+
   const titles = { board: t("tab_friends"), games: t("tab_games"), history: t("tab_history"), tournaments: t("tab_tournaments") };
 
   return (
@@ -292,7 +295,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
         )}
 
         {tab === "welcome" && !session && <WelcomeScreen onLogin={onLogin} onBrowseGames={() => setTab("games")} onBrowseTournaments={() => setTab("tournaments")} onOpenLanding={onOpenLanding} theme={theme} lang={lang} onThemeToggle={onThemeToggle} onLangChange={onLangChange} />}
-        {tab === "board" && (session ? <Board groupId={groupId} players={players} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} /> : <GateScreen />)}
+        {tab === "board" && (session ? <Board groupId={groupId} players={players} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsNonce={openSelfStatsNonce} /> : <GateScreen />)}
         {tab === "games" && <Games groupId={groupId} players={players} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} />}
         {tab === "tournaments" && <Tournaments groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} />}
         {tab === "history" && (session ? <HistoryView groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} archiveNonce={archiveNonce} bumpArchive={bumpArchive} /> : <GateScreen />)}
@@ -392,7 +395,7 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLand
 }
 
 /* --------------------------------- Board ---------------------------------- */
-function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leagues, activeLeague, onLeagueChange, onLeagueCreated, onEditProfile }) {
+function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leagues, activeLeague, onLeagueChange, onLeagueCreated, onEditProfile, selfStatsNonce = 0 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [netPlayers, setNetPlayers] = useState([]);
@@ -415,6 +418,16 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
   const [inviteCopied, setInviteCopied] = useState(false);
   const [publicLinkCopied, setPublicLinkCopied] = useState(false);
   const ranked = [...players].sort((a, b) => b.rating - a.rating);
+
+  // «Моя статистика» из кабинета: открываем карточку текущего игрока, когда счётчик меняется.
+  const lastStatsNonce = useRef(0);
+  useEffect(() => {
+    if (selfStatsNonce > 0 && selfStatsNonce !== lastStatsNonce.current && players.length) {
+      const self = players.find((p) => p.id === profileId);
+      if (self) { lastStatsNonce.current = selfStatsNonce; setSelected(self); }
+    }
+  }, [selfStatsNonce, players, profileId]);
+
   const gamesOf = (p) => srv ? (srv.games[p.id] ?? 0) : (matchCounts[p.id] || p.matches || 0);
   const toursOf = (p) => srv ? (srv.tours[p.id] ?? 0) : (tourCounts[p.id] || tourCountsByName[(p.name || "").trim().toLowerCase()] || 0);
 
@@ -800,6 +813,9 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
   const [playerLeagues, setPlayerLeagues] = useState(null);
   const [localClaimCode, setLocalClaimCode] = useState(player.claim_code || null);
   const [genBusy, setGenBusy] = useState(false);
+  const [showG, setShowG] = useState(false); // развернуть списки игр/турниров/лиг
+  const [showT, setShowT] = useState(false);
+  const [showL, setShowL] = useState(false);
   const isInLeague = players.some((p) => p.id === player.id);
 
   const generateClaimCode = async () => {
@@ -1007,6 +1023,18 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
     </div>
   );
 
+  // Все матчи игрока (для блока «Игры»), новые сверху.
+  const playerMatches = (allMatches || [])
+    .filter((m) => [...(m.team_a || []), ...(m.team_b || [])].includes(player.id))
+    .sort((a, b) => (b.played_at || "").localeCompare(a.played_at || ""));
+
+  // Кнопка «ещё N / свернуть» для списков длиннее 3.
+  const moreBtn = (count, expanded, onToggle) => count > 3 && (
+    <button className="pl-ghost" style={{ width: "100%", padding: "8px 0", marginTop: 8, fontSize: 12, color: "var(--mut)", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }} onClick={onToggle}>
+      {expanded ? <><ChevronUp size={13} /> {t("trn_collapse")}</> : <><ChevronDown size={13} /> {t("show_more")} {count - 3}</>}
+    </button>
+  );
+
   return (
     <div className="pl-pop">
       <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center" }}>
@@ -1167,13 +1195,40 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
           })}
         </div>
       )}
+      {/* Игры */}
+      {playerMatches.length > 0 && (
+        <div className="pl-card" style={{ padding: 14, marginTop: 10 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>{t("games_heading")} ({playerMatches.length})</div>
+          {(showG ? playerMatches : playerMatches.slice(0, 3)).map((m) => {
+            const inA = (m.team_a || []).includes(player.id);
+            const draw = m.sets_a === m.sets_b;
+            const won = inA ? m.sets_a > m.sets_b : m.sets_b > m.sets_a;
+            const rc = draw ? "var(--mut)" : won ? "#3ddc84" : "var(--coral)";
+            const teamA = (m.team_a || []).map(nameOf).join(" & ");
+            const teamB = (m.team_b || []).map(nameOf).join(" & ");
+            return (
+              <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderBottom: "1px solid var(--line)" }}>
+                <div style={{ width: 20, height: 20, borderRadius: "50%", background: draw ? "var(--surface2)" : won ? "rgba(61,220,132,.15)" : "rgba(255,106,82,.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: rc, flexShrink: 0 }}>
+                  {draw ? t("result_draw") : won ? t("result_win") : t("result_loss")}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11, color: "var(--mut)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{teamA} <span style={{ color: "var(--line)" }}>vs</span> {teamB}</div>
+                  {m.played_at && <div style={{ fontSize: 10, color: "var(--mut)" }}>{fmtDate(m.played_at)}</div>}
+                </div>
+                <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>{m.sets_a}:{m.sets_b}</div>
+              </div>
+            );
+          })}
+          {moreBtn(playerMatches.length, showG, () => setShowG((v) => !v))}
+        </div>
+      )}
       {/* Турниры */}
       {playerTours && playerTours.length > 0 && (
         <div className="pl-card" style={{ padding: 14, marginTop: 10 }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>
             {t("tours_heading")} ({playerTours.length})
           </div>
-          {playerTours.map((tour) => (
+          {(showT ? playerTours : playerTours.slice(0, 3)).map((tour) => (
             <div key={tour.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--line)" }}>
               <div style={{ width: 28, height: 28, borderRadius: "50%", background: tour.position === 1 ? "rgba(200,255,45,.12)" : "var(--surface2)", border: `1px solid ${tour.position === 1 ? "var(--lime)" : "var(--line)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <span style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 13, color: tour.position === 1 ? "var(--lime)" : tour.position <= 3 ? "var(--yellow)" : "var(--mut)" }}>{tour.position}</span>
@@ -1185,19 +1240,21 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
               <div style={{ fontSize: 11, color: "var(--mut)", flexShrink: 0 }}>{t("games_of")} {tour.total}</div>
             </div>
           ))}
+          {moreBtn(playerTours.length, showT, () => setShowT((v) => !v))}
         </div>
       )}
       {/* Лиги игрока */}
       {playerLeagues && playerLeagues.length > 0 && (
         <div className="pl-card" style={{ padding: 14, marginTop: 10 }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>{t("leagues_heading")} ({playerLeagues.length})</div>
-          {playerLeagues.map((lg) => (
+          {(showL ? playerLeagues : playerLeagues.slice(0, 3)).map((lg) => (
             <div key={lg.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: "1px solid var(--line)" }}>
               <Trophy size={13} color="var(--mut)" style={{ flexShrink: 0 }} />
               <div style={{ flex: 1, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lg.name}</div>
               {lg.role !== "member" && <span style={{ fontSize: 10, color: "var(--lime)", flexShrink: 0, padding: "2px 6px", border: "1px solid rgba(200,255,45,.3)", borderRadius: 8 }}>{lg.role}</span>}
             </div>
           ))}
+          {moreBtn(playerLeagues.length, showL, () => setShowL((v) => !v))}
         </div>
       )}
 
@@ -1223,6 +1280,14 @@ export function GameRow({ g, color, onOpen }) {
   const Slot = ({ s, ring }) => has(s)
     ? <Avatar name={s.profile?.name || s.guest_name} url={s.profile?.avatar_url} id={s.profile_id || s.guest_name} size={26} ring={ring} style={{ marginLeft: -6 }} />
     : <span style={{ width: 26, height: 26, borderRadius: "50%", border: "1.5px dashed var(--line)", background: "var(--surface2)", flexShrink: 0, display: "inline-block", marginLeft: -6, boxSizing: "border-box" }} />;
+  const nm = (slots) => slots.filter(has).map(s => s.profile?.name || s.guest_name).join(" & ") || "—";
+  const namesCss = { fontSize: 11.5, lineHeight: 1.25, textAlign: "center", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" };
+  const Team = ({ a, b, ring, names, won }) => (
+    <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+      <div style={{ display: "flex", paddingLeft: 6 }}><Slot s={a} ring={ring} /><Slot s={b} ring={ring} /></div>
+      <div style={{ ...namesCss, color: won ? "var(--lime)" : "var(--mut)", fontWeight: won ? 700 : 500 }}>{names}</div>
+    </div>
+  );
   return (
     <div className="pl-card" style={{ marginBottom: 8, cursor: "pointer", padding: "12px 14px" }} onClick={onOpen}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1235,12 +1300,12 @@ export function GameRow({ g, color, onOpen }) {
           {played ? "✓" : `${filled}/4`}
         </span>
       </div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 11 }}>
-        <div style={{ display: "flex", paddingLeft: 6 }}><Slot s={tA[0]} ring="var(--lime)" /><Slot s={tA[1]} ring="var(--lime)" /></div>
-        <span style={{ fontFamily: "'Anton',sans-serif", fontSize: played ? 16 : 13, color: "var(--mut)", flexShrink: 0, minWidth: 30, textAlign: "center" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "center", gap: 10, marginTop: 11 }}>
+        <Team a={tA[0]} b={tA[1]} ring="var(--lime)" names={nm(tA)} won={aWon} />
+        <span style={{ fontFamily: "'Anton',sans-serif", fontSize: played ? 18 : 13, color: "var(--mut)", flexShrink: 0, minWidth: 30, textAlign: "center", paddingTop: 5 }}>
           {played && m ? <><span style={{ color: aWon ? "var(--lime)" : "var(--ink)" }}>{m.sets_a}</span><span style={{ color: "var(--mut)" }}>:</span><span style={{ color: bWon ? "var(--lime)" : "var(--ink)" }}>{m.sets_b}</span></> : "—"}
         </span>
-        <div style={{ display: "flex", paddingLeft: 6 }}><Slot s={tB[0]} ring="var(--coral)" /><Slot s={tB[1]} ring="var(--coral)" /></div>
+        <Team a={tB[0]} b={tB[1]} ring="var(--coral)" names={nm(tB)} won={bWon} />
       </div>
     </div>
   );
@@ -1595,14 +1660,14 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
 
   const nameOf = (id) => players.find((p) => p.id === id)?.name || extraMap[id]?.name || t("player_deleted");
   const avatarOf = (id) => { const gp = players.find((p) => p.id === id) || extraMap[id]; return gp ? playerAvatar(gp.avatar_url, id) : null; };
-  const head = (txt) => <div className="pl-display" style={{ fontSize: 13, color: "var(--mut)", margin: "10px 2px 8px" }}>{txt}</div>;
+  const head = (txt, color = "var(--mut)") => <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color, textTransform: "uppercase", margin: "14px 2px 8px", paddingLeft: 4 }}>{txt}</div>;
 
   if (matches === null) return <div className="pl-card pl-pop" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>{t("loading")}</div>;
   if (matches.length === 0 && tours.length === 0) return <EmptyState className="pl-card pl-pop" variant="clock" text={t("history_empty")} />;
 
   return (
     <div className="pl-pop">
-      {tours.length > 0 && head(t("tours_history_heading"))}
+      {tours.length > 0 && head(t("tours_history_heading"), "var(--yellow)")}
       {tours.map((tour) => {
         const table = standings((tour.players || []).map((p) => ({ id: p.id, name: p.name })), tour.matches || []);
         const w = table[0];
@@ -1637,7 +1702,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
               <div style={{ flex: 1, minWidth: 0 }}>
                 {(m.team_a || []).map((id) => (
                   <div key={id} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                    {avatarOf(id) && <img src={avatarOf(id)} alt="" style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0 }} />}
+                    <Avatar url={avatarOf(id)} id={id} name={nameOf(id)} size={20} />
                     <span style={{ fontSize: 13, fontWeight: aWon ? 700 : 400, color: aWon ? "var(--lime)" : "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nameOf(id)}</span>
                   </div>
                 ))}
@@ -1650,7 +1715,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
                 {(m.team_b || []).map((id) => (
                   <div key={id} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, justifyContent: "flex-end" }}>
                     <span style={{ fontSize: 13, fontWeight: !aWon ? 700 : 400, color: !aWon ? "var(--lime)" : "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nameOf(id)}</span>
-                    {avatarOf(id) && <img src={avatarOf(id)} alt="" style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0 }} />}
+                    <Avatar url={avatarOf(id)} id={id} name={nameOf(id)} size={20} />
                   </div>
                 ))}
               </div>

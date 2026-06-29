@@ -32,7 +32,7 @@ const css = `
 .pc-preset:hover{transform:scale(1.08);}
 `;
 
-export default function ProfileEditor({ onClose, onSaved, theme = "dark" }) {
+export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpenStats }) {
   const [userId, setUserId] = useState(null);
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -161,10 +161,16 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark" }) {
             </button>
             {msg && <div style={{ textAlign: "center", marginTop: 10, fontSize: 13, color: msg.ok ? "var(--lime)" : "var(--coral)" }}>{msg.text}{msg.ok ? " ✓" : ""}</div>}
 
-            {/* Указатель на статистику (она в карточке профиля игрока) + выход */}
-            <div className="pc-card" style={{ marginTop: 16, display: "flex", alignItems: "flex-start", gap: 10, fontSize: 12.5, color: "var(--mut)", lineHeight: 1.45 }}>
-              <BarChart3 size={16} style={{ color: "var(--lime)", flexShrink: 0, marginTop: 1 }} /> {t("pc_stats_hint")}
-            </div>
+            {/* Переход к статистике (она в карточке профиля игрока) + выход */}
+            {onOpenStats ? (
+              <button className="pc-ghost" style={{ width: "100%", padding: 14, marginTop: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--lime)", borderColor: "color-mix(in srgb, var(--lime) 35%, transparent)", fontWeight: 600 }} onClick={onOpenStats}>
+                <BarChart3 size={16} /> {t("pc_open_stats")}
+              </button>
+            ) : (
+              <div className="pc-card" style={{ marginTop: 16, display: "flex", alignItems: "flex-start", gap: 10, fontSize: 12.5, color: "var(--mut)", lineHeight: 1.45 }}>
+                <BarChart3 size={16} style={{ color: "var(--lime)", flexShrink: 0, marginTop: 1 }} /> {t("pc_stats_hint")}
+              </div>
+            )}
             <button className="pc-ghost" style={{ width: "100%", padding: 12, marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--coral)" }} onClick={signOut}>
               <LogOut size={15} /> {t("sign_out")}
             </button>

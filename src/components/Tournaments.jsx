@@ -911,8 +911,8 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                     <div style={{ fontWeight: 800, fontSize: 17, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{table[0].name}</div>
                   </div>
                   <div style={{ marginLeft: "auto", textAlign: "right", flexShrink: 0 }}>
-                    <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 22, color: "var(--yellow)", lineHeight: 1 }}>{table[0].points}</div>
-                    <div style={{ fontSize: 10, color: "var(--mut)" }}>{tr("trn_winner_points")}</div>
+                    <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 22, color: "var(--yellow)", lineHeight: 1 }}>{table[0].points}<span style={{ fontSize: 11, color: "var(--mut)", fontFamily: "'Outfit',sans-serif", fontWeight: 600 }}> {tr("trn_winner_points")}</span></div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: table[0].delta > 0 ? "var(--lime)" : table[0].delta < 0 ? "var(--coral)" : "var(--mut)", marginTop: 3, fontFamily: "'Outfit',sans-serif" }}>{table[0].delta > 0 ? "+" : ""}{table[0].delta} <span style={{ fontSize: 10, color: "var(--mut)", fontWeight: 600 }}>{tr("trn_diff")}</span></div>
                   </div>
                 </div>
                 {(table[1] || table[2]) && (

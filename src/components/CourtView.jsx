@@ -157,7 +157,7 @@ export default function CourtView({
     setBuf(cand);
     if (cand.length >= 2 || num * 10 > pickerMax) kpConfirm(num); // авто-подтверждение, когда дальше цифру не добавить
   };
-  const KP = { padding: "16px 0", borderRadius: 12, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22, background: "#16291f", color: "#eef3ee", border: "1px solid #22382c" };
+  const KP = { padding: "16px 0", borderRadius: 12, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22, background: "var(--surface2)", color: "var(--ink)", border: "1px solid var(--line)" };
 
   const getPickerTitle = () => {
     if (pickSets) return <>Сет {pickSets.setIdx + 1} · команда <b style={{ color: pickerColor }}>{pickSets.team}</b> (0–7)</>;
@@ -183,7 +183,7 @@ export default function CourtView({
     <div style={{ marginBottom: 14 }}>
       <style>{`
         .cv-num{transition:transform .1s, background .12s, border-color .12s;}
-        .cv-num:hover:not(:disabled){background:#1e3528;border-color:color-mix(in srgb,#c8ff2d 40%,transparent);}
+        .cv-num:hover:not(:disabled){background:color-mix(in srgb,var(--lime) 14%,var(--surface2));border-color:color-mix(in srgb,var(--lime) 40%,transparent);}
         .cv-num:active:not(:disabled){transform:scale(.94);}
         .cv-save{transition:transform .12s, filter .15s, box-shadow .15s;}
         .cv-save:hover:not(:disabled){filter:brightness(1.05);box-shadow:0 6px 18px -8px rgba(200,255,45,.6);}
@@ -230,16 +230,16 @@ export default function CourtView({
 
         {/* Оверлей выбора числа */}
         {pickerOpen && (
-          <div style={{ position: "absolute", inset: 0, background: "rgba(5,12,9,.93)", display: "flex", flexDirection: "column", padding: 12, animation: "cvpop .18s ease-out both" }}>
+          <div style={{ position: "absolute", inset: 0, background: "color-mix(in srgb, var(--bg) 94%, transparent)", display: "flex", flexDirection: "column", padding: 12, animation: "cvpop .18s ease-out both" }}>
             <style>{`@keyframes cvpop{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}`}</style>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <span style={{ fontFamily: "'Outfit',sans-serif", color: "#eef3ee", fontSize: 13 }}>
+              <span style={{ fontFamily: "'Outfit',sans-serif", color: "var(--ink)", fontSize: 13 }}>
                 {!pickSets && useRanges && range && (
-                  <button onClick={() => setRange(null)} style={{ background: "none", border: "none", color: "#c8ff2d", cursor: "pointer", marginRight: 8 }}>←</button>
+                  <button onClick={() => setRange(null)} style={{ background: "none", border: "none", color: "var(--lime)", cursor: "pointer", marginRight: 8 }}>←</button>
                 )}
                 {getPickerTitle()}
               </span>
-              <button onClick={closePicker} style={{ background: "none", border: "none", color: "#7d9488", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>✕</button>
+              <button onClick={closePicker} style={{ background: "none", border: "none", color: "var(--mut)", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>✕</button>
             </div>
 
             <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
@@ -247,12 +247,12 @@ export default function CourtView({
                 <>
                   {/* Дисплей набранного счёта */}
                   <div style={{ textAlign: "center", marginBottom: 12 }}>
-                    <span style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 42, lineHeight: 1, color: buf === "" ? "#42554a" : pickerColor }}>
+                    <span style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 42, lineHeight: 1, color: buf === "" ? "var(--mut)" : pickerColor }}>
                       {buf === "" ? "0" : buf}
                     </span>
                     {mode === "sum" && (
-                      <div style={{ marginTop: 6, fontSize: 12.5, color: "#7d9488" }}>
-                        соперник: <b style={{ color: "#eef3ee" }}>{points - (buf === "" ? 0 : Number(buf))}</b>
+                      <div style={{ marginTop: 6, fontSize: 12.5, color: "var(--mut)" }}>
+                        соперник: <b style={{ color: "var(--ink)" }}>{points - (buf === "" ? 0 : Number(buf))}</b>
                       </div>
                     )}
                   </div>
@@ -261,9 +261,9 @@ export default function CourtView({
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => (
                       <button key={d} className="cv-num" disabled={busy} onClick={() => kpDigit(d)} style={KP}>{d}</button>
                     ))}
-                    <button className="cv-num" disabled={busy || buf === ""} onClick={() => setBuf(buf.slice(0, -1))} style={{ ...KP, color: "#7d9488", opacity: buf === "" ? .5 : 1 }}>⌫</button>
+                    <button className="cv-num" disabled={busy || buf === ""} onClick={() => setBuf(buf.slice(0, -1))} style={{ ...KP, color: "var(--mut)", opacity: buf === "" ? .5 : 1 }}>⌫</button>
                     <button className="cv-num" disabled={busy} onClick={() => kpDigit(0)} style={KP}>0</button>
-                    <button className="cv-num" disabled={busy || buf === ""} onClick={() => kpConfirm(Number(buf))} style={{ ...KP, background: buf === "" ? "#16291f" : "#c8ff2d", color: buf === "" ? "#42554a" : "#0a1612", border: "1px solid " + (buf === "" ? "#22382c" : "#c8ff2d") }}>✓</button>
+                    <button className="cv-num" disabled={busy || buf === ""} onClick={() => kpConfirm(Number(buf))} style={{ ...KP, background: buf === "" ? "var(--surface2)" : "var(--lime)", color: buf === "" ? "var(--mut)" : "var(--lime-fg)", border: "1px solid " + (buf === "" ? "var(--line)" : "var(--lime)") }}>✓</button>
                   </div>
                 </>
               ) : (
@@ -277,9 +277,9 @@ export default function CourtView({
                         <button key={n} className="cv-num" disabled={busy} onClick={() => pickSets ? pickSetScore(n) : pickSumFree(pickFor, n)} style={{
                           padding: "12px 0", borderRadius: 12, cursor: "pointer",
                           fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 20,
-                          background: cur ? "#c8ff2d" : "#16291f",
-                          color: cur ? "#0a1612" : "#eef3ee",
-                          border: "1px solid #22382c",
+                          background: cur ? "var(--lime)" : "var(--surface2)",
+                          color: cur ? "var(--lime-fg)" : "var(--ink)",
+                          border: "1px solid var(--line)",
                         }}>{n}</button>
                       );
                     });

@@ -59,6 +59,7 @@ export default function App() {
   // приложение» запоминаем выбор, чтобы не упираться в стену при возврате.
   const [skipLanding,   setSkipLanding]   = useState(() => !!localStorage.getItem("plLandingSeen"));
   const dismissLanding = useCallback(() => { localStorage.setItem("plLandingSeen", "1"); setSkipLanding(true); }, []);
+  const [statsNonce, setStatsNonce] = useState(0); // открыть свой профиль игрока из кабинета
   // Снова показать встроенный лендинг (ссылка со стартового экрана у гостя).
   const openLanding = useCallback(() => { localStorage.removeItem("plLandingSeen"); setSkipLanding(false); }, []);
 
@@ -219,7 +220,8 @@ export default function App() {
       onStart={() => setShowLogin(true)} onBrowse={dismissLanding} />;
 
   if (showProfile && session)
-    return <ProfileEditor onClose={() => setShowProfile(false)} onSaved={() => setPNonce((n) => n + 1)} theme={theme} />;
+    return <ProfileEditor onClose={() => setShowProfile(false)} onSaved={() => setPNonce((n) => n + 1)} theme={theme}
+      onOpenStats={() => { setShowProfile(false); setStatsNonce((n) => n + 1); }} />;
 
   // Переход по ?join=CODE — показываем экран вступления с предзаполненным кодом.
   if (pendingJoin && session && profile && leagues !== null) {
@@ -299,6 +301,7 @@ export default function App() {
         onLogin={() => setShowLogin(true)}
         onOpenLanding={openLanding}
         onEditProfile={() => setShowProfile(true)}
+        openSelfStatsNonce={statsNonce}
       />
     </div>
   );
