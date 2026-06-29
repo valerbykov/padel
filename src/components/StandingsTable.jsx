@@ -10,7 +10,7 @@ export default function StandingsTable({ rows, highlightId, avatarOf }) {
   const deltaColor = (d) => (d > 0 ? "#3ddc84" : d < 0 ? "#ff6a52" : "#7d9488");
 
   return (
-    <div style={{ fontFamily: "'Outfit',sans-serif", color: "var(--ink)", minWidth: 0, overflow: "hidden" }}>
+    <div style={{ fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", color: "var(--ink)", minWidth: 0, overflow: "hidden" }}>
       <div style={{ display: "grid", gridTemplateColumns: grid, gap: 6, padding: "0 4px 8px", fontSize: 10, color: "var(--mut)", borderBottom: "1px solid var(--line)" }}>
         <span>Игрок</span>
         <span style={{ textAlign: "center" }}>+/-</span>
@@ -32,7 +32,7 @@ export default function StandingsTable({ rows, highlightId, avatarOf }) {
           }}>
             {/* Колонка: номер + аватар + имя под ней */}
             <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, overflow: "hidden" }}>
-              <span style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, width: 16, flexShrink: 0, color: medal || "#7d9488", fontSize: 13, lineHeight: 1 }}>
+              <span style={{ fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", fontWeight: 800, width: 16, flexShrink: 0, color: medal || "#7d9488", fontSize: 13, lineHeight: 1 }}>
                 {i + 1}
               </span>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, minWidth: 0, flex: 1 }}>

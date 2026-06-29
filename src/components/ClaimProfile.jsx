@@ -49,7 +49,7 @@ export default function ClaimProfile({ code, botName }) {
   }, []);
 
   if (showLogin && !session) {
-    return <LoginScreen botName={botName} onSuccess={() => setShowLogin(false)} theme={theme} lang={lang} onThemeToggle={toggleTheme} onLangChange={cycleLang} />;
+    return <LoginScreen botName={botName} onSuccess={() => setShowLogin(false)} onBack={() => setShowLogin(false)} theme={theme} lang={lang} onThemeToggle={toggleTheme} onLangChange={cycleLang} />;
   }
 
   const claim = async () => {

@@ -82,7 +82,7 @@ export default function TournamentJoin({ code, botName }) {
     })();
   }, [session]);
 
-  if (showLogin && !session) return <LoginScreen botName={botName} onSuccess={() => setShowLogin(false)} theme={theme} lang={lang} onThemeToggle={toggleTheme} onLangChange={cycleLang} />;
+  if (showLogin && !session) return <LoginScreen botName={botName} onSuccess={() => setShowLogin(false)} onBack={() => setShowLogin(false)} theme={theme} lang={lang} onThemeToggle={toggleTheme} onLangChange={cycleLang} />;
 
   const join = async () => {
     const display = session ? (profileName || "Игрок") : name.trim();
