@@ -5,16 +5,13 @@
 import React, { useEffect, useState, useCallback, lazy } from "react";
 import { supabase } from "./lib/supabase";
 import { handleAuthCallbackUrl, handleYandexCallback } from "./lib/auth";
-import Landing from "./components/Landing";
 import Avatar from "./components/Avatar";
-import Logo from "./components/Logo";
+import LeagueSwitcher from "./components/LeagueSwitcher"; // глобальный переключатель лиги в топбаре
 import { LogIn, Sun, Moon } from "lucide-react";
 import { getMyLeagues } from "./lib/padelApi";
 import { t, setLang, LANGS, LANG_LABELS, currentLang } from "./lib/i18n";
 
-// Ленивые чанки: тяжёлые и маршрутные экраны грузятся по требованию,
-// чтобы уменьшить стартовый бандл и ускорить первый рендер (LCP).
-// Стартовый экран гостя — Landing — оставлен синхронным (это первый кадр).
+// Ленивые чанки: тяжёлые и маршрутные экраны грузятся по требованию.
 const PadelLeague      = lazy(() => import("./PadelLeague"));
 const LoginScreen      = lazy(() => import("./components/LoginScreen"));
 const ProfileEditor    = lazy(() => import("./components/ProfileEditor"));
@@ -60,13 +57,9 @@ export default function App({ initialShowLogin = false }) {
   const handleLangChange = useCallback((l) => { setLang(l); setLangState(l); }, []);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showInstall,   setShowInstall]   = useState(false);
-  // Гостям показываем встроенный лендинг первым экраном. После «Посмотреть
-  // приложение» запоминаем выбор, чтобы не упираться в стену при возврате.
-  const [skipLanding,   setSkipLanding]   = useState(() => !!localStorage.getItem("plLandingSeen"));
-  const dismissLanding = useCallback(() => { localStorage.setItem("plLandingSeen", "1"); setSkipLanding(true); }, []);
   const [statsNonce, setStatsNonce] = useState(0); // открыть свой профиль игрока из кабинета
-  // Снова показать встроенный лендинг (ссылка со стартового экрана у гостя).
-  const openLanding = useCallback(() => { localStorage.removeItem("plLandingSeen"); setSkipLanding(false); }, []);
+  // «Подробнее о PadelPack» → полноэкранный лендинг (статическая маркетинговая страница).
+  const openLanding = useCallback(() => { window.location.href = "/landing.html"; }, []);
 
   // Нативный статус-бар (Android/iOS). На Android env(safe-area-inset-top) для
   // строки состояния = 0, поэтому CSS-отступ не помогает — говорим системе НЕ
@@ -219,11 +212,6 @@ export default function App({ initialShowLogin = false }) {
   if (showLogin && !session)
     return <LoginScreen botName={BOT_NAME} onSuccess={() => setShowLogin(false)} onBack={() => setShowLogin(false)} theme={theme} lang={lang} onThemeToggle={toggleTheme} onLangChange={handleLangChange} />;
 
-  // Гость на «чистом» входе (без спец-ссылки) — встроенный лендинг.
-  if (!session && !skipLanding)
-    return <Landing theme={theme} lang={lang} onThemeToggle={toggleTheme} onLangChange={handleLangChange}
-      onStart={() => setShowLogin(true)} onBrowse={dismissLanding} />;
-
   if (showProfile && session)
     return <ProfileEditor onClose={() => setShowProfile(false)} onSaved={() => setPNonce((n) => n + 1)} theme={theme}
       lang={lang} onThemeToggle={toggleTheme} onLangChange={handleLangChange}
@@ -240,6 +228,8 @@ export default function App({ initialShowLogin = false }) {
           onSignOut={() => supabase.auth.signOut()}
           theme={theme} onThemeToggle={toggleTheme}
           lang={lang} onLangChange={handleLangChange}
+          leagues={leagues || []} activeLeague={activeLeague} isAdmin={isAdmin}
+          onLeagueChange={handleLeagueChange} onLeagueCreated={handleLeagueDone}
         />
         <LeagueSetup
           onDone={(league) => { setPendingJoin(null); handleLeagueDone(league); }}
@@ -264,6 +254,11 @@ export default function App({ initialShowLogin = false }) {
         onThemeToggle={toggleTheme}
         lang={lang}
         onLangChange={handleLangChange}
+        leagues={leagues || []}
+        activeLeague={activeLeague}
+        isAdmin={isAdmin}
+        onLeagueChange={handleLeagueChange}
+        onLeagueCreated={handleLeagueDone}
       />
       {showInstall && (
         <div style={{
@@ -313,7 +308,7 @@ export default function App({ initialShowLogin = false }) {
   );
 }
 
-function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme, onThemeToggle, lang = "ru", onLangChange }) {
+function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme, onThemeToggle, lang = "ru", onLangChange, leagues = [], activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated }) {
   const base = { border: "1px solid var(--line)", borderRadius: 11, padding: "7px 12px", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif", transition: "transform .12s, filter .15s, background .15s" };
   return (
     <div style={{
@@ -325,12 +320,11 @@ function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme
     }}>
       {/* Лёгкий hover/active без переезда на CSS-файл */}
       <style>{`.tb-btn:hover{filter:brightness(1.07)}.tb-btn:active{transform:translateY(1px)}.tb-profile:hover{background:var(--surface2)}`}</style>
-      {/* СЛЕВА: бренд всегда (гость и залогиненный) */}
-      <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-        <img src={theme === "light" ? "/logo-mark-light.webp" : "/logo-mark-dark.webp"} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0 }} />
-        <Logo theme={theme} height={21} gap={8} />
+      {/* СЛЕВА: глобальный переключатель лиги (действует на все вкладки). У гостя — пусто. */}
+      <div style={{ display: "flex", alignItems: "center", minWidth: 0, flex: 1 }}>
+        {session && <LeagueSwitcher leagues={leagues} activeLeague={activeLeague} isAdmin={isAdmin} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} />}
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
         {/* lang + theme — единая группа-сегмент */}
         <div style={{ display: "flex", gap: 4, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, padding: 3 }}>
           <button className="tb-btn" onClick={() => { const o = ["ru","en","es"]; onLangChange?.(o[(o.indexOf(lang) + 1) % o.length]); }}

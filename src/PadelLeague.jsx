@@ -50,8 +50,12 @@ body.pl-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;-
 .pl-input,.pl-select{background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Outfit';font-size:16px;outline:none;width:100%;transition:border-color .15s,box-shadow .15s;}
 .pl-input::placeholder{color:var(--mut);}
 .pl-input:focus,.pl-select:focus{border-color:var(--lime);box-shadow:0 0 0 3px color-mix(in srgb,var(--lime) 18%,transparent);}
-.pl-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--mut);cursor:pointer;font-size:11px;font-weight:600;padding:8px 0;}
-.pl-tab.on{color:var(--lime);}
+.pl-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--mut);cursor:pointer;font-size:11px;font-weight:600;padding:6px 0;position:relative;transition:color .15s;}
+.pl-tab svg{position:relative;z-index:1;opacity:.8;transition:transform .15s,opacity .15s;}
+.pl-tab:active svg{transform:scale(.9);}
+.pl-tab.on{color:var(--lime);font-weight:800;}
+.pl-tab.on svg{transform:scale(1.16) translateY(-1px);opacity:1;}
+.pl-tab.on::before{content:"";position:absolute;top:2px;left:50%;transform:translateX(-50%);width:48px;height:30px;border-radius:15px;background:color-mix(in srgb,var(--lime) 15%,transparent);}
 .pl-pop{animation:pop .35s cubic-bezier(.2,.8,.2,1) both;}
 @keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .pl-codebox{font-family:'Outfit';font-weight:800;letter-spacing:6px;font-size:30px;color:var(--lime);text-align:center;background:var(--surface2);border:1px dashed var(--line);border-radius:14px;padding:12px;}
@@ -60,7 +64,8 @@ body.pl-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;-
   .pl-card{border-radius:14px;}
   .pl-display{letter-spacing:.3px;}
   .pl-codebox{font-size:24px;letter-spacing:4px;}
-  .pl-tab{font-size:10px;padding:6px 0;}
+  .pl-tab{font-size:10px;padding:4px 0;}
+  .pl-tab.on::before{width:42px;height:28px;}
   .pl-slot{padding:8px 10px;gap:8px;}
 }
 `;
@@ -119,111 +124,6 @@ function ContactLinks({ contacts = {} }) {
 }
 
 /* --------------------------------- root ----------------------------------- */
-/* -------------------- LeagueSwitcher (глобальный, в шапке) ---------------- */
-function LeagueSwitcher({ leagues, activeLeague, isAdmin, onLeagueChange, onLeagueCreated }) {
-  const [menu, setMenu] = useState(false);
-  const [mode, setMode] = useState(false); // false | "create" | "join"
-  const [newName, setNewName] = useState("");
-  const [code, setCode] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-  const has = leagues && leagues.length > 0;
-  const close = () => { setMenu(false); setMode(false); setErr(""); };
-
-  const handleCreate = async () => {
-    if (!newName.trim() || busy) return;
-    setBusy(true); setErr("");
-    try { const lg = await createLeague(newName.trim()); onLeagueCreated && onLeagueCreated(lg); close(); setNewName(""); }
-    catch (e) { setErr(e.message || "Ошибка"); } finally { setBusy(false); }
-  };
-  const handleJoin = async () => {
-    if (code.trim().length < 4 || busy) return;
-    setBusy(true); setErr("");
-    try { const lg = await joinLeague(code.trim()); onLeagueCreated && onLeagueCreated(lg); close(); setCode(""); }
-    catch (e) {
-      const m = e.message || "";
-      if (m.includes("league_not_found")) setErr("Лига не найдена");
-      else if (m.includes("already_member")) setErr("Вы уже в этой лиге");
-      else setErr(m || "Ошибка");
-    } finally { setBusy(false); }
-  };
-
-  const initialOf = (n = "") => (n.trim()[0] || "?").toUpperCase();
-  const roleLabel = (r) => r === "owner" ? "★" : r === "admin" ? "⚙" : "";
-
-  return (
-    <div style={{ position: "relative", flexShrink: 0 }}>
-      <style>{`
-        .ls-trigger{transition:border-color .15s, background .15s;}
-        .ls-trigger:hover{border-color:color-mix(in srgb,var(--lime) 45%,transparent);}
-        .ls-item{transition:background .12s;}
-        .ls-item:hover{background:var(--surface2);}
-        .ls-foot-btn{transition:background .12s;}
-        .ls-foot-btn:hover{background:var(--surface2);}
-      `}</style>
-      <button className="ls-trigger" onClick={() => { setMenu((v) => !v); setMode(false); setErr(""); }}
-        style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px 6px 7px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 999, cursor: "pointer", color: "var(--ink)", fontFamily: "'Outfit'", fontSize: 13, maxWidth: 210 }}>
-        <span style={{ width: 26, height: 26, borderRadius: "50%", background: "color-mix(in srgb,var(--lime) 16%,transparent)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <Trophy size={14} style={{ color: "var(--lime)" }} />
-        </span>
-        <span style={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeLeague?.name || t("no_league_chip")}</span>
-        {menu ? <ChevronUp size={15} style={{ color: "var(--mut)", flexShrink: 0 }} /> : <ChevronDown size={15} style={{ color: "var(--mut)", flexShrink: 0 }} />}
-      </button>
-
-      {menu && (
-        <div className="pl-pop" style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, minWidth: 250, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 16, zIndex: 50, overflow: "hidden", boxShadow: "0 12px 32px rgba(0,0,0,.35)" }}>
-          {!mode && (
-            <>
-              {has && <div style={{ padding: "10px 14px 6px", fontSize: 10, fontWeight: 700, letterSpacing: 1.2, color: "var(--mut)", textTransform: "uppercase" }}>{t("league_your")}</div>}
-              {has && leagues.map((lg) => {
-                const active = lg.id === activeLeague?.id;
-                return (
-                  <button key={lg.id} className="ls-item" onClick={() => { onLeagueChange && onLeagueChange(lg.id); close(); }}
-                    style={{ width: "100%", padding: "9px 12px", textAlign: "left", background: active ? "color-mix(in srgb,var(--lime) 10%,transparent)" : "none", border: "none", color: "var(--ink)", fontFamily: "'Outfit'", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, background: active ? "var(--lime)" : "var(--surface2)", color: active ? "var(--lime-fg)" : "var(--ink)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13 }}>{initialOf(lg.name)}</span>
-                    <span style={{ flex: 1, minWidth: 0, fontWeight: active ? 700 : 500, color: active ? "var(--lime)" : "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {lg.name}
-                      {lg.role !== "member" && <span style={{ marginLeft: 6, fontSize: 11, color: "var(--mut)" }}>{roleLabel(lg.role)}</span>}
-                    </span>
-                    {active && <Check size={16} style={{ color: "var(--lime)", flexShrink: 0 }} />}
-                  </button>
-                );
-              })}
-              <div style={{ borderTop: has ? "1px solid var(--line)" : "none", display: "flex" }}>
-                <button className="ls-foot-btn" onClick={() => { setMode("create"); setErr(""); }}
-                  style={{ flex: 1, padding: "12px 0", background: "none", border: "none", color: "var(--lime)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'Outfit'", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}><PlusCircle size={15} /> {t("league_create")}</button>
-                <button className="ls-foot-btn" onClick={() => { setMode("join"); setErr(""); }}
-                  style={{ flex: 1, padding: "12px 0", background: "none", border: "none", borderLeft: "1px solid var(--line)", color: "var(--mut)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'Outfit'", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}><KeyRound size={15} /> {t("league_join_code")}</button>
-              </div>
-            </>
-          )}
-          {mode === "create" && (
-            <div style={{ padding: 14 }}>
-              <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14 }}>{t("league_new_title")}</div>
-              <input className="pl-input" style={{ padding: "9px 12px", marginBottom: 8 }} placeholder={t("league_name_placeholder")} value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleCreate()} autoFocus />
-              {err && <div style={{ fontSize: 12, color: "var(--coral)", marginBottom: 6 }}>{err}</div>}
-              <div style={{ display: "flex", gap: 8 }}>
-                <button className="pl-btn" style={{ flex: 1, padding: 10 }} disabled={busy || !newName.trim()} onClick={handleCreate}>{busy ? t("creating") : t("league_create")}</button>
-                <button className="pl-ghost" style={{ padding: "0 12px" }} onClick={close}><X size={14} /></button>
-              </div>
-            </div>
-          )}
-          {mode === "join" && (
-            <div style={{ padding: 14 }}>
-              <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14 }}>{t("league_join_title")}</div>
-              <input className="pl-input" style={{ padding: "9px 12px", marginBottom: 8, textTransform: "uppercase", letterSpacing: 3, textAlign: "center" }} placeholder="XXXXXX" value={code} onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))} onKeyDown={(e) => e.key === "Enter" && handleJoin()} autoFocus />
-              {err && <div style={{ fontSize: 12, color: "var(--coral)", marginBottom: 6 }}>{err}</div>}
-              <div style={{ display: "flex", gap: 8 }}>
-                <button className="pl-btn" style={{ flex: 1, padding: 10 }} disabled={busy || code.length < 4} onClick={handleJoin}>{busy ? t("creating") : t("league_join_btn")}</button>
-                <button className="pl-ghost" style={{ padding: "0 12px" }} onClick={close}><X size={14} /></button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin, onOpenLanding, onEditProfile, openSelfStatsNonce = 0 }) {
   const [tab, setTab] = useState(session ? "board" : "welcome");
@@ -274,19 +174,11 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
   // «Моя статистика» из кабинета → вкладка «Друзья» (Board сам выберет себя).
   useEffect(() => { if (openSelfStatsNonce > 0) setTab("board"); }, [openSelfStatsNonce]);
 
-  const titles = { board: t("tab_friends"), games: t("tab_games"), history: t("tab_history"), tournaments: t("tab_tournaments") };
-
   return (
     <div className={`pl-root${theme === "light" ? " pl-light" : ""}`}>
       <style>{css}</style>
-      <div style={{ maxWidth: 460, margin: "0 auto", padding: "calc(20px + env(safe-area-inset-top)) 16px calc(88px + env(safe-area-inset-bottom))" }}>
-        <header style={{ marginBottom: 18, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-          <div>
-            <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2 }}>{t("league_title")}</div>
-            <h1 className="pl-display" style={{ fontSize: 30, lineHeight: 1, marginTop: 2, color: "var(--ink)" }}>{titles[tab]}</h1>
-          </div>
-          {session && <LeagueSwitcher leagues={leagues} activeLeague={activeLeague} isAdmin={isAdmin} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} />}
-        </header>
+      {/* Заголовок вкладки и переключатель лиги убраны — переключатель теперь в топбаре, имя вкладки видно в нижней навигации. */}
+      <div style={{ maxWidth: 460, margin: "0 auto", padding: "10px 16px calc(88px + env(safe-area-inset-bottom))" }}>
 
         {session && !groupId && tab !== "board" && (
           <div className="pl-card pl-pop" style={{ padding: 16, marginBottom: 12, textAlign: "center" }}>
@@ -304,11 +196,11 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
 
       <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--topbar-bg)", borderTop: "1px solid var(--line)", backdropFilter: "blur(8px)", paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div style={{ maxWidth: 460, margin: "0 auto", display: "flex" }}>
-          {!session && <button className={`pl-tab ${tab === "welcome" ? "on" : ""}`} onClick={() => setTab("welcome")}><LogIn size={20} />{t("tab_start")}</button>}
-          {session && <button className={`pl-tab ${tab === "board" ? "on" : ""}`} onClick={() => setTab("board")}><Trophy size={20} />{t("tab_friends")}</button>}
-          <button className={`pl-tab ${tab === "games" ? "on" : ""}`} onClick={() => setTab("games")}><Swords size={20} />{t("tab_games")}</button>
-          <button className={`pl-tab ${tab === "tournaments" ? "on" : ""}`} onClick={() => setTab("tournaments")}><Award size={20} />{t("tab_tournaments")}</button>
-          {session && <button className={`pl-tab ${tab === "history" ? "on" : ""}`} onClick={() => setTab("history")}><History size={20} />{t("tab_history")}</button>}
+          {!session && <button className={`pl-tab ${tab === "welcome" ? "on" : ""}`} onClick={() => setTab("welcome")}><LogIn size={20} strokeWidth={tab === "welcome" ? 2.6 : 2} />{t("tab_start")}</button>}
+          {session && <button className={`pl-tab ${tab === "board" ? "on" : ""}`} onClick={() => setTab("board")}><Trophy size={20} strokeWidth={tab === "board" ? 2.6 : 2} />{t("tab_friends")}</button>}
+          <button className={`pl-tab ${tab === "games" ? "on" : ""}`} onClick={() => setTab("games")}><Swords size={20} strokeWidth={tab === "games" ? 2.6 : 2} />{t("tab_games")}</button>
+          <button className={`pl-tab ${tab === "tournaments" ? "on" : ""}`} onClick={() => setTab("tournaments")}><Award size={20} strokeWidth={tab === "tournaments" ? 2.6 : 2} />{t("tab_tournaments")}</button>
+          {session && <button className={`pl-tab ${tab === "history" ? "on" : ""}`} onClick={() => setTab("history")}><History size={20} strokeWidth={tab === "history" ? 2.6 : 2} />{t("tab_history")}</button>}
         </div>
       </nav>
     </div>
@@ -1455,39 +1347,98 @@ function SlotPicker({ value, players, taken, onChange, teamLabel }) {
   );
 }
 
-// 4 слота игры: в пустые — поиск/добавление; у заполненных — перетаскивание за
-// «ручку» (обмен местами A↔B) и удаление смахиванием влево.
+// 4 слота игры: в пустые — поиск/добавление; у заполненных — перетаскивание
+// (долгое нажатие → плитка за пальцем, обмен/перенос) и удаление свайпом влево.
+// Жест обрабатывается на КОНТЕЙНЕРЕ с захватом указателя — поэтому pointerup
+// всегда приходит сюда (плитка не зависает), а попадание ищем по ближайшей
+// строке (надёжный обмен с первой попытки).
 function GameSlots({ slots, setSlots, players, chosenIds }) {
-  const refs = useRef([]);
-  const [drag, setDrag] = useState(null); // { idx, x, y } во время перемещения
+  const ref = useRef(null);          // контейнер
+  const rowRefs = useRef([]);        // все 4 слота (для поиска цели)
+  const g = useRef({ mode: "idle", idx: -1, x0: 0, y0: 0, pid: null, timer: null });
+  const [drag, setDrag] = useState(null);              // { idx, x, y }
+  const [swipe, setSwipe] = useState({ idx: -1, dx: 0 });
   const setSlot = (i, v) => setSlots((s) => s.map((x, j) => (j === i ? v : x)));
-  const dropAt = (fromIdx, x, y) => {
-    let tgt = -1;
-    refs.current.forEach((el, i) => { if (!el) return; const r = el.getBoundingClientRect(); if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) tgt = i; });
-    if (tgt >= 0 && tgt !== fromIdx) setSlots((prev) => { const n = [...prev]; const t = n[tgt]; n[tgt] = n[fromIdx]; n[fromIdx] = t; return n; });
-    setDrag(null);
+  const MAX = 88, LONG = 260, TH = 8;
+  const clearTimer = () => { if (g.current.timer) { clearTimeout(g.current.timer); g.current.timer = null; } };
+  const release = () => { try { ref.current.releasePointerCapture(g.current.pid); } catch (_) {} };
+  // Ближайший слот по вертикали (с горизонтальным допуском), кроме перетаскиваемого.
+  const nearestIdx = (x, y, exclude) => {
+    let best = -1, bestD = Infinity;
+    rowRefs.current.forEach((el, i) => {
+      if (!el || i === exclude) return;
+      const r = el.getBoundingClientRect();
+      if (x < r.left - 28 || x > r.right + 28) return;
+      const cy = r.top + r.height / 2, d = Math.abs(y - cy);
+      if (d <= r.height && d < bestD) { bestD = d; best = i; }
+    });
+    return best;
   };
+  const beginDrag = () => { g.current.mode = "drag"; try { navigator.vibrate?.(12); } catch (_) {} setDrag({ idx: g.current.idx, x: g.current.x0, y: g.current.y0 }); };
+  const down = (e) => {
+    const rowEl = e.target.closest?.("[data-slot-idx]");
+    if (!rowEl) return;                                 // пустой слот / поле ввода — не жест
+    const idx = Number(rowEl.dataset.slotIdx);
+    g.current = { mode: "pending", idx, x0: e.clientX, y0: e.clientY, pid: e.pointerId, timer: null };
+    try { ref.current.setPointerCapture(e.pointerId); } catch (_) {}
+    clearTimer();
+    g.current.timer = setTimeout(() => { if (g.current.mode === "pending") beginDrag(); }, LONG);
+  };
+  const move = (e) => {
+    if (g.current.mode === "idle") return;
+    const dX = e.clientX - g.current.x0, dY = e.clientY - g.current.y0;
+    if (g.current.mode === "pending") {
+      if (Math.abs(dY) > Math.abs(dX) && Math.abs(dY) > 6) { clearTimer(); g.current.mode = "idle"; release(); return; } // вертикаль → скролл
+      if (dX < -TH) { clearTimer(); g.current.mode = "swipe"; }
+      else if (dX > TH) { clearTimer(); g.current.mode = "idle"; release(); return; }
+      else return;
+    }
+    if (g.current.mode === "swipe") setSwipe({ idx: g.current.idx, dx: Math.max(-MAX, Math.min(0, dX)) });
+    else if (g.current.mode === "drag") setDrag((d) => (d ? { ...d, x: e.clientX, y: e.clientY } : d));
+  };
+  const finish = (e) => {
+    clearTimer();
+    const m = g.current.mode, idx = g.current.idx;
+    g.current.mode = "idle";
+    release();
+    if (m === "drag") {
+      const tgt = nearestIdx(e.clientX, e.clientY, idx);
+      if (tgt >= 0) setSlots((prev) => { const n = [...prev]; const t = n[tgt]; n[tgt] = n[idx]; n[idx] = t; return n; });
+      setDrag(null);                                    // не нашли цель → плитка возвращается на место
+    } else if (m === "swipe") {
+      const del = swipe.dx <= -MAX * 0.55;
+      setSwipe({ idx: -1, dx: 0 });
+      if (del) setSlot(idx, null);
+    }
+  };
+  const active = drag || swipe.idx >= 0;
   return (
-    <div style={{ touchAction: drag ? "none" : "auto" }}>
+    <div ref={ref} onPointerDown={down} onPointerMove={move} onPointerUp={finish} onPointerCancel={finish}
+      style={{ touchAction: active ? "none" : "pan-y" }}>
       {[0, 1, 2, 3].map((i) => {
         const v = slots[i];
         const team = i < 2 ? "A" : "B";
         const ring = i < 2 ? "var(--lime)" : "var(--coral)";
         if (!v) {
           return (
-            <div key={i} ref={(el) => (refs.current[i] = el)}>
+            <div key={i} ref={(el) => (rowRefs.current[i] = el)}>
               <SlotPicker value={null} players={players} taken={chosenIds} teamLabel={team} onChange={(val) => setSlot(i, val)} />
             </div>
           );
         }
+        const dx = swipe.idx === i ? swipe.dx : 0;
         return (
-          <SlotRow key={i} idx={i} value={v} team={team} ring={ring}
-            registerRef={(el) => (refs.current[i] = el)}
-            dragging={drag?.idx === i}
-            onClear={() => setSlot(i, null)}
-            onDragStart={(x, y) => setDrag({ idx: i, x, y })}
-            onDragMove={(x, y) => setDrag((d) => d && { ...d, x, y })}
-            onDrop={dropAt} />
+          <div key={i} data-slot-idx={i} ref={(el) => (rowRefs.current[i] = el)}
+            style={{ position: "relative", marginBottom: 8, borderRadius: 12, overflow: "hidden", background: "var(--coral)", opacity: drag?.idx === i ? 0.3 : 1 }}>
+            <div style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: MAX, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}><Trash2 size={18} /></div>
+            <div style={{ transform: `translateX(${dx}px)`, transition: (swipe.idx === i && g.current.mode === "swipe") ? "none" : "transform .2s ease", display: "flex", alignItems: "center", gap: 8, background: "var(--surface)" }}>
+              <span className="pl-display" style={{ width: 24, fontSize: 12, color: ring, flexShrink: 0 }}>{team}</span>
+              <div className="pl-slot" style={{ flex: 1, gap: 8 }}>
+                <GripVertical size={16} style={{ color: "var(--mut)", flexShrink: 0 }} />
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.label}</span>
+              </div>
+            </div>
+          </div>
         );
       })}
       <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 2, lineHeight: 1.4 }}>{t("slots_dnd_hint")}</div>
@@ -1496,62 +1447,6 @@ function GameSlots({ slots, setSlots, players, chosenIds }) {
           {slots[drag.idx].label}
         </div>
       )}
-    </div>
-  );
-}
-
-// Одна строка слота с единым жестом (надёжно на тач, как в RematchMix):
-//  • долгое нажатие (~260мс) → перетаскивание плитки за пальцем (обмен/перенос);
-//  • быстрый свайп влево → удаление; вертикаль → обычный скролл.
-// Никаких вложенных обработчиков — строка сама владеет указателем.
-function SlotRow({ idx, value, team, ring, registerRef, dragging, onClear, onDragStart, onDragMove, onDrop }) {
-  const ref = useRef(null);
-  const g = useRef({ x0: 0, y0: 0, mode: "idle", pid: null, timer: null });
-  const [dx, setDx] = useState(0);
-  const MAX = 88, LONG = 260, TH = 8;
-  const clearTimer = () => { if (g.current.timer) { clearTimeout(g.current.timer); g.current.timer = null; } };
-  const beginDrag = () => {
-    g.current.mode = "drag";
-    try { ref.current.setPointerCapture(g.current.pid); } catch (_) {}
-    if (ref.current) ref.current.style.touchAction = "none";
-    try { navigator.vibrate?.(12); } catch (_) {}
-    onDragStart?.(g.current.x0, g.current.y0);
-  };
-  const down = (e) => {
-    g.current.x0 = e.clientX; g.current.y0 = e.clientY; g.current.pid = e.pointerId; g.current.mode = "pending";
-    clearTimer();
-    g.current.timer = setTimeout(() => { if (g.current.mode === "pending") beginDrag(); }, LONG);
-  };
-  const move = (e) => {
-    const dX = e.clientX - g.current.x0, dY = e.clientY - g.current.y0;
-    if (g.current.mode === "pending") {
-      if (Math.abs(dY) > Math.abs(dX) && Math.abs(dY) > 6) { clearTimer(); g.current.mode = "idle"; return; } // вертикаль → скролл
-      if (dX < -TH) { clearTimer(); g.current.mode = "swipe"; try { ref.current.setPointerCapture(e.pointerId); } catch (_) {} }
-      else if (dX > TH) { clearTimer(); g.current.mode = "idle"; return; }
-      else return;
-    }
-    if (g.current.mode === "swipe") setDx(Math.max(-MAX, Math.min(0, dX)));
-    else if (g.current.mode === "drag") onDragMove?.(e.clientX, e.clientY);
-  };
-  const up = async (e) => {
-    clearTimer();
-    const m = g.current.mode; g.current.mode = "idle";
-    if (ref.current) ref.current.style.touchAction = "";
-    if (m === "drag") { onDrop?.(idx, e.clientX, e.clientY); return; }
-    if (m === "swipe") { if (dx <= -MAX * 0.55) { setDx(-MAX); await onClear(); setDx(0); } else setDx(0); }
-  };
-  return (
-    <div ref={(el) => { ref.current = el; registerRef(el); }}
-      onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
-      style={{ position: "relative", marginBottom: 8, borderRadius: 12, overflow: "hidden", background: "var(--coral)", touchAction: dragging ? "none" : "pan-y", opacity: dragging ? 0.3 : 1 }}>
-      <div style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: MAX, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}><Trash2 size={18} /></div>
-      <div style={{ transform: `translateX(${dx}px)`, transition: g.current.mode === "swipe" ? "none" : "transform .2s ease", display: "flex", alignItems: "center", gap: 8, background: "var(--surface)" }}>
-        <span className="pl-display" style={{ width: 24, fontSize: 12, color: ring, flexShrink: 0 }}>{team}</span>
-        <div className="pl-slot" style={{ flex: 1, gap: 8 }}>
-          <GripVertical size={16} style={{ color: "var(--mut)", flexShrink: 0 }} />
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value.label}</span>
-        </div>
-      </div>
     </div>
   );
 }
