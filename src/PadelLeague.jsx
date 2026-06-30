@@ -655,12 +655,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         <EmptyState text={t("solo_friends_empty")} />
       ))}
 
-      {groupId && (
-        <button className="pl-ghost" style={{ width: "100%", padding: 12, marginTop: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontWeight: 600 }} onClick={() => setOpen(true)}>
-          <Users size={18} /> {t("add_player")}
-        </button>
-      )}
-      {groupId && <Fab label={t("add_player")} icon={<Users size={20} />} onClick={() => setOpen(true)} />}
+      {groupId && <Fab label={t("add_player_form_title")} icon={<Users size={20} />} onClick={() => setOpen(true)} />}
       {groupId && ranked.length > 0 && (
         <button className="pl-ghost" style={{ width: "100%", padding: 12, marginTop: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontWeight: 600, color: "var(--lime)", borderColor: "color-mix(in srgb, var(--lime) 30%, transparent)" }} onClick={() => setShowStats(true)}>
           <TrendingUp size={18} /> {t("an_open")}
@@ -1473,12 +1468,7 @@ function Games({ groupId, players, reloadLeaderboard, session, archiveNonce, bum
           <button className="pl-btn" style={{ padding: "7px 14px", fontSize: 12, flexShrink: 0 }} onClick={onLogin}>{t("sign_in")}</button>
         </div>
       )}
-      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        {session && groupId && <button className="pl-btn" style={{ flex: 1, padding: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={() => setMode("create")}>
-          <PlusCircle size={18} /> {t("create_game")}
-        </button>}
-        {session && groupId && <Fab label={t("create_game")} icon={<PlusCircle size={20} />} onClick={() => setMode("create")} />}
-      </div>
+      {session && groupId && <Fab label={t("create_game")} icon={<PlusCircle size={20} />} onClick={() => setMode("create")} />}
       {loading && <div className="pl-card" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>{t("loading")}</div>}
       {!loading && games.length === 0 && <EmptyState text={!session ? t("games_empty_guest") : (groupId ? t("games_empty_session") : t("solo_games_empty"))} />}
       {!loading && (() => {

@@ -120,7 +120,7 @@ const T = {
     onboarding_3_sub_no_code: 'Скопируй код приглашения выше',
     played_together_label: 'ИГРАЛИ ВМЕСТЕ',
     // ── Add player form ───────────────────────────────────────────────────
-    add_player_form_title: 'Добавить игрока',
+    add_player_form_title: 'Добавить в лигу',
     add_guest_league_hint: 'Добавленный здесь игрок не попадёт в лигу. Чтобы он был в лиге — добавьте его на вкладке «Друзья».',
     add_search_placeholder: 'Имя игрока — найти или создать',
     add_guest_prefix: 'Добавить нового:',
@@ -429,7 +429,7 @@ const T = {
     onboarding_3_sub_no_code: 'Copy the invite code above',
     played_together_label: 'ALSO PLAYED',
     // ── Add player form ───────────────────────────────────────────────────
-    add_player_form_title: 'Add player',
+    add_player_form_title: 'Add to league',
     add_guest_league_hint: 'A player added here won’t appear in the league. To add them to the league, use the Friends tab.',
     add_search_placeholder: 'Player name — find or create',
     add_guest_prefix: 'Add new:',
@@ -738,7 +738,7 @@ const T = {
     onboarding_3_sub_no_code: 'Copia el código de invitación arriba',
     played_together_label: 'TAMBIÉN JUGARON',
     // ── Add player form ───────────────────────────────────────────────────
-    add_player_form_title: 'Añadir jugador',
+    add_player_form_title: 'Añadir a liga',
     add_guest_league_hint: 'Un jugador añadido aquí no aparecerá en la liga. Para añadirlo a la liga, usa la pestaña Amigos.',
     add_search_placeholder: 'Nombre del jugador — buscar o crear',
     add_guest_prefix: 'Añadir nuevo:',
