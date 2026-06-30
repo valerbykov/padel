@@ -304,14 +304,14 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLand
 // «Организатор» (если доступно). Действие — ТАПОМ по раскрытой кнопке, не
 // авто-коммитом: случайный край-свайп ничего не делает. Тап по строке без свайпа
 // открывает карточку игрока. Если действий нет — обычная строка без свайпа.
-function SwipeRow({ onRemove, onOrganize, organizerActive, children }) {
+function SwipeRow({ onRemove, onOrganize, organizerActive, onTap, children }) {
   const [dx, setDx] = useState(0);
   const [dragging, setDragging] = useState(false);
-  const startX = useRef(0), startY = useRef(0), startDx = useRef(0), active = useRef(false), moved = useRef(false);
+  const startX = useRef(0), startY = useRef(0), startDx = useRef(0), active = useRef(false), moved = useRef(false), snapped = useRef(0);
   const LEFT = onRemove ? 104 : 0;
   const RIGHT = onOrganize ? 104 : 0;
-  if (!LEFT && !RIGHT) return <div style={{ marginBottom: 8 }}>{children}</div>;
-  const down = (e) => { startX.current = e.clientX; startY.current = e.clientY; startDx.current = dx; active.current = true; moved.current = false; setDragging(true); try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} };
+  if (!LEFT && !RIGHT) return <div style={{ marginBottom: 8 }} onClick={onTap}>{children}</div>;
+  const down = (e) => { startX.current = e.clientX; startY.current = e.clientY; startDx.current = snapped.current; active.current = true; moved.current = false; setDragging(true); try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} };
   const move = (e) => {
     if (!active.current) return;
     const dX = e.clientX - startX.current, dY = e.clientY - startY.current;
@@ -321,26 +321,30 @@ function SwipeRow({ onRemove, onOrganize, organizerActive, children }) {
   };
   const up = () => {
     if (!active.current) return; active.current = false; setDragging(false);
-    setDx((cur) => (LEFT && cur <= -LEFT * 0.45) ? -LEFT : (RIGHT && cur >= RIGHT * 0.45 ? RIGHT : 0));
+    setDx((cur) => { const tgt = (LEFT && cur <= -LEFT * 0.45) ? -LEFT : (RIGHT && cur >= RIGHT * 0.45 ? RIGHT : 0); snapped.current = tgt; return tgt; });
   };
-  const guard = (e) => {
-    if (moved.current) { e.stopPropagation(); moved.current = false; return; }  // хвостовой клик после драга
-    if (dx !== 0) { e.stopPropagation(); setDx(0); }                            // тап по раскрытой — закрыть
+  // Клик по строке. После setPointerCapture клик приходит на саму обёртку (а не на
+  // карточку), поэтому открываем карточку игрока ИМЕННО здесь: драг — игнор,
+  // раскрытая строка — закрыть, чистый тап — onTap.
+  const click = () => {
+    if (moved.current) { moved.current = false; return; }
+    if (snapped.current !== 0) { snapped.current = 0; setDx(0); return; }
+    onTap && onTap();
   };
   const actBtn = { position: "absolute", top: 0, bottom: 0, width: 104, border: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontSize: 11, fontWeight: 700 };
   return (
     <div style={{ position: "relative", marginBottom: 8, borderRadius: 16, overflow: "hidden" }}>
       {RIGHT > 0 && (
-        <button type="button" onClick={() => { setDx(0); onOrganize(); }} style={{ ...actBtn, left: 0, background: "var(--lime)", color: "var(--lime-fg)" }}>
+        <button type="button" onClick={() => { snapped.current = 0; setDx(0); onOrganize(); }} style={{ ...actBtn, left: 0, background: "var(--lime)", color: "var(--lime-fg)" }}>
           <ShieldCheck size={16} /> {organizerActive ? t("unset_organizer_short") : t("set_organizer_short")}
         </button>
       )}
       {LEFT > 0 && (
-        <button type="button" onClick={() => { setDx(0); onRemove(); }} style={{ ...actBtn, right: 0, background: "var(--coral)", color: "#fff" }}>
+        <button type="button" onClick={() => { snapped.current = 0; setDx(0); onRemove(); }} style={{ ...actBtn, right: 0, background: "var(--coral)", color: "#fff" }}>
           <Trash2 size={16} /> {t("remove_btn")}
         </button>
       )}
-      <div onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onClickCapture={guard}
+      <div onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onClick={click}
         style={{ position: "relative", transform: `translateX(${dx}px)`, transition: dragging ? "none" : "transform .2s ease", touchAction: "pan-y" }}>
         {children}
       </div>
@@ -605,8 +609,8 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
           <SwipeRow key={p.id}
             onRemove={canRemove ? async () => { await removeMember(groupId, p.id); reload(); } : null}
             onOrganize={canOrg ? async () => { await setMemberRole(groupId, p.id, p.role === "admin" ? "member" : "admin"); reload(); } : null}
-            organizerActive={p.role === "admin"}>
-          <div className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", cursor: "pointer" }} onClick={() => setSelected(p)}>
+            organizerActive={p.role === "admin"} onTap={() => setSelected(p)}>
+          <div className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", cursor: "pointer" }}>
             <div className="pl-display" style={{ width: 22, fontSize: 22, color: ["var(--yellow)", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)" }}>{i + 1}</div>
             <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
             <div style={{ flex: 1, minWidth: 0 }}>
