@@ -4,7 +4,7 @@
 // Данные тянет через get_league_details (RPC), сохраняет в groups (RLS).
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Upload, Send, Copy, Check, Crown } from "lucide-react";
+import { X, Upload, Send, Copy, Check, Crown, ShieldCheck } from "lucide-react";
 import { getLeagueDetails, updateLeague, uploadLeagueLogo } from "../lib/padelApi";
 import Avatar from "./Avatar";
 import { t } from "../lib/i18n";
@@ -119,6 +119,22 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
               </div>
               <Crown size={16} style={{ color: "var(--lime)", marginLeft: "auto", flexShrink: 0 }} />
             </div>
+
+            {/* Организаторы (только просмотр) */}
+            {Array.isArray(d.organizers) && d.organizers.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 6 }}>{t("league_organizers")}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {d.organizers.map((o, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 14 }}>
+                      <Avatar url={o.avatar_url} name={o.name} size={30} />
+                      <div style={{ fontWeight: 600, fontSize: 14, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{o.name}</div>
+                      <ShieldCheck size={14} style={{ color: "var(--lime)", marginLeft: "auto", flexShrink: 0 }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Телеграм-канал */}
             <div style={{ marginBottom: 12 }}>
