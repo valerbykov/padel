@@ -4,17 +4,18 @@
 // props: rows (из detailedStandings), highlightId?, avatarOf?(row)=>{url?,rating?}
 import React from "react";
 import Avatar from "./Avatar";
+import { t } from "../lib/i18n";
 
 export default function StandingsTable({ rows, highlightId, avatarOf }) {
   const grid = "1fr 64px 80px 38px";
-  const deltaColor = (d) => (d > 0 ? "#3ddc84" : d < 0 ? "#ff6a52" : "#7d9488");
+  const deltaColor = (d) => (d > 0 ? "#3ddc84" : d < 0 ? "var(--coral)" : "var(--mut)");
 
   return (
     <div style={{ fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", color: "var(--ink)", minWidth: 0, overflow: "hidden" }}>
       <div style={{ display: "grid", gridTemplateColumns: grid, gap: 6, padding: "0 4px 8px", fontSize: 10, color: "var(--mut)", borderBottom: "1px solid var(--line)" }}>
-        <span>Игрок</span>
+        <span>{t("st_player")}</span>
         <span style={{ textAlign: "center" }}>+/-</span>
-        <span style={{ textAlign: "center" }}>Очки</span>
+        <span style={{ textAlign: "center" }}>{t("st_points")}</span>
         <span style={{ textAlign: "center" }}>δ</span>
       </div>
 
@@ -32,7 +33,7 @@ export default function StandingsTable({ rows, highlightId, avatarOf }) {
           }}>
             {/* Колонка: номер + аватар + имя под ней */}
             <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, overflow: "hidden" }}>
-              <span style={{ fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", fontWeight: 800, width: 16, flexShrink: 0, color: medal || "#7d9488", fontSize: 13, lineHeight: 1 }}>
+              <span style={{ fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", fontWeight: 800, width: 16, flexShrink: 0, color: medal || "var(--mut)", fontSize: 13, lineHeight: 1 }}>
                 {i + 1}
               </span>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, minWidth: 0, flex: 1 }}>

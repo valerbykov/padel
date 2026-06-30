@@ -53,7 +53,7 @@ export default function LeaguePublicPage({ code }) {
   useEffect(() => {
     getPublicLeague(code)
       .then(setLeague)
-      .catch(() => { setErr("Лига не найдена"); setLeague(null); });
+      .catch(() => { setErr(t("err_league_not_found")); setLeague(null); });
   }, [code]);
 
   const joinUrl   = `${window.location.origin}/?join=${code}`;

@@ -6,6 +6,7 @@
 // Props: teamAvatarsA/B=[] — массивы URL аватарок; scoreDetail=[{a,b},...] — для отображения.
 import React, { useState, useEffect } from "react";
 import { dogAvatar } from "../lib/avatar";
+import { t } from "../lib/i18n";
 
 const COURT_IMG = "/padel-court.png";
 
@@ -66,6 +67,10 @@ export default function CourtView({
   mode = "sum", maxScore, bgUrl = COURT_IMG,
 }) {
   const max = maxScore != null ? maxScore : (mode === "sum" ? points : mode === "sets" ? 7 : 3);
+
+  const courtLabel = `${t("court_label")} ${courtNumber}`;
+  const [editingName, setEditingName] = useState(false);  // инлайн-переименование корта
+  const [nameVal, setNameVal] = useState("");
 
   // sum / free state
   const [pickFor, setPickFor] = useState(null);
@@ -162,8 +167,8 @@ export default function CourtView({
   const KP = { padding: "16px 0", borderRadius: 12, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22, background: "var(--surface2)", color: "var(--ink)", border: "1px solid var(--line)" };
 
   const getPickerTitle = () => {
-    if (pickSets) return <>Сет {pickSets.setIdx + 1} · команда <b style={{ color: pickerColor }}>{pickSets.team}</b> (0–7)</>;
-    return <>Счёт команды <b style={{ color: pickerColor }}>{pickFor}</b> (0–{max})</>;
+    if (pickSets) return <>{t("court_set")} {pickSets.setIdx + 1} · {t("court_team")} <b style={{ color: pickerColor }}>{pickSets.team}</b> (0–7)</>;
+    return <>{t("court_team")} <b style={{ color: pickerColor }}>{pickFor}</b> · {t("court_score")} (0–{max})</>;
   };
 
   const box = (val, win, team) => (
@@ -174,9 +179,9 @@ export default function CourtView({
         fontSize: "clamp(18px,7.5vw,30px)", minWidth: "clamp(38px,12vw,54px)",
         textAlign: "center", padding: "clamp(5px,2vw,8px) clamp(7px,3vw,12px)",
         borderRadius: 10, lineHeight: 1, cursor: editable && mode !== "sets" ? "pointer" : "default",
-        background: win ? "#c8ff2d" : "color-mix(in srgb, var(--surface) 88%, transparent)", color: win ? "#0a1612" : "var(--ink)",
-        border: `2px solid ${win ? "#c8ff2d" : "var(--line)"}`,
-        boxShadow: win ? "0 0 16px rgba(200,255,45,.5)" : "none",
+        background: win ? "var(--lime)" : "color-mix(in srgb, var(--surface) 88%, transparent)", color: win ? "var(--lime-fg)" : "var(--ink)",
+        border: `2px solid ${win ? "var(--lime)" : "var(--line)"}`,
+        boxShadow: win ? "0 0 16px color-mix(in srgb, var(--lime) 50%, transparent)" : "none",
       }}
     >{val == null ? "–" : val}</div>
   );
@@ -198,7 +203,7 @@ export default function CourtView({
       `}</style>
       {/* Корт */}
       <div style={{ position: "relative", width: "100%", borderRadius: 14, overflow: "hidden", minHeight: (pickFor && useKeypad) ? 408 : undefined }}>
-        <svg className="cv-court" viewBox="0 0 320 180" preserveAspectRatio="none" aria-label="корт" style={{ aspectRatio: "16 / 9", height: "auto" }}>
+        <svg className="cv-court" viewBox="0 0 320 180" preserveAspectRatio="none" aria-label={t("court_label")} style={{ aspectRatio: "16 / 9", height: "auto" }}>
           <rect x="0" y="0" width="320" height="180" style={{ fill: "var(--court)" }} />
           <g style={{ fill: "none", stroke: "var(--court-line)" }} strokeWidth="2.4">
             <rect x="7" y="7" width="306" height="166" />
@@ -211,18 +216,30 @@ export default function CourtView({
         </svg>
         {editable && mode !== "sets" && !savedAlready && !pickFor && (
           <>
-            <div onClick={() => openPick("A")} style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "50%", cursor: "pointer" }} aria-label="ввести счёт команды A" />
-            <div onClick={() => openPick("B")} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "50%", cursor: "pointer" }} aria-label="ввести счёт команды B" />
+            <div onClick={() => openPick("A")} style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "50%", cursor: "pointer" }} aria-label={`${t("court_score")} A`} />
+            <div onClick={() => openPick("B")} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "50%", cursor: "pointer" }} aria-label={`${t("court_score")} B`} />
           </>
         )}
 
         {(courtNumber != null || courtName) && (
-          <div
-            onClick={onRenameCourt && courtNumber != null ? () => { const v = window.prompt("Название корта", courtName || ("Корт " + courtNumber)); if (v !== null) onRenameCourt(v.trim()); } : undefined}
-            style={{ position: "absolute", top: 6, left: "50%", transform: "translateX(-50%)", whiteSpace: "nowrap", maxWidth: "70%", overflow: "hidden", textOverflow: "ellipsis", fontFamily: "'Outfit',sans-serif", fontWeight: 800, textTransform: "uppercase", fontSize: 13, letterSpacing: 1, color: "var(--ink)", background: "color-mix(in srgb, var(--surface) 80%, transparent)", padding: "2px 10px", borderRadius: 8, cursor: onRenameCourt && courtNumber != null ? "pointer" : "default", zIndex: 2 }}
-          >
-            {courtName || ("Корт " + courtNumber)}{onRenameCourt && courtNumber != null ? " ✎" : ""}
-          </div>
+          editingName ? (
+            <input
+              autoFocus
+              value={nameVal}
+              onChange={(e) => setNameVal(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { onRenameCourt(nameVal.trim()); setEditingName(false); } else if (e.key === "Escape") setEditingName(false); }}
+              onBlur={() => { onRenameCourt(nameVal.trim()); setEditingName(false); }}
+              placeholder={courtLabel}
+              style={{ position: "absolute", top: 6, left: "50%", transform: "translateX(-50%)", maxWidth: "76%", boxSizing: "border-box", textAlign: "center", fontFamily: "'Outfit',sans-serif", fontWeight: 800, textTransform: "uppercase", fontSize: 13, letterSpacing: 1, color: "var(--ink)", background: "var(--surface)", border: "1px solid var(--lime)", borderRadius: 8, padding: "2px 10px", outline: "none", zIndex: 3 }}
+            />
+          ) : (
+            <div
+              onClick={onRenameCourt && courtNumber != null ? () => { setNameVal(courtName || ""); setEditingName(true); } : undefined}
+              style={{ position: "absolute", top: 6, left: "50%", transform: "translateX(-50%)", whiteSpace: "nowrap", maxWidth: "70%", overflow: "hidden", textOverflow: "ellipsis", fontFamily: "'Outfit',sans-serif", fontWeight: 800, textTransform: "uppercase", fontSize: 13, letterSpacing: 1, color: "var(--ink)", background: "color-mix(in srgb, var(--surface) 80%, transparent)", padding: "2px 10px", borderRadius: 8, cursor: onRenameCourt && courtNumber != null ? "pointer" : "default", zIndex: 2 }}
+            >
+              {courtName || courtLabel}{onRenameCourt && courtNumber != null ? " ✎" : ""}
+            </div>
+          )
         )}
 
         <Chip name={teamA[0]} avatarUrl={teamAvatarsA[0]} x={20} y={28} team="A" />
@@ -238,7 +255,7 @@ export default function CourtView({
 
         {editable && mode !== "sets" && !savedAlready && !pickFor && (
           <div style={{ position: "absolute", left: "50%", bottom: "5%", transform: "translateX(-50%)", fontSize: 11, color: "var(--ink)", background: "color-mix(in srgb, var(--surface) 80%, transparent)", padding: "2px 8px", borderRadius: 8, whiteSpace: "nowrap" }}>
-            нажми на свою половину поля, чтобы ввести счёт
+            {t("court_tap_half")}
           </div>
         )}
 
@@ -266,7 +283,7 @@ export default function CourtView({
                     </span>
                     {mode === "sum" && (
                       <div style={{ marginTop: 6, fontSize: 12.5, color: "var(--mut)" }}>
-                        соперник: <b style={{ color: "var(--ink)" }}>{points - (buf === "" ? 0 : Number(buf))}</b>
+                        {t("court_opponent")}: <b style={{ color: "var(--ink)" }}>{points - (buf === "" ? 0 : Number(buf))}</b>
                       </div>
                     )}
                   </div>
@@ -302,8 +319,8 @@ export default function CourtView({
               )}
             </div>
             {mode === "sum" && !useKeypad && (
-              <div style={{ marginTop: 8, fontSize: 12, color: "#7d9488", textAlign: "center" }}>
-                счёт второй команды посчитается сам
+              <div style={{ marginTop: 8, fontSize: 12, color: "var(--mut)", textAlign: "center" }}>
+                {t("court_auto_second")}
               </div>
             )}
           </div>
@@ -318,7 +335,7 @@ export default function CourtView({
               display: "flex", alignItems: "center", gap: 8, padding: "7px 0",
               borderBottom: i < setsDetail.length - 1 ? "1px solid var(--line)" : "none",
             }}>
-              <span style={{ fontSize: 12, color: "var(--mut)", width: 50, flexShrink: 0 }}>Сет {i + 1}</span>
+              <span style={{ fontSize: 12, color: "var(--mut)", width: 50, flexShrink: 0 }}>{t("court_set")} {i + 1}</span>
               <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
                 <SetChip val={s.a} team="A" editable={editable && !savedAlready} onClick={() => setPickSets({ setIdx: i, team: "A" })} />
                 <span style={{ color: "var(--mut)", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 14 }}>:</span>
@@ -326,21 +343,21 @@ export default function CourtView({
               </div>
               <div style={{ width: 50, flexShrink: 0, display: "flex", justifyContent: "flex-end" }}>
                 {editable && !savedAlready && setsDetail.length > 1 && i === setsDetail.length - 1 && (
-                  <button className="cv-setbtn" onClick={removeLastSet} aria-label="удалить сет" style={{ width: 28, height: 28, borderRadius: 8, border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--coral)", cursor: "pointer", fontSize: 14, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+                  <button className="cv-setbtn" onClick={removeLastSet} aria-label={t("delete_btn")} style={{ width: 28, height: 28, borderRadius: 8, border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--coral)", cursor: "pointer", fontSize: 14, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
                 )}
               </div>
             </div>
           ))}
           {editable && !savedAlready && !allSetsEntered && (
             <div style={{ fontSize: 11, color: "var(--mut)", textAlign: "center", paddingTop: 6 }}>
-              нажми на счёт сета, чтобы ввести
+              {t("court_tap_set")}
             </div>
           )}
           {editable && !savedAlready && setsDetail.length < 5 && (
             <button className="cv-setbtn" onClick={addSet} style={{
               width: "100%", marginTop: 10, padding: "10px 0", borderRadius: 10, border: "1px solid color-mix(in srgb, var(--lime) 45%, transparent)",
               background: "color-mix(in srgb, var(--lime) 12%, transparent)", color: "var(--lime)", cursor: "pointer", fontSize: 14, fontWeight: 700, fontFamily: "'Outfit',sans-serif",
-            }}>+ Добавить сет</button>
+            }}>{t("court_add_set")}</button>
           )}
         </div>
       )}
@@ -353,7 +370,7 @@ export default function CourtView({
           fontFamily: "'Outfit',sans-serif", background: "var(--lime)", color: "var(--lime-fg)",
           filter: (!setsValid || busy) ? "grayscale(.6) brightness(.7)" : "none",
         }}>
-          {busy ? "Записываю…" : !allSetsEntered ? "Введи счёт всех сетов" : "Записать результат"}
+          {busy ? t("court_recording") : !allSetsEntered ? t("court_enter_all_sets") : t("court_record")}
         </button>
       )}
 
@@ -365,7 +382,7 @@ export default function CourtView({
           background: "var(--lime)", color: "var(--lime-fg)",
           filter: (dA == null || dB == null || dA === dB || busy) ? "grayscale(.6) brightness(.7)" : "none",
         }}>
-          {busy ? "Записываю…" : (dA != null && dB != null && dA === dB ? "Ничья недопустима" : "Записать результат")}
+          {busy ? t("court_recording") : (dA != null && dB != null && dA === dB ? t("court_draw_not_allowed") : t("court_record"))}
         </button>
       )}
     </div>

@@ -171,7 +171,7 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
           )}
 
           <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "16px 0 4px", color: "var(--mut)", fontSize: 12 }}>
-            <div style={{ flex: 1, height: 1, background: "var(--line)" }} /> или <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            <div style={{ flex: 1, height: 1, background: "var(--line)" }} /> {t("login_or")} <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
           </div>
 
           <div className="lg-seg">
@@ -208,7 +208,7 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
                 </>
               ) : (
                 <>
-                  <input className="lg-input" inputMode="numeric" placeholder="Код из SMS" value={code} onChange={(e) => setCode(e.target.value)} />
+                  <input className="lg-input" inputMode="numeric" placeholder={t("login_sms_ph")} value={code} onChange={(e) => setCode(e.target.value)} />
                   <button className="lg-btn" disabled={!code.trim() || busy} onClick={verifySms}>
                     <Check size={16} /> {busy ? t("login_checking") : t("login_verify_code")}
                   </button>

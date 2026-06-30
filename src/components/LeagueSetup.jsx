@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Logo from "./Logo";
 import { createLeague, joinLeague } from "../lib/padelApi";
+import { t } from "../lib/i18n";
 
 /**
  * Экран первичной настройки.
@@ -21,7 +22,7 @@ export default function LeagueSetup({ onDone, initialMode = null, initialCode = 
       const league = await createLeague(name.trim());
       onDone(league);
     } catch (e) {
-      setErr(e.message || "Ошибка создания лиги");
+      setErr(e.message || t("err_generic"));
     } finally { setBusy(false); }
   }
 
@@ -33,9 +34,9 @@ export default function LeagueSetup({ onDone, initialMode = null, initialCode = 
       onDone(league);
     } catch (e) {
       const msg = e.message || "";
-      if (msg.includes("league_not_found")) setErr("Лига с таким кодом не найдена");
-      else if (msg.includes("already_member")) setErr("Вы уже состоите в этой лиге");
-      else setErr(msg || "Ошибка вступления");
+      if (msg.includes("league_not_found")) setErr(t("err_league_not_found"));
+      else if (msg.includes("already_member")) setErr(t("err_already_member"));
+      else setErr(msg || t("err_generic"));
     } finally { setBusy(false); }
   }
 
@@ -52,7 +53,7 @@ export default function LeagueSetup({ onDone, initialMode = null, initialCode = 
     row: { display: "flex", gap: 12, width: "100%", maxWidth: 320 },
     btnPrimary: {
       flex: 1, padding: "12px 0", borderRadius: 12, border: "none",
-      background: "var(--lime)", color: "#111", fontWeight: 700,
+      background: "var(--lime)", color: "var(--lime-fg)", fontWeight: 700,
       fontSize: 15, cursor: "pointer",
     },
     btnSecondary: {
@@ -77,16 +78,16 @@ export default function LeagueSetup({ onDone, initialMode = null, initialCode = 
   if (!mode) return (
     <div style={s.wrap}>
       <div style={{ marginBottom: 14 }}><Logo height={40} /></div>
-      <div style={s.title}>Добро пожаловать!</div>
+      <div style={s.title}>{t("ls_welcome")}</div>
       <div style={s.sub}>
-        Чтобы начать, создайте свою лигу или вступите в уже существующую по коду-приглашению.
+        {t("ls_welcome_sub")}
       </div>
       <div style={s.row}>
-        <button style={s.btnPrimary}  onClick={() => setMode("create")}>Создать лигу</button>
-        <button style={s.btnSecondary} onClick={() => setMode("join")}>По коду</button>
+        <button style={s.btnPrimary}  onClick={() => setMode("create")}>{t("ls_create_league")}</button>
+        <button style={s.btnSecondary} onClick={() => setMode("join")}>{t("ls_by_code")}</button>
       </div>
       {onCancel && (
-        <button style={s.back} onClick={onCancel}>Пропустить →</button>
+        <button style={s.back} onClick={onCancel}>{t("ls_skip")}</button>
       )}
     </div>
   );
@@ -95,11 +96,11 @@ export default function LeagueSetup({ onDone, initialMode = null, initialCode = 
   if (mode === "create") return (
     <div style={s.wrap}>
       <div style={s.logo}>🏆</div>
-      <div style={s.title}>Новая лига</div>
-      <div style={s.sub}>Придумайте название — его увидят все участники.</div>
+      <div style={s.title}>{t("ls_new_title")}</div>
+      <div style={s.sub}>{t("ls_new_sub")}</div>
       <input
         style={s.input}
-        placeholder="Название лиги"
+        placeholder={t("ls_name_ph")}
         value={name}
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && handleCreate()}
@@ -109,10 +110,10 @@ export default function LeagueSetup({ onDone, initialMode = null, initialCode = 
       {err && <div style={s.err}>{err}</div>}
       <div style={s.row}>
         <button style={s.btnPrimary} disabled={busy || !name.trim()} onClick={handleCreate}>
-          {busy ? "..." : "Создать"}
+          {busy ? t("creating") : t("ls_create_btn")}
         </button>
       </div>
-      <button style={s.back} onClick={() => { setMode(null); setErr(""); }}>← Назад</button>
+      <button style={s.back} onClick={() => { setMode(null); setErr(""); }}>{t("ls_back")}</button>
     </div>
   );
 
@@ -120,8 +121,8 @@ export default function LeagueSetup({ onDone, initialMode = null, initialCode = 
   return (
     <div style={s.wrap}>
       <div style={s.logo}>🔑</div>
-      <div style={s.title}>Вступить в лигу</div>
-      <div style={s.sub}>Введите код, который прислал организатор лиги.</div>
+      <div style={s.title}>{t("ls_join_title")}</div>
+      <div style={s.sub}>{t("ls_join_sub")}</div>
       <input
         style={{ ...s.input, textTransform: "uppercase", letterSpacing: 3, textAlign: "center" }}
         placeholder="XXXXXX"
@@ -134,10 +135,10 @@ export default function LeagueSetup({ onDone, initialMode = null, initialCode = 
       {err && <div style={s.err}>{err}</div>}
       <div style={s.row}>
         <button style={s.btnPrimary} disabled={busy || code.trim().length < 4} onClick={handleJoin}>
-          {busy ? "..." : "Вступить"}
+          {busy ? t("creating") : t("ls_join_btn")}
         </button>
       </div>
-      <button style={s.back} onClick={() => { setMode(null); setErr(""); }}>← Назад</button>
+      <button style={s.back} onClick={() => { setMode(null); setErr(""); }}>{t("ls_back")}</button>
     </div>
   );
 }

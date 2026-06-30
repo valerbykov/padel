@@ -60,10 +60,10 @@ export default function ClaimProfile({ code, botName }) {
       setDone(result.name);
     } catch (e) {
       const map = {
-        claim_not_found: "Ссылка недействительна или уже была использована.",
-        not_authenticated: "Нужно войти в аккаунт.",
+        claim_not_found: t("err_claim_invalid"),
+        not_authenticated: t("err_claim_auth"),
       };
-      setErr(map[e.message] || "Что-то пошло не так. Попробуй ещё раз.");
+      setErr(map[e.message] || t("err_claim_generic"));
     } finally {
       setBusy(false);
     }
@@ -130,7 +130,7 @@ export default function ClaimProfile({ code, botName }) {
                 <div className="cp-card" style={{ display: "flex", alignItems: "center", gap: 10, padding: 14 }}>
                   <CheckCircle2 size={18} color="var(--lime)" />
                   <div style={{ fontSize: 13 }}>
-                    {(() => { const nm = session.user?.user_metadata?.name || session.user?.email || "ты"; const parts = t("pub_login_as").split("{name}"); return (<>{parts[0]}<b>{nm}</b>{parts[1] || ""}</>); })()}
+                    {(() => { const nm = session.user?.user_metadata?.name || session.user?.email || t("guest_default_name"); const parts = t("pub_login_as").split("{name}"); return (<>{parts[0]}<b>{nm}</b>{parts[1] || ""}</>); })()}
                   </div>
                 </div>
                 {err && (

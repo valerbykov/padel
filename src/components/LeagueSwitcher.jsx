@@ -23,7 +23,7 @@ export default function LeagueSwitcher({ leagues, activeLeague, isAdmin, onLeagu
     if (!newName.trim() || busy) return;
     setBusy(true); setErr("");
     try { const lg = await createLeague(newName.trim()); onLeagueCreated && onLeagueCreated(lg); close(); setNewName(""); }
-    catch (e) { setErr(e.message || "Ошибка"); } finally { setBusy(false); }
+    catch (e) { setErr(e.message || t("err_generic")); } finally { setBusy(false); }
   };
   const handleJoin = async () => {
     if (code.trim().length < 4 || busy) return;
@@ -31,9 +31,9 @@ export default function LeagueSwitcher({ leagues, activeLeague, isAdmin, onLeagu
     try { const lg = await joinLeague(code.trim()); onLeagueCreated && onLeagueCreated(lg); close(); setCode(""); }
     catch (e) {
       const m = e.message || "";
-      if (m.includes("league_not_found")) setErr("Лига не найдена");
-      else if (m.includes("already_member")) setErr("Вы уже в этой лиге");
-      else setErr(m || "Ошибка");
+      if (m.includes("league_not_found")) setErr(t("err_league_not_found"));
+      else if (m.includes("already_member")) setErr(t("err_already_member"));
+      else setErr(m || t("err_generic"));
     } finally { setBusy(false); }
   };
 

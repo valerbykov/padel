@@ -205,7 +205,7 @@ function CopyDialog({ src, groupId, profileId, onClose, onCopied }) {
     if (busy) return;
     setBusy(true);
     try { const t = await copyTournament(src.id, groupId, { name, withPlayers, createdBy: profileId }); onCopied(t.id); }
-    catch (e) { alert("Не удалось скопировать турнир"); setBusy(false); }
+    catch (e) { alert(tr("err_copy_tour")); setBusy(false); }
   };
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }} onClick={onClose}>
@@ -352,7 +352,7 @@ function Create({ groupId, profileId, back, open }) {
       try { if (date) startsAtIso = new Date(date).toISOString(); } catch (e) { startsAtIso = null; }
       const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format, createdBy: profileId, startsAt: startsAtIso, place });
       open(trn.id);
-    } catch (e) { alert("Не удалось создать турнир"); setBusy(false); }
+    } catch (e) { alert(tr("err_create_tour")); setBusy(false); }
   };
 
   const chip = (active) => ({
@@ -663,14 +663,14 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   const addMexicanoRound = async () => {
     setAddingRound(true);
     try { await generateMexicanoRound(trnData.id, trnData.players, trnData.matches); await load(); setCur(N + 1); }
-    catch (e) { alert(e.message || "Не удалось создать раунд"); }
+    catch (e) { alert(e.message || tr("err_create_round")); }
     finally { setAddingRound(false); }
   };
 
   const addKotHMatch = async () => {
     setAddingRound(true);
     try { await generateKotHRound(trnData.id, trnData.matches); await load(); setCur(N + 1); }
-    catch (e) { alert(e.message || "Не удалось создать матч"); }
+    catch (e) { alert(e.message || tr("err_create_match")); }
     finally { setAddingRound(false); }
   };
 
@@ -680,14 +680,14 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     try { if (navigator.share) { await navigator.share({ title: tr("tab_tournaments"), text, url }); return; } } catch (e) {}
     try { await navigator.clipboard.writeText(text); setToast(tr("copied")); setTimeout(() => setToast(""), 1500); } catch (e) {}
   };
-  const start = async () => { try { await startTournament(trnData.id, trnData.players, trnData.format); load(); } catch (e) { alert(e.message || "Не удалось запустить"); } };
+  const start = async () => { try { await startTournament(trnData.id, trnData.players, trnData.format); load(); } catch (e) { alert(e.message || tr("err_start_tour")); } };
   const saveScore = async (matchId, a, b) => {
     let pin = null; try { pin = localStorage.getItem("pp_scorepin_" + id); } catch (e) {}
     await submitMatchScore(matchId, a, b, pin || ""); await load();
   };
   const genPin = async () => {
     const pin = String(Math.floor(1000 + Math.random() * 9000));
-    try { await setScorePin(trnData.id, pin); setPinShown(pin); } catch (e) { alert(e.message || "Ошибка"); }
+    try { await setScorePin(trnData.id, pin); setPinShown(pin); } catch (e) { alert(e.message || tr("err_generic")); }
   };
   const unlockPin = async () => {
     const v = pinInput.trim();
@@ -729,7 +729,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
               <button className="tr-ghost" style={{ padding: 8, color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)" }} title={tr("delete_btn")}
                 onClick={async () => {
                   if (!confirm(tr("trn_delete_confirm"))) return;
-                  try { await deleteTournament(id); onArchiveChange?.(); back?.(); } catch (e) { alert("Не удалось удалить"); }
+                  try { await deleteTournament(id); onArchiveChange?.(); back?.(); } catch (e) { alert(tr("err_delete")); }
                 }}>
                 <Trash2 size={15} />
               </button>

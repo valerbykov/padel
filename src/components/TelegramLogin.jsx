@@ -7,6 +7,7 @@
 //   onSuccess — колбэк после успешного входа
 import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { t } from "../lib/i18n";
 
 export default function TelegramLogin({ botName, onSuccess }) {
   const containerRef = useRef(null);
@@ -42,8 +43,8 @@ export default function TelegramLogin({ botName, onSuccess }) {
         onSuccess?.();
       } catch (e) {
         setStatus("error");
-        const map = { bad_signature: "Подпись Telegram не прошла проверку", expired: "Данные входа устарели" };
-        setErrText(map[e.message] || "Не удалось войти через Telegram");
+        const map = { bad_signature: t("err_tg_signature"), expired: t("err_tg_expired") };
+        setErrText(map[e.message] || t("err_tg_login"));
       }
     };
 
@@ -64,7 +65,7 @@ export default function TelegramLogin({ botName, onSuccess }) {
   return (
     <div style={{ fontFamily: "'Outfit',sans-serif", textAlign: "center" }}>
       <div ref={containerRef} />
-      {status === "busy" && <p style={{ color: "#7d9488", fontSize: 13 }}>Входим…</p>}
+      {status === "busy" && <p style={{ color: "var(--mut)", fontSize: 13 }}>{t("tg_signing")}</p>}
       {status === "error" && <p style={{ color: "#ff6a52", fontSize: 13 }}>{errText}</p>}
     </div>
   );

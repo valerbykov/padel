@@ -73,7 +73,7 @@ export default function GuestJoin({ code, botName }) {
   }
 
   const take = async (team, position) => {
-    const display = session ? (profileName || "Игрок") : name.trim();
+    const display = session ? (profileName || t("guest_default_name")) : name.trim();
     if (!session && !name.trim()) return;
     setBusy(true); setErr("");
     try {
@@ -81,8 +81,8 @@ export default function GuestJoin({ code, botName }) {
       if (error) throw error;
       await load();
     } catch (e) {
-      const map = { slot_taken: "Слот уже заняли", game_closed: "Игра уже закрыта", game_not_found: "Игра не найдена" };
-      setErr(map[e.message] || "Не удалось занять слот");
+      const map = { slot_taken: t("err_slot_taken"), game_closed: t("err_game_closed"), game_not_found: t("err_game_not_found") };
+      setErr(map[e.message] || t("err_join_slot"));
     } finally { setBusy(false); }
   };
 

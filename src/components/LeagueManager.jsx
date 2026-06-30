@@ -28,7 +28,7 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
         const det = await getLeagueDetails(groupId);
         if (!alive) return;
         setD(det); setName(det.name || ""); setTg(det.telegram_url || ""); setLogo(det.logo_url || "");
-      } catch (e) { if (alive) setErr(e.message || "Ошибка"); }
+      } catch (e) { if (alive) setErr(e.message || t("err_generic")); }
     })();
     return () => { alive = false; };
   }, [groupId]);
@@ -43,7 +43,7 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
     const f = e.target.files?.[0]; if (!f) return;
     setUploading(true); setErr("");
     try { setLogo(await uploadLeagueLogo(groupId, f)); }
-    catch (er) { setErr(er.message || "Ошибка"); }
+    catch (er) { setErr(er.message || t("err_generic")); }
     finally { setUploading(false); if (fileRef.current) fileRef.current.value = ""; }
   };
 
@@ -56,7 +56,7 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
       setSaved(true);
       onUpdated && onUpdated(upd);
       setTimeout(() => setSaved(false), 1800);
-    } catch (e) { setErr(e.message || "Ошибка"); }
+    } catch (e) { setErr(e.message || t("err_generic")); }
     finally { setBusy(false); }
   };
 

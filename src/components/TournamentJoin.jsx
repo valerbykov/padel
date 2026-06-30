@@ -85,14 +85,14 @@ export default function TournamentJoin({ code, botName }) {
   if (showLogin && !session) return <LoginScreen botName={botName} onSuccess={() => setShowLogin(false)} onBack={() => setShowLogin(false)} theme={theme} lang={lang} onThemeToggle={toggleTheme} onLangChange={cycleLang} />;
 
   const join = async () => {
-    const display = session ? (profileName || "Игрок") : name.trim();
+    const display = session ? (profileName || tr("guest_default_name")) : name.trim();
     if (!session && !name.trim()) return;
     if (busy) return;
     setBusy(true); setErr("");
     try { await joinTournamentByCode(code, display); setJoined(true); await load(); }
     catch (e) {
-      const map = { tournament_full: "Турнир уже заполнен", tournament_closed: "Регистрация закрыта", tournament_not_found: "Турнир не найден" };
-      setErr(map[e.message] || "Не удалось присоединиться");
+      const map = { tournament_full: tr("err_tour_full"), tournament_closed: tr("err_tour_closed"), tournament_not_found: tr("err_tour_not_found") };
+      setErr(map[e.message] || tr("err_join"));
     } finally { setBusy(false); }
   };
 
