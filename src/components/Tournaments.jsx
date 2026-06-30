@@ -10,6 +10,7 @@ import {
 } from "../lib/tournamentApi";
 import { standings, detailedStandings, allMatchesPlayed } from "../lib/americano";
 import { dogAvatar } from "../lib/avatar";
+import Fab from "./Fab";
 import { getAllKotHTeams } from "../lib/mexicano";
 import CourtView from "./CourtView";
 import StandingsTable from "./StandingsTable";
@@ -153,9 +154,12 @@ function List({ groupId, profileId, create, open, session, onLogin }) {
           <button className="tr-btn" style={{ padding: "7px 14px", fontSize: 12, flexShrink: 0, borderRadius: 10 }} onClick={onLogin}>{tr("sign_in")}</button>
         </div>
       ) : groupId ? (
+        <>
         <button className="tr-btn" style={{ width: "100%", padding: 13, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={create}>
           <PlusCircle size={18} /> {tr("trn_create_btn")}
         </button>
+        <Fab label={tr("trn_create_btn")} icon={<PlusCircle size={20} />} onClick={create} />
+        </>
       ) : null}
       {items === null && <div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>{tr("loading")}</div>}
       {items !== null && items.length === 0 && (

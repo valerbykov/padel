@@ -8,6 +8,7 @@ import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
 import { t, nGames } from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
+import Fab from "./components/Fab";
 import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, BadgeCheck, ShieldCheck } from "lucide-react";
 import Tournaments, { TournamentView, TournamentCard, css as trCss } from "./components/Tournaments";
 import { deleteTournament } from "./lib/tournamentApi";
@@ -655,6 +656,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
           <Users size={18} /> {t("add_player")}
         </button>
       )}
+      {groupId && <Fab label={t("add_player")} icon={<Users size={20} />} onClick={() => setOpen(true)} />}
       {groupId && ranked.length > 0 && (
         <button className="pl-ghost" style={{ width: "100%", padding: 12, marginTop: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontWeight: 600, color: "var(--lime)", borderColor: "color-mix(in srgb, var(--lime) 30%, transparent)" }} onClick={() => setShowStats(true)}>
           <TrendingUp size={18} /> {t("an_open")}
@@ -1471,6 +1473,7 @@ function Games({ groupId, players, reloadLeaderboard, session, archiveNonce, bum
         {session && groupId && <button className="pl-btn" style={{ flex: 1, padding: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={() => setMode("create")}>
           <PlusCircle size={18} /> {t("create_game")}
         </button>}
+        {session && groupId && <Fab label={t("create_game")} icon={<PlusCircle size={20} />} onClick={() => setMode("create")} />}
       </div>
       {loading && <div className="pl-card" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>{t("loading")}</div>}
       {!loading && games.length === 0 && <EmptyState text={!session ? t("games_empty_guest") : (groupId ? t("games_empty_session") : t("solo_games_empty"))} />}
