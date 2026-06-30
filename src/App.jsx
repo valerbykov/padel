@@ -10,7 +10,19 @@ import Logo from "./components/Logo"; // текстовый логотип в т
 import LeagueSwitcher from "./components/LeagueSwitcher"; // глобальный переключатель лиги в топбаре
 import { LogIn, Sun, Moon, BarChart3 } from "lucide-react";
 import { getMyLeagues } from "./lib/padelApi";
-import { t, setLang, LANGS, LANG_LABELS, currentLang } from "./lib/i18n";
+import { t, setLang, applyLang, LANGS, LANG_LABELS, currentLang } from "./lib/i18n";
+import { detectCountry, langFromCountry } from "./lib/region";
+
+// Быстрый синхронный guess языка для самого первого рендера (до ответа гео):
+// кэш страны → язык браузера → ru (историчный дефолт, основной рынок). Не сохраняется —
+// авторитетным становится гео-определение в эффекте ниже.
+function guessLangSync() {
+  try { const cc = localStorage.getItem("pp_country"); const l = cc && langFromCountry(cc); if (l) return l; } catch (e) { /* ignore */ }
+  const nav = (navigator.language || "").slice(0, 2).toLowerCase();
+  if (nav === "es") return "es";
+  if (nav === "en") return "en";
+  return "ru";
+}
 
 // Ленивые чанки: тяжёлые и маршрутные экраны грузятся по требованию.
 const PadelLeague      = lazy(() => import("./PadelLeague"));
@@ -54,8 +66,29 @@ export default function App({ initialShowLogin = false }) {
   const [showProfile,  setShowProfile]  = useState(false);
   const [pNonce,       setPNonce]       = useState(0);
   const [theme,        setTheme]        = useState(() => localStorage.getItem("plTheme") || "dark");
-  const [lang,         setLangState]    = useState(() => localStorage.getItem("plLang") || "ru");
+  const [lang,         setLangState]    = useState(() => {
+    const saved = localStorage.getItem("plLang");
+    if (saved) return saved;
+    const g = guessLangSync();
+    applyLang(g); // активируем guess для первого рендера, без записи (гео уточнит ниже)
+    return g;
+  });
   const handleLangChange = useCallback((l) => { setLang(l); setLangState(l); }, []);
+
+  // Первый заход (язык ещё не выбран): определяем по стране через гео-API и сохраняем.
+  // RU/СНГ-ru → ru, Испания/ЛатАм → es, остальное → en. Возвращающиеся юзеры (plLang
+  // уже есть) сюда не попадают — их выбор не трогаем.
+  useEffect(() => {
+    if (localStorage.getItem("plLang")) return;
+    let alive = true;
+    (async () => {
+      let cc = null;
+      try { cc = await detectCountry(); } catch (e) { /* ignore */ }
+      if (!alive) return;
+      handleLangChange(langFromCountry(cc) || guessLangSync()); // setLang сохранит plLang
+    })();
+    return () => { alive = false; };
+  }, [handleLangChange]);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showInstall,   setShowInstall]   = useState(false);
   const [statsNonce, setStatsNonce] = useState(0); // открыть свой профиль игрока из кабинета
@@ -216,6 +249,14 @@ export default function App({ initialShowLogin = false }) {
 
   const isAdmin = !!(activeLeague && (activeLeague.role === "owner" || activeLeague.role === "admin"));
 
+  // #7: ЛК теперь всплывающее окно (ProfileEditor сам портелится в body), а не
+  // отдельный полноэкранный маршрут — рендерим поверх приложения там, где есть топбар.
+  const profileModal = (showProfile && session) ? (
+    <ProfileEditor onClose={() => setShowProfile(false)} onSaved={() => setPNonce((n) => n + 1)} theme={theme}
+      lang={lang} onThemeToggle={toggleTheme} onLangChange={handleLangChange}
+      onOpenStats={() => { setShowProfile(false); setStatsNonce((n) => n + 1); }} />
+  ) : null;
+
   // Публичная страница лиги — без логина.
   if (leaguePublicCode) return <LeaguePublicPage code={leaguePublicCode} />;
 
@@ -227,11 +268,6 @@ export default function App({ initialShowLogin = false }) {
   // Явно открыли экран входа.
   if (showLogin && !session)
     return <LoginScreen botName={BOT_NAME} onSuccess={() => setShowLogin(false)} onBack={() => setShowLogin(false)} theme={theme} lang={lang} onThemeToggle={toggleTheme} onLangChange={handleLangChange} />;
-
-  if (showProfile && session)
-    return <ProfileEditor onClose={() => setShowProfile(false)} onSaved={() => setPNonce((n) => n + 1)} theme={theme}
-      lang={lang} onThemeToggle={toggleTheme} onLangChange={handleLangChange}
-      onOpenStats={() => { setShowProfile(false); setStatsNonce((n) => n + 1); }} />;
 
   // Переход по ?join=CODE — показываем экран вступления с предзаполненным кодом.
   if (pendingJoin && session && profile && leagues !== null) {
@@ -254,6 +290,7 @@ export default function App({ initialShowLogin = false }) {
           initialMode="join"
           initialCode={pendingJoin}
         />
+        {profileModal}
       </div>
     );
   }
@@ -324,6 +361,7 @@ export default function App({ initialShowLogin = false }) {
         openSelfStatsNonce={statsNonce}
         openAnalyticsNonce={analyticsNonce}
       />
+      {profileModal}
     </div>
   );
 }

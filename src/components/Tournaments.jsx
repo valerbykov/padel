@@ -630,6 +630,9 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   const curMatches = (rmap[cur] || []).sort((a, b) => a.court - b.court);
   const curComplete = curMatches.length > 0 && curMatches.every((m) => m.score_a != null);
   const isLastRound = cur === N;
+  // #3: счёт в раунде можно вводить только когда ВСЕ предыдущие раунды полностью заполнены.
+  // Заглядывать вперёд (просмотр пар) можно — но не вводить счёт «через голову».
+  const priorComplete = roundNums.filter((n) => n < cur).every((n) => (rmap[n] || []).every((m) => m.score_a != null));
 
   // KotH/BtB queue
   let kotHQueue = [];
@@ -893,7 +896,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                       teamAvatarsA={[avatarOfTp(m.team_a[0]), avatarOfTp(m.team_a[1])]}
                       teamAvatarsB={[avatarOfTp(m.team_b[0]), avatarOfTp(m.team_b[1])]}
                       scoreA={m.score_a} scoreB={m.score_b}
-                      editable={!readOnly && (amCreator || unlocked || isAdmin) && trnData.status !== "finished"}
+                      editable={!readOnly && (amCreator || unlocked || isAdmin) && trnData.status !== "finished" && priorComplete}
                       onSave={(a, b) => saveScore(m.id, a, b)} />
                     {scored && (
                       <button className="tr-ghost" style={{ width: "100%", padding: "6px 0", marginTop: -6, marginBottom: 10, fontSize: 12, color: "var(--mut)", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}
@@ -922,12 +925,16 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                 </div>
               )}
 
-              {/* Score hint */}
-              {!curComplete && (
+              {/* Score hint / lock (#3: раунд заблокирован, пока не заполнены предыдущие) */}
+              {!priorComplete ? (
+                <div style={{ textAlign: "center", color: "var(--yellow)", fontSize: 12, marginBottom: 12 }}>
+                  {tr("trn_round_locked")}
+                </div>
+              ) : !curComplete ? (
                 <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginBottom: 12 }}>
                   {isKothBtB ? tr("trn_enter_score") : tr("trn_enter_all_scores")}
                 </div>
-              )}
+              ) : null}
 
               {/* Mexicano: generate next round */}
               {!readOnly && isMexicano && curComplete && isLastRound && trnData.status !== "finished" && (

@@ -2,14 +2,14 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "./lib/supabase";
-import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole } from "./lib/padelApi";
+import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner } from "./lib/padelApi";
 import { getRatingHistory } from "./lib/statsApi";
 import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
 import { t, nGames } from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
 import Fab from "./components/Fab";
-import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, BadgeCheck, ShieldCheck } from "lucide-react";
+import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, BadgeCheck, ShieldCheck, EyeOff } from "lucide-react";
 import Tournaments, { TournamentView, TournamentCard, css as trCss } from "./components/Tournaments";
 import { deleteTournament } from "./lib/tournamentApi";
 import CourtView from "./components/CourtView";
@@ -304,7 +304,7 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLand
 // «Организатор» (если доступно). Действие — ТАПОМ по раскрытой кнопке, не
 // авто-коммитом: случайный край-свайп ничего не делает. Тап по строке без свайпа
 // открывает карточку игрока. Если действий нет — обычная строка без свайпа.
-function SwipeRow({ onRemove, onOrganize, organizerActive, onTap, children }) {
+function SwipeRow({ onRemove, onOrganize, organizerActive, onTap, leftLabel, leftIcon, children }) {
   const [dx, setDx] = useState(0);
   const [dragging, setDragging] = useState(false);
   const startX = useRef(0), startY = useRef(0), startDx = useRef(0), active = useRef(false), moved = useRef(false), snapped = useRef(0);
@@ -341,7 +341,7 @@ function SwipeRow({ onRemove, onOrganize, organizerActive, onTap, children }) {
       )}
       {LEFT > 0 && (
         <button type="button" onClick={() => { snapped.current = 0; setDx(0); onRemove(); }} style={{ ...actBtn, right: 0, background: "var(--coral)", color: "#fff" }}>
-          <Trash2 size={16} /> {t("remove_btn")}
+          {leftIcon || <Trash2 size={16} />} {leftLabel || t("remove_btn")}
         </button>
       )}
       <div onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onClick={click}
@@ -367,6 +367,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
   const [matchCounts, setMatchCounts] = useState({});
   const [streaks, setStreaks] = useState({});
   const [extraPlayers, setExtraPlayers] = useState([]);
+  const [hiddenIds, setHiddenIds] = useState(() => new Set()); // #4: оптимистично скрытые из «Играли вместе»
   const [showLeagueMenu, setShowLeagueMenu] = useState(false);
   const [showNewLeague, setShowNewLeague] = useState(false); // "create" | "join" | false
   const [newLeagueName, setNewLeagueName] = useState("");
@@ -376,6 +377,14 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
   const [inviteCopied, setInviteCopied] = useState(false);
   const [publicLinkCopied, setPublicLinkCopied] = useState(false);
   const ranked = [...players].sort((a, b) => b.rating - a.rating);
+
+  // #4: совсем скрыть игрока из «Играли вместе». Оптимистично прячем строку, пишем в
+  // аккаунт (hide_partner) и перечитываем список (played_with уже без скрытого).
+  const hidePlayer = async (p) => {
+    setHiddenIds((prev) => new Set(prev).add(p.id));
+    try { await hidePartner(p.id); reload(); }
+    catch (e) { setHiddenIds((prev) => { const n = new Set(prev); n.delete(p.id); return n; }); }
+  };
 
   // «Моя статистика» из кабинета: открываем карточку текущего игрока, когда счётчик меняется.
   const lastStatsNonce = useRef(0);
@@ -622,11 +631,17 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
                 {p.role === "owner" && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, background: "color-mix(in srgb, var(--yellow) 18%, transparent)", color: "var(--yellow)", border: "1px solid color-mix(in srgb, var(--yellow) 40%, transparent)", flexShrink: 0 }}>{t("role_owner")}</span>}
                 {p.role === "admin" && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, background: "color-mix(in srgb, var(--lime) 15%, transparent)", color: "var(--lime)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", flexShrink: 0 }}>{t("role_organizer")}</span>}
               </div>
-              <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 4, fontSize: 12, color: "var(--mut)" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_games")}><Swords size={13} /> {gamesOf(p)}</span><span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_tournaments")}><Award size={13} /> {toursOf(p)}</span></span>
-                {(() => { const lv = playerLevel(p.matches, p.rating); return <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 8, background: `color-mix(in srgb, ${lv.color} 15%, transparent)`, color: lv.color, border: `1px solid color-mix(in srgb, ${lv.color} 35%, transparent)` }}>{lv.label}</span>; })()}
-                {qb.length > 0 && <span style={{ letterSpacing: 2 }}>{qb.join("")}</span>}
-                {streaks[p.id] && <span style={{ color: "var(--coral)", fontWeight: 600 }}>🔥{streaks[p.id]}</span>}
+              {/* #5: статистика (слева) отделена от бейджей уровня/ачивок (справа). */}
+              <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, fontSize: 12, color: "var(--mut)" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_games")}><Swords size={13} /> {gamesOf(p)}</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_tournaments")}><Award size={13} /> {toursOf(p)}</span>
+                  {streaks[p.id] && <span style={{ color: "var(--coral)", fontWeight: 600 }}>🔥{streaks[p.id]}</span>}
+                </span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
+                  {(() => { const lv = playerLevel(p.matches, p.rating); return <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 8, background: `color-mix(in srgb, ${lv.color} 15%, transparent)`, color: lv.color, border: `1px solid color-mix(in srgb, ${lv.color} 35%, transparent)` }}>{lv.label}</span>; })()}
+                  {qb.length > 0 && <span style={{ letterSpacing: 2 }}>{qb.join("")}</span>}
+                </span>
               </div>
             </div>
             {p.contacts && Object.values(p.contacts).some(Boolean) && (
@@ -638,22 +653,28 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         );
       })}
 
-      {!groupId && (ranked.filter((p) => p.id !== profileId).length > 0 ? (
+      {!groupId && (() => {
+        const friends = ranked.filter((p) => p.id !== profileId && !hiddenIds.has(p.id));
+        return friends.length > 0 ? (
         <>
           <div className="pl-display" style={{ fontSize: 12, color: "var(--mut)", margin: "4px 2px 8px", letterSpacing: 1 }}>{t("played_together_label")}</div>
-          {ranked.filter((p) => p.id !== profileId).map((p) => (
-            <div key={p.id} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", marginBottom: 8 }}>
+          {friends.map((p) => (
+            <SwipeRow key={p.id} onRemove={() => hidePlayer(p)} onTap={() => setSelected(p)}
+              leftLabel={t("hide_btn")} leftIcon={<EyeOff size={16} />}>
+            <div className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", cursor: "pointer" }}>
               <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
                 <div style={{ fontSize: 12, color: "var(--mut)", display: "inline-flex", alignItems: "center", gap: 4 }}><Swords size={13} /> {p.matches}</div>
               </div>
+              <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />
             </div>
+            </SwipeRow>
           ))}
         </>
       ) : (
         <EmptyState text={t("solo_friends_empty")} />
-      ))}
+      ); })()}
 
       {groupId && <Fab label={t("add_player_form_title")} icon={<Users size={20} />} onClick={() => setOpen(true)} />}
       {groupId && ranked.length > 0 && (
@@ -1118,6 +1139,15 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
     </button>
   );
 
+  // #5: действия игрока — отдельный блок под бейджами (раньше были вперемешку).
+  const showGenClaim   = !player.user_id && !localClaimCode && isAdmin;
+  const showClaimLink  = !player.user_id && !!localClaimCode;
+  const showAddToLeague = !!onAddToLeague && !isInLeague;
+  const showDelete     = !!onDelete && isAdmin && !!myId && myId !== player.id && isInLeague;
+  const showSetRole    = !!onSetRole && isOwner && !!player.user_id && player.role !== "owner" && myId !== player.id && isInLeague;
+  const hasCompactAction = showAddToLeague || showSetRole || showGenClaim || showDelete;
+  const hasActions = hasCompactAction || showClaimLink;
+
   return (
     <div className="pl-pop">
       <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center" }}>
@@ -1156,32 +1186,40 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
           </div>
         ); })()}
         <ContactLinks contacts={player.contacts} />
-        {!player.user_id && (localClaimCode
-          ? <ClaimLinkButton claimCode={localClaimCode} />
-          : isAdmin && (
-            <button onClick={generateClaimCode} disabled={genBusy}
-              style={{ marginTop: 12, padding: "8px 16px", border: "1px solid rgba(200,255,45,.4)", borderRadius: 10, background: "rgba(200,255,45,.07)", color: "var(--lime)", fontSize: 12, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "'Outfit'" }}>
-              <Share2 size={13} /> {genBusy ? t("creating") : t("create_claim_link")}
-            </button>
-          )
-        )}
-        {onAddToLeague && !isInLeague && (
-          <button onClick={onAddToLeague}
-            style={{ marginTop: 10, padding: "8px 16px", border: "none", borderRadius: 10, background: "var(--lime)", color: "var(--lime-fg)", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "'Outfit'" }}>
-            {t("add_to_league")}
-          </button>
-        )}
-        {onDelete && isAdmin && myId && myId !== player.id && isInLeague && (
-          <button onClick={() => setShowDeleteModal(true)}
-            style={{ marginTop: 10, padding: "6px 14px", border: "1px solid rgba(255,106,82,.35)", borderRadius: 10, background: "none", color: "var(--coral)", fontSize: 12, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <Trash2 size={12} /> {t("remove_from_league")}
-          </button>
-        )}
-        {onSetRole && isOwner && player.user_id && player.role !== "owner" && myId !== player.id && isInLeague && (
-          <button onClick={() => onSetRole(player.role === "admin" ? "member" : "admin")}
-            style={{ marginTop: 10, padding: "6px 14px", border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", borderRadius: 10, background: "none", color: "var(--lime)", fontSize: 12, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <ShieldCheck size={12} /> {player.role === "admin" ? t("unset_organizer") : t("set_organizer")}
-          </button>
+
+        {/* #5: действия отделены от бейджей — разделитель + сгруппированный блок кнопок. */}
+        {hasActions && (
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+            {hasCompactAction && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+                {showAddToLeague && (
+                  <button onClick={onAddToLeague}
+                    style={{ padding: "8px 16px", border: "none", borderRadius: 10, background: "var(--lime)", color: "var(--lime-fg)", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "'Outfit'" }}>
+                    {t("add_to_league")}
+                  </button>
+                )}
+                {showSetRole && (
+                  <button onClick={() => onSetRole(player.role === "admin" ? "member" : "admin")}
+                    style={{ padding: "8px 14px", border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", borderRadius: 10, background: "none", color: "var(--lime)", fontSize: 12, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "'Outfit'" }}>
+                    <ShieldCheck size={12} /> {player.role === "admin" ? t("unset_organizer") : t("set_organizer")}
+                  </button>
+                )}
+                {showGenClaim && (
+                  <button onClick={generateClaimCode} disabled={genBusy}
+                    style={{ padding: "8px 16px", border: "1px solid rgba(200,255,45,.4)", borderRadius: 10, background: "rgba(200,255,45,.07)", color: "var(--lime)", fontSize: 12, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "'Outfit'" }}>
+                    <Share2 size={13} /> {genBusy ? t("creating") : t("create_claim_link")}
+                  </button>
+                )}
+                {showDelete && (
+                  <button onClick={() => setShowDeleteModal(true)}
+                    style={{ padding: "8px 14px", border: "1px solid rgba(255,106,82,.35)", borderRadius: 10, background: "none", color: "var(--coral)", fontSize: 12, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "'Outfit'" }}>
+                    <Trash2 size={12} /> {t("remove_from_league")}
+                  </button>
+                )}
+              </div>
+            )}
+            {showClaimLink && <ClaimLinkButton claimCode={localClaimCode} />}
+          </div>
         )}
       </div>
 

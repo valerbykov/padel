@@ -42,6 +42,14 @@ export function swr(key, fn) {
   return p;
 }
 
+// Точечно сбросить один ключ (память + localStorage) — чтобы следующий swr() сходил
+// на сервер за свежими данными именно по нему, не сбрасывая весь кэш.
+export function bustKey(key) {
+  MEM.delete(key);
+  INFLIGHT.delete(key);
+  try { localStorage.removeItem(LS_PREFIX + key); } catch { /* недоступно */ }
+}
+
 export function bustCache() {
   MEM.clear();
   INFLIGHT.clear();

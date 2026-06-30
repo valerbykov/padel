@@ -2,7 +2,7 @@
 // Слой данных: каждая функция соответствует операции в прототипе.
 // Названия таблиц/колонок совпадают со schema.sql.
 import { supabase } from "./supabase";
-import { swr, bustCache } from "./cache";
+import { swr, bustCache, bustKey } from "./cache";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const genCode = () =>
@@ -255,6 +255,18 @@ async function _getPlayedWith() {
   }));
 }
 export function getPlayedWith() { return swr("played_with", _getPlayedWith); }
+
+// #4: совсем скрыть игрока из «Играли вместе» (хранится в аккаунте). Обратимо.
+export async function hidePartner(profileId) {
+  const { error } = await supabase.rpc("hide_partner", { p_profile_id: profileId });
+  if (error) throw error;
+  bustKey("played_with");
+}
+export async function unhidePartner(profileId) {
+  const { error } = await supabase.rpc("unhide_partner", { p_profile_id: profileId });
+  if (error) throw error;
+  bustKey("played_with");
+}
 
 // Список игр группы (для вкладки «Игры»).
 async function _listGames(groupId) {

@@ -54,6 +54,7 @@ const T = {
     pc_upload_photo: 'Загрузить фото', pc_uploading: 'Загрузка…',
     pc_or_pick: 'или выбери аватар:',
     pc_first_name: 'Имя', pc_last_name: 'Фамилия', pc_phone: 'Телефон', pc_email: 'Почта',
+    pc_auth_method: 'Способ входа', pc_auth_email: 'Email / пароль',
     pc_save: 'Сохранить', pc_saving: 'Сохраняю…', pc_saved: 'Сохранено',
     pc_upload_fail: 'Не удалось загрузить фото', pc_error: 'Ошибка',
     pc_stats_hint: 'Статистика, история и уровень — в профиле игрока: вкладка «Друзья» → нажми на себя.',
@@ -144,7 +145,7 @@ const T = {
     create_claim_link: 'Создать ссылку для регистрации',
     // ── Player detail ─────────────────────────────────────────────────────
     add_to_league: '+ Добавить в лигу',
-    remove_from_league: 'Удалить из лиги', remove_from_league_sub: 'Игрок выйдет из лиги, но история игр и турниров сохранится — его можно вернуть.', remove_btn: 'Убрать',
+    remove_from_league: 'Удалить из лиги', remove_from_league_sub: 'Игрок выйдет из лиги, но история игр и турниров сохранится — его можно вернуть.', remove_btn: 'Убрать', hide_btn: 'Скрыть',
     badge_leader: 'Лидер лиги', badge_leader_title: 'Первое место по рейтингу',
     badge_sniper: 'Снайпер', badge_sniper_title: '70%+ побед в матчах',
     badge_veteran: 'Ветеран', badge_veteran_title: '20+ сыгранных матчей',
@@ -291,6 +292,7 @@ const T = {
     trn_queue_label: 'В ОЧЕРЕДИ',
     trn_enter_score: 'Введи счёт матча.',
     trn_enter_all_scores: 'Заполни счёт всех кортов, чтобы перейти к следующему раунду.',
+    trn_round_locked: 'Сначала заполни счёт предыдущих раундов.',
     trn_next_round: 'Следующий раунд →',
     trn_next_round_mex: 'Следующий раунд (Мексикано)',
     trn_drawing: 'Жеребьёвка…',
@@ -363,6 +365,7 @@ const T = {
     pc_upload_photo: 'Upload photo', pc_uploading: 'Uploading…',
     pc_or_pick: 'or pick an avatar:',
     pc_first_name: 'First name', pc_last_name: 'Last name', pc_phone: 'Phone', pc_email: 'Email',
+    pc_auth_method: 'Sign-in method', pc_auth_email: 'Email / password',
     pc_save: 'Save', pc_saving: 'Saving…', pc_saved: 'Saved',
     pc_upload_fail: 'Could not upload photo', pc_error: 'Error',
     pc_stats_hint: 'Stats, history and level live in your player profile: the Friends tab → tap yourself.',
@@ -453,7 +456,7 @@ const T = {
     create_claim_link: 'Create registration link',
     // ── Player detail ─────────────────────────────────────────────────────
     add_to_league: '+ Add to league',
-    remove_from_league: 'Remove from league', remove_from_league_sub: 'The player leaves the league, but their games and tournaments history stays — you can add them back.', remove_btn: 'Remove',
+    remove_from_league: 'Remove from league', remove_from_league_sub: 'The player leaves the league, but their games and tournaments history stays — you can add them back.', remove_btn: 'Remove', hide_btn: 'Hide',
     badge_leader: 'League leader', badge_leader_title: 'First place in rating',
     badge_sniper: 'Sniper', badge_sniper_title: '70%+ win rate',
     badge_veteran: 'Veteran', badge_veteran_title: '20+ played matches',
@@ -600,6 +603,7 @@ const T = {
     trn_queue_label: 'IN QUEUE',
     trn_enter_score: 'Enter match score.',
     trn_enter_all_scores: 'Fill in all court scores to proceed to the next round.',
+    trn_round_locked: 'Fill in the previous rounds’ scores first.',
     trn_next_round: 'Next round →',
     trn_next_round_mex: 'Next round (Mexicano)',
     trn_drawing: 'Drawing…',
@@ -672,6 +676,7 @@ const T = {
     pc_upload_photo: 'Subir foto', pc_uploading: 'Subiendo…',
     pc_or_pick: 'o elige un avatar:',
     pc_first_name: 'Nombre', pc_last_name: 'Apellido', pc_phone: 'Teléfono', pc_email: 'Correo',
+    pc_auth_method: 'Método de acceso', pc_auth_email: 'Email / contraseña',
     pc_save: 'Guardar', pc_saving: 'Guardando…', pc_saved: 'Guardado',
     pc_upload_fail: 'No se pudo subir la foto', pc_error: 'Error',
     pc_stats_hint: 'Estadísticas, historial y nivel están en tu perfil de jugador: pestaña «Amigos» → tócate a ti.',
@@ -762,7 +767,7 @@ const T = {
     create_claim_link: 'Crear enlace de registro',
     // ── Player detail ─────────────────────────────────────────────────────
     add_to_league: '+ Añadir a liga',
-    remove_from_league: 'Eliminar de la liga', remove_from_league_sub: 'El jugador sale de la liga, pero su historial de juegos y torneos se conserva — puedes volver a añadirlo.', remove_btn: 'Quitar',
+    remove_from_league: 'Eliminar de la liga', remove_from_league_sub: 'El jugador sale de la liga, pero su historial de juegos y torneos se conserva — puedes volver a añadirlo.', remove_btn: 'Quitar', hide_btn: 'Ocultar',
     badge_leader: 'Líder de liga', badge_leader_title: 'Primer puesto en clasificación',
     badge_sniper: 'Francotirador', badge_sniper_title: '70%+ ratio de victorias',
     badge_veteran: 'Veterano', badge_veteran_title: '20+ partidas jugadas',
@@ -909,6 +914,7 @@ const T = {
     trn_queue_label: 'EN COLA',
     trn_enter_score: 'Introduce el marcador del partido.',
     trn_enter_all_scores: 'Rellena los marcadores de todas las pistas para pasar a la siguiente ronda.',
+    trn_round_locked: 'Primero rellena los marcadores de las rondas anteriores.',
     trn_next_round: 'Siguiente ronda →',
     trn_next_round_mex: 'Siguiente ronda (Mexicano)',
     trn_drawing: 'Sorteando…',
@@ -933,6 +939,13 @@ const T = {
 };
 
 export let currentLang = localStorage.getItem('plLang') || 'ru';
+
+// Сменить активный язык БЕЗ записи в localStorage — для гео-guess на первом заходе,
+// пока пользователь/гео не зафиксировали выбор явно через setLang.
+export function applyLang(lang) {
+  if (!LANGS.includes(lang)) return;
+  currentLang = lang;
+}
 
 export function setLang(lang) {
   if (!LANGS.includes(lang)) return;

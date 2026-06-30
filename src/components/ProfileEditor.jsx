@@ -4,10 +4,19 @@
 // поэтому здесь их не дублируем — даём указатель.
 // props: { onClose, onSaved, theme }
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
-import { ArrowLeft, Camera, Check, Loader, LogOut, BarChart3, Sun, Moon } from "lucide-react";
+import { Camera, Check, Loader, LogOut, BarChart3, Sun, Moon, X } from "lucide-react";
 import Avatar from "./Avatar";
 import { t, setLang } from "../lib/i18n";
+
+// #7: способ входа — для подписи в ЛК. yandex/telegram кладут provider в user_metadata
+// (свои edge-функции), google/email — в app_metadata (нативные провайдеры Supabase).
+const AUTH_PROVIDERS = {
+  google:   { label: "Google",   icon: "G", color: "#4285F4" },
+  yandex:   { label: "Yandex",   icon: "Я", color: "#FC3F1D" },
+  telegram: { label: "Telegram", icon: "✈", color: "#229ED9" },
+};
 
 const PRESETS = Array.from({ length: 15 }, (_, i) => `/avatars/dog-${String(i + 1).padStart(2, "0")}.webp`);
 
@@ -51,6 +60,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
   const [msg, setMsg] = useState(null); // { ok, text }
   const [whatsapp, setWhatsapp] = useState("");
   const [telegram, setTelegram] = useState("");
+  const [provider, setProvider] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -58,6 +68,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
       if (!user) { setLoading(false); return; }
       setUserId(user.id);
       setEmail(user.email || "");
+      setProvider(user.user_metadata?.provider || user.app_metadata?.provider || "email");
       const { data } = await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle();
       if (data) {
         setFirstName(data.first_name || "");
@@ -106,25 +117,29 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
 
   const signOut = async () => { try { await supabase.auth.signOut(); } catch (e) {} onClose?.(); };
 
-  return (
-    <div className={"pc-root" + (theme === "light" ? " pc-light" : "")}>
+  const prov = provider ? (AUTH_PROVIDERS[provider] || { label: t("pc_auth_email"), icon: "@", color: "var(--mut)" }) : null;
+
+  return createPortal(
+    <div className={"pc-root" + (theme === "light" ? " pc-light" : "")} onClick={onClose}
+      style={{ position: "fixed", inset: 0, zIndex: 300, minHeight: 0, background: "rgba(0,0,0,.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
       <style>{css}</style>
-      {/* Топбар как у остальных вкладок: назад + сегмент язык/тема */}
-      <div className="pc-topbar">
-        <button className="pc-ghost" style={{ padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: 6 }} onClick={onClose}><ArrowLeft size={14} /> {t("back")}</button>
-        <div className="pc-seg">
-          <button onClick={cycleLang} aria-label={t("aria_lang")}>{lang.toUpperCase()} <span style={{ color: "var(--mut)", fontWeight: 400, fontSize: 13 }}>↻</span></button>
-          <button onClick={onThemeToggle} aria-label={t("aria_theme")} style={{ padding: "5px 8px" }}>{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}</button>
+      <div onClick={(e) => e.stopPropagation()}
+        style={{ width: "100%", maxWidth: 460, maxHeight: "92vh", background: "var(--bg)", borderRadius: "20px 20px 0 0", boxShadow: "0 -8px 40px rgba(0,0,0,.5)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {/* Шапка модалки: заголовок + язык/тема + закрыть */}
+        <div className="pc-topbar" style={{ borderRadius: "20px 20px 0 0" }}>
+          <h2 className="pc-d" style={{ fontSize: 18, margin: 0 }}>{t("pc_title")}</h2>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div className="pc-seg">
+              <button onClick={cycleLang} aria-label={t("aria_lang")}>{lang.toUpperCase()} <span style={{ color: "var(--mut)", fontWeight: 400, fontSize: 13 }}>↻</span></button>
+              <button onClick={onThemeToggle} aria-label={t("aria_theme")} style={{ padding: "5px 8px" }}>{theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}</button>
+            </div>
+            <button className="pc-ghost" style={{ padding: "6px 9px" }} onClick={onClose} aria-label={t("back")}><X size={16} /></button>
+          </div>
         </div>
-      </div>
-      <div style={{ maxWidth: 460, margin: "0 auto", padding: "16px 16px 40px" }}>
-        {/* Заголовок + переход к статистике (кнопка как «Личный кабинет» в карточке игрока) */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-          <h1 className="pc-d" style={{ fontSize: 26, margin: 0, flex: 1, minWidth: 0 }}>{t("pc_title")}</h1>
-          {onOpenStats && userId && (
-            <button className="pc-ghost" style={{ padding: "6px 12px", color: "var(--lime)", borderColor: "color-mix(in srgb, var(--lime) 35%, transparent)", flexShrink: 0 }} onClick={onOpenStats}>{t("pc_open_stats")}</button>
-          )}
-        </div>
+      <div style={{ overflowY: "auto", padding: "16px", flex: 1 }}>
+        {onOpenStats && userId && (
+          <button className="pc-ghost" style={{ width: "100%", padding: "10px 12px", marginBottom: 14, color: "var(--lime)", borderColor: "color-mix(in srgb, var(--lime) 35%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={onOpenStats}><BarChart3 size={15} /> {t("pc_open_stats")}</button>
+        )}
 
         {loading ? (
           <div className="pc-card" style={{ textAlign: "center", color: "var(--mut)" }}>{t("loading")}</div>
@@ -173,6 +188,15 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
                 </div>
               </div>
               <div><div className="pc-label">{t("pc_email")}</div><input className="pc-input" value={email} disabled /></div>
+              {prov && (
+                <div>
+                  <div className="pc-label">{t("pc_auth_method")}</div>
+                  <div className="pc-input" style={{ display: "flex", alignItems: "center", gap: 10, cursor: "default" }}>
+                    <span style={{ width: 24, height: 24, borderRadius: 7, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", background: prov.color, color: "#fff", fontWeight: 800, fontSize: 13 }}>{prov.icon}</span>
+                    <span style={{ fontWeight: 600 }}>{prov.label}</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <button className="pc-btn" style={{ width: "100%", padding: 14, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} disabled={busy} onClick={save}>
@@ -186,6 +210,8 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
           </>
         )}
       </div>
-    </div>
+      </div>
+    </div>,
+    document.body
   );
 }

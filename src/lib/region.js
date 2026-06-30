@@ -51,3 +51,31 @@ export async function detectRegion() {
   cached = fromProxySignal();
   return cached;
 }
+
+// Возвращает ISO-код страны ("RU", "ES", "AR", …), уточняя через сеть. Кэшируется
+// в том же pp_country, что и detectRegion. Для гео-выбора языка на первом заходе.
+export async function detectCountry() {
+  if (PROXY) {
+    try { const cc = await fetchCountry(PROXY + "/geo", (j) => j && j.country); if (cc) { remember(cc); return cc.toUpperCase(); } } catch (e) { /* ignore */ }
+  }
+  try { const cc = await fetchCountry("https://ipwho.is/?fields=country_code", (j) => j && j.country_code); if (cc) { remember(cc); return cc.toUpperCase(); } } catch (e) { /* ignore */ }
+  try { const c = localStorage.getItem(KEY); if (c) return c.toUpperCase(); } catch (e) { /* ignore */ }
+  return null;
+}
+
+// Испаноязычные страны (Испания + Латинская Америка).
+const ES_COUNTRIES = new Set([
+  "ES", "MX", "AR", "CO", "PE", "VE", "CL", "EC", "GT", "CU", "BO",
+  "DO", "HN", "PY", "SV", "NI", "CR", "PA", "UY", "GQ", "PR",
+]);
+// Русскоязычные страны.
+const RU_COUNTRIES = new Set(["RU", "BY", "KZ", "KG"]);
+
+// Карта «страна → язык интерфейса». Испания/ЛатАм → es, РФ/СНГ-ru → ru, всё прочее → en.
+export function langFromCountry(cc) {
+  if (!cc) return null;
+  const c = String(cc).toUpperCase();
+  if (ES_COUNTRIES.has(c)) return "es";
+  if (RU_COUNTRIES.has(c)) return "ru";
+  return "en";
+}
