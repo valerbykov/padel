@@ -13,3 +13,17 @@ export function dogAvatar(idOrName) {
 
 // Кастомное фото игрока, иначе — собака-фолбэк.
 export const playerAvatar = (url, idOrName) => url || dogAvatar(idOrName);
+
+// onError-обработчик для <img> аватара. playerAvatar/Avatar дают собаку только
+// когда url пустой; но если url НЕ пустой и не грузится (битая ссылка, удалённый
+// объект в Storage, заблокированный внешний хост) — браузер показывает «битую
+// картинку». Этот хендлер при провале загрузки один раз подменяет src на собаку.
+// Флаг dataset защищает от петли, если вдруг и собака не загрузится.
+export function avatarFallback(idOrName) {
+  return (e) => {
+    const img = e.currentTarget;
+    if (img.dataset.dogFallback) return;
+    img.dataset.dogFallback = "1";
+    img.src = dogAvatar(idOrName);
+  };
+}

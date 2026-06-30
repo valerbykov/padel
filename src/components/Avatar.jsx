@@ -2,13 +2,14 @@
 // Всегда показывает картинку: кастомное фото (url) или брендовую собаку-фолбэк.
 // props: name, url, id (для хеша фолбэка), size, ring (цвет кольца), style.
 import React from "react";
-import { dogAvatar } from "../lib/avatar";
+import { dogAvatar, avatarFallback } from "../lib/avatar";
 
 export default function Avatar({ name = "", url, id, size = 36, ring, style }) {
   const src = url || dogAvatar(id || name);
   return (
     <img
       src={src}
+      onError={avatarFallback(id || name)}
       alt=""
       loading="lazy"
       decoding="async"

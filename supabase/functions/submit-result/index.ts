@@ -75,15 +75,21 @@ Deno.serve(async (req) => {
           profileId = created!.id;
         }
       }
-      // гарантируем членство в группе с рейтингом
-      let { data: gm } = await admin.from("group_members")
+      // Членство в лиге НЕ создаём: участие в игре не добавляет игрока в лигу
+      // (в лигу — только 3 явными путями: «Добавить игрока», «Играли вместе →
+      // Добавить в лигу», код/ссылка). Если игрок уже член — берём его рейтинг и
+      // обновим ниже; если нет — считаем ELO по дефолту, но рейтинг/строку членства
+      // ему НЕ пишем (иначе удалённые из лиги возвращались бы при вводе счёта).
+      const { data: gm } = await admin.from("group_members")
         .select("rating, matches_played, wins")
         .eq("group_id", game.group_id).eq("profile_id", profileId).maybeSingle();
-      if (!gm) {
-        await admin.from("group_members").insert({ group_id: game.group_id, profile_id: profileId, rating: START });
-        gm = { rating: START, matches_played: 0, wins: 0 };
-      }
-      return { profileId, ...gm };
+      return {
+        profileId,
+        isMember: !!gm,
+        rating: gm?.rating ?? START,
+        matches_played: gm?.matches_played ?? 0,
+        wins: gm?.wins ?? 0,
+      };
     }
 
     // Один и тот же ВЫБРАННЫЙ игрок (по profile_id) не может занимать два слота —
@@ -124,8 +130,11 @@ Deno.serve(async (req) => {
 
     // 7. Обновляем рейтинги + история + закрываем игру.
     await Promise.all(players.map((p) => {
+      // Не-член лиги: матч записан выше (история сохранена), но рейтинг и историю
+      // рейтинга в этой лиге ему не ведём — участие не делает игрока членом лиги.
+      if (!p.isMember) return Promise.resolve();
       const isDraw = setsA === setsB;
-    const won = !isDraw && ((winnerA && (p === a1 || p === a2)) || (!winnerA && (p === b1 || p === b2)));
+      const won = !isDraw && ((winnerA && (p === a1 || p === a2)) || (!winnerA && (p === b1 || p === b2)));
       return Promise.all([
         admin.from("group_members").update({
           rating: after[p.profileId],
