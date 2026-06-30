@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "./lib/supabase";
-import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName } from "./lib/padelApi";
+import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated } from "./lib/padelApi";
 import { getRatingHistory } from "./lib/statsApi";
 import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
 import { t, nGames } from "./lib/i18n";
@@ -15,18 +15,12 @@ import CourtView from "./components/CourtView";
 import EmptyState from "./components/EmptyState";
 import Avatar from "./components/Avatar";
 import LeagueLogo from "./components/LeagueLogo";
+import Analytics from "./components/Analytics";
 import { dogAvatar, playerAvatar, DOG_COUNT } from "./lib/avatar";
+import { playerLevel } from "./lib/level";
 
 // Текущая дата-время в формате datetime-local (YYYY-MM-DDTHH:MM) с учётом таймзоны.
 const nowLocalDT = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
-
-function playerLevel(matches, rating) {
-  if (rating >= 1200) return { label: t("level_legend"), color: "var(--yellow)" };
-  if (matches >= 50)  return { label: t("level_master"), color: "var(--lime)" };
-  if (matches >= 20)  return { label: t("level_experienced"), color: "#7ec8e3" };
-  if (matches >= 5)   return { label: t("level_amateur"), color: "#a0d890" };
-  return { label: t("level_beginner"), color: "var(--mut)" };
-}
 
 const fmtDate = (iso) => {
   if (!iso) return "";
@@ -86,19 +80,6 @@ function LineChart({ values }) {
       <polyline points={pts} fill="none" strokeWidth="2.5" style={{ stroke: "var(--lime)" }} strokeLinejoin="round" strokeLinecap="round" />
       {values.map((v, i) => <circle key={i} cx={x(i)} cy={y(v)} r="2.5" strokeWidth="2" style={{ fill: "var(--bg)", stroke: "var(--lime)" }} />)}
     </svg>
-  );
-}
-
-function Step({ label, v, set }) {
-  return (
-    <div style={{ textAlign: "center" }}>
-      <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 4 }}>{label}</div>
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <button className="pl-ghost" style={{ width: 34, height: 34, borderRadius: 10 }} onClick={() => set(Math.max(0, v - 1))}><ChevronDown size={16} /></button>
-        <div className="pl-display" style={{ fontSize: 26, width: 26, color: "var(--lime)" }}>{v}</div>
-        <button className="pl-ghost" style={{ width: 34, height: 34, borderRadius: 10 }} onClick={() => set(Math.min(3, v + 1))}><ChevronUp size={16} /></button>
-      </div>
-    </div>
   );
 }
 
@@ -250,7 +231,7 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLand
         {/* «Стая» — брендовые собаки-игроки, чтобы было понятно, про какую стаю речь. */}
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
           {heroDogs.map((d, i) => (
-            <img key={d} src={`/avatars/${d}.png`} alt="" loading="lazy" decoding="async"
+            <img key={d} src={`/avatars/${d}.webp`} alt="" loading="lazy" decoding="async"
               style={{ width: 54, height: 54, borderRadius: "50%", objectFit: "cover", border: "2.5px solid var(--bg)", marginLeft: i ? -15 : 0, boxShadow: "0 4px 14px -6px rgba(0,0,0,.55)", background: "var(--surface)", position: "relative", zIndex: i }} />
           ))}
         </div>
@@ -319,6 +300,7 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLand
 /* --------------------------------- Board ---------------------------------- */
 function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leagues, activeLeague, onLeagueChange, onLeagueCreated, onEditProfile, selfStatsNonce = 0 }) {
   const [open, setOpen] = useState(false);
+  const [showStats, setShowStats] = useState(false);  // дашборд аналитики лиги
   const [query, setQuery] = useState("");
   const [netPlayers, setNetPlayers] = useState([]);
   const [name, setName] = useState("");
@@ -428,7 +410,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
     if (busy) return;
     setBusy(true);
     try { await addExistingMember(groupId, p.id); setNetPlayers((prev) => prev.filter((x) => x.id !== p.id)); setQuery(""); reload(); }
-    catch (e) { alert("Не удалось добавить игрока"); }
+    catch (e) { alert(t("err_add_player")); }
     finally { setBusy(false); }
   };
 
@@ -438,9 +420,11 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
     if (!n || busy) return;
     setBusy(true);
     try { await addMember(groupId, n, {}); setQuery(""); reload(); }
-    catch (e) { alert("Не удалось добавить игрока"); }
+    catch (e) { alert(t("err_add_player")); }
     finally { setBusy(false); }
   };
+
+  if (showStats) return <Analytics groupId={groupId} onBack={() => setShowStats(false)} />;
 
   if (selected) return (
     <PlayerDetail groupId={groupId} player={selected} players={players} close={() => setSelected(null)}
@@ -487,7 +471,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
       const lg = await createLeague(newLeagueName.trim());
       onLeagueCreated && onLeagueCreated(lg);
       setShowNewLeague(false); setNewLeagueName("");
-    } catch (e) { setLeagueErr(e.message || "Ошибка"); }
+    } catch (e) { setLeagueErr(e.message || t("err_generic")); }
     finally { setLeagueBusy(false); }
   };
 
@@ -500,9 +484,9 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
       setShowNewLeague(false); setJoinCode("");
     } catch (e) {
       const msg = e.message || "";
-      if (msg.includes("league_not_found")) setLeagueErr("Лига не найдена");
-      else if (msg.includes("already_member")) setLeagueErr("Вы уже в этой лиге");
-      else setLeagueErr(msg || "Ошибка");
+      if (msg.includes("league_not_found")) setLeagueErr(t("err_league_not_found"));
+      else if (msg.includes("already_member")) setLeagueErr(t("err_already_member"));
+      else setLeagueErr(msg || t("err_generic"));
     } finally { setLeagueBusy(false); }
   };
 
@@ -601,6 +585,11 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
           <Users size={18} /> {t("add_player")}
         </button>
       )}
+      {groupId && ranked.length > 0 && (
+        <button className="pl-ghost" style={{ width: "100%", padding: 12, marginTop: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontWeight: 600, color: "var(--lime)", borderColor: "color-mix(in srgb, var(--lime) 30%, transparent)" }} onClick={() => setShowStats(true)}>
+          <TrendingUp size={18} /> {t("an_open")}
+        </button>
+      )}
       {/* Форма добавления — модалка-лист (портал в body), всегда видна, даже при длинном списке. */}
       {groupId && open && createPortal(
         <div onClick={() => { setQuery(""); setOpen(false); }} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-end", justifyContent: "center", fontFamily: "'Outfit',sans-serif" }}>
@@ -669,7 +658,7 @@ function DeletePlayerModal({ player, onConfirm, onCancel }) {
   const go = async () => {
     setBusy(true);
     try { await onConfirm(deleteGames); }
-    catch (e) { alert("Не удалось удалить"); setBusy(false); }
+    catch (e) { alert(t("err_delete")); setBusy(false); }
   };
 
   return (
@@ -1572,8 +1561,8 @@ function CreateGame({ groupId, players, back, done }) {
     // ISO с таймзоной — чтобы введённое локальное время совпадало с показанным.
     let startsAtIso = null;
     try { if (date) startsAtIso = new Date(date).toISOString(); } catch (e) { startsAtIso = null; }
-    try { await createGame(groupId, { title: title.trim() || null, startsAt: startsAtIso, place, slots }); done(); }
-    catch (e) { alert("Не удалось создать игру"); setBusy(false); }
+    try { const g = await createGame(groupId, { title: title.trim() || null, startsAt: startsAtIso, place, slots }); notifyGameCreated(g?.id); done(); }
+    catch (e) { alert(t("err_create_game")); setBusy(false); }
   };
 
   const stepBadge = (txt) => (
@@ -1720,7 +1709,7 @@ function GameCourtBlock({ game, index, total, groupId, reloadSession, reloadLead
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
         <span className="pl-display" style={{ fontSize: 15 }}>{total > 1 ? `${t("mix_game_label")} ${index + 1}` : (game.title || "Padel")}</span>
         {game.starts_at && <span style={{ fontSize: 12, color: "var(--mut)", display: "inline-flex", alignItems: "center", gap: 4 }}><Calendar size={12} />{fmtDate(game.starts_at)}</span>}
-        <button className="pl-ghost" style={{ marginLeft: "auto", padding: "5px 8px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)" }} onClick={del} title="Удалить"><Trash2 size={13} /></button>
+        <button className="pl-ghost" style={{ marginLeft: "auto", padding: "5px 8px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)" }} onClick={del} title={t("delete_btn")}><Trash2 size={13} /></button>
       </div>
       {played ? (
         <CourtView courtNumber={index + 1} mode="sets" courtName={game.court_name} onRenameCourt={renameCourt}
@@ -1791,7 +1780,7 @@ function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArc
       bumpArchive && bumpArchive();
       reloadGames && reloadGames();
       await loadSession(); // новая игра появляется ниже на той же странице (ввод счёта inline)
-    } catch (e) { alert("Не удалось создать игру"); setMixBusy(false); }
+    } catch (e) { alert(t("err_create_game")); setMixBusy(false); }
   };
 
   if (game.status === "played") {
@@ -1839,7 +1828,7 @@ function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArc
     <div className="pl-pop">
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         {back && <button className="pl-ghost" style={{ padding: "6px 12px" }} onClick={back}>{t("to_list")}</button>}
-        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(game.id); bumpArchive && bumpArchive(); reloadGames && reloadGames(); back && back(); }} title="Удалить"><Trash2 size={14} /></button>
+        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(game.id); bumpArchive && bumpArchive(); reloadGames && reloadGames(); back && back(); }} title={t("delete_btn")}><Trash2 size={14} /></button>
       </div>
       <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1892,27 +1881,6 @@ function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArc
         )}
       </div>
       </div>
-    </div>
-  );
-}
-
-function EnterScore({ gameId, reloadGames, reloadLeaderboard }) {
-  const [sA, setSA] = useState(0), [sB, setSB] = useState(0), [busy, setBusy] = useState(false);
-  const valid = sA !== sB;
-  const record = async () => {
-    if (!valid) return;
-    setBusy(true);
-    try { await submitResult(gameId, sA, sB); await Promise.all([reloadGames(), reloadLeaderboard()]); }
-    catch (e) { alert("Не удалось записать результат"); setBusy(false); }
-  };
-  return (
-    <div style={{ marginTop: 12, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
-      <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "center" }}>
-        <Step label={t("sets_a_label")} v={sA} set={setSA} />
-        <span className="pl-display" style={{ fontSize: 20 }}>:</span>
-        <Step label={t("sets_b_label")} v={sB} set={setSB} />
-      </div>
-      <button className="pl-btn" style={{ width: "100%", padding: 12, marginTop: 12 }} disabled={!valid || busy} onClick={record}>{busy ? t("recording") : t("record_score")}</button>
     </div>
   );
 }
