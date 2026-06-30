@@ -2,13 +2,13 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "./lib/supabase";
-import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated } from "./lib/padelApi";
+import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole } from "./lib/padelApi";
 import { getRatingHistory } from "./lib/statsApi";
 import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
 import { t, nGames } from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
-import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, BadgeCheck } from "lucide-react";
+import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, BadgeCheck, ShieldCheck } from "lucide-react";
 import Tournaments, { TournamentView, TournamentCard, css as trCss } from "./components/Tournaments";
 import { deleteTournament } from "./lib/tournamentApi";
 import CourtView from "./components/CourtView";
@@ -441,6 +441,12 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         reload();
         setSelected(null);
       } : undefined}
+      isOwner={activeLeague?.role === "owner"}
+      onSetRole={activeLeague?.role === "owner" ? async (role) => {
+        await setMemberRole(groupId, selected.id, role);
+        reload();
+        setSelected(null);
+      } : undefined}
     />
   );
 
@@ -546,6 +552,8 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
                 {p.user_id
                   ? <BadgeCheck size={14} style={{ color: "var(--lime)", flexShrink: 0 }} aria-label={t("account_badge")} />
                   : <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, background: "var(--surface2)", color: "var(--mut)", border: "1px solid var(--line)", flexShrink: 0 }}>{t("guest_tag")}</span>}
+                {p.role === "owner" && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, background: "color-mix(in srgb, var(--yellow) 18%, transparent)", color: "var(--yellow)", border: "1px solid color-mix(in srgb, var(--yellow) 40%, transparent)", flexShrink: 0 }}>{t("role_owner")}</span>}
+                {p.role === "admin" && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, background: "color-mix(in srgb, var(--lime) 15%, transparent)", color: "var(--lime)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", flexShrink: 0 }}>{t("role_organizer")}</span>}
               </div>
               <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 4, fontSize: 12, color: "var(--mut)" }}>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_games")}><Swords size={13} /> {gamesOf(p)}</span><span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_tournaments")}><Award size={13} /> {toursOf(p)}</span></span>
@@ -756,7 +764,7 @@ function PartnerCard({ label, bp, name, avatarUrl, help }) {
 }
 
 /* ----------------------------- PlayerDetail ------------------------------- */
-function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAddToLeague, onEditProfile }) {
+function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOwner, onAddToLeague, onEditProfile, onSetRole }) {
   const [hist, setHist] = useState(null);
   const [myId, setMyId] = useState(null);
   const [allMatches, setAllMatches] = useState(null);
@@ -1103,6 +1111,12 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
           <button onClick={() => setShowDeleteModal(true)}
             style={{ marginTop: 10, padding: "6px 14px", border: "1px solid rgba(255,106,82,.35)", borderRadius: 10, background: "none", color: "var(--coral)", fontSize: 12, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}>
             <Trash2 size={12} /> {t("remove_from_league")}
+          </button>
+        )}
+        {onSetRole && isOwner && player.user_id && player.role !== "owner" && myId !== player.id && isInLeague && (
+          <button onClick={() => onSetRole(player.role === "admin" ? "member" : "admin")}
+            style={{ marginTop: 10, padding: "6px 14px", border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", borderRadius: 10, background: "none", color: "var(--lime)", fontSize: 12, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <ShieldCheck size={12} /> {player.role === "admin" ? t("unset_organizer") : t("set_organizer")}
           </button>
         )}
       </div>

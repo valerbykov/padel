@@ -38,7 +38,7 @@ async function _getLeaderboard(groupId) {
   // (account-takeover). Он выдаётся точечно админу через ensure_claim_code RPC.
   const { data, error } = await supabase
     .from("group_members")
-    .select("rating, matches_played, wins, profile:profiles(id, name, avatar_url, contacts, user_id)")
+    .select("rating, matches_played, wins, role, profile:profiles(id, name, avatar_url, contacts, user_id)")
     .eq("group_id", groupId)
     .order("rating", { ascending: false });
   if (error) throw error;
@@ -51,6 +51,7 @@ async function _getLeaderboard(groupId) {
     matches: r.matches_played,
     wins: r.wins,
     user_id: r.profile.user_id || null,
+    role: r.role,
   }));
 }
 export function getLeaderboard(groupId) {
@@ -335,6 +336,14 @@ export async function removeMember(groupId, profileId) {
   const { error } = await supabase.from("group_members")
     .delete().eq("group_id", groupId).eq("profile_id", profileId);
   if (error) throw error;
+}
+
+// Назначить/снять организатора. Только владелец (проверяется в RPC set_member_role).
+// role: 'admin' (организатор) | 'member' (обычный участник). Владельца не трогает.
+export async function setMemberRole(groupId, profileId, role) {
+  const { error } = await supabase.rpc("set_member_role", { p_group_id: groupId, p_profile_id: profileId, p_role: role });
+  if (error) throw error;
+  bustCache();
 }
 
 // Профили участников группы по id (для раздела «Играли вместе», обход RLS).
