@@ -298,6 +298,54 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLand
 }
 
 /* --------------------------------- Board ---------------------------------- */
+// Двунаправленный свайп строки доски: влево раскрывает «Убрать», вправо —
+// «Организатор» (если доступно). Действие — ТАПОМ по раскрытой кнопке, не
+// авто-коммитом: случайный край-свайп ничего не делает. Тап по строке без свайпа
+// открывает карточку игрока. Если действий нет — обычная строка без свайпа.
+function SwipeRow({ onRemove, onOrganize, organizerActive, children }) {
+  const [dx, setDx] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const startX = useRef(0), startY = useRef(0), startDx = useRef(0), active = useRef(false), moved = useRef(false);
+  const LEFT = onRemove ? 104 : 0;
+  const RIGHT = onOrganize ? 104 : 0;
+  if (!LEFT && !RIGHT) return <div style={{ marginBottom: 8 }}>{children}</div>;
+  const down = (e) => { startX.current = e.clientX; startY.current = e.clientY; startDx.current = dx; active.current = true; moved.current = false; setDragging(true); try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} };
+  const move = (e) => {
+    if (!active.current) return;
+    const dX = e.clientX - startX.current, dY = e.clientY - startY.current;
+    if (startDx.current === 0 && !moved.current && Math.abs(dY) > Math.abs(dX) && Math.abs(dY) > 6) { active.current = false; setDragging(false); return; }
+    if (Math.abs(dX) > 4) moved.current = true;
+    setDx(Math.max(-LEFT, Math.min(RIGHT, startDx.current + dX)));
+  };
+  const up = () => {
+    if (!active.current) return; active.current = false; setDragging(false);
+    setDx((cur) => (LEFT && cur <= -LEFT * 0.45) ? -LEFT : (RIGHT && cur >= RIGHT * 0.45 ? RIGHT : 0));
+  };
+  const guard = (e) => {
+    if (moved.current) { e.stopPropagation(); moved.current = false; return; }  // хвостовой клик после драга
+    if (dx !== 0) { e.stopPropagation(); setDx(0); }                            // тап по раскрытой — закрыть
+  };
+  const actBtn = { position: "absolute", top: 0, bottom: 0, width: 104, border: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontSize: 11, fontWeight: 700 };
+  return (
+    <div style={{ position: "relative", marginBottom: 8, borderRadius: 16, overflow: "hidden" }}>
+      {RIGHT > 0 && (
+        <button type="button" onClick={() => { setDx(0); onOrganize(); }} style={{ ...actBtn, left: 0, background: "var(--lime)", color: "var(--lime-fg)" }}>
+          <ShieldCheck size={16} /> {organizerActive ? t("unset_organizer_short") : t("set_organizer_short")}
+        </button>
+      )}
+      {LEFT > 0 && (
+        <button type="button" onClick={() => { setDx(0); onRemove(); }} style={{ ...actBtn, right: 0, background: "var(--coral)", color: "#fff" }}>
+          <Trash2 size={16} /> {t("remove_btn")}
+        </button>
+      )}
+      <div onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onClickCapture={guard}
+        style={{ position: "relative", transform: `translateX(${dx}px)`, transition: dragging ? "none" : "transform .2s ease", touchAction: "pan-y" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leagues, activeLeague, onLeagueChange, onLeagueCreated, onEditProfile, selfStatsNonce = 0 }) {
   const [open, setOpen] = useState(false);
   const [showStats, setShowStats] = useState(false);  // дашборд аналитики лиги
@@ -542,8 +590,14 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         if (p.matches >= 5 && p.wins / p.matches >= 0.7) qb.push("🎯");
         if (p.matches >= 20) qb.push("⚡");
         if (toursOf(p) >= 3) qb.push("🏆");
+        const canRemove = isAdmin && p.role !== "owner" && p.id !== profileId;
+        const canOrg = activeLeague?.role === "owner" && p.user_id && p.role !== "owner" && p.id !== profileId;
         return (
-          <div key={p.id} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }} onClick={() => setSelected(p)}>
+          <SwipeRow key={p.id}
+            onRemove={canRemove ? async () => { await removeMember(groupId, p.id); reload(); } : null}
+            onOrganize={canOrg ? async () => { await setMemberRole(groupId, p.id, p.role === "admin" ? "member" : "admin"); reload(); } : null}
+            organizerActive={p.role === "admin"}>
+          <div className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", cursor: "pointer" }} onClick={() => setSelected(p)}>
             <div className="pl-display" style={{ width: 22, fontSize: 22, color: ["var(--yellow)", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)" }}>{i + 1}</div>
             <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -567,6 +621,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
             )}
             <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />
           </div>
+          </SwipeRow>
         );
       })}
 
