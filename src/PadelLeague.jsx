@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "./lib/supabase";
-import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated } from "./lib/padelApi";
+import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName } from "./lib/padelApi";
 import { getRatingHistory } from "./lib/statsApi";
 import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
 import { t, nGames } from "./lib/i18n";
@@ -1561,7 +1561,10 @@ function CreateGame({ groupId, players, back, done }) {
     // ISO с таймзоной — чтобы введённое локальное время совпадало с показанным.
     let startsAtIso = null;
     try { if (date) startsAtIso = new Date(date).toISOString(); } catch (e) { startsAtIso = null; }
-    try { const g = await createGame(groupId, { title: title.trim() || null, startsAt: startsAtIso, place, slots }); notifyGameCreated(g?.id); done(); }
+    // Telegram-уведомление о созданной игре (Batch 4) вешается здесь —
+    // notifyGameCreated(g?.id) — после деплоя edge-функции notify-telegram
+    // и экспорта notifyGameCreated в padelApi. Пока отвязано, чтобы не ломать сборку.
+    try { await createGame(groupId, { title: title.trim() || null, startsAt: startsAtIso, place, slots }); done(); }
     catch (e) { alert(t("err_create_game")); setBusy(false); }
   };
 
