@@ -8,7 +8,7 @@ import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
 import { t, nGames } from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
-import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle } from "lucide-react";
+import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, BadgeCheck } from "lucide-react";
 import Tournaments, { TournamentView, TournamentCard, css as trCss } from "./components/Tournaments";
 import { deleteTournament } from "./lib/tournamentApi";
 import CourtView from "./components/CourtView";
@@ -541,7 +541,12 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
             <div className="pl-display" style={{ width: 22, fontSize: 22, color: ["var(--yellow)", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)" }}>{i + 1}</div>
             <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
+              <div style={{ fontWeight: 600, fontSize: 15, display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                {p.user_id
+                  ? <BadgeCheck size={14} style={{ color: "var(--lime)", flexShrink: 0 }} aria-label={t("account_badge")} />
+                  : <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, background: "var(--surface2)", color: "var(--mut)", border: "1px solid var(--line)", flexShrink: 0 }}>{t("guest_tag")}</span>}
+              </div>
               <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 4, fontSize: 12, color: "var(--mut)" }}>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_games")}><Swords size={13} /> {gamesOf(p)}</span><span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_tournaments")}><Award size={13} /> {toursOf(p)}</span></span>
                 {(() => { const lv = playerLevel(p.matches, p.rating); return <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 8, background: `color-mix(in srgb, ${lv.color} 15%, transparent)`, color: lv.color, border: `1px solid color-mix(in srgb, ${lv.color} 35%, transparent)` }}>{lv.label}</span>; })()}
