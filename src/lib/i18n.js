@@ -144,7 +144,7 @@ const T = {
     create_claim_link: 'Создать ссылку для регистрации',
     // ── Player detail ─────────────────────────────────────────────────────
     add_to_league: '+ Добавить в лигу',
-    remove_from_league: 'Удалить из лиги',
+    remove_from_league: 'Удалить из лиги', remove_from_league_sub: 'Игрок выйдет из лиги, но история игр и турниров сохранится — его можно вернуть.', remove_btn: 'Убрать',
     badge_leader: 'Лидер лиги', badge_leader_title: 'Первое место по рейтингу',
     badge_sniper: 'Снайпер', badge_sniper_title: '70%+ побед в матчах',
     badge_veteran: 'Ветеран', badge_veteran_title: '20+ сыгранных матчей',
@@ -453,7 +453,7 @@ const T = {
     create_claim_link: 'Create registration link',
     // ── Player detail ─────────────────────────────────────────────────────
     add_to_league: '+ Add to league',
-    remove_from_league: 'Remove from league',
+    remove_from_league: 'Remove from league', remove_from_league_sub: 'The player leaves the league, but their games and tournaments history stays — you can add them back.', remove_btn: 'Remove',
     badge_leader: 'League leader', badge_leader_title: 'First place in rating',
     badge_sniper: 'Sniper', badge_sniper_title: '70%+ win rate',
     badge_veteran: 'Veteran', badge_veteran_title: '20+ played matches',
@@ -762,7 +762,7 @@ const T = {
     create_claim_link: 'Crear enlace de registro',
     // ── Player detail ─────────────────────────────────────────────────────
     add_to_league: '+ Añadir a liga',
-    remove_from_league: 'Eliminar de la liga',
+    remove_from_league: 'Eliminar de la liga', remove_from_league_sub: 'El jugador sale de la liga, pero su historial de juegos y torneos se conserva — puedes volver a añadirlo.', remove_btn: 'Quitar',
     badge_leader: 'Líder de liga', badge_leader_title: 'Primer puesto en clasificación',
     badge_sniper: 'Francotirador', badge_sniper_title: '70%+ ratio de victorias',
     badge_veteran: 'Veterano', badge_veteran_title: '20+ partidas jugadas',

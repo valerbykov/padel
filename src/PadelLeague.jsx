@@ -434,15 +434,9 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         reload();
         setSelected(null);
       } : undefined}
-      onDelete={isAdmin ? async (deleteGames) => {
-        // Удаляем игры ДО выхода из лиги: delete_game проверяет членство
-        // вызывающего (админ ещё в лиге) и сам откатывает рейтинг.
-        if (deleteGames) {
-          const { data: slots } = await supabase.from("game_slots").select("game_id").eq("profile_id", selected.id);
-          const gameIds = [...new Set((slots || []).map((s) => s.game_id))];
-          for (const id of gameIds) await deleteGame(id).catch(() => {});
-          if (gameIds.length > 0) bumpArchive && bumpArchive();
-        }
+      onDelete={isAdmin ? async () => {
+        // Убираем только из лиги (членство). История игр/турниров сохраняется,
+        // игрока можно вернуть. Игры/турниры удаляются отдельно и осознанно.
         await removeMember(groupId, selected.id);
         reload();
         setSelected(null);
@@ -645,45 +639,26 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
 
 /* -------------------- DeletePlayerModal ---------------------------------- */
 function DeletePlayerModal({ player, onConfirm, onCancel }) {
-  const [deleteGames, setDeleteGames] = useState(false);
-  const [gameCount, setGameCount] = useState(null);
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    supabase.from("game_slots").select("game_id").eq("profile_id", player.id)
-      .then(({ data }) => setGameCount(new Set((data || []).map((s) => s.game_id)).size))
-      .catch(() => setGameCount(0));
-  }, [player.id]);
 
   const go = async () => {
     setBusy(true);
-    try { await onConfirm(deleteGames); }
+    try { await onConfirm(); }
     catch (e) { alert(t("err_delete")); setBusy(false); }
   };
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }}>
       <div className="pl-card" style={{ padding: 20, width: "100%", maxWidth: 360 }}>
-        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>{t("delete_player_prefix")} {player.name}?</div>
-        <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 14 }}>
-          {t("delete_player_sub")}
+        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>{t("remove_from_league")}: {player.name}?</div>
+        <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 16 }}>
+          {t("remove_from_league_sub")}
         </div>
-        {gameCount === null && <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 12 }}>{t("checking_games")}</div>}
-        {gameCount > 0 && (
-          <label style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 16, cursor: "pointer" }}>
-            <input type="checkbox" checked={deleteGames} onChange={(e) => setDeleteGames(e.target.checked)}
-              style={{ marginTop: 2, width: 16, height: 16, accentColor: "var(--coral)", flexShrink: 0 }} />
-            <span style={{ fontSize: 13 }}>
-              {t("delete_games_label_pre")} <strong>{gameCount} {t("delete_games_count_suffix")}</strong> {t("delete_games_label_post")}
-            </span>
-          </label>
-        )}
-        {gameCount === 0 && <div style={{ height: 4 }} />}
         <div style={{ display: "flex", gap: 8 }}>
           <button className="pl-ghost" style={{ flex: 1, padding: 11 }} onClick={onCancel} disabled={busy}>{t("cancel")}</button>
-          <button style={{ flex: 1, padding: 11, border: "none", borderRadius: 12, background: "var(--coral)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", opacity: (busy || gameCount === null) ? .6 : 1 }}
-            onClick={go} disabled={busy || gameCount === null}>
-            {busy ? t("deleting") : t("delete_btn")}
+          <button style={{ flex: 1, padding: 11, border: "none", borderRadius: 12, background: "var(--coral)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", opacity: busy ? .6 : 1 }}
+            onClick={go} disabled={busy}>
+            {busy ? t("deleting") : t("remove_btn")}
           </button>
         </div>
       </div>
