@@ -216,6 +216,15 @@ export async function createGame(groupId, { title, startsAt, place, slots = [], 
   return game; // содержит invite_code → linkFor(game.invite_code)
 }
 
+// Telegram-уведомление о новой игре (MVP: шлётся владельцу через notify-telegram).
+// Fire-and-forget: никогда не ждём и не роняем создание игры.
+export function notifyGameCreated(gameId) {
+  if (!gameId) return;
+  try {
+    supabase.functions.invoke("notify-telegram", { body: { type: "game_created", gameId } }).catch(() => {});
+  } catch (_) {}
+}
+
 // Мои игры без лиги (security definer my_games): игры, где я в слоте или организатор.
 // Та же форма, что GAME_SELECT. Видны активные и завершённые.
 async function _listMyGames() {
