@@ -48,6 +48,7 @@ export default defineConfig({
         // Аватары-собаки переведены в webp (~9 КБ вместо ~900 КБ PNG), поэтому
         // их прекэш теперь дёшев. Раньше 15 PNG раздували precache до ~15 МБ.
         globPatterns: ["**/*.{js,css,html,svg,png,woff2,webp}"],
+        cleanupOutdatedCaches: true,       // чистит старый precache (в т.ч. PNG-аватары до перехода на webp)
         navigateFallback: "/index.html",   // офлайн-фолбэк для клиентского роутинга
         runtimeCaching: [
           {
