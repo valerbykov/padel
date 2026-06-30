@@ -107,7 +107,7 @@ function ContactLinks({ contacts = {} }) {
 
 /* --------------------------------- root ----------------------------------- */
 
-export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin, onOpenLanding, onEditProfile, openSelfStatsNonce = 0 }) {
+export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin, onOpenLanding, onEditProfile, openSelfStatsNonce = 0, openAnalyticsNonce = 0 }) {
   const [tab, setTab] = useState(session ? "board" : "welcome");
   // Повторный тап по активной вкладке должен возвращать к её корню (закрыть
   // открытую детализацию). Меняем navNonce → key вкладки → ремоунт → сброс.
@@ -159,6 +159,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
 
   // «Моя статистика» из кабинета → вкладка «Друзья» (Board сам выберет себя).
   useEffect(() => { if (openSelfStatsNonce > 0) setTab("board"); }, [openSelfStatsNonce]);
+  useEffect(() => { if (openAnalyticsNonce > 0) setTab("board"); }, [openAnalyticsNonce]);
 
   return (
     <div className={`pl-root${theme === "light" ? " pl-light" : ""}`}>
@@ -174,7 +175,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
         )}
 
         {tab === "welcome" && !session && <WelcomeScreen onLogin={onLogin} onBrowseGames={() => goTab("games")} onBrowseTournaments={() => goTab("tournaments")} onOpenLanding={onOpenLanding} theme={theme} lang={lang} onThemeToggle={onThemeToggle} onLangChange={onLangChange} />}
-        {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsNonce={openSelfStatsNonce} /> : <GateScreen />)}
+        {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsNonce={openSelfStatsNonce} analyticsNonce={openAnalyticsNonce} /> : <GateScreen />)}
         {tab === "games" && <Games key={navNonce} groupId={groupId} players={players} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} />}
         {tab === "tournaments" && <Tournaments key={navNonce} groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} />}
         {tab === "history" && (session ? <HistoryView key={navNonce} groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} archiveNonce={archiveNonce} bumpArchive={bumpArchive} /> : <GateScreen />)}
@@ -346,7 +347,7 @@ function SwipeRow({ onRemove, onOrganize, organizerActive, children }) {
   );
 }
 
-function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leagues, activeLeague, onLeagueChange, onLeagueCreated, onEditProfile, selfStatsNonce = 0 }) {
+function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leagues, activeLeague, onLeagueChange, onLeagueCreated, onEditProfile, selfStatsNonce = 0, analyticsNonce = 0 }) {
   const [open, setOpen] = useState(false);
   const [showStats, setShowStats] = useState(false);  // дашборд аналитики лиги
   const [query, setQuery] = useState("");
@@ -379,6 +380,13 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
       if (self) { lastStatsNonce.current = selfStatsNonce; setSelected(self); }
     }
   }, [selfStatsNonce, players, profileId]);
+
+  const lastAnalyticsNonce = useRef(0);
+  useEffect(() => {
+    if (analyticsNonce > 0 && analyticsNonce !== lastAnalyticsNonce.current) {
+      lastAnalyticsNonce.current = analyticsNonce; setShowStats(true);
+    }
+  }, [analyticsNonce]);
 
   const gamesOf = (p) => srv ? (srv.games[p.id] ?? 0) : (matchCounts[p.id] || p.matches || 0);
   const toursOf = (p) => srv ? (srv.tours[p.id] ?? 0) : (tourCounts[p.id] || tourCountsByName[(p.name || "").trim().toLowerCase()] || 0);
