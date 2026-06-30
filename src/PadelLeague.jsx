@@ -241,7 +241,7 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLand
     { icon: "🏆", title: t("feat_board_title"), sub: t("feat_board_sub") },   // создать/вступить в лигу
     { icon: "🔗", title: t("feat_stats_title"), sub: t("feat_stats_sub") },   // игры по ссылке
     { icon: "🎖️", title: t("feat_tour_title"), sub: t("feat_tour_sub") },     // уровни и ачивки
-    { icon: "🎾", title: t("feat_pwa_title"), sub: t("feat_pwa_sub") },       // турниры
+    { icon: "🏅", title: t("feat_pwa_title"), sub: t("feat_pwa_sub") },       // турниры
   ];
   return (
     <div className="pl-pop">
@@ -451,12 +451,15 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         setSelected(null);
       } : undefined}
       onDelete={isAdmin ? async (deleteGames) => {
-        await removeMember(groupId, selected.id);
+        // Удаляем игры ДО выхода из лиги: delete_game проверяет членство
+        // вызывающего (админ ещё в лиге) и сам откатывает рейтинг.
         if (deleteGames) {
           const { data: slots } = await supabase.from("game_slots").select("game_id").eq("profile_id", selected.id);
           const gameIds = [...new Set((slots || []).map((s) => s.game_id))];
-          if (gameIds.length > 0) { await supabase.from("games").delete().in("id", gameIds); bumpArchive && bumpArchive(); }
+          for (const id of gameIds) await deleteGame(id).catch(() => {});
+          if (gameIds.length > 0) bumpArchive && bumpArchive();
         }
+        await removeMember(groupId, selected.id);
         reload();
         setSelected(null);
       } : undefined}
@@ -748,9 +751,12 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
 
   const generateClaimCode = async () => {
     setGenBusy(true);
-    const code = crypto.randomUUID();
-    await supabase.from("profiles").update({ claim_code: code }).eq("id", player.id);
-    setLocalClaimCode(code);
+    // Серверная генерация: только админ/владелец, только для гостя, идемпотентно.
+    // (Раньше прямой update profiles тихо падал у не-супер-админов.)
+    try {
+      const { data } = await supabase.rpc("ensure_claim_code", { p_profile_id: player.id });
+      if (data) setLocalClaimCode(data);
+    } catch (_) {}
     setGenBusy(false);
   };
 

@@ -102,19 +102,11 @@ export async function joinTournamentByCode(code, name) {
 }
 
 export async function getTournamentByCode(code) {
+  // get_tournament_by_code (SECURITY DEFINER) уже возвращает полные матчи со
+  // счётом, поэтому прямой anon-фолбэк на tournament_matches убран — там
+  // закрыли анонимное чтение всей таблицы (батч безопасности).
   const { data, error } = await supabase.rpc("get_tournament_by_code", { p_code: code.trim().toUpperCase() });
   if (error) throw error;
-  if (!data) return data;
-
-  const hasScores = (data.matches || []).some((m) => m.score_a != null || m.score_b != null);
-  const noMatches = !data.matches || data.matches.length === 0;
-  if ((noMatches || !hasScores) && data.id) {
-    const { data: matches } = await supabase
-      .from("tournament_matches")
-      .select("id, round_number, court, team_a, team_b, score_a, score_b")
-      .eq("tournament_id", data.id);
-    if (matches && matches.length > 0) return { ...data, matches };
-  }
   return data;
 }
 

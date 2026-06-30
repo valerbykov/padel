@@ -34,9 +34,11 @@ export async function ensureMyProfile(name) {
 
 // Таблица лидеров группы. Заменяет loadState() для players.
 async function _getLeaderboard(groupId) {
+  // claim_code НЕ запрашиваем в общий список — это токен «забрать профиль»
+  // (account-takeover). Он выдаётся точечно админу через ensure_claim_code RPC.
   const { data, error } = await supabase
     .from("group_members")
-    .select("rating, matches_played, wins, profile:profiles(id, name, avatar_url, contacts, claim_code, user_id)")
+    .select("rating, matches_played, wins, profile:profiles(id, name, avatar_url, contacts, user_id)")
     .eq("group_id", groupId)
     .order("rating", { ascending: false });
   if (error) throw error;
@@ -45,7 +47,6 @@ async function _getLeaderboard(groupId) {
     name: r.profile.name,
     avatar_url: r.profile.avatar_url,
     contacts: r.profile.contacts || {},
-    claim_code: r.profile.claim_code || null,
     rating: r.rating,
     matches: r.matches_played,
     wins: r.wins,
@@ -328,12 +329,11 @@ export function subscribeToGame(gameId, onChange) {
 }
 
 export async function deleteGame(gameId) {
-  // Сначала удаляем связанный матч (его game_id обнулится при удалении игры —
-  // on delete set null — и матч «повис» бы в статистике). rating_changes
-  // удалятся каскадом (on delete cascade от matches). Политика RLS
-  // "members delete matches" это разрешает.
-  await supabase.from("matches").delete().eq("game_id", gameId);
-  const { error } = await supabase.from("games").delete().eq("id", gameId);
+  // RPC delete_game: удаляет матч+игру и ПОЛНОСТЬЮ откатывает рейтинг
+  // (пересчёт rating/rating_after/matches_played из оставшихся дельт,
+  // откат wins за эту игру). Сохраняет вклад турниров. См.
+  // migrations/2026-07-02_delete_game_rollback.sql.
+  const { error } = await supabase.rpc("delete_game", { p_game_id: gameId });
   if (error) throw error;
   bustCache();
 }

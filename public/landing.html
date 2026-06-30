@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1612" />
   <title>PadelPack — игры, лиги и турниры для твоей падел-компании</title>
-  <meta name="description" content="Собирай игры по ссылке, веди лигу, проводи турниры (Американо, Мексикано) и следи за честным ELO-рейтингом. Без таблиц в мессенджерах." />
+  <meta name="description" content="Собирай игры по ссылке, веди лигу, проводи турниры (Американо, Мексикано) и следи за уровнями игроков. Без таблиц в мессенджерах." />
 
   <!-- Open Graph -->
   <meta property="og:title" content="PadelPack — своя стая на корте" />
-  <meta property="og:description" content="Игры, лиги, турниры и честный рейтинг для твоей падел-компании." />
+  <meta property="og:description" content="Игры, лиги, турниры и уровни для твоей падел-компании." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="/logo-mark-dark.png" />
   <meta name="twitter:card" content="summary_large_image" />
@@ -24,7 +24,11 @@
     :root{
       --bg:#0a1612; --surface:#11211b; --surface2:#16291f; --line:#22382c;
       --ink:#eef3ee; --mut:#7d9488; --lime:#c8ff2d; --coral:#ff6a52; --lime-fg:#0a1612;
-      --maxw:1080px;
+      --yellow:#ffd23f; --maxw:1080px;
+    }
+    body.light{
+      --bg:#f2f7f4; --surface:#ffffff; --surface2:#e6f0ea; --line:#c4d9cc;
+      --ink:#0d1f18; --mut:#4a7060; --lime:#2a7a00; --coral:#d93a1f; --lime-fg:#ffffff; --yellow:#9a6800;
     }
     *,*::before,*::after{box-sizing:border-box;}
     html{scroll-behavior:smooth;}
@@ -32,16 +36,20 @@
       margin:0; background:var(--bg); color:var(--ink);
       font-family:'Outfit',system-ui,'Segoe UI',Roboto,sans-serif;
       -webkit-font-smoothing:antialiased; overflow-x:clip; line-height:1.5;
+      transition:background .25s, color .25s;
       background-image:
         radial-gradient(circle at 82% -8%, rgba(200,255,45,.12), transparent 42%),
         radial-gradient(circle at -5% 18%, rgba(40,120,90,.20), transparent 40%),
         radial-gradient(circle at 50% 120%, rgba(255,106,82,.07), transparent 45%);
     }
+    body.light{
+      background-image:
+        radial-gradient(circle at 82% -8%, rgba(42,122,0,.10), transparent 42%),
+        radial-gradient(circle at -5% 18%, rgba(40,120,90,.10), transparent 40%);
+    }
     a{color:inherit; text-decoration:none;}
     .wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px;}
     .display{font-family:'Anton',sans-serif; font-weight:400; letter-spacing:.3px; text-transform:uppercase; line-height:1;}
-
-    /* wordmark */
     .word{font-family:'Outfit'; font-weight:800; letter-spacing:-.5px; white-space:nowrap; line-height:1;}
     .word .a{color:var(--lime);} .word .b{color:var(--ink);}
 
@@ -50,12 +58,13 @@
       background:color-mix(in srgb,var(--bg) 78%,transparent); border-bottom:1px solid var(--line);}
     .nav{display:flex; align-items:center; justify-content:space-between; height:62px;}
     .nav-left{display:flex; align-items:center; gap:10px;}
-    .nav-left img{width:30px; height:30px; border-radius:8px;}
-    .nav-right{display:flex; align-items:center; gap:10px;}
+    .nav-right{display:flex; align-items:center; gap:8px;}
     .langsw{display:flex; background:var(--surface2); border:1px solid var(--line); border-radius:11px; padding:3px;}
     .langsw button{border:none; background:none; color:var(--mut); font-family:'Outfit'; font-weight:700;
       font-size:12px; padding:5px 9px; border-radius:8px; cursor:pointer; transition:.15s;}
     .langsw button.on{background:var(--lime); color:var(--lime-fg);}
+    .themesw{background:var(--surface2); border:1px solid var(--line); border-radius:11px; cursor:pointer;
+      width:38px; height:34px; font-size:15px; line-height:1; display:flex; align-items:center; justify-content:center;}
     .btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; cursor:pointer;
       font-family:'Outfit'; font-weight:700; border-radius:13px; border:1px solid transparent;
       padding:11px 18px; font-size:14px; transition:transform .12s, filter .15s; white-space:nowrap;}
@@ -66,13 +75,13 @@
     .btn-lg{padding:14px 26px; font-size:15.5px; border-radius:15px;}
 
     /* ── Hero ── */
-    .hero{padding:64px 0 56px; position:relative;}
-    .hero-grid{display:grid; grid-template-columns:1.15fr .85fr; gap:42px; align-items:center;}
-    .pill{display:inline-flex; align-items:center; gap:8px; background:color-mix(in srgb,var(--lime) 12%,transparent);
-      border:1px solid color-mix(in srgb,var(--lime) 35%,transparent); color:var(--lime);
-      font-weight:600; font-size:12.5px; padding:6px 13px; border-radius:999px; margin-bottom:22px;}
-    .pill .dot{width:7px; height:7px; border-radius:50%; background:var(--lime); box-shadow:0 0 0 4px color-mix(in srgb,var(--lime) 22%,transparent);}
-    h1.hero-title{font-size:clamp(38px,6.4vw,68px); margin:0 0 18px;}
+    .hero{padding:60px 0 54px;}
+    .hero-grid{display:grid; grid-template-columns:1.1fr .9fr; gap:42px; align-items:center;}
+    .pack{display:flex; margin-bottom:20px;}
+    .pack img{width:46px; height:46px; border-radius:50%; object-fit:cover; border:2.5px solid var(--bg);
+      box-shadow:0 4px 14px -6px rgba(0,0,0,.5);}
+    .pack img+img{margin-left:-14px;}
+    h1.hero-title{font-size:clamp(36px,6vw,60px); margin:0 0 18px; line-height:1.08;}
     h1.hero-title .hl{color:var(--lime);}
     .hero-sub{font-size:clamp(16px,2.2vw,19px); color:var(--mut); max-width:520px; margin:0 0 30px;}
     .hero-cta{display:flex; gap:14px; flex-wrap:wrap; align-items:center;}
@@ -80,121 +89,147 @@
     .hero-note span{display:inline-flex; align-items:center; gap:7px;}
     .tick{color:var(--lime);}
 
-    /* hero visual — phone card */
-    .phone{position:relative; justify-self:center; width:100%; max-width:330px;}
-    .phone-frame{background:linear-gradient(160deg,var(--surface2),var(--surface)); border:1px solid var(--line);
-      border-radius:34px; padding:14px; box-shadow:0 30px 80px -30px rgba(0,0,0,.8), 0 0 0 1px rgba(200,255,45,.05);}
-    .phone-screen{background:var(--bg); border-radius:24px; border:1px solid var(--line); overflow:hidden;}
-    .ps-top{display:flex; align-items:center; justify-content:space-between; padding:13px 15px; border-bottom:1px solid var(--line);}
-    .ps-row{display:flex; align-items:center; gap:11px; padding:10px 15px;}
-    .ps-row + .ps-row{border-top:1px solid color-mix(in srgb,var(--line) 60%,transparent);}
-    .ps-rank{font-family:'Anton'; font-size:16px; width:18px; color:var(--mut); text-align:center; flex-shrink:0;}
-    .ps-rank.g{color:#ffd23f;} .ps-rank.s{color:#cfd8d0;} .ps-rank.b{color:#cd7f4d;}
-    .ps-av{width:34px; height:34px; border-radius:50%; background:var(--surface2); border:1px solid var(--line);
-      display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; color:var(--lime); flex-shrink:0;}
-    .ps-info{flex:1; min-width:0;}
-    .ps-name{font-weight:600; font-size:14px; line-height:1.2;}
-    .ps-meta{display:flex; align-items:center; gap:7px; font-size:11px; color:var(--mut); margin-top:3px; flex-wrap:wrap;}
-    .ps-lvl{font-size:9.5px; font-weight:700; padding:1px 6px; border-radius:7px;
-      background:color-mix(in srgb,var(--lime) 15%,transparent); color:var(--lime); border:1px solid color-mix(in srgb,var(--lime) 35%,transparent);}
-    .ps-lvl.exp{background:rgba(126,200,227,.15); color:#7ec8e3; border-color:rgba(126,200,227,.35);}
-    .ps-streak{color:var(--coral); font-weight:600;}
-    .float{position:absolute; background:var(--surface); border:1px solid var(--line); border-radius:16px;
-      padding:11px 14px; box-shadow:0 14px 40px -14px rgba(0,0,0,.7); font-size:12.5px; font-weight:600;
-      display:flex; align-items:center; gap:9px;}
-    .float .ic{width:30px; height:30px; border-radius:9px; background:color-mix(in srgb,var(--lime) 16%,transparent);
-      display:flex; align-items:center; justify-content:center;}
-    .float-1{top:-18px; right:-14px; animation:bob 4s ease-in-out infinite;}
-    .float-2{bottom:34px; left:-26px; animation:bob 4s ease-in-out .8s infinite;}
-    @keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-9px);}}
+    /* ── Phone ── */
+    .phone{position:relative; justify-self:center; width:100%; max-width:300px;}
+    .phone-frame{background:#1b1b1d; border-radius:36px; padding:7px;
+      box-shadow:0 30px 80px -30px rgba(0,0,0,.6), 0 0 0 1px rgba(200,255,45,.04);}
+    .phone-screen{background:var(--bg); border-radius:30px; border:1px solid var(--line); overflow:hidden;
+      display:flex; flex-direction:column; height:540px;}
+    .ps-top{display:flex; align-items:center; gap:7px; padding:12px 12px 9px; border-bottom:1px solid var(--line);}
+    .lchip{display:flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--line);
+      border-radius:999px; padding:4px 9px; font-size:11px; font-weight:700; flex:1; min-width:0;}
+    .lchip b{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+    .llogo{width:21px; height:21px; border-radius:6px; object-fit:cover; flex-shrink:0;}
+    .ps-mini{font-size:10px; color:var(--mut); font-weight:600;}
+    .ps-body{flex:1; padding:11px; display:flex; flex-direction:column; gap:8px; overflow:hidden;}
+    .ps-nav{display:flex; border-top:1px solid var(--line); background:color-mix(in srgb,var(--bg) 90%,transparent);}
+    .ps-nav>div{flex:1; text-align:center; padding:8px 0 7px; font-size:9px; color:var(--mut); font-weight:600;}
+    .ps-nav .on{color:var(--lime);}
+    .ps-nav .ic{display:block; font-size:14px; margin-bottom:2px;}
+    .dav{width:27px; height:27px; border-radius:50%; object-fit:cover; flex-shrink:0;}
 
-    /* ── Logos / trust strip ── */
+    /* invite bar */
+    .inv{display:flex; align-items:center; gap:7px; background:color-mix(in srgb,var(--lime) 9%,transparent);
+      border:1px solid color-mix(in srgb,var(--lime) 35%,transparent); border-radius:12px; padding:6px 7px;}
+    .inv .code{font-family:'Anton'; font-size:16px; letter-spacing:2px; color:var(--lime); line-height:1.1;}
+    .ibtn{width:25px; height:25px; border-radius:8px; background:color-mix(in srgb,var(--lime) 18%,transparent);
+      border:1px solid color-mix(in srgb,var(--lime) 35%,transparent); color:var(--lime); display:flex;
+      align-items:center; justify-content:center; font-size:12px; flex-shrink:0;}
+    /* leaderboard row */
+    .lrow{display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line);
+      border-radius:12px; padding:7px 9px;}
+    .rk{width:13px; text-align:center; font-family:'Anton'; font-size:15px; flex-shrink:0;}
+    .nm{font-size:12px; font-weight:600; line-height:1.15; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+    .meta{display:flex; align-items:center; gap:5px; margin-top:2px;}
+    .lvl{font-size:8.5px; font-weight:700; padding:1px 6px; border-radius:7px; border:1px solid;}
+    .lvl.am{color:#3a9d55; border-color:rgba(58,157,85,.4); background:rgba(58,157,85,.12);}
+    body:not(.light) .lvl.am{color:#7bd88f;}
+    .lvl.pro{color:#2f86d6; border-color:rgba(47,134,214,.4); background:rgba(47,134,214,.12);}
+    body:not(.light) .lvl.pro{color:#6cb6ff;}
+    .bdg{font-size:9px; letter-spacing:1px;}
+
+    /* court */
+    .court{background:#274b6e; border:1.5px solid #5e87ad; border-radius:11px; padding:8px; position:relative; height:130px;}
+    .ctn{position:absolute; top:6px; left:50%; transform:translateX(-50%); background:rgba(10,22,18,.72);
+      color:#eef3ee; font-size:8.5px; font-weight:800; letter-spacing:1px; padding:2px 8px; border-radius:7px;}
+    .cnet{position:absolute; top:26px; bottom:9px; left:50%; width:1.5px; background:rgba(255,255,255,.45); transform:translateX(-50%);}
+    .cgrid{display:flex; height:100%; align-items:center; padding-top:14px;}
+    .cside{flex:1; display:flex; flex-direction:column; gap:7px; align-items:center;}
+    .cpl{display:flex; flex-direction:column; align-items:center; gap:2px;}
+    .cpl .dav{width:24px; height:24px; border:2px solid var(--lime);}
+    .cpl.b .dav{border-color:var(--coral);}
+    .cpl span{font-size:8px; color:#eaf3ea; font-weight:600; max-width:64px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-shadow:0 1px 2px rgba(0,0,0,.6);}
+    .csc{display:flex; align-items:center; gap:5px; line-height:1;}
+    .csc b{font-family:'Anton'; font-size:26px; color:#fff;}
+    .csc i{font-style:normal; color:#cdd; font-size:15px;}
+    .sets{display:flex; gap:6px; justify-content:center;}
+    .setb{background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:4px 8px; font-size:9px; text-align:center;}
+    .setb b{font-family:'Anton'; font-size:13px;}
+    .win{color:var(--lime);} .los{color:var(--coral);}
+
+    /* tournament + history rows */
+    .trow{display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:6px 9px;}
+    .pos{width:23px; height:23px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Anton'; font-size:12px; flex-shrink:0; border:1px solid;}
+    .pts{margin-left:auto; font-family:'Anton'; font-size:14px; color:var(--lime);}
+    .seg{display:flex; background:var(--surface2); border:1px solid var(--line); border-radius:10px; padding:3px;}
+    .seg div{flex:1; text-align:center; font-size:10px; font-weight:700; padding:5px 0; border-radius:7px; color:var(--mut);}
+    .seg .on{background:var(--lime); color:var(--lime-fg);}
+    .hcard{display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:8px 9px;}
+    .havs{display:flex;}
+    .havs img{width:22px; height:22px; border-radius:50%; object-fit:cover; border:2px solid var(--bg);}
+    .havs img+img{margin-left:-8px;}
+    .hsc{margin-left:auto; font-family:'Anton'; font-size:14px;}
+
+    /* mockups section */
+    .mocks{display:flex; gap:22px; justify-content:center; flex-wrap:wrap;}
+    .mcol{width:262px; max-width:100%;}
+    .mcol .phone-screen{height:532px;}
+    .mcap{text-align:center; margin-top:14px;}
+    .mcap b{font-size:15px;} .mcap span{display:block; font-size:13px; color:var(--mut); margin-top:3px;}
+
+    /* trust strip */
     .strip{border-top:1px solid var(--line); border-bottom:1px solid var(--line); background:color-mix(in srgb,var(--surface) 50%,transparent);}
-    .strip-in{display:flex; flex-wrap:wrap; gap:14px 30px; align-items:center; justify-content:center; padding:18px 0; color:var(--mut); font-size:13.5px; font-weight:600;}
-    .strip-in b{color:var(--ink);}
+    .strip-in{display:flex; flex-wrap:wrap; gap:14px 26px; align-items:center; justify-content:center; padding:18px 0; color:var(--mut); font-size:13.5px; font-weight:600;}
     .chip{display:inline-flex; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--line); padding:7px 13px; border-radius:11px;}
 
-    /* ── Section ── */
+    /* sections */
     section.block{padding:72px 0;}
     .sec-head{text-align:center; max-width:640px; margin:0 auto 46px;}
     .eyebrow{color:var(--lime); font-weight:700; font-size:13px; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:12px;}
     .sec-head h2{font-size:clamp(28px,4.2vw,42px); margin:0 0 14px;}
     .sec-head p{color:var(--mut); font-size:16.5px; margin:0;}
-
-    /* features grid */
     .feat{display:grid; grid-template-columns:repeat(3,1fr); gap:18px;}
-    .card{background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:24px;
-      transition:transform .15s, border-color .15s;}
+    .card{background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:24px; transition:transform .15s, border-color .15s;}
     .card:hover{transform:translateY(-3px); border-color:color-mix(in srgb,var(--lime) 40%,transparent);}
-    .card .ic{width:46px; height:46px; border-radius:13px; background:color-mix(in srgb,var(--lime) 14%,transparent);
-      display:flex; align-items:center; justify-content:center; margin-bottom:16px;}
+    .card .ic{width:46px; height:46px; border-radius:13px; background:color-mix(in srgb,var(--lime) 14%,transparent); display:flex; align-items:center; justify-content:center; margin-bottom:16px; font-size:22px;}
     .card h3{font-size:18px; margin:0 0 8px;}
     .card p{color:var(--mut); font-size:14.5px; margin:0;}
-
-    /* formats */
     .formats{display:grid; grid-template-columns:repeat(4,1fr); gap:16px;}
-    .fmt{background:linear-gradient(165deg,var(--surface2),var(--surface)); border:1px solid var(--line);
-      border-radius:18px; padding:22px 20px; position:relative; overflow:hidden;}
+    .fmt{background:var(--surface2); border:1px solid var(--line); border-radius:18px; padding:22px 20px;}
     .fmt .emoji{font-size:30px; margin-bottom:14px;}
     .fmt h3{margin:0 0 6px; font-size:17px;}
     .fmt p{margin:0; color:var(--mut); font-size:13.5px;}
-
-    /* steps */
-    .steps{display:grid; grid-template-columns:repeat(3,1fr); gap:22px; counter-reset:step;}
-    .step{position:relative; padding-top:8px;}
-    .step .n{font-family:'Anton'; font-size:54px; color:color-mix(in srgb,var(--lime) 28%,transparent); line-height:1; margin-bottom:6px;}
+    .steps{display:grid; grid-template-columns:repeat(3,1fr); gap:22px;}
+    .step .n{font-family:'Anton'; font-size:54px; color:color-mix(in srgb,var(--lime) 32%,transparent); line-height:1; margin-bottom:6px;}
     .step h3{margin:0 0 8px; font-size:19px;}
     .step p{margin:0; color:var(--mut); font-size:15px;}
 
-    /* CTA band */
-    .cta{margin:18px auto 0; max-width:var(--maxw);}
-    .cta-in{background:
-        radial-gradient(circle at 85% 20%, rgba(200,255,45,.16), transparent 55%),
-        linear-gradient(160deg,var(--surface2),var(--surface));
-      border:1px solid color-mix(in srgb,var(--lime) 30%,transparent); border-radius:28px;
-      padding:54px 40px; text-align:center;}
+    .cta{margin:0 auto; max-width:var(--maxw);}
+    .cta-in{background:linear-gradient(160deg,var(--surface2),var(--surface));
+      border:1px solid color-mix(in srgb,var(--lime) 30%,transparent); border-radius:28px; padding:54px 40px; text-align:center;}
     .cta-in h2{font-size:clamp(26px,4vw,40px); margin:0 0 14px;}
     .cta-in p{color:var(--mut); font-size:17px; margin:0 0 28px;}
 
-    /* footer */
     footer{border-top:1px solid var(--line); padding:34px 0 44px; margin-top:72px;}
     .foot{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;}
     .foot-links{display:flex; gap:22px; flex-wrap:wrap; color:var(--mut); font-size:14px;}
     .foot-links a:hover{color:var(--lime);}
     .foot-copy{color:var(--mut); font-size:13px;}
 
-    /* reveal anim */
     .reveal{opacity:0; transform:translateY(18px); transition:opacity .6s ease, transform .6s ease;}
     .reveal.in{opacity:1; transform:none;}
 
     @media (max-width:880px){
-      .hero-grid{grid-template-columns:1fr; gap:40px;}
-      .phone{order:-1; max-width:290px;}
+      .hero-grid{grid-template-columns:1fr; gap:38px;}
+      .phone{order:-1; max-width:280px;}
       .feat{grid-template-columns:repeat(2,1fr);}
       .formats{grid-template-columns:repeat(2,1fr);}
       .steps{grid-template-columns:1fr;}
-      .float-2{left:-12px;}
     }
     @media (max-width:560px){
-      .feat{grid-template-columns:1fr;}
-      .formats{grid-template-columns:1fr;}
+      .feat,.formats{grid-template-columns:1fr;}
       .nav .btn-ghost{display:none;}
       .cta-in{padding:40px 22px;}
-      .hero{padding:44px 0 40px;}
-      .float-2{display:none;}
+      .hero{padding:40px 0 36px;}
     }
-    @media (prefers-reduced-motion:reduce){
-      *{animation:none !important; scroll-behavior:auto;}
-      .reveal{opacity:1; transform:none;}
-    }
+    @media (prefers-reduced-motion:reduce){ *{animation:none!important; scroll-behavior:auto;} .reveal{opacity:1; transform:none;} }
   </style>
 </head>
 <body>
-  <!-- ─────────────── HEADER ─────────────── -->
+  <!-- HEADER -->
   <header>
     <div class="wrap nav">
       <div class="nav-left">
-        <img src="/logo-mark-dark.webp" alt="" width="30" height="30" onerror="this.style.display='none'" />
         <span class="word" style="font-size:21px;"><span class="a">Padel</span><span class="b">Pack</span></span>
       </div>
       <div class="nav-right">
@@ -203,21 +238,27 @@
           <button data-lang="en">EN</button>
           <button data-lang="es">ES</button>
         </div>
+        <button class="themesw" id="themesw" aria-label="Theme">🌙</button>
         <a class="btn btn-ghost" href="/" data-i18n="nav_open"></a>
       </div>
     </div>
   </header>
 
-  <!-- ─────────────── HERO ─────────────── -->
+  <!-- HERO -->
   <section class="hero">
     <div class="wrap hero-grid">
       <div class="reveal in">
-        <div class="pill"><span class="dot"></span><span data-i18n="hero_pill"></span></div>
+        <div class="pack">
+          <img src="/avatars/dog-03.png" alt="" loading="eager" />
+          <img src="/avatars/dog-09.png" alt="" loading="eager" />
+          <img src="/avatars/dog-01.png" alt="" loading="eager" />
+          <img src="/avatars/dog-05.png" alt="" loading="eager" />
+        </div>
         <h1 class="hero-title" data-i18n-html="hero_title"></h1>
         <p class="hero-sub" data-i18n="hero_sub"></p>
         <div class="hero-cta">
           <a class="btn btn-primary btn-lg" href="/" data-i18n="hero_cta_primary"></a>
-          <a class="btn btn-ghost btn-lg" href="#features" data-i18n="hero_cta_secondary"></a>
+          <a class="btn btn-ghost btn-lg" href="#mockups" data-i18n="hero_cta_secondary"></a>
         </div>
         <div class="hero-note">
           <span><span class="tick">✓</span> <span data-i18n="hero_note_1"></span></span>
@@ -226,72 +267,127 @@
         </div>
       </div>
 
-      <!-- phone mock -->
+      <!-- Hero phone: ДОСКА -->
       <div class="phone reveal in">
-        <div class="float float-1">
-          <span class="ic" style="color:var(--lime);font-weight:800;font-size:16px;">✓</span><span data-i18n="float_match"></span>
-        </div>
-        <div class="phone-frame">
-          <div class="phone-screen">
-            <div class="ps-top">
-              <span class="word" style="font-size:16px;"><span class="a">Padel</span><span class="b">Pack</span></span>
-              <span style="font-size:11px; color:var(--mut); font-weight:600;" data-i18n="mock_standings"></span>
-            </div>
-            <div class="ps-row">
-              <span class="ps-rank g">1</span>
-              <span class="ps-av">МК</span>
-              <div class="ps-info">
-                <span class="ps-name">Макс К. 👑</span>
-                <span class="ps-meta">⚔ 28 · 🏆 3 <span class="ps-lvl" data-i18n="mock_lvl_master"></span> <span class="ps-streak">🔥 5</span></span>
-              </div>
-            </div>
-            <div class="ps-row">
-              <span class="ps-rank s">2</span>
-              <span class="ps-av">АН</span>
-              <div class="ps-info">
-                <span class="ps-name">Аня Н.</span>
-                <span class="ps-meta">⚔ 22 · 🏆 2 <span class="ps-lvl exp" data-i18n="mock_lvl_exp"></span></span>
-              </div>
-            </div>
-            <div class="ps-row">
-              <span class="ps-rank b">3</span>
-              <span class="ps-av">ДВ</span>
-              <div class="ps-info">
-                <span class="ps-name">Дима В.</span>
-                <span class="ps-meta">⚔ 19 · 🏆 1 <span class="ps-lvl exp" data-i18n="mock_lvl_exp"></span></span>
-              </div>
-            </div>
-            <div class="ps-row">
-              <span class="ps-rank">4</span>
-              <span class="ps-av">ЛС</span>
-              <div class="ps-info">
-                <span class="ps-name">Лена С.</span>
-                <span class="ps-meta">⚔ 12 <span class="ps-lvl" data-i18n="mock_lvl_amateur"></span></span>
-              </div>
-            </div>
+        <div class="phone-frame"><div class="phone-screen">
+          <div class="ps-top">
+            <div class="lchip"><img class="llogo" src="/avatars/dog-07.png" alt="" /><b>Падел по четвергам</b> ▾</div>
+            <span class="ps-mini">RU</span>
           </div>
-        </div>
-        <div class="float float-2">
-          <span class="ic">🏆</span><span data-i18n="float_tournament"></span>
-        </div>
+          <div class="ps-body">
+            <div class="inv"><img class="llogo" src="/avatars/dog-07.png" alt="" /><div style="flex:1;min-width:0"><div style="font-size:8px;color:var(--mut)" data-i18n="m_invite">Пригласить в лигу</div><div class="code">KORT42</div></div><div class="ibtn">⧉</div><div class="ibtn">↗</div></div>
+            <div class="lrow"><span class="rk" style="color:var(--yellow)">1</span><img class="dav" src="/avatars/dog-05.png" alt="" /><div style="flex:1;min-width:0"><div class="nm">Артём Соколов</div><div class="meta"><span class="lvl am" data-i18n="m_amateur">Любитель</span><span class="bdg">🔥🎯</span></div></div></div>
+            <div class="lrow"><span class="rk" style="color:#cfd8d0">2</span><img class="dav" src="/avatars/dog-02.png" alt="" /><div style="flex:1;min-width:0"><div class="nm">Игорь Лебедев</div><div class="meta"><span class="lvl am" data-i18n="m_amateur">Любитель</span><span class="bdg">🎯</span></div></div></div>
+            <div class="lrow"><span class="rk" style="color:#cd7f4d">3</span><img class="dav" src="/avatars/dog-11.png" alt="" /><div style="flex:1;min-width:0"><div class="nm">Павел Морозов</div><div class="meta"><span class="lvl pro" data-i18n="m_exp">Опытный</span><span class="bdg">⚡🏆</span></div></div></div>
+            <div class="lrow"><span class="rk" style="color:var(--mut)">4</span><img class="dav" src="/avatars/dog-09.png" alt="" /><div style="flex:1;min-width:0"><div class="nm">Никита Орлов</div><div class="meta"><span class="lvl am" data-i18n="m_amateur">Любитель</span></div></div></div>
+            <div class="lrow"><span class="rk" style="color:var(--mut)">5</span><img class="dav" src="/avatars/dog-14.png" alt="" /><div style="flex:1;min-width:0"><div class="nm">Дмитрий Зайцев</div><div class="meta"><span class="lvl am" data-i18n="m_amateur">Любитель</span></div></div></div>
+          </div>
+          <div class="ps-nav"><div class="on"><span class="ic">🏆</span><span data-i18n="m_nav_b">Друзья</span></div><div><span class="ic">⚔️</span><span data-i18n="m_nav_g">Игры</span></div><div><span class="ic">🎖️</span><span data-i18n="m_nav_t">Турниры</span></div><div><span class="ic">🕘</span><span data-i18n="m_nav_h">История</span></div></div>
+        </div></div>
       </div>
     </div>
   </section>
 
-  <!-- ─────────────── TRUST STRIP ─────────────── -->
+  <!-- TRUST STRIP -->
   <div class="strip">
     <div class="wrap strip-in">
       <span data-i18n="strip_intro"></span>
       <span class="chip">🌗 <span data-i18n="strip_theme"></span></span>
       <span class="chip">🌍 RU · EN · ES</span>
-      <span class="chip">📊 <span data-i18n="strip_elo"></span></span>
+      <span class="chip">🎖️ <span data-i18n="strip_elo"></span></span>
       <span class="chip">🔗 <span data-i18n="strip_link"></span></span>
       <span class="chip">📲 PWA</span>
     </div>
   </div>
 
-  <!-- ─────────────── FEATURES ─────────────── -->
-  <section class="block" id="features">
+  <!-- MOCKUPS: ключевые вкладки -->
+  <section class="block" id="mockups">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div class="eyebrow" data-i18n="mock_eyebrow"></div>
+        <h2 data-i18n="mock_title"></h2>
+        <p data-i18n="mock_sub"></p>
+      </div>
+      <div class="mocks">
+
+        <!-- ИГРЫ -->
+        <div class="mcol reveal">
+          <div class="phone-frame"><div class="phone-screen">
+            <div class="ps-top"><div class="lchip"><img class="llogo" src="/avatars/dog-07.png" alt="" /><b>Падел по четвергам</b> ▾</div><span class="ps-mini">RU</span></div>
+            <div class="ps-body">
+              <div style="font-size:11px;color:var(--mut);font-weight:700" data-i18n="m_game_head">Игра · 19:30 · Корт 1</div>
+              <div class="court">
+                <div class="ctn" data-i18n="m_court_chip">КОРТ 1 ✎</div><div class="cnet"></div>
+                <div class="cgrid">
+                  <div class="cside">
+                    <div class="cpl"><img class="dav" src="/avatars/dog-05.png" alt="" /><span>Артём</span></div>
+                    <div class="cpl"><img class="dav" src="/avatars/dog-08.png" alt="" /><span>Никита</span></div>
+                  </div>
+                  <div class="csc"><b style="color:var(--lime)">2</b><i>:</i><b style="color:var(--coral)">1</b></div>
+                  <div class="cside">
+                    <div class="cpl b"><img class="dav" src="/avatars/dog-02.png" alt="" /><span>Игорь</span></div>
+                    <div class="cpl b"><img class="dav" src="/avatars/dog-14.png" alt="" /><span>Дмитрий</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="sets">
+                <div class="setb"><span data-i18n="m_set1">Сет 1</span><br><b style="color:var(--lime)">6</b>:<b style="color:var(--coral)">4</b></div>
+                <div class="setb"><span data-i18n="m_set2">Сет 2</span><br><b style="color:var(--lime)">3</b>:<b style="color:var(--coral)">6</b></div>
+                <div class="setb"><span data-i18n="m_set3">Сет 3</span><br><b style="color:var(--lime)">7</b>:<b style="color:var(--coral)">5</b></div>
+              </div>
+              <div style="margin-top:auto;text-align:center;background:var(--lime);color:var(--lime-fg);font-weight:800;border-radius:11px;padding:9px;font-size:12px" data-i18n="m_rematch">Сыграть ещё ↻</div>
+            </div>
+            <div class="ps-nav"><div><span class="ic">🏆</span><span data-i18n="m_nav_b">Друзья</span></div><div class="on"><span class="ic">⚔️</span><span data-i18n="m_nav_g">Игры</span></div><div><span class="ic">🎖️</span><span data-i18n="m_nav_t">Турниры</span></div><div><span class="ic">🕘</span><span data-i18n="m_nav_h">История</span></div></div>
+          </div></div>
+          <div class="mcap"><b data-i18n="cap_games_t"></b><span data-i18n="cap_games_s"></span></div>
+        </div>
+
+        <!-- ТУРНИРЫ -->
+        <div class="mcol reveal">
+          <div class="phone-frame"><div class="phone-screen">
+            <div class="ps-top"><div class="lchip"><img class="llogo" src="/avatars/dog-07.png" alt="" /><b>Падел по четвергам</b> ▾</div><span class="ps-mini">RU</span></div>
+            <div class="ps-body">
+              <div style="display:flex;align-items:center;justify-content:space-between"><div style="font-size:15px;font-weight:800">Американо</div><span class="chip" style="padding:3px 9px;font-size:9px" data-i18n="m_round">Раунд 4/6</span></div>
+              <div style="font-size:10px;color:var(--mut);margin:-3px 0 1px" data-i18n="m_amer_tag">Идеально для дебюта</div>
+              <div class="trow"><span class="pos" style="color:var(--yellow);border-color:var(--yellow);background:rgba(255,210,63,.12)">1</span><img class="dav" style="width:23px;height:23px" src="/avatars/dog-05.png" alt="" /><div class="nm">Артём</div><span class="pts">28</span></div>
+              <div class="trow"><span class="pos" style="color:#9aa6a0;border-color:#cfd8d0;background:rgba(160,170,165,.12)">2</span><img class="dav" style="width:23px;height:23px" src="/avatars/dog-11.png" alt="" /><div class="nm">Павел</div><span class="pts">25</span></div>
+              <div class="trow"><span class="pos" style="color:#cd7f4d;border-color:#cd7f4d;background:rgba(205,127,77,.14)">3</span><img class="dav" style="width:23px;height:23px" src="/avatars/dog-02.png" alt="" /><div class="nm">Игорь</div><span class="pts">22</span></div>
+              <div class="trow"><span class="pos" style="color:var(--mut);border-color:var(--line)">4</span><img class="dav" style="width:23px;height:23px" src="/avatars/dog-08.png" alt="" /><div class="nm">Никита</div><span class="pts" style="color:var(--mut)">19</span></div>
+              <div class="trow"><span class="pos" style="color:var(--mut);border-color:var(--line)">5</span><img class="dav" style="width:23px;height:23px" src="/avatars/dog-14.png" alt="" /><div class="nm">Дмитрий</div><span class="pts" style="color:var(--mut)">16</span></div>
+              <div class="trow"><span class="pos" style="color:var(--mut);border-color:var(--line)">6</span><img class="dav" style="width:23px;height:23px" src="/avatars/dog-03.png" alt="" /><div class="nm">Олег</div><span class="pts" style="color:var(--mut)">13</span></div>
+              <div class="trow"><span class="pos" style="color:var(--mut);border-color:var(--line)">7</span><img class="dav" style="width:23px;height:23px" src="/avatars/dog-06.png" alt="" /><div class="nm">Кирилл</div><span class="pts" style="color:var(--mut)">10</span></div>
+              <div class="trow"><span class="pos" style="color:var(--mut);border-color:var(--line)">8</span><img class="dav" style="width:23px;height:23px" src="/avatars/dog-10.png" alt="" /><div class="nm">Роман</div><span class="pts" style="color:var(--mut)">7</span></div>
+            </div>
+            <div class="ps-nav"><div><span class="ic">🏆</span><span data-i18n="m_nav_b">Друзья</span></div><div><span class="ic">⚔️</span><span data-i18n="m_nav_g">Игры</span></div><div class="on"><span class="ic">🎖️</span><span data-i18n="m_nav_t">Турниры</span></div><div><span class="ic">🕘</span><span data-i18n="m_nav_h">История</span></div></div>
+          </div></div>
+          <div class="mcap"><b data-i18n="cap_tours_t"></b><span data-i18n="cap_tours_s"></span></div>
+        </div>
+
+        <!-- ИСТОРИЯ -->
+        <div class="mcol reveal">
+          <div class="phone-frame"><div class="phone-screen">
+            <div class="ps-top"><div class="lchip"><img class="llogo" src="/avatars/dog-07.png" alt="" /><b>Падел по четвергам</b> ▾</div><span class="ps-mini">RU</span></div>
+            <div class="ps-body">
+              <div class="seg"><div class="on" data-i18n="m_filter_all">Все</div><div data-i18n="m_nav_g">Игры</div><div data-i18n="m_nav_t">Турниры</div></div>
+              <div style="font-size:9px;font-weight:700;letter-spacing:1px;color:var(--yellow);text-transform:uppercase;margin-top:2px" data-i18n="m_h_tours">Турниры</div>
+              <div class="trow" style="border-color:color-mix(in srgb,var(--yellow) 35%,transparent)"><span style="font-size:16px">🏆</span><div style="flex:1;min-width:0"><div class="nm" data-i18n="m_hist_tour">Американо · 12 июня</div><div style="font-size:10px;color:var(--mut)" data-i18n="m_hist_tour_sub">2 место · 6 игроков</div></div><span class="pts" style="color:var(--yellow)">🥈</span></div>
+              <div style="font-size:9px;font-weight:700;letter-spacing:1px;color:var(--mut);text-transform:uppercase;margin-top:4px" data-i18n="m_h_games">Игры</div>
+              <div class="hcard"><div class="havs"><img src="/avatars/dog-05.png" alt=""><img src="/avatars/dog-08.png" alt=""></div><div style="font-size:9px;color:var(--mut)">vs</div><div class="havs"><img src="/avatars/dog-02.png" alt=""><img src="/avatars/dog-14.png" alt=""></div><span class="hsc"><span class="win">2</span>:<span class="los">1</span></span></div>
+              <div class="hcard"><div class="havs"><img src="/avatars/dog-11.png" alt=""><img src="/avatars/dog-09.png" alt=""></div><div style="font-size:9px;color:var(--mut)">vs</div><div class="havs"><img src="/avatars/dog-03.png" alt=""><img src="/avatars/dog-01.png" alt=""></div><span class="hsc"><span class="los">0</span>:<span class="win">2</span></span></div>
+              <div class="hcard"><div class="havs"><img src="/avatars/dog-05.png" alt=""><img src="/avatars/dog-02.png" alt=""></div><div style="font-size:9px;color:var(--mut)">vs</div><div class="havs"><img src="/avatars/dog-08.png" alt=""><img src="/avatars/dog-11.png" alt=""></div><span class="hsc"><span class="win">2</span>:<span class="los">0</span></span></div>
+              <div style="margin-top:auto;text-align:center;font-size:9.5px;color:var(--mut)" data-i18n="m_swipe">← смахни влево, чтобы удалить</div>
+            </div>
+            <div class="ps-nav"><div><span class="ic">🏆</span><span data-i18n="m_nav_b">Друзья</span></div><div><span class="ic">⚔️</span><span data-i18n="m_nav_g">Игры</span></div><div><span class="ic">🎖️</span><span data-i18n="m_nav_t">Турниры</span></div><div class="on"><span class="ic">🕘</span><span data-i18n="m_nav_h">История</span></div></div>
+          </div></div>
+          <div class="mcap"><b data-i18n="cap_history_t"></b><span data-i18n="cap_history_s"></span></div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="block" id="features" style="padding-top:0;">
     <div class="wrap">
       <div class="sec-head reveal">
         <div class="eyebrow" data-i18n="feat_eyebrow"></div>
@@ -302,14 +398,14 @@
         <div class="card reveal"><div class="ic">🔗</div><h3 data-i18n="f1_t"></h3><p data-i18n="f1_d"></p></div>
         <div class="card reveal"><div class="ic">🏟️</div><h3 data-i18n="f2_t"></h3><p data-i18n="f2_d"></p></div>
         <div class="card reveal"><div class="ic">🏆</div><h3 data-i18n="f3_t"></h3><p data-i18n="f3_d"></p></div>
-        <div class="card reveal"><div class="ic">📊</div><h3 data-i18n="f4_t"></h3><p data-i18n="f4_d"></p></div>
-        <div class="card reveal"><div class="ic">📈</div><h3 data-i18n="f5_t"></h3><p data-i18n="f5_d"></p></div>
-        <div class="card reveal"><div class="ic">🔐</div><h3 data-i18n="f6_t"></h3><p data-i18n="f6_d"></p></div>
+        <div class="card reveal"><div class="ic">🎖️</div><h3 data-i18n="f4_t"></h3><p data-i18n="f4_d"></p></div>
+        <div class="card reveal"><div class="ic">🤝</div><h3 data-i18n="f5_t"></h3><p data-i18n="f5_d"></p></div>
+        <div class="card reveal"><div class="ic">📲</div><h3 data-i18n="f6_t"></h3><p data-i18n="f6_d"></p></div>
       </div>
     </div>
   </section>
 
-  <!-- ─────────────── FORMATS ─────────────── -->
+  <!-- FORMATS -->
   <section class="block" style="padding-top:0;">
     <div class="wrap">
       <div class="sec-head reveal">
@@ -326,7 +422,7 @@
     </div>
   </section>
 
-  <!-- ─────────────── HOW IT WORKS ─────────────── -->
+  <!-- HOW -->
   <section class="block" style="padding-top:0;">
     <div class="wrap">
       <div class="sec-head reveal">
@@ -341,7 +437,7 @@
     </div>
   </section>
 
-  <!-- ─────────────── CTA ─────────────── -->
+  <!-- CTA -->
   <section class="cta wrap">
     <div class="cta-in reveal">
       <h2 data-i18n="cta_title"></h2>
@@ -350,16 +446,15 @@
     </div>
   </section>
 
-  <!-- ─────────────── FOOTER ─────────────── -->
+  <!-- FOOTER -->
   <footer>
     <div class="wrap foot">
       <div class="nav-left">
-        <img src="/logo-mark-dark.webp" alt="" width="26" height="26" onerror="this.style.display='none'" style="width:26px;height:26px;border-radius:7px;" />
         <span class="word" style="font-size:17px;"><span class="a">Padel</span><span class="b">Pack</span></span>
       </div>
       <div class="foot-links">
         <a href="/" data-i18n="nav_open"></a>
-        <a href="#features" data-i18n="foot_features"></a>
+        <a href="#mockups" data-i18n="foot_features"></a>
         <a href="/privacy.html" data-i18n="foot_privacy"></a>
         <a href="mailto:valerbykov@gmail.com">valerbykov@gmail.com</a>
       </div>
@@ -370,177 +465,167 @@
   </footer>
 
   <script>
-    // ───────── i18n ─────────
     const I18N = {
       ru:{
         nav_open:"Открыть приложение",
-        hero_pill:"Игры, лиги и турниры в одном месте",
-        hero_title:'Своя <span class="hl">стая</span> на корте',
-        hero_sub:"Собирай игры по ссылке, веди лигу, проводи турниры и следи за статистикой — всё в одном приложении.",
-        hero_cta_primary:"Начать",
-        hero_cta_secondary:"Как это работает",
+        hero_title:'<span class="hl">Лига друзей</span> ·<br>своя стая на корте',
+        hero_sub:"Создай лигу падела за пару минут, зови друзей по ссылке, веди игры и турниры — и следи за уровнями всей стаи.",
+        hero_cta_primary:"Войти и начать",
+        hero_cta_secondary:"Посмотреть вкладки",
         hero_note_1:"Без установки",
         hero_note_2:"Друзья заходят в один тап",
         hero_note_3:"RU · EN · ES",
-        float_match:"Матч засчитан",
-        float_tournament:"Турнир создан",
-        mock_standings:"Таблица лиги",
-        mock_lvl_master:"Мастер", mock_lvl_exp:"Опытный", mock_lvl_amateur:"Любитель",
-        strip_intro:"Создано игроками для игроков",
+        strip_intro:"Своя стая на корте",
         strip_theme:"Тёмная и светлая темы",
         strip_elo:"Уровни и ачивки",
         strip_link:"Игры по ссылке",
+        mock_eyebrow:"Прямо как в приложении",
+        mock_title:"Ключевые вкладки",
+        mock_sub:"Доска лиги, игры, турниры и история — всё в одном приложении, в тёмной и светлой теме.",
+        cap_games_t:"Игры", cap_games_s:"Счёт по сетам, корты, микс команд",
+        cap_tours_t:"Турниры", cap_tours_s:"Американо и Мексикано прямо в приложении",
+        cap_history_t:"История", cap_history_s:"Все игры и турниры, свайп для удаления",
         feat_eyebrow:"Возможности",
         feat_title:"Всё для твоей падел-компании",
         feat_sub:"Меньше рутины с организацией — больше игры на корте.",
-        f1_t:"Игры по ссылке",
-        f1_d:"Создай игру и пришли ссылку — друзья занимают места в один тап, даже без регистрации.",
-        f2_t:"Лиги",
-        f2_d:"Собери свою компанию, веди общий рейтинг и историю всех встреч.",
-        f3_t:"Турниры",
-        f3_d:"Американо, Мексикано и другие форматы с автоматическим расписанием раундов.",
-        f4_t:"Статистика",
-        f4_d:"Победы, серии, лучшие напарники и вся история игр под рукой.",
-        f5_t:"Уровни и достижения",
-        f5_d:"Уровни игроков, серии побед и ачивки — прогресс компании виден в таблице лиги.",
-        f6_t:"Удобный вход",
-        f6_d:"Google, Яндекс, Telegram, email или SMS — выбирай свой способ.",
+        f1_t:"Игры по ссылке", f1_d:"Создай игру и пришли ссылку — друзья занимают места в один тап, даже без регистрации.",
+        f2_t:"Лиги с брендингом", f2_d:"Логотип клуба, организатор и телеграм-канал лиги. Общий рейтинг и история встреч.",
+        f3_t:"Турниры", f3_d:"Американо, Мексикано и другие форматы с автоматическим расписанием раундов.",
+        f4_t:"Уровни и достижения", f4_d:"Уровни игроков, серии побед, лучший партнёр и ачивки — прогресс виден в таблице лиги.",
+        f5_t:"Лучший партнёр", f5_d:"Узнай, с кем ты выигрываешь чаще — отдельно по играм и по турнирам.",
+        f6_t:"Работает как приложение", f6_d:"PWA: ставится на телефон, открывается с экрана, помнит твою лигу. Вход через Google, Telegram, email.",
+        m_invite:"Пригласить в лигу", m_amateur:"Любитель", m_exp:"Опытный",
+        m_nav_b:"Друзья", m_nav_g:"Игры", m_nav_t:"Турниры", m_nav_h:"История",
+        m_game_head:"Игра · 19:30 · Корт 1", m_court_chip:"КОРТ 1 ✎",
+        m_set1:"Сет 1", m_set2:"Сет 2", m_set3:"Сет 3", m_rematch:"Сыграть ещё ↻",
+        m_round:"Раунд 4/6", m_amer_tag:"Идеально для дебюта",
+        m_filter_all:"Все", m_h_tours:"Турниры", m_h_games:"Игры",
+        m_hist_tour:"Американо · 12 июня", m_hist_tour_sub:"2 место · 8 игроков",
+        m_swipe:"← смахни влево, чтобы удалить",
         fmt_eyebrow:"Форматы турниров",
         fmt_title:"Формат под любую компанию",
         fmt_sub:"Автоматическое расписание под любой состав и количество кортов.",
         fmt_amer:"Идеально для дебюта — все меняются партнёрами каждый раунд.",
         fmt_mex:"Умный подбор соперников по текущим результатам.",
-        fmt_koth_t:"King of the Court",
-        fmt_koth:"Держи корт! Команды фиксируются, пары не меняются.",
-        fmt_btb_t:"Beat the Box",
-        fmt_btb:"Вызови чемпиона и поднимайся по коробкам наверх.",
+        fmt_koth_t:"King of the Court", fmt_koth:"Держи корт! Победитель остаётся, проигравший уходит.",
+        fmt_btb_t:"Beat the Box", fmt_btb:"Вызови чемпиона и поднимайся по коробкам наверх.",
         how_eyebrow:"Как это работает",
         how_title:"Три шага до первой игры",
-        s1_t:"Создай игру или лигу",
-        s1_d:"Выбери формат, дату и корт. На всё уходит меньше минуты.",
-        s2_t:"Пришли ссылку",
-        s2_d:"Друзья открывают её и занимают места в один тап — без установки и регистрации.",
-        s3_t:"Играй и следи за таблицей",
-        s3_d:"Внеси счёт — таблица лиги, статистика и история обновятся автоматически.",
-        cta_title:"Готов собрать свою стаю?",
+        s1_t:"Создай лигу или игру", s1_d:"Выбери формат, дату и корт. На всё уходит меньше минуты.",
+        s2_t:"Пришли ссылку", s2_d:"Друзья открывают её и занимают места в один тап — без установки и регистрации.",
+        s3_t:"Играй и следи за таблицей", s3_d:"Внеси счёт — таблица лиги, уровни и история обновятся автоматически.",
+        cta_title:"Собери свою стаю на корте",
         cta_sub:"Бесплатно. Открывается прямо в браузере, ставится как приложение.",
-        cta_btn:"Открыть PadelPack",
-        foot_features:"Возможности",
-        foot_privacy:"Конфиденциальность",
+        cta_btn:"Создать лигу бесплатно →",
+        foot_features:"Вкладки", foot_privacy:"Конфиденциальность",
         foot_tagline:"лига друзей · своя стая на корте",
       },
       en:{
         nav_open:"Open the app",
-        hero_pill:"Games, leagues & tournaments in one place",
-        hero_title:'Your <span class="hl">pack</span> on court',
-        hero_sub:"Organize games by link, run a league, hold tournaments and track your stats — all in one app.",
+        hero_title:'<span class="hl">A league of friends</span> ·<br>your pack on court',
+        hero_sub:"Spin up a padel league in minutes, invite friends by link, run games and tournaments — and track the whole pack's levels.",
         hero_cta_primary:"Get started",
-        hero_cta_secondary:"How it works",
+        hero_cta_secondary:"See the tabs",
         hero_note_1:"No install",
         hero_note_2:"Friends join in one tap",
         hero_note_3:"EN · RU · ES",
-        float_match:"Match recorded",
-        float_tournament:"Tournament created",
-        mock_standings:"League table",
-        mock_lvl_master:"Master", mock_lvl_exp:"Experienced", mock_lvl_amateur:"Amateur",
-        strip_intro:"Made by players for players",
+        strip_intro:"Your pack on court",
         strip_theme:"Dark & light themes",
         strip_elo:"Levels & badges",
         strip_link:"Games by link",
+        mock_eyebrow:"Exactly like the app",
+        mock_title:"The key tabs",
+        mock_sub:"League board, games, tournaments and history — all in one app, in dark and light themes.",
+        cap_games_t:"Games", cap_games_s:"Set scores, courts, team mixing",
+        cap_tours_t:"Tournaments", cap_tours_s:"Americano & Mexicano right in the app",
+        cap_history_t:"History", cap_history_s:"Every game and tournament, swipe to delete",
         feat_eyebrow:"Features",
         feat_title:"Everything for your padel crew",
         feat_sub:"Less organizing, more padel on court.",
-        f1_t:"Games by link",
-        f1_d:"Create a game and share a link — friends grab spots in one tap, even without signing up.",
-        f2_t:"Leagues",
-        f2_d:"Build your crew, keep a shared rating and a full match history.",
-        f3_t:"Tournaments",
-        f3_d:"Americano, Mexicano and more with automatic round scheduling.",
-        f4_t:"Stats",
-        f4_d:"Wins, streaks, best partners and your full game history at a glance.",
-        f5_t:"Levels & achievements",
-        f5_d:"Player levels, win streaks and badges — your crew's progress shows in the league table.",
-        f6_t:"Easy sign-in",
-        f6_d:"Google, Yandex, Telegram, email or SMS — pick your own way.",
+        f1_t:"Games by link", f1_d:"Create a game and share a link — friends grab spots in one tap, even without signing up.",
+        f2_t:"Branded leagues", f2_d:"Club logo, organizer and a league Telegram channel. Shared rating and full match history.",
+        f3_t:"Tournaments", f3_d:"Americano, Mexicano and more with automatic round scheduling.",
+        f4_t:"Levels & achievements", f4_d:"Player levels, win streaks, best partner and badges — progress shows in the league table.",
+        f5_t:"Best partner", f5_d:"See who you win with most — separately for games and for tournaments.",
+        f6_t:"Works like an app", f6_d:"PWA: installs to your phone, opens from the home screen, remembers your league. Sign in with Google, Telegram, email.",
+        m_invite:"Invite to league", m_amateur:"Amateur", m_exp:"Experienced",
+        m_nav_b:"Friends", m_nav_g:"Games", m_nav_t:"Tournaments", m_nav_h:"History",
+        m_game_head:"Game · 19:30 · Court 1", m_court_chip:"COURT 1 ✎",
+        m_set1:"Set 1", m_set2:"Set 2", m_set3:"Set 3", m_rematch:"Play again ↻",
+        m_round:"Round 4/6", m_amer_tag:"Perfect for beginners",
+        m_filter_all:"All", m_h_tours:"Tournaments", m_h_games:"Games",
+        m_hist_tour:"Americano · Jun 12", m_hist_tour_sub:"2nd place · 8 players",
+        m_swipe:"← swipe left to delete",
         fmt_eyebrow:"Tournament formats",
         fmt_title:"A format for every crew",
         fmt_sub:"Automatic scheduling for any roster and number of courts.",
         fmt_amer:"Perfect for beginners — partners rotate every round.",
         fmt_mex:"Smart matchmaking based on current standings.",
-        fmt_koth_t:"King of the Court",
-        fmt_koth:"Hold the court! Teams are fixed, pairs don't change.",
-        fmt_btb_t:"Beat the Box",
-        fmt_btb:"Challenge the champion and climb up the boxes.",
+        fmt_koth_t:"King of the Court", fmt_koth:"Hold the court! Winner stays, loser leaves.",
+        fmt_btb_t:"Beat the Box", fmt_btb:"Challenge the champion and climb up the boxes.",
         how_eyebrow:"How it works",
         how_title:"Three steps to your first game",
-        s1_t:"Create a game or league",
-        s1_d:"Pick a format, date and court. It takes less than a minute.",
-        s2_t:"Share the link",
-        s2_d:"Friends open it and grab a spot in one tap — no install, no sign-up.",
-        s3_t:"Play and track the table",
-        s3_d:"Enter the score — the league table, stats and history update automatically.",
-        cta_title:"Ready to gather your pack?",
+        s1_t:"Create a league or game", s1_d:"Pick a format, date and court. It takes less than a minute.",
+        s2_t:"Share the link", s2_d:"Friends open it and grab a spot in one tap — no install, no sign-up.",
+        s3_t:"Play and track the table", s3_d:"Enter the score — the league table, levels and history update automatically.",
+        cta_title:"Gather your pack on court",
         cta_sub:"Free. Opens right in the browser, installs as an app.",
-        cta_btn:"Open PadelPack",
-        foot_features:"Features",
-        foot_privacy:"Privacy",
+        cta_btn:"Create a league free →",
+        foot_features:"Tabs", foot_privacy:"Privacy",
         foot_tagline:"a league of friends · your pack on court",
       },
       es:{
         nav_open:"Abrir la app",
-        hero_pill:"Partidas, ligas y torneos en un solo lugar",
-        hero_title:'Tu <span class="hl">jauría</span> en la pista',
-        hero_sub:"Organiza partidas por enlace, lleva una liga, celebra torneos y sigue tus estadísticas — todo en una app.",
+        hero_title:'<span class="hl">Una liga de amigos</span> ·<br>tu jauría en la pista',
+        hero_sub:"Crea una liga de pádel en minutos, invita por enlace, lleva partidas y torneos — y sigue los niveles de toda la jauría.",
         hero_cta_primary:"Empezar",
-        hero_cta_secondary:"Cómo funciona",
+        hero_cta_secondary:"Ver las pestañas",
         hero_note_1:"Sin instalar",
         hero_note_2:"Tus amigos entran en un toque",
         hero_note_3:"ES · EN · RU",
-        float_match:"Partido registrado",
-        float_tournament:"Torneo creado",
-        mock_standings:"Tabla de la liga",
-        mock_lvl_master:"Maestro", mock_lvl_exp:"Experimentado", mock_lvl_amateur:"Amateur",
-        strip_intro:"Hecho por jugadores para jugadores",
+        strip_intro:"Tu jauría en la pista",
         strip_theme:"Temas claro y oscuro",
         strip_elo:"Niveles y logros",
         strip_link:"Partidas por enlace",
+        mock_eyebrow:"Igual que en la app",
+        mock_title:"Las pestañas clave",
+        mock_sub:"Tabla de liga, partidas, torneos e historial — todo en una app, en tema claro y oscuro.",
+        cap_games_t:"Partidas", cap_games_s:"Marcador por sets, pistas, mezcla de equipos",
+        cap_tours_t:"Torneos", cap_tours_s:"Americano y Mexicano en la propia app",
+        cap_history_t:"Historial", cap_history_s:"Cada partida y torneo, desliza para borrar",
         feat_eyebrow:"Funciones",
         feat_title:"Todo para tu grupo de pádel",
         feat_sub:"Menos organización, más pádel en la pista.",
-        f1_t:"Partidas por enlace",
-        f1_d:"Crea una partida y comparte el enlace — tus amigos ocupan plaza en un toque, incluso sin registrarse.",
-        f2_t:"Ligas",
-        f2_d:"Forma tu grupo, mantén una clasificación común y todo el historial de partidos.",
-        f3_t:"Torneos",
-        f3_d:"Americano, Mexicano y más con horario de rondas automático.",
-        f4_t:"Estadísticas",
-        f4_d:"Victorias, rachas, mejores compañeros y todo tu historial a mano.",
-        f5_t:"Niveles y logros",
-        f5_d:"Niveles de jugador, rachas de victorias y logros — el progreso del grupo se ve en la tabla.",
-        f6_t:"Acceso fácil",
-        f6_d:"Google, Yandex, Telegram, email o SMS — elige el tuyo.",
+        f1_t:"Partidas por enlace", f1_d:"Crea una partida y comparte el enlace — tus amigos ocupan plaza en un toque, incluso sin registrarse.",
+        f2_t:"Ligas con marca", f2_d:"Logo del club, organizador y canal de Telegram de la liga. Clasificación común e historial completo.",
+        f3_t:"Torneos", f3_d:"Americano, Mexicano y más con horario de rondas automático.",
+        f4_t:"Niveles y logros", f4_d:"Niveles de jugador, rachas, mejor compañero y logros — el progreso se ve en la tabla.",
+        f5_t:"Mejor compañero", f5_d:"Descubre con quién ganas más — por separado en partidas y en torneos.",
+        f6_t:"Funciona como app", f6_d:"PWA: se instala en el móvil, se abre desde la pantalla, recuerda tu liga. Entra con Google, Telegram, email.",
+        m_invite:"Invitar a la liga", m_amateur:"Amateur", m_exp:"Experimentado",
+        m_nav_b:"Amigos", m_nav_g:"Partidas", m_nav_t:"Torneos", m_nav_h:"Historial",
+        m_game_head:"Partida · 19:30 · Pista 1", m_court_chip:"PISTA 1 ✎",
+        m_set1:"Set 1", m_set2:"Set 2", m_set3:"Set 3", m_rematch:"Jugar otra vez ↻",
+        m_round:"Ronda 4/6", m_amer_tag:"Perfecto para debutar",
+        m_filter_all:"Todos", m_h_tours:"Torneos", m_h_games:"Partidas",
+        m_hist_tour:"Americano · 12 jun", m_hist_tour_sub:"2.º puesto · 8 jugadores",
+        m_swipe:"← desliza para borrar",
         fmt_eyebrow:"Formatos de torneo",
         fmt_title:"Un formato para cada grupo",
         fmt_sub:"Horario automático para cualquier grupo y número de pistas.",
         fmt_amer:"Perfecto para debutar — las parejas rotan cada ronda.",
         fmt_mex:"Emparejamiento inteligente según la clasificación actual.",
-        fmt_koth_t:"King of the Court",
-        fmt_koth:"¡Mantén la pista! Los equipos se fijan, las parejas no cambian.",
-        fmt_btb_t:"Beat the Box",
-        fmt_btb:"Desafía al campeón y sube por las cajas.",
+        fmt_koth_t:"King of the Court", fmt_koth:"¡Mantén la pista! El ganador se queda, el perdedor sale.",
+        fmt_btb_t:"Beat the Box", fmt_btb:"Desafía al campeón y sube por las cajas.",
         how_eyebrow:"Cómo funciona",
         how_title:"Tres pasos hasta tu primera partida",
-        s1_t:"Crea una partida o liga",
-        s1_d:"Elige formato, fecha y pista. Toma menos de un minuto.",
-        s2_t:"Comparte el enlace",
-        s2_d:"Tus amigos lo abren y ocupan plaza en un toque — sin instalar ni registrarse.",
-        s3_t:"Juega y sigue la tabla",
-        s3_d:"Introduce el marcador — la tabla de la liga, estadísticas e historial se actualizan solos.",
-        cta_title:"¿Listo para reunir a tu jauría?",
+        s1_t:"Crea una liga o partida", s1_d:"Elige formato, fecha y pista. Toma menos de un minuto.",
+        s2_t:"Comparte el enlace", s2_d:"Tus amigos lo abren y ocupan plaza en un toque — sin instalar ni registrarse.",
+        s3_t:"Juega y sigue la tabla", s3_d:"Introduce el marcador — la tabla, los niveles y el historial se actualizan solos.",
+        cta_title:"Reúne a tu jauría en la pista",
         cta_sub:"Gratis. Se abre en el navegador y se instala como app.",
-        cta_btn:"Abrir PadelPack",
-        foot_features:"Funciones",
-        foot_privacy:"Privacidad",
+        cta_btn:"Crear una liga gratis →",
+        foot_features:"Pestañas", foot_privacy:"Privacidad",
         foot_tagline:"una liga de amigos · tu jauría en la pista",
       },
     };
@@ -548,39 +633,35 @@
     function applyLang(lang){
       const dict = I18N[lang] || I18N.ru;
       document.documentElement.lang = lang;
-      document.querySelectorAll("[data-i18n]").forEach(el=>{
-        const k = el.getAttribute("data-i18n");
-        if(dict[k] != null) el.textContent = dict[k];
-      });
-      document.querySelectorAll("[data-i18n-html]").forEach(el=>{
-        const k = el.getAttribute("data-i18n-html");
-        if(dict[k] != null) el.innerHTML = dict[k];
-      });
-      document.querySelectorAll("#langsw button").forEach(b=>{
-        b.classList.toggle("on", b.getAttribute("data-lang") === lang);
-      });
+      document.querySelectorAll("[data-i18n]").forEach(el=>{ const k=el.getAttribute("data-i18n"); if(dict[k]!=null) el.textContent=dict[k]; });
+      document.querySelectorAll("[data-i18n-html]").forEach(el=>{ const k=el.getAttribute("data-i18n-html"); if(dict[k]!=null) el.innerHTML=dict[k]; });
+      document.querySelectorAll("#langsw button").forEach(b=>b.classList.toggle("on", b.getAttribute("data-lang")===lang));
       try{ localStorage.setItem("plLang", lang); }catch(e){}
     }
-
     function pickLang(){
-      const url = new URLSearchParams(location.search).get("lang");
-      if(url && I18N[url]) return url;
-      let stored; try{ stored = localStorage.getItem("plLang"); }catch(e){}
-      if(stored && I18N[stored]) return stored;
-      const nav = (navigator.language || "ru").slice(0,2);
-      return I18N[nav] ? nav : "ru";
+      const url=new URLSearchParams(location.search).get("lang"); if(url && I18N[url]) return url;
+      let s; try{ s=localStorage.getItem("plLang"); }catch(e){} if(s && I18N[s]) return s;
+      const n=(navigator.language||"ru").slice(0,2); return I18N[n]?n:"ru";
     }
-
-    document.getElementById("langsw").addEventListener("click", e=>{
-      const b = e.target.closest("button"); if(!b) return;
-      applyLang(b.getAttribute("data-lang"));
-    });
+    document.getElementById("langsw").addEventListener("click", e=>{ const b=e.target.closest("button"); if(b) applyLang(b.getAttribute("data-lang")); });
     applyLang(pickLang());
 
+    // ───────── theme ─────────
+    function applyTheme(t){
+      document.body.classList.toggle("light", t==="light");
+      document.getElementById("themesw").textContent = t==="light" ? "☀️" : "🌙";
+      const m=document.querySelector('meta[name=theme-color]'); if(m) m.content = t==="light" ? "#f2f7f4" : "#0a1612";
+      try{ localStorage.setItem("plTheme", t); }catch(e){}
+    }
+    function pickTheme(){
+      let s; try{ s=localStorage.getItem("plTheme"); }catch(e){} if(s) return s;
+      return (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) ? "light" : "dark";
+    }
+    document.getElementById("themesw").addEventListener("click", ()=> applyTheme(document.body.classList.contains("light")?"dark":"light"));
+    applyTheme(pickTheme());
+
     // ───────── reveal on scroll ─────────
-    const io = new IntersectionObserver((entries)=>{
-      entries.forEach(en=>{ if(en.isIntersecting){ en.target.classList.add("in"); io.unobserve(en.target); } });
-    }, { threshold:.12 });
+    const io=new IntersectionObserver((es)=>{ es.forEach(en=>{ if(en.isIntersecting){ en.target.classList.add("in"); io.unobserve(en.target); } }); }, {threshold:.12});
     document.querySelectorAll(".reveal:not(.in)").forEach(el=>io.observe(el));
   </script>
 </body>

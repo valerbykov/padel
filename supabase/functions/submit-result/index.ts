@@ -34,6 +34,12 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: "unauthorized" }, 401);
 
     const { gameId, setsA, setsB, scoreDetail } = await req.json();
+
+    // Валидация счёта: целые, неотрицательные, в разумных пределах
+    // (клиент не должен мочь прислать setsA: 1000000 и накрутить рейтинг).
+    const validSet = (n: unknown) => Number.isInteger(n) && (n as number) >= 0 && (n as number) <= 7;
+    if (!validSet(setsA) || !validSet(setsB)) return json({ error: "invalid_score" }, 400);
+
     const admin = createClient(url, service);
 
     // 2. Игра + слоты.
@@ -79,6 +85,12 @@ Deno.serve(async (req) => {
       }
       return { profileId, ...gm };
     }
+
+    // Один и тот же ВЫБРАННЫЙ игрок (по profile_id) не может занимать два слота —
+    // иначе две дельты на один профиль и гонка рейтинга. Проверяем по явному
+    // profile_id ДО резолва, чтобы не зарубить легитимную игру с двумя гостями-тёзками.
+    const chosen = sorted.map((s: any) => s.profile_id).filter(Boolean);
+    if (new Set(chosen).size !== chosen.length) return json({ error: "duplicate_player" }, 400);
 
     const players = await Promise.all(sorted.map(resolvePlayer));
     const [a1, a2, b1, b2] = players;
