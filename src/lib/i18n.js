@@ -37,7 +37,7 @@ const T = {
     level_master: 'Мастер', level_legend: 'Легенда',
     // ── Stats labels ──────────────────────────────────────────────────────
     matches: 'игр', tournaments: 'турниров',
-    best_partner: 'Лучший партнёр', best_partner_games: 'Лучший партнёр — игры', best_partner_tour: 'Лучший партнёр — турниры',
+    best_partner: 'Лучший партнёр', best_partner_games: 'Лучший партнёр — игры', best_partner_tour: 'Лучший партнёр — турниры', avg_diff: 'ср. разница', best_partner_help: 'Берём матчи, где вы играли в одной команде. Для каждого считаем разницу счёта (в играх — по геймам, в турнирах — по очкам) и складываем; делим на число совместных матчей плюс сглаживание — так учитываются и объём, и крупность побед, и пара случайных матчей не перевешивает долгую историю. Нужно минимум 2 матча вместе. Показана средняя разница за матч.',
     wins: 'победы', draws: 'ничьи', losses: 'поражения',
     stat_wins: 'победы', stat_draws: 'ничьи', stat_losses: 'поражения',
     rating: 'рейтинг', level: 'уровень',
@@ -346,7 +346,7 @@ const T = {
     level_master: 'Master', level_legend: 'Legend',
     // ── Stats labels ──────────────────────────────────────────────────────
     matches: 'games', tournaments: 'cups',
-    best_partner: 'Best partner', best_partner_games: 'Best partner — games', best_partner_tour: 'Best partner — tournaments',
+    best_partner: 'Best partner', best_partner_games: 'Best partner — games', best_partner_tour: 'Best partner — tournaments', avg_diff: 'avg margin', best_partner_help: 'We take matches where you were teammates. For each we sum the score margin (games in regular matches, points in tournaments), then divide by the number of shared matches plus smoothing — so both volume and margin count, and a couple of flukes don\'t outweigh a long history. Minimum 2 matches together. Shown: average margin per match.',
     wins: 'wins', draws: 'draws', losses: 'losses',
     stat_wins: 'wins', stat_draws: 'draws', stat_losses: 'losses',
     rating: 'rating', level: 'level',
@@ -655,7 +655,7 @@ const T = {
     level_master: 'Maestro', level_legend: 'Leyenda',
     // ── Stats labels ──────────────────────────────────────────────────────
     matches: 'partidas', tournaments: 'torneos',
-    best_partner: 'Mejor compañero', best_partner_games: 'Mejor compañero — juegos', best_partner_tour: 'Mejor compañero — torneos',
+    best_partner: 'Mejor compañero', best_partner_games: 'Mejor compañero — juegos', best_partner_tour: 'Mejor compañero — torneos', avg_diff: 'dif. media', best_partner_help: 'Tomamos los partidos en los que fuisteis compañeros. Para cada uno sumamos la diferencia de marcador (juegos en partidos, puntos en torneos) y dividimos por el número de partidos juntos más un suavizado — así cuentan el volumen y el margen, y un par de casualidades no pesan más que un historial largo. Mínimo 2 partidos juntos. Se muestra la diferencia media por partido.',
     wins: 'victorias', draws: 'empates', losses: 'derrotas',
     stat_wins: 'victorias', stat_draws: 'empates', stat_losses: 'derrotas',
     rating: 'puntos', level: 'nivel',

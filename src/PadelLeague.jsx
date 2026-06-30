@@ -8,7 +8,7 @@ import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
 import { t, nGames } from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
-import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical } from "lucide-react";
+import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle } from "lucide-react";
 import Tournaments, { TournamentView, TournamentCard, css as trCss } from "./components/Tournaments";
 import { deleteTournament } from "./lib/tournamentApi";
 import CourtView from "./components/CourtView";
@@ -722,6 +722,46 @@ function ClaimLinkButton({ claimCode }) {
   );
 }
 
+// Лучший партнёр — средневзвешенная методика. Чтобы пара удачных матчей не
+// перебивала долгую совместную историю, ранжируем по СГЛАЖЕННОЙ суммарной разнице:
+//   score = сумма разницы (сетов в играх / очков в турнирах) / (матчи + K).
+// K сглаживает малую выборку → даёт вес объёму. Порог — минимум 2 матча вместе.
+// Тай-брейк при равном score: больше совместных матчей, затем больше побед.
+const PARTNER_K = 3;
+function pickBestPartner(list) {
+  let best = null;
+  for (const s of list) {
+    const total = s.w + s.l + s.d;
+    if (total < 2) continue;
+    const score = s.diff / (total + PARTNER_K);
+    const cand = { ...s, total, avg: s.diff / total, rate: s.w / total, score };
+    if (!best || score > best.score ||
+        (score === best.score && (total > best.total || (total === best.total && s.w > best.w)))) {
+      best = cand;
+    }
+  }
+  return best;
+}
+
+// Информационная подсказка «?» — по тапу раскрывает прозрачное объяснение алгоритма.
+function InfoDot({ text }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span style={{ position: "relative", display: "inline-flex" }}>
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-label="?"
+        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--mut)", cursor: "pointer", padding: 0, flexShrink: 0 }}>
+        <HelpCircle size={12} />
+      </button>
+      {open && (
+        <span role="tooltip" onClick={() => setOpen(false)}
+          style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 30, width: "min(260px, 78vw)", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 10, padding: "9px 11px", fontSize: 11.5, lineHeight: 1.5, fontWeight: 400, color: "var(--ink)", boxShadow: "0 8px 24px -10px rgba(0,0,0,.5)" }}>
+          {text}
+        </span>
+      )}
+    </span>
+  );
+}
+
 /* ----------------------------- PlayerDetail ------------------------------- */
 function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAddToLeague, onEditProfile }) {
   const [hist, setHist] = useState(null);
@@ -877,22 +917,26 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
       const pInB = (m.team_b || []).includes(player.id);
       if (!pInA && !pInB) return;
       const teammates = pInA ? (m.team_a || []) : (m.team_b || []);
-      const pWon = pInA ? m.sets_a > m.sets_b : m.sets_b > m.sets_a;
-      const isDraw = m.sets_a === m.sets_b;
+      // Разница ПО ГЕЙМАМ (точнее, чем по сетам). Режим «sets» → сумма геймов по
+      // сетам из score_detail; режимы «free»/«sum» детального счёта не пишут, но там
+      // sets_a/sets_b и есть сам счёт — берём его напрямую.
+      let myG;
+      if (Array.isArray(m.score_detail) && m.score_detail.length > 0) {
+        const ga = m.score_detail.reduce((s, x) => s + (x.a || 0), 0);
+        const gb = m.score_detail.reduce((s, x) => s + (x.b || 0), 0);
+        myG = ga - gb;
+      } else {
+        myG = (m.sets_a || 0) - (m.sets_b || 0);
+      }
+      const my = pInA ? myG : -myG;
       teammates.forEach((tid) => {
         if (tid === player.id) return;
-        if (!stats[tid]) stats[tid] = { w: 0, l: 0, d: 0 };
-        if (isDraw) stats[tid].d++; else if (pWon) stats[tid].w++; else stats[tid].l++;
+        if (!stats[tid]) stats[tid] = { id: tid, w: 0, l: 0, d: 0, diff: 0 };
+        stats[tid].diff += my;
+        if (my === 0) stats[tid].d++; else if (my > 0) stats[tid].w++; else stats[tid].l++;
       });
     });
-    let best = null, bestRate = -1;
-    Object.entries(stats).forEach(([id, s]) => {
-      const total = s.w + s.l + s.d;
-      if (total < 2) return;
-      const rate = s.w / total;
-      if (rate > bestRate) { bestRate = rate; best = { id, w: s.w, l: s.l, d: s.d, total, rate }; }
-    });
-    return best;
+    return pickBestPartner(Object.values(stats));
   })();
 
   // Best partner в ТУРНИРАХ (по матчам завершённых турниров игрока, rawTours).
@@ -911,39 +955,38 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
         const inB = (m.team_b || []).includes(myTp.id);
         if (!inA && !inB) return;
         const mates = inA ? (m.team_a || []) : (m.team_b || []);
-        const won = inA ? m.score_a > m.score_b : m.score_b > m.score_a;
-        const draw = m.score_a === m.score_b;
+        const my = inA ? (m.score_a - m.score_b) : (m.score_b - m.score_a); // разница очков (как в американо)
         mates.forEach((tid) => {
           if (tid === myTp.id) return;
           const tp = byTpId[tid];
           if (!tp) return;
           const key = tp.profile_id || ("g:" + (tp.name || tid));
-          if (!stats[key]) stats[key] = { id: tp.profile_id || null, name: tp.name || "?", w: 0, l: 0, d: 0 };
-          if (draw) stats[key].d++; else if (won) stats[key].w++; else stats[key].l++;
+          if (!stats[key]) stats[key] = { id: tp.profile_id || null, name: tp.name || "?", w: 0, l: 0, d: 0, diff: 0 };
+          stats[key].diff += my;
+          if (my === 0) stats[key].d++; else if (my > 0) stats[key].w++; else stats[key].l++;
         });
       });
     });
-    let best = null, bestRate = -1;
-    Object.values(stats).forEach((s) => {
-      const total = s.w + s.l + s.d;
-      if (total < 2) return;
-      const rate = s.w / total;
-      if (rate > bestRate) { bestRate = rate; best = { ...s, total, rate }; }
-    });
-    return best;
+    return pickBestPartner(Object.values(stats));
   })();
 
   // Карточка «лучший партнёр» (общая для игр и турниров).
   const partnerCard = (key, label, bp, name, avatarUrl) => (
     <div key={key} className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
-      <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{label}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+        <span style={{ fontSize: 12, color: "var(--mut)" }}>{label}</span>
+        <InfoDot text={t("best_partner_help")} />
+      </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <img src={avatarUrl} onError={avatarFallback(name)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, fontSize: 14 }}>{name || "?"}</div>
           <div style={{ fontSize: 12, color: "var(--mut)" }}>{bp.w} {t("wins_short")} · {bp.l} {t("losses_short")} · {bp.total} {t("matches")}</div>
         </div>
-        <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22, color: "var(--lime)", flexShrink: 0 }}>{Math.round(bp.rate * 100)}%</div>
+        <div style={{ textAlign: "right", flexShrink: 0 }}>
+          <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22, lineHeight: 1.1, color: bp.avg >= 0 ? "var(--lime)" : "var(--coral)" }}>{bp.avg > 0 ? "+" : ""}{bp.avg.toFixed(1)}</div>
+          <div style={{ fontSize: 10, color: "var(--mut)" }}>{t("avg_diff")}</div>
+        </div>
       </div>
     </div>
   );

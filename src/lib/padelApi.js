@@ -85,7 +85,7 @@ export function getBoardMatches(groupId) {
 }
 async function _matchesStat(groupId) {
   const { data, error } = await supabase.from("matches")
-    .select("id, team_a, team_b, sets_a, sets_b, played_at")
+    .select("id, team_a, team_b, sets_a, sets_b, score_detail, played_at")
     .eq("group_id", groupId).order("played_at", { ascending: false }).limit(100);
   if (error) throw error;
   return data || [];
