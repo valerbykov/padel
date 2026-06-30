@@ -178,7 +178,9 @@ export default function App({ initialShowLogin = false }) {
       setActiveLeague((prev) => {
         // Если уже выбрана лига и она ещё есть — оставляем.
         if (prev && list.find((l) => l.id === prev.id)) return prev;
-        return list[0] || null;
+        // Иначе восстанавливаем последнюю выбранную (запомненную) лигу, иначе первую.
+        const savedId = localStorage.getItem("plActiveLeague");
+        return list.find((l) => l.id === savedId) || list[0] || null;
       });
     } catch { setLeagues([]); setActiveLeague(null); }
   }, []);
@@ -187,6 +189,11 @@ export default function App({ initialShowLogin = false }) {
     if (!profile) { setLeagues(null); setActiveLeague(null); return; }
     loadLeagues(profile.id);
   }, [profile, loadLeagues]);
+
+  // Запоминаем последнюю активную лигу, чтобы она не слетала после обновления страницы.
+  useEffect(() => {
+    if (activeLeague?.id) localStorage.setItem("plActiveLeague", activeLeague.id);
+  }, [activeLeague?.id]);
 
   // Когда пользователь создал/вступил в лигу из LeagueSetup.
   const handleLeagueDone = useCallback((league) => {

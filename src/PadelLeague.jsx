@@ -743,22 +743,35 @@ function pickBestPartner(list) {
   return best;
 }
 
-// Информационная подсказка «?» — по тапу раскрывает прозрачное объяснение алгоритма.
-function InfoDot({ text }) {
-  const [open, setOpen] = useState(false);
+// Карточка «лучший партнёр» с раскрывающейся подсказкой «?» (прозрачно объясняет
+// алгоритм). Подсказка раскрывается ВНУТРИ карточки (не выпадашкой), чтобы текст
+// не выходил за экран. Текст контекстный: для игр про геймы, для турниров про очки.
+function PartnerCard({ label, bp, name, avatarUrl, help }) {
+  const [showHelp, setShowHelp] = useState(false);
   return (
-    <span style={{ position: "relative", display: "inline-flex" }}>
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-label="?"
-        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--mut)", cursor: "pointer", padding: 0, flexShrink: 0 }}>
-        <HelpCircle size={12} />
-      </button>
-      {open && (
-        <span role="tooltip" onClick={() => setOpen(false)}
-          style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 30, width: "min(260px, 78vw)", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 10, padding: "9px 11px", fontSize: 11.5, lineHeight: 1.5, fontWeight: 400, color: "var(--ink)", boxShadow: "0 8px 24px -10px rgba(0,0,0,.5)" }}>
-          {text}
-        </span>
+    <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+        <span style={{ fontSize: 12, color: "var(--mut)" }}>{label}</span>
+        <button type="button" onClick={() => setShowHelp((s) => !s)} aria-label="?"
+          style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--mut)", cursor: "pointer", padding: 0, flexShrink: 0 }}>
+          <HelpCircle size={12} />
+        </button>
+      </div>
+      {showHelp && (
+        <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "var(--mut)", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 10, padding: "8px 10px", marginBottom: 10 }}>{help}</div>
       )}
-    </span>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <img src={avatarUrl} onError={avatarFallback(name)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 600, fontSize: 14 }}>{name || "?"}</div>
+          <div style={{ fontSize: 12, color: "var(--mut)" }}>{bp.w} {t("wins_short")} · {bp.l} {t("losses_short")} · {bp.total} {t("matches")}</div>
+        </div>
+        <div style={{ textAlign: "right", flexShrink: 0 }}>
+          <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22, lineHeight: 1.1, color: bp.avg >= 0 ? "var(--lime)" : "var(--coral)" }}>{bp.avg > 0 ? "+" : ""}{bp.avg.toFixed(1)}</div>
+          <div style={{ fontSize: 10, color: "var(--mut)" }}>{t("avg_diff")}</div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -970,26 +983,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
     return pickBestPartner(Object.values(stats));
   })();
 
-  // Карточка «лучший партнёр» (общая для игр и турниров).
-  const partnerCard = (key, label, bp, name, avatarUrl) => (
-    <div key={key} className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-        <span style={{ fontSize: 12, color: "var(--mut)" }}>{label}</span>
-        <InfoDot text={t("best_partner_help")} />
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <img src={avatarUrl} onError={avatarFallback(name)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: 14 }}>{name || "?"}</div>
-          <div style={{ fontSize: 12, color: "var(--mut)" }}>{bp.w} {t("wins_short")} · {bp.l} {t("losses_short")} · {bp.total} {t("matches")}</div>
-        </div>
-        <div style={{ textAlign: "right", flexShrink: 0 }}>
-          <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22, lineHeight: 1.1, color: bp.avg >= 0 ? "var(--lime)" : "var(--coral)" }}>{bp.avg > 0 ? "+" : ""}{bp.avg.toFixed(1)}</div>
-          <div style={{ fontSize: 10, color: "var(--mut)" }}>{t("avg_diff")}</div>
-        </div>
-      </div>
-    </div>
-  );
+  // «Лучший партнёр» вынесен в модульный компонент PartnerCard (с подсказкой «?»).
 
   // Ачивки
   const badges = (() => {
@@ -1165,9 +1159,9 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
       {/* Лучший партнёр — отдельно по играм и по турнирам */}
       {bestPartner && (() => {
         const bp = players.find((p) => p.id === bestPartner.id);
-        return partnerCard("bp-games", t("best_partner_games"), bestPartner, bp?.name || nameMap[bestPartner.id] || "?", playerAvatar(bp?.avatar_url, bestPartner.id));
+        return <PartnerCard key="bp-games" label={t("best_partner_games")} bp={bestPartner} name={bp?.name || nameMap[bestPartner.id] || "?"} avatarUrl={playerAvatar(bp?.avatar_url, bestPartner.id)} help={t("best_partner_help_games")} />;
       })()}
-      {bestPartnerTour && partnerCard("bp-tour", t("best_partner_tour"), bestPartnerTour, bestPartnerTour.name, playerAvatar(players.find((p) => p.id === bestPartnerTour.id)?.avatar_url, bestPartnerTour.id || bestPartnerTour.name))}
+      {bestPartnerTour && <PartnerCard key="bp-tour" label={t("best_partner_tour")} bp={bestPartnerTour} name={bestPartnerTour.name} avatarUrl={playerAvatar(players.find((p) => p.id === bestPartnerTour.id)?.avatar_url, bestPartnerTour.id || bestPartnerTour.name)} help={t("best_partner_help_tour")} />}
 
       {/* Статистика с этим игроком */}
       {myId && myId !== player.id && withPlayer.length > 0 && (
@@ -1242,6 +1236,9 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
               );
             })}
           </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 7 }}>
+            <span style={{ fontSize: 9, color: "var(--mut)" }}>{t("recency_hint")}</span>
+          </div>
         </div>
       )}
       {/* Турниры — последние 10: кружок = занятое место */}
@@ -1262,6 +1259,9 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
                 </span>
               );
             })}
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 7 }}>
+            <span style={{ fontSize: 9, color: "var(--mut)" }}>{t("recency_hint")}</span>
           </div>
         </div>
       )}
