@@ -1078,7 +1078,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, onAd
         )}
         {onAddToLeague && !isInLeague && (
           <button onClick={onAddToLeague}
-            style={{ marginTop: 10, padding: "8px 16px", border: "none", borderRadius: 10, background: "var(--lime)", color: "#111", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "'Outfit'" }}>
+            style={{ marginTop: 10, padding: "8px 16px", border: "none", borderRadius: 10, background: "var(--lime)", color: "var(--lime-fg)", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "'Outfit'" }}>
             {t("add_to_league")}
           </button>
         )}
