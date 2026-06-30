@@ -9,7 +9,7 @@ import { ArrowLeft, Camera, Check, Loader, LogOut, BarChart3, Sun, Moon } from "
 import Avatar from "./Avatar";
 import { t, setLang } from "../lib/i18n";
 
-const PRESETS = Array.from({ length: 15 }, (_, i) => `/avatars/dog-${String(i + 1).padStart(2, "0")}.png`);
+const PRESETS = Array.from({ length: 15 }, (_, i) => `/avatars/dog-${String(i + 1).padStart(2, "0")}.webp`);
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');

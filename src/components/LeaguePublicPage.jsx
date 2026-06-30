@@ -4,14 +4,15 @@
 import React, { useEffect, useState } from "react";
 import { Send } from "lucide-react";
 import { getPublicLeague } from "../lib/padelApi";
-import { t } from "../lib/i18n";
+import { t, nGames } from "../lib/i18n";
+import { playerLevel } from "../lib/level";
 import { usePublicChrome, PublicToggles, plural } from "./publicChrome";
 import Logo from "./Logo";
 import LeagueLogo from "./LeagueLogo";
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
-.lp-root{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;
+.lp-root{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;--yellow:#ffd23f;
  font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;
  background-image:radial-gradient(circle at 80% -10%,rgba(200,255,45,.12),transparent 45%),radial-gradient(circle at 0% 110%,rgba(40,120,90,.18),transparent 40%);}
 .lp-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;}
@@ -116,17 +117,28 @@ export default function LeaguePublicPage({ code }) {
                   {t("pub_no_players")}
                 </div>
               )}
-              {(league.members || []).map((p, i) => (
-                <div key={i} style={{
-                  display: "flex", alignItems: "center", gap: 12, padding: "11px 16px",
-                  borderBottom: i < league.members.length - 1 ? "1px solid var(--line)" : "none",
-                }}>
-                  <Avatar name={p.name} url={p.avatar_url} />
-                  <div style={{ fontWeight: 600, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {p.name}
+              {(league.members || []).map((p, i) => {
+                const lv = playerLevel(p.matches || 0, p.rating || 0);
+                const rankColor = ["var(--yellow)", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)";
+                return (
+                  <div key={i} style={{
+                    display: "flex", alignItems: "center", gap: 11, padding: "10px 14px",
+                    borderBottom: i < league.members.length - 1 ? "1px solid var(--line)" : "none",
+                  }}>
+                    <div style={{ width: 20, textAlign: "center", fontFamily: "'Anton',sans-serif", fontSize: 17, color: rankColor, flexShrink: 0 }}>{i + 1}</div>
+                    <Avatar name={p.name} url={p.avatar_url} size={34} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {p.name}{i === 0 ? " 👑" : ""}
+                      </div>
+                      <div style={{ marginTop: 3 }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 700, padding: "1px 7px", borderRadius: 7, background: `color-mix(in srgb, ${lv.color} 15%, transparent)`, color: lv.color, border: `1px solid color-mix(in srgb, ${lv.color} 35%, transparent)` }}>{lv.label}</span>
+                      </div>
+                    </div>
+                    {p.matches > 0 && <div style={{ fontSize: 12, color: "var(--mut)", flexShrink: 0 }}>{nGames(p.matches)}</div>}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Кнопка вступить */}

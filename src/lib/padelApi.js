@@ -311,22 +311,6 @@ export async function submitResult(gameId, setsA, setsB, scoreDetail = null) {
   return data;
 }
 
-/* =====================================================================
-   REALTIME — живое обновление слотов (вместо ручного «Обновить»)
-   ===================================================================== */
-
-// Подписка на изменения слотов игры. Возвращает функцию отписки.
-export function subscribeToGame(gameId, onChange) {
-  const channel = supabase
-    .channel(`game:${gameId}`)
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "game_slots", filter: `game_id=eq.${gameId}` },
-      onChange
-    )
-    .subscribe();
-  return () => supabase.removeChannel(channel);
-}
 
 export async function deleteGame(gameId) {
   // RPC delete_game: удаляет матч+игру и ПОЛНОСТЬЮ откатывает рейтинг

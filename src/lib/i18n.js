@@ -158,6 +158,7 @@ const T = {
     stat_same_team_tour: 'В одной команде',
     stat_vs_each_other_tour: 'Против друг друга',
     tours_heading: 'Турниры', games_heading: 'Игры', show_more: 'Ещё', stat_last10: 'Последние 10',
+    an_open: 'Аналитика лиги', an_title: 'Аналитика', an_error: 'Не удалось загрузить аналитику', an_matches: 'Матчей', an_players: 'Игроков', an_active30: 'Активны (30д)', an_per_week: 'Матчей по неделям', an_most_active: 'Самые активные', an_no_data: 'Пока нет данных', an_no_period: 'Нет матчей за период',
     leagues_heading: 'Лиги',
     // ── Games ─────────────────────────────────────────────────────────────
     sign_in_to_create_games: 'Войди, чтобы создавать игры и фиксировать результаты',
@@ -462,6 +463,7 @@ const T = {
     stat_same_team_tour: 'Same team',
     stat_vs_each_other_tour: 'Against each other',
     tours_heading: 'Tournaments', games_heading: 'Games', show_more: 'More', stat_last10: 'Last 10',
+    an_open: 'League analytics', an_title: 'Analytics', an_error: 'Failed to load analytics', an_matches: 'Matches', an_players: 'Players', an_active30: 'Active (30d)', an_per_week: 'Matches per week', an_most_active: 'Most active', an_no_data: 'No data yet', an_no_period: 'No matches in this period',
     leagues_heading: 'Leagues',
     // ── Games ─────────────────────────────────────────────────────────────
     sign_in_to_create_games: 'Sign in to create games and record scores',
@@ -766,6 +768,7 @@ const T = {
     stat_same_team_tour: 'Mismo equipo',
     stat_vs_each_other_tour: 'Uno contra otro',
     tours_heading: 'Torneos', games_heading: 'Partidas', show_more: 'Más', stat_last10: 'Últimos 10',
+    an_open: 'Analítica de liga', an_title: 'Analítica', an_error: 'No se pudo cargar la analítica', an_matches: 'Partidos', an_players: 'Jugadores', an_active30: 'Activos (30d)', an_per_week: 'Partidos por semana', an_most_active: 'Más activos', an_no_data: 'Sin datos aún', an_no_period: 'Sin partidos en el periodo',
     leagues_heading: 'Ligas',
     // ── Games ─────────────────────────────────────────────────────────────
     sign_in_to_create_games: 'Entra para crear partidas y registrar resultados',
