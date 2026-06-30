@@ -472,10 +472,10 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
     finally { setBusy(false); }
   };
 
-  if (showStats) return <Analytics groupId={groupId} onBack={() => setShowStats(false)} />;
+  if (showStats) return <Analytics groupId={groupId} players={players} onBack={() => setShowStats(false)} onOpenPlayer={(p) => { setShowStats(false); setSelected(p); }} />;
 
   if (selected) return (
-    <PlayerDetail groupId={groupId} player={selected} players={players} close={() => setSelected(null)}
+    <PlayerDetail key={selected.id} groupId={groupId} player={selected} players={players} close={() => setSelected(null)} onOpenPlayer={setSelected}
       isAdmin={isAdmin} onEditProfile={onEditProfile}
       onAddToLeague={isAdmin ? async () => {
         await supabase.from("group_members").insert({ group_id: groupId, profile_id: selected.id, rating: 1000 });
@@ -789,7 +789,7 @@ function pickBestPartner(list) {
 // Карточка «лучший партнёр» с раскрывающейся подсказкой «?» (прозрачно объясняет
 // алгоритм). Подсказка раскрывается ВНУТРИ карточки (не выпадашкой), чтобы текст
 // не выходил за экран. Текст контекстный: для игр про геймы, для турниров про очки.
-function PartnerCard({ label, bp, name, avatarUrl, help }) {
+function PartnerCard({ label, bp, name, avatarUrl, help, onOpen }) {
   const [showHelp, setShowHelp] = useState(false);
   return (
     <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
@@ -803,7 +803,7 @@ function PartnerCard({ label, bp, name, avatarUrl, help }) {
       {showHelp && (
         <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "var(--mut)", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 10, padding: "8px 10px", marginBottom: 10 }}>{help}</div>
       )}
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div onClick={onOpen} style={{ display: "flex", alignItems: "center", gap: 10, cursor: onOpen ? "pointer" : "default" }}>
         <img src={avatarUrl} onError={avatarFallback(name)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, fontSize: 14 }}>{name || "?"}</div>
@@ -819,7 +819,7 @@ function PartnerCard({ label, bp, name, avatarUrl, help }) {
 }
 
 /* ----------------------------- PlayerDetail ------------------------------- */
-function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOwner, onAddToLeague, onEditProfile, onSetRole }) {
+function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOwner, onAddToLeague, onEditProfile, onSetRole, onOpenPlayer }) {
   const [hist, setHist] = useState(null);
   const [myId, setMyId] = useState(null);
   const [allMatches, setAllMatches] = useState(null);
@@ -1208,9 +1208,12 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
       {/* Лучший партнёр — отдельно по играм и по турнирам */}
       {bestPartner && (() => {
         const bp = players.find((p) => p.id === bestPartner.id);
-        return <PartnerCard key="bp-games" label={t("best_partner_games")} bp={bestPartner} name={bp?.name || nameMap[bestPartner.id] || "?"} avatarUrl={playerAvatar(bp?.avatar_url, bestPartner.id)} help={t("best_partner_help_games")} />;
+        return <PartnerCard key="bp-games" label={t("best_partner_games")} bp={bestPartner} name={bp?.name || nameMap[bestPartner.id] || "?"} avatarUrl={playerAvatar(bp?.avatar_url, bestPartner.id)} help={t("best_partner_help_games")} onOpen={bp ? () => onOpenPlayer(bp) : undefined} />;
       })()}
-      {bestPartnerTour && <PartnerCard key="bp-tour" label={t("best_partner_tour")} bp={bestPartnerTour} name={bestPartnerTour.name} avatarUrl={playerAvatar(players.find((p) => p.id === bestPartnerTour.id)?.avatar_url, bestPartnerTour.id || bestPartnerTour.name)} help={t("best_partner_help_tour")} />}
+      {bestPartnerTour && (() => {
+        const tp = players.find((p) => p.id === bestPartnerTour.id);
+        return <PartnerCard key="bp-tour" label={t("best_partner_tour")} bp={bestPartnerTour} name={bestPartnerTour.name} avatarUrl={playerAvatar(tp?.avatar_url, bestPartnerTour.id || bestPartnerTour.name)} help={t("best_partner_help_tour")} onOpen={tp ? () => onOpenPlayer(tp) : undefined} />;
+      })()}
 
       {/* Статистика с этим игроком */}
       {myId && myId !== player.id && withPlayer.length > 0 && (
