@@ -1447,7 +1447,7 @@ function Games({ groupId, players, reloadLeaderboard, session, archiveNonce, bum
   if (mode === "view") {
     const g = games.find((x) => x.id === selId);
     if (!g) { setMode("list"); return null; }
-    return <GameCard game={g} groupId={groupId} back={() => setMode("list")} reloadGames={loadGames} reloadLeaderboard={reloadLeaderboard} bumpArchive={bumpArchive} />;
+    return <GameCard game={g} groupId={groupId} back={() => setMode("list")} reloadGames={loadGames} reloadLeaderboard={reloadLeaderboard} bumpArchive={bumpArchive} players={players} />;
   }
 
   return (
@@ -1782,7 +1782,7 @@ function RematchMix({ players, onCreate, onCancel, busy }) {
 
 // Один корт внутри страницы (микс-)сессии: сыгранная — просмотр, открытая
 // с полным составом — ввод счёта прямо здесь.
-function GameCourtBlock({ game, index, total, groupId, reloadSession, reloadLeaderboard, bumpArchive }) {
+function GameCourtBlock({ game, index, total, groupId, reloadSession, reloadLeaderboard, bumpArchive, onOpenPlayer }) {
   const slots = [...(game.slots || [])].sort((a, b) => (a.team + a.position).localeCompare(b.team + b.position));
   const nameOf = (s) => s.profile?.name || s.guest_name;
   const avatarOf = (s) => s.profile_id ? playerAvatar(s.profile?.avatar_url, s.profile_id) : null;
@@ -1810,18 +1810,21 @@ function GameCourtBlock({ game, index, total, groupId, reloadSession, reloadLead
         <CourtView courtNumber={index + 1} mode="sets" courtName={game.court_name} onRenameCourt={renameCourt}
           teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
           teamAvatarsA={slotsA.map(avatarOf)} teamAvatarsB={slotsB.map(avatarOf)}
+          teamIdsA={slotsA.map((s) => s.profile_id)} teamIdsB={slotsB.map((s) => s.profile_id)} onOpenPlayer={onOpenPlayer}
           scoreA={match?.sets_a ?? null} scoreB={match?.sets_b ?? null}
           scoreDetail={match?.score_detail || null} editable={false} />
       ) : filled === 4 ? (
         <CourtView courtNumber={index + 1} mode="sets" editable courtName={game.court_name} onRenameCourt={renameCourt}
           teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
           teamAvatarsA={slotsA.map(avatarOf)} teamAvatarsB={slotsB.map(avatarOf)}
+          teamIdsA={slotsA.map((s) => s.profile_id)} teamIdsB={slotsB.map((s) => s.profile_id)} onOpenPlayer={onOpenPlayer}
           onSave={async (a, b, detail) => { await submitResult(game.id, a, b, detail); await reloadSession(); reloadLeaderboard && reloadLeaderboard(); }} />
       ) : (
         <>
           <CourtView courtNumber={index + 1} courtName={game.court_name} onRenameCourt={renameCourt}
             teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
             teamAvatarsA={slotsA.map(avatarOf)} teamAvatarsB={slotsB.map(avatarOf)}
+          teamIdsA={slotsA.map((s) => s.profile_id)} teamIdsB={slotsB.map((s) => s.profile_id)} onOpenPlayer={onOpenPlayer}
             editable={false} />
           <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginTop: 6 }}>{filled}/4 — {t("waiting_via_link")}</div>
         </>
@@ -1830,8 +1833,10 @@ function GameCourtBlock({ game, index, total, groupId, reloadSession, reloadLead
   );
 }
 
-function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArchive }) {
+function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArchive, players = [] }) {
   const [mix, setMix] = useState(false);
+  const [prof, setProf] = useState(null);  // карточка игрока из состава (только просмотр)
+  const onOpenPlayer = (id) => { const f = players.find((p) => p.id === id); if (f) setProf(f); };
   const [mixBusy, setMixBusy] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [toast, setToast] = useState("");
@@ -1878,6 +1883,8 @@ function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArc
     } catch (e) { alert(t("err_create_game")); setMixBusy(false); }
   };
 
+  if (prof) return <PlayerDetail key={prof.id} groupId={groupId} player={prof} players={players} close={() => setProf(null)} onOpenPlayer={setProf} />;
+
   if (game.status === "played") {
     const list = session || [game];
     const last = list[list.length - 1];
@@ -1898,7 +1905,7 @@ function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArc
         )}
         {list.map((g, i) => (
           <GameCourtBlock key={g.id} game={g} index={i} total={list.length} groupId={groupId}
-            reloadSession={reloadSession} reloadLeaderboard={reloadLeaderboard} bumpArchive={bumpArchive} />
+            reloadSession={reloadSession} reloadLeaderboard={reloadLeaderboard} bumpArchive={bumpArchive} onOpenPlayer={onOpenPlayer} />
         ))}
         {canMix && (
           <div className="pl-card" style={{ padding: 14, marginTop: 4 }}>
@@ -1964,12 +1971,14 @@ function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArc
           <CourtView courtNumber={1} mode="sets" editable courtName={game.court_name} onRenameCourt={groupId ? (name) => updateGameCourtName(game.id, name).then(reloadGames).catch(() => {}) : undefined}
             teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
             teamAvatarsA={slotsA.map(avatarOf)} teamAvatarsB={slotsB.map(avatarOf)}
+          teamIdsA={slotsA.map((s) => s.profile_id)} teamIdsB={slotsB.map((s) => s.profile_id)} onOpenPlayer={onOpenPlayer}
             onSave={async (a, b, detail) => { await submitResult(game.id, a, b, detail); await Promise.all([reloadGames(), reloadLeaderboard()]); }} />
         ) : (
           <>
             <CourtView courtNumber={1} courtName={game.court_name} onRenameCourt={groupId ? (name) => updateGameCourtName(game.id, name).then(reloadGames).catch(() => {}) : undefined}
               teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
               teamAvatarsA={slotsA.map(avatarOf)} teamAvatarsB={slotsB.map(avatarOf)}
+          teamIdsA={slotsA.map((s) => s.profile_id)} teamIdsB={slotsB.map((s) => s.profile_id)} onOpenPlayer={onOpenPlayer}
               editable={false} />
             <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginTop: 6 }}>{filled}/4 — {t("waiting_via_link")}</div>
           </>
@@ -2033,7 +2042,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
 
   // Проваливание в результаты — те же экраны, что на вкладках Игры/Турниры (там и удаление).
   if (sel?.type === "tour") return <TournamentView id={sel.data.id} players={players} back={() => setSel(null)} isGroupMember={isGroupMember} currentProfileId={profileId} onArchiveChange={bumpArchive} />;
-  if (sel?.type === "game") return <GameCard game={sel.data} groupId={groupId} back={() => setSel(null)} reloadGames={load} reloadLeaderboard={() => {}} bumpArchive={bumpArchive} />;
+  if (sel?.type === "game") return <GameCard game={sel.data} groupId={groupId} back={() => setSel(null)} reloadGames={load} reloadLeaderboard={() => {}} bumpArchive={bumpArchive} players={players} />;
 
   const head = (txt, color = "var(--mut)") => <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color, textTransform: "uppercase", margin: "14px 2px 8px", paddingLeft: 4 }}>{txt}</div>;
 

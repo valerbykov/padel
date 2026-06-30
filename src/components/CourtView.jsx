@@ -10,14 +10,14 @@ import { t } from "../lib/i18n";
 
 const COURT_IMG = "/padel-court.png";
 
-function Chip({ name, avatarUrl, x, y, team }) {
+function Chip({ name, avatarUrl, x, y, team, id, onTap }) {
   const color = team === "A" ? "var(--lime)" : "var(--coral)";
   return (
-    <div style={{
+    <div onClick={id && onTap ? () => onTap(id) : undefined} style={{
       position: "absolute", left: `${x}%`, top: `${y}%`,
       transform: "translate(-50%,-50%)",
       display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-      maxWidth: "28%",
+      maxWidth: "28%", cursor: id && onTap ? "pointer" : "default",
     }}>
       <img src={avatarUrl || dogAvatar(name)} onError={avatarFallback(name)} alt="" loading="lazy" decoding="async" style={{
         width: "clamp(24px,7vw,32px)", height: "clamp(24px,7vw,32px)",
@@ -61,6 +61,7 @@ export default function CourtView({
   onRenameCourt,
   teamA = [], teamB = [],
   teamAvatarsA = [], teamAvatarsB = [],
+  teamIdsA = [], teamIdsB = [], onOpenPlayer,
   scoreA = null, scoreB = null,
   scoreDetail = null,
   points = 32, editable = false, onSave,
@@ -242,10 +243,10 @@ export default function CourtView({
           )
         )}
 
-        <Chip name={teamA[0]} avatarUrl={teamAvatarsA[0]} x={20} y={28} team="A" />
-        <Chip name={teamA[1]} avatarUrl={teamAvatarsA[1]} x={20} y={72} team="A" />
-        <Chip name={teamB[0]} avatarUrl={teamAvatarsB[0]} x={80} y={28} team="B" />
-        <Chip name={teamB[1]} avatarUrl={teamAvatarsB[1]} x={80} y={72} team="B" />
+        <Chip name={teamA[0]} avatarUrl={teamAvatarsA[0]} id={teamIdsA[0]} onTap={onOpenPlayer} x={20} y={28} team="A" />
+        <Chip name={teamA[1]} avatarUrl={teamAvatarsA[1]} id={teamIdsA[1]} onTap={onOpenPlayer} x={20} y={72} team="A" />
+        <Chip name={teamB[0]} avatarUrl={teamAvatarsB[0]} id={teamIdsB[0]} onTap={onOpenPlayer} x={80} y={28} team="B" />
+        <Chip name={teamB[1]} avatarUrl={teamAvatarsB[1]} id={teamIdsB[1]} onTap={onOpenPlayer} x={80} y={72} team="B" />
 
         <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", display: "flex", alignItems: "center", gap: 8 }}>
           {box(mode === "sets" ? setsWonA : dA, aWin, "A")}
