@@ -778,15 +778,6 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
       {/* ── LOBBY ─────────────────────────────────────────────────────────── */}
       {trnData.status === "open" && (
         <>
-          {!readOnly && (
-            <div className="tr-card" style={{ marginBottom: 12 }}>
-              <div className="tr-codebox">{trnData.invite_code}</div>
-              <div style={{ fontSize: 12, color: "var(--mut)", margin: "8px 0", wordBreak: "break-all" }}>{tournamentLink(trnData.invite_code)}</div>
-              <button className="tr-btn" style={{ width: "100%", padding: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={share}>
-                <Copy size={15} /> {toast || tr("share_invite")}
-              </button>
-            </div>
-          )}
           <div className="tr-card" style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{tr("trn_participants")} {trnData.players.length}/{trnData.target_size}</div>
             <StandingsTable rows={detailedStandings(trnData.players.map((p) => ({ id: p.id, name: p.name })), [])} avatarOf={(row) => ({ url: avatarOfTp(row.id) })} />

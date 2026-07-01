@@ -110,14 +110,14 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
               </div>
             </div>
 
-            {/* Организатор */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 14, marginBottom: 12 }}>
-              <Avatar url={org.avatar_url} name={org.name} size={34} />
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 11, color: "var(--mut)" }}>{t("league_organizer")}</div>
-                <div style={{ fontWeight: 600, fontSize: 14, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{org.name || "—"}</div>
+            {/* Владелец — подпись вынесена в заголовок над плашкой (как «Организаторы») */}
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 6 }}>{t("league_owner")}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 14 }}>
+                <Avatar url={org.avatar_url} name={org.name} size={34} />
+                <div style={{ fontWeight: 600, fontSize: 14, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{org.name || "—"}</div>
+                <Crown size={16} style={{ color: "var(--lime)", marginLeft: "auto", flexShrink: 0 }} />
               </div>
-              <Crown size={16} style={{ color: "var(--lime)", marginLeft: "auto", flexShrink: 0 }} />
             </div>
 
             {/* Организаторы (только просмотр) */}

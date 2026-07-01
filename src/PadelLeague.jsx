@@ -840,8 +840,8 @@ function PartnerCard({ label, bp, name, avatarUrl, help, onOpen }) {
           <div style={{ fontSize: 12, color: "var(--mut)" }}>{bp.w} {t("wins_short")} · {bp.l} {t("losses_short")} · {bp.total} {t("matches")}</div>
         </div>
         <div style={{ textAlign: "right", flexShrink: 0 }}>
-          <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22, lineHeight: 1.1, color: bp.avg >= 0 ? "var(--lime)" : "var(--coral)" }}>{bp.avg > 0 ? "+" : ""}{bp.avg.toFixed(1)}</div>
-          <div style={{ fontSize: 10, color: "var(--mut)" }}>{t("avg_diff")}</div>
+          <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22, lineHeight: 1.1, color: bp.score >= 0 ? "var(--lime)" : "var(--coral)" }}>{bp.score > 0 ? "+" : ""}{bp.score.toFixed(1)}</div>
+          <div style={{ fontSize: 10, color: "var(--mut)" }}>{t("partner_index")}</div>
         </div>
       </div>
     </div>
@@ -1881,7 +1881,6 @@ function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArc
   const [prof, setProf] = useState(null);  // карточка игрока из состава (только просмотр)
   const onOpenPlayer = (id) => { const f = players.find((p) => p.id === id); if (f) setProf(f); };
   const [mixBusy, setMixBusy] = useState(false);
-  const [showShare, setShowShare] = useState(false);
   const [toast, setToast] = useState("");
   // Страница (микс-)сессии: все игры одной группы (mix_group_id || id).
   const mixKey = game.mix_group_id || game.id;
@@ -1986,18 +1985,8 @@ function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArc
             </div>
           )}
         </div>
-        <button className="pl-btn" style={{ padding: "8px 12px", display: "flex", gap: 6, alignItems: "center" }} onClick={() => setShowShare((v) => !v)}><Share2 size={15} /> {t("share_btn")}</button>
+        <button className="pl-btn" style={{ padding: "8px 12px", display: "flex", gap: 6, alignItems: "center" }} onClick={share}><Share2 size={15} /> {toast || t("share_btn")}</button>
       </div>
-
-      {showShare && (
-        <div className="pl-pop" style={{ marginTop: 12 }}>
-          <div className="pl-codebox">{game.invite_code}</div>
-          <div style={{ fontSize: 12, color: "var(--mut)", margin: "8px 0 4px", wordBreak: "break-all" }}>{linkFor(game.invite_code)}</div>
-          <button className="pl-btn" style={{ width: "100%", padding: 12, marginTop: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={share}>
-            <Copy size={16} /> {toast || t("share_invite")}
-          </button>
-        </div>
-      )}
 
       <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
         {slots.map((s, i) => (
