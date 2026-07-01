@@ -45,7 +45,7 @@ export const css = `
 const FORMAT_META = {
   americano:    { emoji: "🔄", color: "#b8ef28", multiOf: 4 },
   mexicano:     { emoji: "📊", color: "var(--yellow)", multiOf: 4 },
-  king_of_hill: { emoji: "👑", color: "#ff9d3f", multiOf: 2 },
+  king_of_hill: { emoji: "⛰️", color: "#ff9d3f", multiOf: 2 },
   beat_the_box: { emoji: "📦", color: "#ff6a52", multiOf: 2 },
 };
 

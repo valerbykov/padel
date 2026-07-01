@@ -128,7 +128,7 @@ export default function LeaguePublicPage({ code }) {
                     <Avatar name={p.name} url={p.avatar_url} size={34} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {p.name}{i === 0 ? " 👑" : ""}
+                        {p.name}{i === 0 ? " 🥇" : ""}
                       </div>
                     </div>
                     {p.matches > 0 && <div style={{ fontSize: 12, color: "var(--mut)", flexShrink: 0 }}>{nGames(p.matches)}</div>}

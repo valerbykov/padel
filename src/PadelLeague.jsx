@@ -9,7 +9,7 @@ import { t, nGames } from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
 import Fab from "./components/Fab";
-import { Trophy, Swords, History, Users, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, BadgeCheck, ShieldCheck, EyeOff } from "lucide-react";
+import { Trophy, Swords, History, Users, UserPlus, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, BadgeCheck, ShieldCheck, EyeOff } from "lucide-react";
 import Tournaments, { TournamentView, TournamentCard, css as trCss } from "./components/Tournaments";
 import { deleteTournament } from "./lib/tournamentApi";
 import CourtView from "./components/CourtView";
@@ -184,7 +184,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
       <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--topbar-bg)", borderTop: "1px solid var(--line)", backdropFilter: "blur(8px)", paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div style={{ maxWidth: 460, margin: "0 auto", display: "flex" }}>
           {!session && <button className={`pl-tab ${tab === "welcome" ? "on" : ""}`} onClick={() => goTab("welcome")}><LogIn size={20} strokeWidth={tab === "welcome" ? 2.6 : 2} />{t("tab_start")}</button>}
-          {session && <button className={`pl-tab ${tab === "board" ? "on" : ""}`} onClick={() => goTab("board")}><Trophy size={20} strokeWidth={tab === "board" ? 2.6 : 2} />{t("tab_friends")}</button>}
+          {session && <button className={`pl-tab ${tab === "board" ? "on" : ""}`} onClick={() => goTab("board")}><Users size={20} strokeWidth={tab === "board" ? 2.6 : 2} />{t("tab_friends")}</button>}
           <button className={`pl-tab ${tab === "games" ? "on" : ""}`} onClick={() => goTab("games")}><Swords size={20} strokeWidth={tab === "games" ? 2.6 : 2} />{t("tab_games")}</button>
           <button className={`pl-tab ${tab === "tournaments" ? "on" : ""}`} onClick={() => goTab("tournaments")}><Award size={20} strokeWidth={tab === "tournaments" ? 2.6 : 2} />{t("tab_tournaments")}</button>
           {session && <button className={`pl-tab ${tab === "history" ? "on" : ""}`} onClick={() => goTab("history")}><History size={20} strokeWidth={tab === "history" ? 2.6 : 2} />{t("tab_history")}</button>}
@@ -607,10 +607,11 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
       )}
       {groupId && ranked.map((p, i) => {
         const qb = [];
-        if (i === 0) qb.push("👑");
+        if (i === 0) qb.push("🥇");
         if (p.matches >= 5 && p.wins / p.matches >= 0.7) qb.push("🎯");
         if (p.matches >= 20) qb.push("⚡");
         if (toursOf(p) >= 3) qb.push("🏆");
+        if ((streaks[p.id] || 0) >= 3) qb.push("🔥"); // «На подъёме» — 3+ победы подряд
         const canRemove = isAdmin && p.role !== "owner" && p.id !== profileId;
         const canOrg = activeLeague?.role === "owner" && p.user_id && p.role !== "owner" && p.id !== profileId;
         return (
@@ -635,7 +636,6 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_games")}><Swords size={13} /> {gamesOf(p)}</span>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_tournaments")}><Award size={13} /> {toursOf(p)}</span>
-                  {streaks[p.id] && <span style={{ color: "var(--coral)", fontWeight: 600 }}>🔥{streaks[p.id]}</span>}
                 </span>
                 {qb.length > 0 && <span style={{ letterSpacing: 2, marginLeft: "auto" }}>{qb.join("")}</span>}
               </div>
@@ -669,7 +669,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         <EmptyState text={t("solo_friends_empty")} />
       ); })()}
 
-      {groupId && <Fab label={t("add_player_form_title")} icon={<Users size={20} />} onClick={() => setOpen(true)} />}
+      {groupId && <Fab label={t("add_player_form_title")} icon={<UserPlus size={20} />} onClick={() => setOpen(true)} />}
       {groupId && ranked.length > 0 && (
         <button className="pl-ghost" style={{ width: "100%", padding: 12, marginTop: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontWeight: 600, color: "var(--lime)", borderColor: "color-mix(in srgb, var(--lime) 30%, transparent)" }} onClick={() => setShowStats(true)}>
           <TrendingUp size={18} /> {t("an_open")}
@@ -852,6 +852,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
   const [localClaimCode, setLocalClaimCode] = useState(player.claim_code || null);
   const [genBusy, setGenBusy] = useState(false);
   const [showL, setShowL] = useState(false); // развернуть список лиг
+  const [showAch, setShowAch] = useState(false); // легенда ачивок («?»)
   const isInLeague = players.some((p) => p.id === player.id);
 
   const generateClaimCode = async () => {
@@ -1048,22 +1049,48 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
 
   // «Лучший партнёр» вынесен в модульный компонент PartnerCard (с подсказкой «?»).
 
+  // Текущая серия побед игрока (для ачивки «На подъёме») — по последним матчам лиги.
+  // Считаем так же, как streaks в списке друзей: подряд идущие победы с конца, ничья/поражение рвут.
+  const winStreak = (() => {
+    if (!allMatches) return 0;
+    const rows = allMatches
+      .filter((m) => [...(m.team_a || []), ...(m.team_b || [])].includes(player.id))
+      .sort((a, b) => (a.played_at || "").localeCompare(b.played_at || ""));
+    let s = 0;
+    for (let idx = rows.length - 1; idx >= 0; idx--) {
+      const m = rows[idx];
+      if (m.sets_a === m.sets_b) break;
+      const won = (m.team_a || []).includes(player.id) ? m.sets_a > m.sets_b : m.sets_b > m.sets_a;
+      if (won) s++; else break;
+    }
+    return s;
+  })();
+
   // Ачивки
   const badges = (() => {
     const result = [];
     const rankedAll = [...players].sort((a, b) => b.rating - a.rating);
     if (rankedAll.length > 0 && rankedAll[0].id === player.id)
-      result.push({ id: "leader", icon: "👑", label: t("badge_leader"), title: t("badge_leader_title") });
+      result.push({ id: "leader", icon: "🥇", label: t("badge_leader"), title: t("badge_leader_title") });
     if (player.matches >= 5 && player.wins / player.matches >= 0.7)
       result.push({ id: "sniper", icon: "🎯", label: t("badge_sniper"), title: t("badge_sniper_title") });
     if (player.matches >= 20)
       result.push({ id: "veteran", icon: "⚡", label: t("badge_veteran"), title: t("badge_veteran_title") });
-    if (hist && hist.length >= 4 && hist[hist.length - 1] > hist[hist.length - 2] && hist[hist.length - 2] > hist[hist.length - 3])
+    if (winStreak >= 3)
       result.push({ id: "rising", icon: "🔥", label: t("badge_rising"), title: t("badge_rising_title") });
     if (playerTours && playerTours.length >= 3)
       result.push({ id: "tourney", icon: "🏆", label: t("badge_tourney"), title: t("badge_tourney_title") });
     return result;
   })();
+
+  // Все ачивки с правилами — для подсказки-легенды по «?» (показываем и те, которых пока нет).
+  const ALL_ACH = [
+    { icon: "🥇", label: t("badge_leader"),  rule: t("badge_leader_title") },
+    { icon: "🎯", label: t("badge_sniper"),  rule: t("badge_sniper_title") },
+    { icon: "⚡", label: t("badge_veteran"), rule: t("badge_veteran_title") },
+    { icon: "🔥", label: t("badge_rising"),  rule: t("badge_rising_title") },
+    { icon: "🏆", label: t("badge_tourney"), rule: t("badge_tourney_title") },
+  ];
 
   const statRow = (label, w, d, l, total) => total === 0 ? null : (
     <div style={{ marginBottom: 10 }}>
@@ -1155,18 +1182,32 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
       <div className="pl-card" style={{ padding: 18, marginBottom: 10, textAlign: "center" }}>
         <img src={playerAvatar(player.avatar_url, player.id)} onError={avatarFallback(player.id)} alt="" style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--line)", marginBottom: 8 }} />
         <div className="pl-display" style={{ fontSize: 24 }}>{player.name}</div>
-        {badges.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", marginTop: 10 }}>
-            {badges.map((b) => (
-              <span key={b.id} title={b.title} style={{
-                display: "inline-flex", alignItems: "center", gap: 4,
-                padding: "3px 10px", borderRadius: 20,
-                background: "color-mix(in srgb, var(--lime) 10%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--lime) 30%, transparent)",
-                fontSize: 11, fontWeight: 600, color: "var(--lime)",
-              }}>
-                {b.icon} {b.label}
-              </span>
+        {/* Ачивки + «?» с легендой правил (работает и на тач, в отличие от hover-подсказки). */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", alignItems: "center", marginTop: 10 }}>
+          {badges.map((b) => (
+            <span key={b.id} title={b.title} style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              padding: "3px 10px", borderRadius: 20,
+              background: "color-mix(in srgb, var(--lime) 10%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--lime) 30%, transparent)",
+              fontSize: 11, fontWeight: 600, color: "var(--lime)",
+            }}>
+              {b.icon} {b.label}
+            </span>
+          ))}
+          <button type="button" onClick={() => setShowAch((s) => !s)} aria-label={t("ach_help")} title={t("ach_help")}
+            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", border: "1px solid var(--line)", background: showAch ? "var(--surface2)" : "none", color: "var(--mut)", cursor: "pointer", padding: 0, flexShrink: 0 }}>
+            <HelpCircle size={12} />
+          </button>
+        </div>
+        {showAch && (
+          <div style={{ marginTop: 8, textAlign: "left", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, padding: "10px 12px" }}>
+            <div style={{ fontWeight: 700, color: "var(--ink)", marginBottom: 6, fontSize: 12 }}>{t("ach_legend_title")}</div>
+            {ALL_ACH.map((a) => (
+              <div key={a.label} style={{ display: "flex", gap: 8, alignItems: "baseline", marginBottom: 4, fontSize: 11.5, lineHeight: 1.4, color: "var(--mut)" }}>
+                <span style={{ fontSize: 13, flexShrink: 0, width: 16, textAlign: "center" }}>{a.icon}</span>
+                <span><b style={{ color: "var(--ink)", fontWeight: 700 }}>{a.label}</b> — {a.rule}</span>
+              </div>
             ))}
           </div>
         )}
