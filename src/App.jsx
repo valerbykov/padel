@@ -197,7 +197,6 @@ export default function App({ initialShowLogin = false }) {
     (async () => {
       const user = session.user;            // уже есть из getSession — без лишнего getUser()
       if (!user) return;
-      supabase.rpc("touch_last_seen").catch(() => {}); // отметить последнюю активность (fire-and-forget)
       const { data } = await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle();
       if (active) setProfile(data);
     })();
