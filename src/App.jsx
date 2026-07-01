@@ -2,7 +2,7 @@
 // Показывает приложение лиги сразу. Сверху панель: «Войти» для гостей,
 // имя + «Выйти» для авторизованных. Определяет группы пользователя (leagues)
 // и прокидывает активную лигу в PadelLeague. Ссылка /j/CODE открывает экран гостя.
-import React, { useEffect, useState, useCallback, lazy } from "react";
+import React, { useEffect, useState, useCallback, useRef, lazy } from "react";
 import { supabase } from "./lib/supabase";
 import { handleAuthCallbackUrl, handleYandexCallback } from "./lib/auth";
 import Avatar from "./components/Avatar";
@@ -202,6 +202,18 @@ export default function App({ initialShowLogin = false }) {
     })();
     return () => { active = false; };
   }, [session, pNonce]);
+
+  // Отметка ПОСЛЕДНЕГО ЗАХОДА в приложение (не логина) — один раз за сессию,
+  // отдельным изолированным эффектом. ВАЖНО: НЕ внутри профильного эффекта и
+  // БЕЗ `.catch()` прямо на билдере supabase — у него нет метода .catch (это
+  // thenable), поэтому `supabase.rpc(...).catch()` бросает синхронный TypeError
+  // и рушит загрузку профиля/лиг. Правильно — await внутри try/catch.
+  const seenRef = useRef(false);
+  useEffect(() => {
+    if (!session || seenRef.current) return;
+    seenRef.current = true;
+    (async () => { try { await supabase.rpc("touch_last_seen"); } catch (e) { /* тихо игнорируем */ } })();
+  }, [session]);
 
   // Загрузить список лиг пользователя.
   const loadLeagues = useCallback(async (pid) => {
