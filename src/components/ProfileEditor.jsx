@@ -10,12 +10,19 @@ import { Camera, Check, Loader, LogOut, BarChart3, Sun, Moon, X } from "lucide-r
 import Avatar from "./Avatar";
 import { t, setLang } from "../lib/i18n";
 
+// Иконка Telegram (фирменный самолётик) — вместо эмодзи-«самолёта» ✈️.
+const TgPlane = ({ size = 14 }) => (
+  <svg viewBox="0 0 448 512" width={size} height={size} fill="currentColor" aria-hidden="true" style={{ display: "block" }}>
+    <path d="M446.7 98.6l-67.6 318.8c-5.1 22.5-18.4 28.1-37.3 17.5l-103-75.9-49.7 47.8c-5.5 5.5-10.1 10.1-20.7 10.1l7.4-104.9 190.9-172.5c8.3-7.4-1.8-11.5-12.9-4.1L117.8 284 16.2 252.2c-22.1-6.9-22.5-22.1 4.6-32.7L418.2 66.4c18.4-6.8 34.5 4.4 28.5 32.2z" />
+  </svg>
+);
+
 // #7 (пред. раунд): способ входа для подписи в ЛК. yandex/telegram кладут provider в
 // user_metadata (свои edge-функции), google/email — в app_metadata (нативные провайдеры).
 const AUTH_PROVIDERS = {
   google:   { label: "Google",   icon: "G", color: "#4285F4" },
   yandex:   { label: "Yandex",   icon: "Я", color: "#FC3F1D" },
-  telegram: { label: "Telegram", icon: "✈", color: "#229ED9" },
+  telegram: { label: "Telegram", icon: <TgPlane size={13} />, color: "#229ED9" },
 };
 
 const PRESETS = Array.from({ length: 15 }, (_, i) => `/avatars/dog-${String(i + 1).padStart(2, "0")}.webp`);
@@ -187,7 +194,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
                     <input className="pc-input" value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="@username" />
                     {telegram.trim() && (
                       <a href={`https://t.me/${telegram.replace(/^@/, "")}`} target="_blank" rel="noopener noreferrer"
-                        style={{ flexShrink: 0, width: 40, height: 40, borderRadius: "50%", background: "#229ed9", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", fontSize: 18 }}>✈️</a>
+                        style={{ flexShrink: 0, width: 40, height: 40, borderRadius: "50%", background: "#229ed9", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}><TgPlane size={20} /></a>
                     )}
                   </div>
                 </div>
