@@ -356,6 +356,19 @@ export async function setMemberRole(groupId, profileId, role) {
 }
 
 // Профили участников группы по id (для раздела «Играли вместе», обход RLS).
+// Имена профилей по id (для резолва в истории). Кэшируем — имена почти не меняются,
+// и на нестабильной сети РФ этот запрос иначе висит и тормозит экран.
+async function _getProfileNames(ids) {
+  const { data, error } = await supabase.from("profiles").select("id, name").in("id", ids);
+  if (error) throw error;
+  return data || [];
+}
+export function getProfileNames(ids) {
+  const list = [...ids].filter(Boolean).sort();
+  if (!list.length) return Promise.resolve([]);
+  return swr("pnames:" + list.join(","), () => _getProfileNames(list));
+}
+
 export async function getGroupProfiles(groupId, ids) {
   if (!groupId || !ids || ids.length === 0) return [];
   const { data, error } = await supabase.rpc("group_profiles", { p_group_id: groupId, p_ids: ids });

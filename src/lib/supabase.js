@@ -47,7 +47,7 @@ function applyMode(input) {
   try { return (input && input.url) ? new Request(rw(input.url), input) : input; } catch { return input; }
 }
 
-const FETCH_TIMEOUT_MS = 12000;
+const FETCH_TIMEOUT_MS = 7000;
 const DIRECT_PROBE_MS = 6000; // на direct ждём недолго — при РФ-троттлинге быстро уходим на прокси
 function timedFetch(input, init = {}, ms = FETCH_TIMEOUT_MS) {
   const ctrl = new AbortController();

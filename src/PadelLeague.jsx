@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "./lib/supabase";
-import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner } from "./lib/padelApi";
+import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames } from "./lib/padelApi";
 import { bustCache } from "./lib/cache";
 import { getRatingHistory } from "./lib/statsApi";
 import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
@@ -966,10 +966,10 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
     allMatches.forEach((m) => [...(m.team_a || []), ...(m.team_b || [])].forEach((id) => id && ids.add(id)));
     const missing = [...ids].filter((id) => !players.some((p) => p.id === id) && !nameMap[id]);
     if (missing.length === 0) return;
-    supabase.from("profiles").select("id, name").in("id", missing).then(({ data }) => {
+    getProfileNames(missing).then((data) => {
       if (!data || !data.length) return;
       setNameMap((prev) => { const n = { ...prev }; data.forEach((r) => { n[r.id] = r.name; }); return n; });
-    });
+    }).catch(() => {});
   }, [allMatches, players]);
 
   // Имя по id: ростер лиги → подтянутые профили → нейтральный прочерк (без «Удалён»).
