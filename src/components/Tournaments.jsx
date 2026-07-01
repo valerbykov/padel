@@ -80,12 +80,12 @@ const statusLabel = (s) => ({ open: tr("trn_sec_open"), active: tr("trn_sec_acti
 
 // ─── Root ──────────────────────────────────────────────────────────────────────
 
-export default function Tournaments({ groupId, players, profileId, bumpArchive, session, onLogin, isAdmin = false }) {
+export default function Tournaments({ groupId, players, profileId, bumpArchive, session, onLogin, isAdmin = false, canCreate = false, membersCanCreate = false }) {
   const [mode, setMode] = useState("list");
   const [activeId, setActiveId] = useState(null);
   if (mode === "create") return <Create groupId={groupId} profileId={profileId} back={() => setMode("list")} open={(id) => { setActiveId(id); setMode("view"); }} />;
-  if (mode === "view") return <TournamentView id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} onArchiveChange={bumpArchive} isAdmin={isAdmin} />;
-  return <List groupId={groupId} profileId={profileId} session={session} onLogin={onLogin} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
+  if (mode === "view") return <TournamentView id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} onArchiveChange={bumpArchive} isAdmin={isAdmin} membersCanCreate={membersCanCreate} />;
+  return <List groupId={groupId} profileId={profileId} session={session} onLogin={onLogin} canCreate={canCreate} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
 }
 
 // ─── TournamentCard ────────────────────────────────────────────────────────────
@@ -129,7 +129,7 @@ export function TournamentCard({ trn, color, onClick, onCopy, flush }) {
 
 // ─── List ──────────────────────────────────────────────────────────────────────
 
-function List({ groupId, profileId, create, open, session, onLogin }) {
+function List({ groupId, profileId, create, open, session, onLogin, canCreate = false }) {
   const [items, setItems] = useState(null);
   const [showAll, setShowAll] = useState(false);
   const [copySrc, setCopySrc] = useState(null);
@@ -153,7 +153,7 @@ function List({ groupId, profileId, create, open, session, onLogin }) {
           <div style={{ flex: 1, fontSize: 13, color: "var(--mut)", lineHeight: 1.4 }}>{tr("trn_sign_in_hint")}</div>
           <button className="tr-btn" style={{ padding: "7px 14px", fontSize: 12, flexShrink: 0, borderRadius: 10 }} onClick={onLogin}>{tr("sign_in")}</button>
         </div>
-      ) : groupId ? (
+      ) : groupId && canCreate ? (
         <Fab label={tr("trn_create_btn")} icon={<PlusCircle size={20} />} onClick={create} />
       ) : null}
       {items === null && <div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>{tr("loading")}</div>}
@@ -559,7 +559,7 @@ function AddPlayer({ players, existing, onAdd, disabled }) {
 
 // ─── TournamentView ────────────────────────────────────────────────────────────
 
-export function TournamentView({ id, players, back, readOnly = false, initialT = null, reloadFn = null, isGroupMember = false, currentProfileId = null, spectatorMode = false, onArchiveChange = null, isAdmin = false }) {
+export function TournamentView({ id, players, back, readOnly = false, initialT = null, reloadFn = null, isGroupMember = false, currentProfileId = null, spectatorMode = false, onArchiveChange = null, isAdmin = false, membersCanCreate = false }) {
   const hasInitRef = useRef(!!initialT);
   const [trnData, setTrnData] = useState(initialT ? { ...initialT, matches: initialT.matches || [], players: initialT.players || [] } : null);
   const [toast, setToast] = useState("");
@@ -762,7 +762,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
               )}
               <button className="tr-ghost" style={{ width: "100%", padding: 10 }} onClick={genPin}>{pinShown ? tr("trn_score_pin_regen") : tr("trn_score_pin_share")}</button>
             </>
-          ) : unlocked ? (
+          ) : (unlocked || (amCreator && membersCanCreate)) ? (
             <div style={{ fontSize: 13, color: "var(--lime)", display: "flex", alignItems: "center", gap: 6 }}><Check size={14} /> {tr("trn_score_unlocked")}</div>
           ) : (
             <>
@@ -887,7 +887,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                       teamAvatarsA={[avatarOfTp(m.team_a[0]), avatarOfTp(m.team_a[1])]}
                       teamAvatarsB={[avatarOfTp(m.team_b[0]), avatarOfTp(m.team_b[1])]}
                       scoreA={m.score_a} scoreB={m.score_b}
-                      editable={!readOnly && (unlocked || isAdmin) && trnData.status !== "finished" && priorComplete}
+                      editable={!readOnly && (unlocked || isAdmin || (amCreator && membersCanCreate)) && trnData.status !== "finished" && priorComplete}
                       onSave={(a, b) => saveScore(m.id, a, b)} />
                     {scored && (
                       <button className="tr-ghost" style={{ width: "100%", padding: "6px 0", marginTop: -6, marginBottom: 10, fontSize: 12, color: "var(--mut)", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}

@@ -395,7 +395,7 @@ export async function joinLeague(code) {
 export async function getMyLeagues(profileId) {
   const { data, error } = await supabase
     .from("group_members")
-    .select("role, group:groups(id, name, invite_code, logo_url, telegram_url, members_can_add)")
+    .select("role, group:groups(id, name, invite_code, logo_url, telegram_url, members_can_add, members_can_create)")
     .eq("profile_id", profileId);
   if (error) throw error;
   return (data || []).map((r) => ({
@@ -405,6 +405,7 @@ export async function getMyLeagues(profileId) {
     logo_url: r.group.logo_url,
     telegram_url: r.group.telegram_url,
     members_can_add: !!r.group.members_can_add,
+    members_can_create: !!r.group.members_can_create,
     role: r.role,
   }));
 }
@@ -423,11 +424,12 @@ export async function updateLeague(groupId, fields) {
   if (fields.logo_url !== undefined) patch.logo_url = fields.logo_url || null;
   if (fields.telegram_url !== undefined) patch.telegram_url = fields.telegram_url?.trim() || null;
   if (fields.members_can_add !== undefined) patch.members_can_add = !!fields.members_can_add;
+  if (fields.members_can_create !== undefined) patch.members_can_create = !!fields.members_can_create;
   const { data, error } = await supabase
     .from("groups")
     .update(patch)
     .eq("id", groupId)
-    .select("id, name, invite_code, logo_url, telegram_url, members_can_add")
+    .select("id, name, invite_code, logo_url, telegram_url, members_can_add, members_can_create")
     .single();
   if (error) throw error;
   return data;
