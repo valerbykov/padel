@@ -751,7 +751,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
 
       {trnData.status === "active" && !readOnly && (
         <div className="tr-card" style={{ marginBottom: 12 }}>
-          {(amCreator || isAdmin) ? (
+          {isAdmin ? (
             <>
               <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{tr("trn_score_access")}</div>
               {pinShown && (
@@ -887,7 +887,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                       teamAvatarsA={[avatarOfTp(m.team_a[0]), avatarOfTp(m.team_a[1])]}
                       teamAvatarsB={[avatarOfTp(m.team_b[0]), avatarOfTp(m.team_b[1])]}
                       scoreA={m.score_a} scoreB={m.score_b}
-                      editable={!readOnly && (amCreator || unlocked || isAdmin) && trnData.status !== "finished" && priorComplete}
+                      editable={!readOnly && (unlocked || isAdmin) && trnData.status !== "finished" && priorComplete}
                       onSave={(a, b) => saveScore(m.id, a, b)} />
                     {scored && (
                       <button className="tr-ghost" style={{ width: "100%", padding: "6px 0", marginTop: -6, marginBottom: 10, fontSize: 12, color: "var(--mut)", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}

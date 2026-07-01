@@ -14,6 +14,7 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
   const [name, setName] = useState("");
   const [tg, setTg] = useState("");
   const [logo, setLogo] = useState("");
+  const [membersCanAdd, setMembersCanAdd] = useState(false); // #1: кто добавляет игроков
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -27,7 +28,7 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
       try {
         const det = await getLeagueDetails(groupId);
         if (!alive) return;
-        setD(det); setName(det.name || ""); setTg(det.telegram_url || ""); setLogo(det.logo_url || "");
+        setD(det); setName(det.name || ""); setTg(det.telegram_url || ""); setLogo(det.logo_url || ""); setMembersCanAdd(!!det.members_can_add);
       } catch (e) { if (alive) setErr(e.message || t("err_generic")); }
     })();
     return () => { alive = false; };
@@ -36,7 +37,8 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
   const dirty = d && (
     name.trim() !== (d.name || "") ||
     (tg.trim() || "") !== (d.telegram_url || "") ||
-    (logo || "") !== (d.logo_url || "")
+    (logo || "") !== (d.logo_url || "") ||
+    (!!membersCanAdd) !== (!!d.members_can_add)
   );
 
   const onPick = async (e) => {
@@ -51,7 +53,7 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
     if (!canEdit || busy || !dirty) return;
     setBusy(true); setErr(""); setSaved(false);
     try {
-      const upd = await updateLeague(groupId, { name, telegram_url: tg, logo_url: logo });
+      const upd = await updateLeague(groupId, { name, telegram_url: tg, logo_url: logo, members_can_add: membersCanAdd });
       setD((p) => ({ ...p, ...upd }));
       setSaved(true);
       onUpdated && onUpdated(upd);
@@ -146,6 +148,20 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
                 </>
               ) : (tg ? <a href={tg} target="_blank" rel="noreferrer" style={{ color: "var(--lime)", fontSize: 14, textDecoration: "none", fontWeight: 600 }}>{t("league_open_channel")} →</a> : <div style={{ color: "var(--mut)", fontSize: 14 }}>—</div>)}
             </div>
+
+            {/* #1: кто может добавлять игроков (переключатель — только владельцу/организатору) */}
+            {canEdit && (
+              <div onClick={() => setMembersCanAdd((v) => !v)} role="switch" aria-checked={membersCanAdd}
+                style={{ display: "flex", alignItems: "flex-start", gap: 11, cursor: "pointer", marginBottom: 12, padding: "11px 12px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 14 }}>
+                <div style={{ flexShrink: 0, marginTop: 1, width: 42, height: 24, borderRadius: 999, background: membersCanAdd ? "var(--lime)" : "var(--line)", position: "relative", transition: "background .15s" }}>
+                  <span style={{ position: "absolute", top: 3, left: membersCanAdd ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{t("members_can_add_label")}</div>
+                  <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 2, lineHeight: 1.35 }}>{t("members_can_add_hint")}</div>
+                </div>
+              </div>
+            )}
 
             {/* Код приглашения */}
             {d.invite_code && (

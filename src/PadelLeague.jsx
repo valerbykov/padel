@@ -605,6 +605,20 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
           ))}
         </div>
       )}
+      {/* #3: Аналитика лиги — верхний блок-плитка над списком друзей (раньше был значок в шапке). */}
+      {groupId && ranked.length > 0 && (
+        <div className="pl-card" onClick={() => setShowStats(true)}
+          style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 14px", marginBottom: 12, cursor: "pointer", background: "color-mix(in srgb, var(--lime) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 30%, transparent)" }}>
+          <div style={{ width: 38, height: 38, borderRadius: 11, flexShrink: 0, background: "color-mix(in srgb, var(--lime) 16%, transparent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <TrendingUp size={19} style={{ color: "var(--lime)" }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: 14.5, color: "var(--ink)" }}>{t("an_open")}</div>
+            <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 1 }}>{t("an_tile_sub")}</div>
+          </div>
+          <ChevronRight size={18} style={{ color: "var(--lime)", flexShrink: 0 }} />
+        </div>
+      )}
       {groupId && ranked.map((p, i) => {
         const qb = [];
         if (i === 0) qb.push("🥇");
@@ -669,12 +683,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         <EmptyState text={t("solo_friends_empty")} />
       ); })()}
 
-      {groupId && <Fab label={t("add_player_form_title")} icon={<UserPlus size={20} />} onClick={() => setOpen(true)} />}
-      {groupId && ranked.length > 0 && (
-        <button className="pl-ghost" style={{ width: "100%", padding: 12, marginTop: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontWeight: 600, color: "var(--lime)", borderColor: "color-mix(in srgb, var(--lime) 30%, transparent)" }} onClick={() => setShowStats(true)}>
-          <TrendingUp size={18} /> {t("an_open")}
-        </button>
-      )}
+      {groupId && (isAdmin || activeLeague?.members_can_add) && <Fab label={t("add_player_form_title")} icon={<UserPlus size={20} />} onClick={() => setOpen(true)} />}
       {/* Форма добавления — модалка-лист (портал в body), всегда видна, даже при длинном списке. */}
       {groupId && open && createPortal(
         <div onClick={() => { setQuery(""); setOpen(false); }} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-end", justifyContent: "center", fontFamily: "'Outfit',sans-serif" }}>

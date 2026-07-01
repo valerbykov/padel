@@ -108,21 +108,17 @@ export function getHistoryMatches(groupId) {
 // «Добавить игрока»: создаём профиль-гость + членство в группе.
 // contacts: { whatsapp?, telegram?, email?, phone? } — всё опционально.
 export async function addMember(groupId, name, contacts = {}) {
-  const cleanContacts = Object.fromEntries(
+  const clean = Object.fromEntries(
     Object.entries(contacts).filter(([, v]) => v && String(v).trim())
   );
-  const { data: profile, error: pErr } = await supabase
-    .from("profiles")
-    .insert({ name: name.trim(), contacts: Object.keys(cleanContacts).length ? cleanContacts : null, claim_code: crypto.randomUUID() })
-    .select()
-    .single();
-  if (pErr) throw pErr;
-
-  const { error: mErr } = await supabase
-    .from("group_members")
-    .insert({ group_id: groupId, profile_id: profile.id, rating: 1000 });
-  if (mErr) throw mErr;
-  return profile;
+  // #1: гейт-RPC проверяет право (владелец/организатор ЛИБО members_can_add).
+  const { data, error } = await supabase.rpc("add_member_gated", {
+    p_group_id: groupId,
+    p_name: name.trim(),
+    p_contacts: Object.keys(clean).length ? clean : null,
+  });
+  if (error) throw error;
+  return data;
 }
 
 // Пул для добавления в лигу: зарегистрированные/гостевые игроки из других лиг
@@ -136,9 +132,7 @@ export async function getLeagueablePlayers(groupId) {
 
 // Добавить уже существующий профиль в лигу (без создания нового).
 export async function addExistingMember(groupId, profileId) {
-  const { error } = await supabase
-    .from("group_members")
-    .insert({ group_id: groupId, profile_id: profileId, rating: 1000 });
+  const { error } = await supabase.rpc("add_existing_member_gated", { p_group_id: groupId, p_profile_id: profileId });
   if (error) throw error;
 }
 
@@ -401,7 +395,7 @@ export async function joinLeague(code) {
 export async function getMyLeagues(profileId) {
   const { data, error } = await supabase
     .from("group_members")
-    .select("role, group:groups(id, name, invite_code, logo_url, telegram_url)")
+    .select("role, group:groups(id, name, invite_code, logo_url, telegram_url, members_can_add)")
     .eq("profile_id", profileId);
   if (error) throw error;
   return (data || []).map((r) => ({
@@ -410,6 +404,7 @@ export async function getMyLeagues(profileId) {
     invite_code: r.group.invite_code,
     logo_url: r.group.logo_url,
     telegram_url: r.group.telegram_url,
+    members_can_add: !!r.group.members_can_add,
     role: r.role,
   }));
 }
@@ -427,11 +422,12 @@ export async function updateLeague(groupId, fields) {
   if (fields.name !== undefined) patch.name = fields.name?.trim() || null;
   if (fields.logo_url !== undefined) patch.logo_url = fields.logo_url || null;
   if (fields.telegram_url !== undefined) patch.telegram_url = fields.telegram_url?.trim() || null;
+  if (fields.members_can_add !== undefined) patch.members_can_add = !!fields.members_can_add;
   const { data, error } = await supabase
     .from("groups")
     .update(patch)
     .eq("id", groupId)
-    .select("id, name, invite_code, logo_url, telegram_url")
+    .select("id, name, invite_code, logo_url, telegram_url, members_can_add")
     .single();
   if (error) throw error;
   return data;

@@ -8,7 +8,7 @@ import { handleAuthCallbackUrl, handleYandexCallback } from "./lib/auth";
 import Avatar from "./components/Avatar";
 import Logo from "./components/Logo"; // текстовый логотип в топбаре для гостя
 import LeagueSwitcher from "./components/LeagueSwitcher"; // глобальный переключатель лиги в топбаре
-import { LogIn, Sun, Moon, BarChart3 } from "lucide-react";
+import { LogIn, Sun, Moon } from "lucide-react";
 import { getMyLeagues } from "./lib/padelApi";
 import { t, setLang, applyLang, LANGS, LANG_LABELS, currentLang } from "./lib/i18n";
 import { detectCountry, langFromCountry } from "./lib/region";
@@ -314,7 +314,6 @@ export default function App({ initialShowLogin = false }) {
         onLeagueChange={handleLeagueChange}
         onLeagueCreated={handleLeagueDone}
         onLeagueUpdated={handleLeagueUpdated}
-        onOpenAnalytics={() => setAnalyticsNonce((n) => n + 1)}
       />
       {showInstall && (
         <div style={{
@@ -366,7 +365,7 @@ export default function App({ initialShowLogin = false }) {
   );
 }
 
-function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme, onThemeToggle, lang = "ru", onLangChange, leagues = [], activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, onLeagueUpdated, onOpenAnalytics }) {
+function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme, onThemeToggle, lang = "ru", onLangChange, leagues = [], activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, onLeagueUpdated }) {
   const base = { border: "1px solid var(--line)", borderRadius: 11, padding: "7px 12px", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif", transition: "transform .12s, filter .15s, background .15s" };
   return (
     <div style={{
@@ -383,12 +382,6 @@ function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme
         {session
           ? <LeagueSwitcher leagues={leagues} activeLeague={activeLeague} isAdmin={isAdmin} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onLeagueUpdated={onLeagueUpdated} />
           : <span onClick={() => window.location.assign("/")} style={{ cursor: "pointer", display: "inline-flex" }} title={t("pub_to_app")}><Logo height={20} /></span>}
-        {session && activeLeague && onOpenAnalytics && (
-          <button onClick={onOpenAnalytics} className="tb-btn" aria-label={t("an_open")} title={t("an_open")}
-            style={{ flexShrink: 0, marginLeft: 6, border: "1px solid var(--line)", background: "var(--surface2)", borderRadius: 11, padding: "6px 8px", display: "flex", alignItems: "center", color: "var(--lime)", cursor: "pointer" }}>
-            <BarChart3 size={16} />
-          </button>
-        )}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
         {/* lang + theme — единая группа-сегмент */}
