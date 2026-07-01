@@ -18,7 +18,6 @@ import Avatar from "./components/Avatar";
 import LeagueLogo from "./components/LeagueLogo";
 import Analytics from "./components/Analytics";
 import { dogAvatar, playerAvatar, DOG_COUNT, avatarFallback } from "./lib/avatar";
-import { playerLevel } from "./lib/level";
 
 // Текущая дата-время в формате datetime-local (YYYY-MM-DDTHH:MM) с учётом таймзоны.
 const nowLocalDT = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
@@ -638,15 +637,9 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_tournaments")}><Award size={13} /> {toursOf(p)}</span>
                   {streaks[p.id] && <span style={{ color: "var(--coral)", fontWeight: 600 }}>🔥{streaks[p.id]}</span>}
                 </span>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
-                  {(() => { const lv = playerLevel(p.matches, p.rating); return <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 8, background: `color-mix(in srgb, ${lv.color} 15%, transparent)`, color: lv.color, border: `1px solid color-mix(in srgb, ${lv.color} 35%, transparent)` }}>{lv.label}</span>; })()}
-                  {qb.length > 0 && <span style={{ letterSpacing: 2 }}>{qb.join("")}</span>}
-                </span>
+                {qb.length > 0 && <span style={{ letterSpacing: 2, marginLeft: "auto" }}>{qb.join("")}</span>}
               </div>
             </div>
-            {p.contacts && Object.values(p.contacts).some(Boolean) && (
-              <div style={{ fontSize: 10, color: "var(--lime)", flexShrink: 0 }}>📞</div>
-            )}
             <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />
           </div>
           </SwipeRow>
@@ -723,9 +716,6 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
                 <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
                 <div style={{ fontSize: 12, color: "var(--mut)" }}>{t("not_in_league")}</div>
               </div>
-              {p.contacts && Object.values(p.contacts).some(Boolean) && (
-                <div style={{ fontSize: 10, color: "var(--lime)", flexShrink: 0 }}>📞</div>
-              )}
               <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />
             </div>
           ))}
@@ -1180,11 +1170,6 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
             ))}
           </div>
         )}
-        {(() => { const lv = playerLevel(player.matches, player.rating); return (
-          <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 12px", borderRadius: 20, background: `color-mix(in srgb, ${lv.color} 12%, transparent)`, border: `1px solid color-mix(in srgb, ${lv.color} 35%, transparent)`, color: lv.color, fontSize: 12, fontWeight: 700 }}>
-            ⭐ {lv.label}
-          </div>
-        ); })()}
         <ContactLinks contacts={player.contacts} />
 
         {/* #5: действия отделены от бейджей — разделитель + сгруппированный блок кнопок. */}

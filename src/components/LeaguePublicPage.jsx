@@ -5,7 +5,6 @@ import React, { useEffect, useState } from "react";
 import { Send } from "lucide-react";
 import { getPublicLeague } from "../lib/padelApi";
 import { t, nGames } from "../lib/i18n";
-import { playerLevel } from "../lib/level";
 import { avatarFallback } from "../lib/avatar";
 import { usePublicChrome, PublicToggles, plural } from "./publicChrome";
 import Logo from "./Logo";
@@ -119,7 +118,6 @@ export default function LeaguePublicPage({ code }) {
                 </div>
               )}
               {(league.members || []).map((p, i) => {
-                const lv = playerLevel(p.matches || 0, p.rating || 0);
                 const rankColor = ["var(--yellow)", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)";
                 return (
                   <div key={i} style={{
@@ -131,9 +129,6 @@ export default function LeaguePublicPage({ code }) {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {p.name}{i === 0 ? " 👑" : ""}
-                      </div>
-                      <div style={{ marginTop: 3 }}>
-                        <span style={{ fontSize: 9.5, fontWeight: 700, padding: "1px 7px", borderRadius: 7, background: `color-mix(in srgb, ${lv.color} 15%, transparent)`, color: lv.color, border: `1px solid color-mix(in srgb, ${lv.color} 35%, transparent)` }}>{lv.label}</span>
                       </div>
                     </div>
                     {p.matches > 0 && <div style={{ fontSize: 12, color: "var(--mut)", flexShrink: 0 }}>{nGames(p.matches)}</div>}
