@@ -18,7 +18,6 @@ import EmptyState from "./components/EmptyState";
 import Avatar from "./components/Avatar";
 import LeagueLogo from "./components/LeagueLogo";
 import Analytics from "./components/Analytics";
-import RfNotice from "./components/RfNotice";
 import { dogAvatar, playerAvatar, DOG_COUNT, avatarFallback } from "./lib/avatar";
 
 // Текущая дата-время в формате datetime-local (YYYY-MM-DDTHH:MM) с учётом таймзоны.
@@ -229,7 +228,6 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLand
   ];
   return (
     <div className="pl-pop">
-      <RfNotice style={{ marginBottom: 14 }} />
       {/* Hero — логотип теперь в топбаре; здесь крупный двухчастный слоган. */}
       <div style={{ textAlign: "center", padding: "26px 0 22px" }}>
         {/* «Стая» — брендовые собаки-игроки, чтобы было понятно, про какую стаю речь. */}

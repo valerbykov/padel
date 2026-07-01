@@ -6,7 +6,6 @@ import { supabase } from "../lib/supabase";
 import TelegramLogin from "./TelegramLogin";
 import { Send, Mail, Phone, Check, AlertCircle, Sun, Moon, ArrowLeft } from "lucide-react";
 import Logo from "./Logo";
-import RfNotice from "./RfNotice";
 import { t, setLang } from "../lib/i18n";
 import { signInGoogle as authSignInGoogle, signInYandex } from "../lib/auth";
 import { isRussiaSync, detectRegion } from "../lib/region";
@@ -155,7 +154,6 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
           <div style={{ display: "flex", justifyContent: "center" }}><Logo theme={theme} showTagline /></div>
           <div className="lg-sub">{t("login_subtitle")}</div>
 
-          <RfNotice style={{ marginTop: 14 }} />
 
           {!isRF && (
           <button className="lg-oauth" onClick={signInGoogle}>

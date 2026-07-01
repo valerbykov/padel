@@ -41,8 +41,14 @@ const baseUrl = (mode === "proxy" && PROXY) ? PROXY : DIRECT;
 // Переписать host запроса на прокси, когда mode === "proxy" (REST/auth на лету,
 // даже если клиент создан с прямой базой — например при фолбэке в этой же сессии).
 function applyMode(input) {
-  if (mode !== "proxy" || !PROXY_HOST || !DIRECT_HOST) return input;
-  const rw = (u) => u.replace("//" + DIRECT_HOST, "//" + PROXY_HOST);
+  if (!PROXY_HOST || !DIRECT_HOST || DIRECT_HOST === PROXY_HOST) return input;
+  // Маршрут строго по текущему mode — В ОБЕ стороны. Клиент мог быть создан с любой
+  // базой (proxy/direct из localStorage), поэтому при mode="direct" нужно возвращать
+  // и proxy-host → direct-host, иначе под VPN (страна не РФ) запросы залипают на ru.
+  const from = mode === "proxy" ? DIRECT_HOST : PROXY_HOST;
+  const to   = mode === "proxy" ? PROXY_HOST  : DIRECT_HOST;
+  if (from === to) return input;
+  const rw = (u) => u.replace("//" + from, "//" + to);
   if (typeof input === "string") return rw(input);
   try { return (input && input.url) ? new Request(rw(input.url), input) : input; } catch { return input; }
 }
