@@ -29,7 +29,11 @@ export async function getRatingHistory(groupId, profileId) {
 }
 
 export async function getGroupAnalytics(groupId) {
-  const { data, error } = await supabase.rpc("group_analytics", { p_group_id: groupId });
+  // Передаём таймзону клиента, чтобы сервер группировал матчи по дням в ЛОКАЛЬНОЙ
+  // дате пользователя (иначе вечерние матчи «уезжают» на соседний день).
+  let tz = "UTC";
+  try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; } catch (e) { /* ignore */ }
+  const { data, error } = await supabase.rpc("group_analytics", { p_group_id: groupId, p_tz: tz });
   if (error) throw error;
   return data;
 }

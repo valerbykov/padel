@@ -17,6 +17,7 @@ import EmptyState from "./components/EmptyState";
 import Avatar from "./components/Avatar";
 import LeagueLogo from "./components/LeagueLogo";
 import Analytics from "./components/Analytics";
+import RfNotice from "./components/RfNotice";
 import { dogAvatar, playerAvatar, DOG_COUNT, avatarFallback } from "./lib/avatar";
 
 // Текущая дата-время в формате datetime-local (YYYY-MM-DDTHH:MM) с учётом таймзоны.
@@ -227,6 +228,7 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLand
   ];
   return (
     <div className="pl-pop">
+      <RfNotice style={{ marginBottom: 14 }} />
       {/* Hero — логотип теперь в топбаре; здесь крупный двухчастный слоган. */}
       <div style={{ textAlign: "center", padding: "26px 0 22px" }}>
         {/* «Стая» — брендовые собаки-игроки, чтобы было понятно, про какую стаю речь. */}
@@ -570,8 +572,9 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
       )}
 
       {/* Компактная плашка: логотип лиги + код приглашения + копировать/поделиться.
-          Название лиги не дублируем — оно в переключателе сверху. */}
-      {activeLeague?.invite_code && (
+          #4: видна только тем, кто может приглашать в лигу (владелец/организатор
+          или когда включено «участники могут добавлять»). */}
+      {activeLeague?.invite_code && (isAdmin || activeLeague?.members_can_add) && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, padding: "8px 10px 8px 8px", background: "color-mix(in srgb, var(--lime) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", borderRadius: 14, fontFamily: "'Outfit',sans-serif" }}>
           <LeagueLogo url={activeLeague.logo_url} name={activeLeague.name} size={38} radius={12} />
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -593,7 +596,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
           {[
             { n: 1, icon: "👤", text: t("onboarding_1_text"), sub: isAdmin ? t("onboarding_1_sub_admin") : t("onboarding_1_sub_member") },
             { n: 2, icon: "⚔️", text: t("onboarding_2_text"), sub: t("onboarding_2_sub") },
-            { n: 3, icon: "📣", text: t("onboarding_3_text"), sub: activeLeague?.invite_code ? t("onboarding_3_sub_code").replace("{code}", activeLeague.invite_code) : t("onboarding_3_sub_no_code") },
+            { n: 3, icon: "📣", text: t("onboarding_3_text"), sub: (activeLeague?.invite_code && (isAdmin || activeLeague?.members_can_add)) ? t("onboarding_3_sub_code").replace("{code}", activeLeague.invite_code) : t("onboarding_3_sub_no_code") },
           ].map(({ n, icon, text, sub }) => (
             <div key={n} style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 12 }}>
               <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "var(--lime)", flexShrink: 0 }}>{n}</div>

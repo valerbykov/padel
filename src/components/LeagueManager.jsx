@@ -151,36 +151,34 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
               ) : (tg ? <a href={tg} target="_blank" rel="noreferrer" style={{ color: "var(--lime)", fontSize: 14, textDecoration: "none", fontWeight: 600 }}>{t("league_open_channel")} →</a> : <div style={{ color: "var(--mut)", fontSize: 14 }}>—</div>)}
             </div>
 
-            {/* #1: кто может добавлять игроков (переключатель — только владельцу/организатору) */}
-            {canEdit && (
-              <div onClick={() => setMembersCanAdd((v) => !v)} role="switch" aria-checked={membersCanAdd}
-                style={{ display: "flex", alignItems: "flex-start", gap: 11, cursor: "pointer", marginBottom: 12, padding: "11px 12px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 14 }}>
-                <div style={{ flexShrink: 0, marginTop: 1, width: 42, height: 24, borderRadius: 999, background: membersCanAdd ? "var(--lime)" : "var(--line)", position: "relative", transition: "background .15s" }}>
-                  <span style={{ position: "absolute", top: 3, left: membersCanAdd ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{t("members_can_add_label")}</div>
-                  <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 2, lineHeight: 1.35 }}>{t("members_can_add_hint")}</div>
-                </div>
+            {/* #1/#3: кто может добавлять игроков. Видно всем участникам; переключать —
+                только владельцу/организатору (для остальных плашка read-only). */}
+            <div onClick={canEdit ? () => setMembersCanAdd((v) => !v) : undefined} role="switch" aria-checked={membersCanAdd} aria-disabled={!canEdit}
+              style={{ display: "flex", alignItems: "flex-start", gap: 11, cursor: canEdit ? "pointer" : "default", marginBottom: 12, padding: "11px 12px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 14, opacity: canEdit ? 1 : 0.72 }}>
+              <div style={{ flexShrink: 0, marginTop: 1, width: 42, height: 24, borderRadius: 999, background: membersCanAdd ? "var(--lime)" : "var(--line)", position: "relative", transition: "background .15s" }}>
+                <span style={{ position: "absolute", top: 3, left: membersCanAdd ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
               </div>
-            )}
-
-            {/* #1: кто может создавать игры и турниры */}
-            {canEdit && (
-              <div onClick={() => setMembersCanCreate((v) => !v)} role="switch" aria-checked={membersCanCreate}
-                style={{ display: "flex", alignItems: "flex-start", gap: 11, cursor: "pointer", marginBottom: 12, padding: "11px 12px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 14 }}>
-                <div style={{ flexShrink: 0, marginTop: 1, width: 42, height: 24, borderRadius: 999, background: membersCanCreate ? "var(--lime)" : "var(--line)", position: "relative", transition: "background .15s" }}>
-                  <span style={{ position: "absolute", top: 3, left: membersCanCreate ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{t("members_can_create_label")}</div>
-                  <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 2, lineHeight: 1.35 }}>{t("members_can_create_hint")}</div>
-                </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{t("members_can_add_label")}</div>
+                <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 2, lineHeight: 1.35 }}>{t("members_can_add_hint")}</div>
               </div>
-            )}
+            </div>
 
-            {/* Код приглашения */}
-            {d.invite_code && (
+            {/* #1/#3: кто может создавать игры и турниры (аналогично — видно всем, меняет владелец/организатор) */}
+            <div onClick={canEdit ? () => setMembersCanCreate((v) => !v) : undefined} role="switch" aria-checked={membersCanCreate} aria-disabled={!canEdit}
+              style={{ display: "flex", alignItems: "flex-start", gap: 11, cursor: canEdit ? "pointer" : "default", marginBottom: 12, padding: "11px 12px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 14, opacity: canEdit ? 1 : 0.72 }}>
+              <div style={{ flexShrink: 0, marginTop: 1, width: 42, height: 24, borderRadius: 999, background: membersCanCreate ? "var(--lime)" : "var(--line)", position: "relative", transition: "background .15s" }}>
+                <span style={{ position: "absolute", top: 3, left: membersCanCreate ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{t("members_can_create_label")}</div>
+                <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 2, lineHeight: 1.35 }}>{t("members_can_create_hint")}</div>
+              </div>
+            </div>
+
+            {/* Код приглашения — #4: только тем, кто может приглашать (владелец/организатор
+                или включено «участники могут добавлять»). */}
+            {d.invite_code && (canEdit || membersCanAdd) && (
               <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "color-mix(in srgb,var(--lime) 8%,transparent)", border: "1px solid color-mix(in srgb,var(--lime) 30%,transparent)", borderRadius: 14, marginBottom: 16 }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 11, color: "var(--mut)" }}>{t("league_invite_label")}</div>

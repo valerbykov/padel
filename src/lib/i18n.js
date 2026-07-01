@@ -230,6 +230,7 @@ const T = {
     login_sending: 'Отправляю…',
     login_checking: 'Проверяю…',
     login_subtitle: 'Войди, чтобы создавать игры, вести лигу и следить за статистикой',
+    app_unstable_rf: 'Приложение работает нестабильно в РФ',
     login_trust: 'Создано игроками для игроков',
     // ── Landing (in-app, для гостей) ──────────────────────────────────────
     lp_pill: 'Одно приложение для всей падел-компании',
@@ -549,6 +550,7 @@ const T = {
     login_sending: 'Sending…',
     login_checking: 'Checking…',
     login_subtitle: 'Sign in to create games, run a league and track your stats',
+    app_unstable_rf: 'The app runs unstably in Russia',
     login_trust: 'Made by players for players',
     // ── Landing (in-app, for guests) ──────────────────────────────────────
     lp_pill: 'One app for your whole padel crew',
@@ -868,6 +870,7 @@ const T = {
     login_sending: 'Enviando…',
     login_checking: 'Verificando…',
     login_subtitle: 'Entra para crear partidas, llevar una liga y seguir tus estadísticas',
+    app_unstable_rf: 'La aplicación funciona de forma inestable en Rusia',
     login_trust: 'Hecho por jugadores para jugadores',
     // ── Landing (in-app, para invitados) ──────────────────────────────────
     lp_pill: 'Una app para todo tu grupo de pádel',
