@@ -1,7 +1,7 @@
 // lib/tournamentApi.js
 import { supabase } from "./supabase";
 import { buildMatches, standings } from "./americano";
-import { buildFirstRound, buildMexicanoRound, buildKotHStart, buildKotHNextMatch } from "./mexicano";
+import { buildFirstRound, buildMexicanoRound, buildKotHStart, buildKotHNextMatch, buildKotHLadderStart, buildKotHLadderRound } from "./mexicano";
 import { swr, bustCache } from "./cache";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -9,17 +9,18 @@ const genCode = () => Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math
 export const tournamentLink = (code) => `${window.location.origin}/t/${code}`;
 
 const T_SELECT =
-  "id, invite_code, name, format, points_per_game, target_size, status, court_names, created_by, created_at, starts_at, place, " +
+  "id, invite_code, name, format, points_per_game, target_size, status, court_names, koth_champion_rule, created_by, created_at, starts_at, place, " +
   "players:tournament_players(id, profile_id, name, created_at), " +
   "matches:tournament_matches(id, round_number, court, team_a, team_b, score_a, score_b)";
 
-export async function createTournament(groupId, { name, pointsPerGame = 32, targetSize = 8, createdBy, format = "americano", startsAt, place } = {}) {
+export async function createTournament(groupId, { name, pointsPerGame = 32, targetSize = 8, createdBy, format = "americano", startsAt, place, kotHChampionRule } = {}) {
   let t = null;
   for (let i = 0; i < 5; i++) {
     const res = await supabase.from("tournaments").insert({
       group_id: groupId, invite_code: genCode(), name: name?.trim() || null,
       points_per_game: pointsPerGame, target_size: targetSize, created_by: createdBy || null,
       status: "open", format,
+      koth_champion_rule: format === "king_of_hill" ? (kotHChampionRule || "court_1") : null,
       starts_at: startsAt || null, place: place?.trim() || null,
     }).select().single();
     if (!res.error) { t = res.data; break; }
@@ -39,6 +40,7 @@ export async function copyTournament(srcId, groupId, { name, withPlayers = true,
     pointsPerGame: src.points_per_game,
     targetSize: src.target_size,
     format: src.format,
+    kotHChampionRule: src.koth_champion_rule || undefined,
     createdBy: createdBy || null,
   });
   if (withPlayers) {
@@ -118,9 +120,10 @@ export async function getTournamentByCode(code) {
  */
 export async function startTournament(tournamentId, players, format = "americano") {
   const ids = players.map((p) => p.id);
-  const isKothBtB = format === "king_of_hill" || format === "beat_the_box";
+  const isBtb = format === "beat_the_box";      // «коробки» — старая модель одного корта с очередью
+  const isKoth = format === "king_of_hill";     // «король корта» — лесенка кортов (игроков/4)
 
-  if (isKothBtB) {
+  if (isBtb) {
     if (ids.length < 4 || ids.length % 2 !== 0)
       throw new Error("Нужно чётное число игроков (минимум 4)");
   } else {
@@ -129,7 +132,8 @@ export async function startTournament(tournamentId, players, format = "americano
   }
 
   let rawMatches;
-  if (isKothBtB) rawMatches = buildKotHStart(ids);
+  if (isBtb) rawMatches = buildKotHStart(ids);
+  else if (isKoth) rawMatches = buildKotHLadderStart(ids);
   else if (format === "mexicano") rawMatches = buildFirstRound(ids);
   else rawMatches = buildMatches(ids);
 
@@ -150,12 +154,20 @@ export async function generateMexicanoRound(tournamentId, players, matches) {
   if (error) throw error;
 }
 
-/** KotH/BtB: следующий матч — победитель vs. следующий из очереди. */
+/** Beat the Box: следующий матч — победитель vs. следующий из очереди (одна коробка). */
 export async function generateKotHRound(tournamentId, matches) {
   const nextMatch = buildKotHNextMatch(matches);
   if (!nextMatch) throw new Error("Нет завершённых матчей для генерации следующего");
   const { error } = await supabase.from("tournament_matches")
     .insert({ ...nextMatch, tournament_id: tournamentId });
+  if (error) throw error;
+}
+
+/** King of the Court: следующий раунд по «лесенке» (все корты сразу). */
+export async function generateKotHLadderRound(tournamentId, matches) {
+  const newMatches = buildKotHLadderRound(matches).map((m) => ({ ...m, tournament_id: tournamentId }));
+  if (!newMatches.length) throw new Error("Нет завершённых матчей для генерации следующего раунда");
+  const { error } = await supabase.from("tournament_matches").insert(newMatches);
   if (error) throw error;
 }
 

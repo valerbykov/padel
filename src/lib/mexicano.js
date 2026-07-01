@@ -40,7 +40,58 @@ export function buildMexicanoRound(sorted, nextRound) {
   return matches;
 }
 
-// ─── KING OF THE HILL / BEAT THE BOX ─────────────────────────────────────────
+// ─── KING OF THE COURT (лесенка кортов) ──────────────────────────────────────
+// Корты = игроков/4; на каждом корте 2 ФИКСИРОВАННЫЕ пары (партнёры не меняются
+// весь турнир). Каждый раунд играют ВСЕ корты одновременно. Затем «лесенка»:
+// победитель поднимается на корт выше (на корте 1 остаётся), проигравший
+// опускается на корт ниже (на последнем корте остаётся). Раунды генерятся, пока
+// организатор не завершит турнир.
+
+/** Старт KotH: раунд 1 — все корты, по 2 пары на корт. Без round 0. */
+export function buildKotHLadderStart(playerIds) {
+  const order = shuffle([...playerIds]);
+  const pairs = [];
+  for (let i = 0; i + 1 < order.length; i += 2) pairs.push([order[i], order[i + 1]]);
+  const courts = Math.floor(pairs.length / 2);
+  const matches = [];
+  for (let c = 0; c < courts; c++) {
+    matches.push({ round_number: 1, court: c + 1, team_a: pairs[2 * c], team_b: pairs[2 * c + 1] });
+  }
+  return matches;
+}
+
+/** Следующий раунд KotH: по последнему сыгранному раунду строим лесенку. */
+export function buildKotHLadderRound(matches) {
+  const played = matches.filter((m) => m.round_number > 0);
+  if (!played.length) return [];
+  const lastRound = Math.max(...played.map((m) => m.round_number));
+  const cur = played.filter((m) => m.round_number === lastRound).sort((a, b) => a.court - b.court);
+  const C = cur.length;
+  const byCourt = {};
+  cur.forEach((m) => {
+    const aWin = (m.score_a || 0) >= (m.score_b || 0);
+    byCourt[m.court] = { winner: aWin ? m.team_a : m.team_b, loser: aWin ? m.team_b : m.team_a };
+  });
+  const next = [];
+  for (let c = 1; c <= C; c++) {
+    let teamA, teamB;
+    if (c === 1) {              // корт 1: победитель остаётся + поднявшийся победитель со 2-го
+      teamA = byCourt[1].winner;
+      teamB = C >= 2 ? byCourt[2].winner : byCourt[1].loser;
+    } else if (c === C) {       // последний корт: спустившийся проигравший сверху + проигравший остаётся
+      teamA = byCourt[c - 1].loser;
+      teamB = byCourt[C].loser;
+    } else {                    // середина: проигравший сверху + победитель снизу
+      teamA = byCourt[c - 1].loser;
+      teamB = byCourt[c + 1].winner;
+    }
+    next.push({ round_number: lastRound + 1, court: c, team_a: teamA, team_b: teamB });
+  }
+  return next;
+}
+
+// ─── BEAT THE BOX ─────────────────────────────────────────────────────────────
+// (King of the Hill в старой модели «одного корта с очередью» — оставлено для BtB.)
 
 /**
  * Извлечь все команды из матчей round_number=0 (команды-определения).

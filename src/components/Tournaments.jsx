@@ -6,7 +6,7 @@ import { supabase } from "../lib/supabase";
 import {
   createTournament, listTournaments, getTournament, addTournamentPlayer, removeTournamentPlayer,
   startTournament, submitMatchScore, finishTournament, tournamentLink, deleteTournament, listMyTournaments, copyTournament,
-  generateMexicanoRound, generateKotHRound, setCourtName, setScorePin, checkScorePin,
+  generateMexicanoRound, generateKotHRound, generateKotHLadderRound, setCourtName, setScorePin, checkScorePin,
 } from "../lib/tournamentApi";
 import { standings, detailedStandings, allMatchesPlayed } from "../lib/americano";
 import { dogAvatar } from "../lib/avatar";
@@ -45,7 +45,7 @@ export const css = `
 const FORMAT_META = {
   americano:    { emoji: "🔄", color: "#b8ef28", multiOf: 4 },
   mexicano:     { emoji: "📊", color: "var(--yellow)", multiOf: 4 },
-  king_of_hill: { emoji: "⛰️", color: "#ff9d3f", multiOf: 2 },
+  king_of_hill: { emoji: "⛰️", color: "#ff9d3f", multiOf: 4 },
   beat_the_box: { emoji: "📦", color: "#ff6a52", multiOf: 2 },
 };
 
@@ -96,8 +96,16 @@ export function TournamentCard({ trn, color, onClick, onCopy, flush }) {
   let winner = null;
   if (trn.status === "finished") {
     try {
-      const tbl = detailedStandings((trn.players || []).map((p) => ({ id: p.id, name: p.name })), (trn.matches || []).filter((m) => m.round_number > 0));
-      winner = tbl[0]?.name || null;
+      if (trn.format === "king_of_hill") {
+        const pair = kothChampionPair(trn);
+        if (pair) {
+          const nm = (pid) => (trn.players || []).find((p) => p.id === pid)?.name || "?";
+          winner = `${nm(pair[0])} & ${nm(pair[1])}`;
+        }
+      } else {
+        const tbl = detailedStandings((trn.players || []).map((p) => ({ id: p.id, name: p.name })), (trn.matches || []).filter((m) => m.round_number > 0));
+        winner = tbl[0]?.name || null;
+      }
     } catch (e) {}
   }
   // Дата+время начала, если заданы; иначе — дата создания (без времени) как запасной вариант.
@@ -297,6 +305,7 @@ function Create({ groupId, profileId, back, open }) {
   const [format, setFormat] = useState(null);
   const [courts, setCourts] = useState(2);
   const [playerCount, setPlayerCount] = useState(8);
+  const [kotHChampionRule, setKotHChampionRule] = useState("court_1"); // #4: правило чемпиона KotH
   const [points, setPoints] = useState(32);
   const [day, setDay] = useState(() => nowLocalDT().slice(0, 10));
   const [time, setTime] = useState(() => nowLocalDT().slice(11, 16));
@@ -307,10 +316,11 @@ function Create({ groupId, profileId, back, open }) {
 
   const fmt = format ? fmtById(format) : null;
   const isKothBtB = format === "king_of_hill" || format === "beat_the_box";
+  const isBtb = format === "beat_the_box";     // единственный формат «один корт + очередь»
+  const isKoth = format === "king_of_hill";    // «король корта» — по кортам (игроков/4)
 
   const POINTS_OPTS = [16, 24, 32, 48, 64];
   const COURTS_OPTS = [
-    { v: 1, label: tr("trn_court1"), sub: tr("trn_4players") },
     { v: 2, label: tr("trn_court2"), sub: tr("trn_8players") },
     { v: 3, label: tr("trn_court3"), sub: tr("trn_12players") },
     { v: 4, label: tr("trn_court4"), sub: tr("trn_16players") },
@@ -330,7 +340,7 @@ function Create({ groupId, profileId, back, open }) {
   React.useEffect(() => {
     if (!format) return;
     try {
-      if (isKothBtB) {
+      if (isBtb) {
         const teams = playerCount / 2;
         setName(`${fmt.name} · ${teams} ${tr("trn_teams_" + teams).split(" ")[1] || "teams"}`);
       } else {
@@ -344,12 +354,12 @@ function Create({ groupId, profileId, back, open }) {
   const go = async () => {
     setBusy(true);
     try {
-      const targetSize = isKothBtB ? playerCount : courts * 4;
+      const targetSize = isBtb ? playerCount : courts * 4;
       // Сохраняем КОНКРЕТНЫЙ момент (ISO с таймзоной), чтобы введённое локальное
       // время совпадало с показанным при чтении (без сдвига часовых поясов).
       let startsAtIso = null;
       try { if (date) startsAtIso = new Date(date).toISOString(); } catch (e) { startsAtIso = null; }
-      const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format, createdBy: profileId, startsAt: startsAtIso, place });
+      const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format, createdBy: profileId, startsAt: startsAtIso, place, kotHChampionRule: isKoth ? kotHChampionRule : undefined });
       open(trn.id);
     } catch (e) { alert(tr("err_create_tour")); setBusy(false); }
   };
@@ -408,7 +418,7 @@ function Create({ groupId, profileId, back, open }) {
         <div className="tr-d" style={{ fontSize: 18 }}>{tr("trn_settings_title")}</div>
 
         {/* Courts / Players */}
-        {!isKothBtB ? (
+        {!isBtb ? (
           <div>
             <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{tr("trn_courts_label")}</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
@@ -444,6 +454,24 @@ function Create({ groupId, profileId, back, open }) {
           </div>
         </div>
 
+        {/* Champion rule (King of the Court only) */}
+        {isKoth && (
+          <div>
+            <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{tr("trn_koth_champion_label")}</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {[
+                { v: "court_1", label: tr("trn_koth_champion_court1"), sub: tr("trn_koth_champion_court1_sub") },
+                { v: "points", label: tr("trn_koth_champion_points"), sub: tr("trn_koth_champion_points_sub") },
+              ].map((o) => (
+                <button key={o.v} style={chip(kotHChampionRule === o.v)} onClick={() => setKotHChampionRule(o.v)}>
+                  <div>{o.label}</div>
+                  <div style={{ fontSize: 10, fontWeight: 400, opacity: .7 }}>{o.sub}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Date */}
         <div>
           <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_date_label")}</div>
@@ -467,9 +495,9 @@ function Create({ groupId, profileId, back, open }) {
 
         {/* Превью: что получится из настроек */}
         {(() => {
-          const size = isKothBtB ? playerCount : courts * 4;
+          const size = isBtb ? playerCount : courts * 4;
           const detail = format === "americano" ? tr("trn_n_rounds").replace("{n}", String(Math.max(1, size - 1)))
-            : format === "mexicano" ? tr("trn_rounds_dynamic") : tr("trn_matches_dynamic");
+            : format === "beat_the_box" ? tr("trn_matches_dynamic") : tr("trn_rounds_dynamic");
           return (
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, fontSize: 13 }}>
               <span style={{ fontSize: 18, flexShrink: 0 }}>{fmt.emoji}</span>
@@ -496,6 +524,29 @@ function groupRounds(matches) {
   const r = {};
   matches.forEach((m) => { (r[m.round_number] = r[m.round_number] || []).push(m); });
   return r;
+}
+
+// King of the Court: чемпион зависит от выбранного правила.
+//   'court_1' — пара, выигравшая корт №1 в последнем раунде (удержала «королевский» корт);
+//   'points'  — пара с наибольшей суммой очков (партнёры фиксированы весь турнир).
+// Возвращает пару игроков-победителей [tpId, tpId] или null.
+function kothChampionPair(trn) {
+  const played = (trn.matches || []).filter((m) => m.round_number > 0 && m.score_a != null);
+  if (!played.length) return null;
+  const rule = trn.koth_champion_rule || "court_1";
+  if (rule === "court_1") {
+    const lastRound = Math.max(...played.map((m) => m.round_number));
+    const inLast = played.filter((m) => m.round_number === lastRound).sort((a, b) => a.court - b.court);
+    const c1 = inLast.find((m) => m.court === 1) || inLast[0];
+    if (!c1) return null;
+    return (c1.score_a || 0) >= (c1.score_b || 0) ? c1.team_a : c1.team_b;
+  }
+  const tbl = detailedStandings((trn.players || []).map((p) => ({ id: p.id, name: p.name })), played);
+  const topId = tbl[0]?.id;
+  if (!topId) return null;
+  const anyM = played.find((m) => m.team_a.includes(topId) || m.team_b.includes(topId));
+  if (!anyM) return null;
+  return anyM.team_a.includes(topId) ? anyM.team_a : anyM.team_b;
 }
 
 // Свайп влево по строке участника → удаление (как в Истории/слотах игры).
@@ -595,6 +646,8 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   }, [spectatorMode, load, reloadFn]);
 
   const isKothBtB = trnData ? (trnData.format === "king_of_hill" || trnData.format === "beat_the_box") : false;
+  const isBtb = trnData?.format === "beat_the_box";     // «коробки»: один корт + очередь
+  const isKoth = trnData?.format === "king_of_hill";    // «король корта»: лесенка кортов
   const isMexicano = trnData?.format === "mexicano";
 
   const displayMatches = trnData ? (isKothBtB ? trnData.matches.filter((m) => m.round_number > 0) : trnData.matches) : [];
@@ -623,6 +676,18 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   };
 
   const table = detailedStandings(trnData.players.map((p) => ({ id: p.id, name: p.name })), trnData.matches.filter((m) => m.round_number > 0));
+  // Победитель финального экрана: для KotH — пара по выбранному правилу, иначе — лидер таблицы.
+  const kothPair = isKoth && trnData.status === "finished" ? kothChampionPair(trnData) : null;
+  const champ = kothPair
+    ? (() => {
+        const rows = kothPair.map((pid) => table.find((r) => r.id === pid)).filter(Boolean);
+        return {
+          name: `${nameOf(kothPair[0])} & ${nameOf(kothPair[1])}`,
+          points: rows.reduce((s, r) => s + (r.points || 0), 0),
+          delta: rows.reduce((s, r) => s + (r.delta || 0), 0),
+        };
+      })()
+    : table[0];
   const done = allMatchesPlayed(displayMatches);
   const rmap = groupRounds(displayMatches);
   const roundNums = Object.keys(rmap).map(Number).sort((a, b) => a - b);
@@ -634,9 +699,9 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   // Заглядывать вперёд (просмотр пар) можно — но не вводить счёт «через голову».
   const priorComplete = roundNums.filter((n) => n < cur).every((n) => (rmap[n] || []).every((m) => m.score_a != null));
 
-  // KotH/BtB queue
+  // Beat the Box queue (в KotH очереди нет — все пары играют каждый раунд)
   let kotHQueue = [];
-  if (isKothBtB && trnData.status !== "open") {
+  if (isBtb && trnData.status !== "open") {
     const allTeams = getAllKotHTeams(trnData.matches);
     const onCourtKeys = new Set(curMatches.flatMap((m) => [
       [...m.team_a].sort().join(","),
@@ -655,10 +720,10 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
       .sort((a, b) => (lastPlayed[[...a].sort().join(",")] || 0) - (lastPlayed[[...b].sort().join(",")] || 0));
   }
 
-  const canStart = isKothBtB
+  const canStart = isBtb
     ? trnData.players.length >= 4 && trnData.players.length % 2 === 0
     : trnData.players.length >= 4 && trnData.players.length % 4 === 0;
-  const startHint = isKothBtB
+  const startHint = isBtb
     ? (trnData.players.length % 2 !== 0 ? tr("trn_need_even") : null)
     : (trnData.players.length % 4 !== 0 ? tr("trn_need_mult4") : null);
 
@@ -673,6 +738,13 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     setAddingRound(true);
     try { await generateKotHRound(trnData.id, trnData.matches); await load(); setCur(N + 1); }
     catch (e) { alert(e.message || tr("err_create_match")); }
+    finally { setAddingRound(false); }
+  };
+
+  const addKotHLadderRound = async () => {
+    setAddingRound(true);
+    try { await generateKotHLadderRound(trnData.id, trnData.matches); await load(); setCur(N + 1); }
+    catch (e) { alert(e.message || tr("err_create_round")); }
     finally { setAddingRound(false); }
   };
 
@@ -698,10 +770,10 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     else { setToast(tr("trn_score_pin_wrong")); setTimeout(() => setToast(""), 1800); }
   };
 
-  const roundLabel = isKothBtB
+  const roundLabel = isBtb
     ? `${tr("trn_match_label")} ${cur}`
     : `${tr("trn_round_label")} ${cur}`;
-  const roundSub = isKothBtB
+  const roundSub = isBtb
     ? null
     : isMexicano ? ` · ${fmt.name}` : ` / ${N}`;
 
@@ -806,7 +878,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
               </button>
               {startHint && <div style={{ textAlign: "center", color: "var(--coral)", fontSize: 12, marginTop: 8 }}>{startHint}</div>}
               {isMexicano && <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginTop: 6 }}>{tr("trn_mexicano_hint")}</div>}
-              {isKothBtB && <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginTop: 6 }}>{tr("trn_koth_hint")}</div>}
+              {isKothBtB && <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginTop: 6 }}>{isKoth ? tr("trn_kingcourt_hint") : tr("trn_koth_hint")}</div>}
             </>
           )}
         </>
@@ -849,8 +921,8 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                 </div>
               </div>
 
-              {/* Role labels for KotH/BtB */}
-              {isKothBtB && curMatches.length > 0 && (
+              {/* Role labels for Beat the Box (защитник/претендент) */}
+              {isBtb && curMatches.length > 0 && (
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "0 4px 8px", fontSize: 12, fontWeight: 700 }}>
                   <span style={{ color: fmt.color }}>{defenderLabel}</span>
                   <span style={{ color: "var(--mut)" }}>{tr("trn_challenger")}</span>
@@ -863,7 +935,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                 const collapsed = scored && !openCourts[m.id];
                 if (collapsed) {
                   const aWin = m.score_a > m.score_b, bWin = m.score_b > m.score_a;
-                  const courtLbl = isKothBtB ? null : (trnData.court_names?.[String(m.court)] || (tr("trn_court1").replace("1", String(m.court))));
+                  const courtLbl = isBtb ? null : (trnData.court_names?.[String(m.court)] || (tr("trn_court1").replace("1", String(m.court))));
                   return (
                     <div key={m.id} className="tr-card" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "10px 12px" }}
                       onClick={() => setOpenCourts((o) => ({ ...o, [m.id]: true }))}>
@@ -879,9 +951,9 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                 }
                 return (
                   <div key={m.id}>
-                    <CourtView courtNumber={isKothBtB ? null : m.court} points={trnData.points_per_game}
+                    <CourtView courtNumber={isBtb ? null : m.court} points={trnData.points_per_game}
                       courtName={trnData.court_names ? trnData.court_names[String(m.court)] : undefined}
-                      onRenameCourt={(!readOnly && !isKothBtB) ? (name) => setCourtName(trnData.id, m.court, name).then(load).catch(() => {}) : undefined}
+                      onRenameCourt={(!readOnly && !isBtb) ? (name) => setCourtName(trnData.id, m.court, name).then(load).catch(() => {}) : undefined}
                       teamA={[nameOf(m.team_a[0]), nameOf(m.team_a[1])]}
                       teamB={[nameOf(m.team_b[0]), nameOf(m.team_b[1])]}
                       teamAvatarsA={[avatarOfTp(m.team_a[0]), avatarOfTp(m.team_a[1])]}
@@ -899,8 +971,8 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                 );
               })}
 
-              {/* KotH/BtB queue */}
-              {isKothBtB && kotHQueue.length > 0 && (
+              {/* Beat the Box queue */}
+              {isBtb && kotHQueue.length > 0 && (
                 <div className="tr-card" style={{ marginBottom: 12 }}>
                   <div style={{ fontSize: 12, color: "var(--mut)", fontWeight: 700, letterSpacing: .5, marginBottom: 8 }}>{tr("trn_queue_label")}</div>
                   {kotHQueue.map((team, i) => (
@@ -923,7 +995,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                 </div>
               ) : !curComplete ? (
                 <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginBottom: 12 }}>
-                  {isKothBtB ? tr("trn_enter_score") : tr("trn_enter_all_scores")}
+                  {isBtb ? tr("trn_enter_score") : tr("trn_enter_all_scores")}
                 </div>
               ) : null}
 
@@ -935,11 +1007,19 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                 </button>
               )}
 
-              {/* KotH/BtB: next match */}
-              {!readOnly && isKothBtB && curComplete && isLastRound && trnData.status !== "finished" && (
+              {/* Beat the Box: next match */}
+              {!readOnly && isBtb && curComplete && isLastRound && trnData.status !== "finished" && (
                 <button className="tr-btn" style={{ width: "100%", padding: 12, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
                   disabled={addingRound} onClick={addKotHMatch}>
                   <Plus size={16} /> {addingRound ? tr("trn_drawing") : `${tr("trn_next_match")} (${defenderLabel})`}
+                </button>
+              )}
+
+              {/* King of the Court: next round (лесенка кортов) */}
+              {!readOnly && isKoth && curComplete && isLastRound && trnData.status !== "finished" && (
+                <button className="tr-btn" style={{ width: "100%", padding: 12, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                  disabled={addingRound} onClick={addKotHLadderRound}>
+                  <Plus size={16} /> {addingRound ? tr("trn_drawing") : tr("trn_next_round")}
                 </button>
               )}
 
@@ -958,20 +1038,21 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
           {/* Standings table */}
           <div className="tr-card" style={{ overflow: "hidden" }}>
             <div className="tr-d" style={{ fontSize: 15, marginBottom: 10 }}>{done ? tr("trn_final_table") : tr("trn_table")}</div>
-            {trnData.status === "finished" && table[0] && (
+            {trnData.status === "finished" && champ && (
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 14, background: "color-mix(in srgb, var(--yellow) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--yellow) 35%, transparent)" }}>
                   <span style={{ fontSize: 26, flexShrink: 0 }}>🥇</span>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 11, color: "var(--mut)", textTransform: "uppercase", letterSpacing: .5, fontWeight: 700 }}>{tr("trn_winner")}</div>
-                    <div style={{ fontWeight: 800, fontSize: 17, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{table[0].name}</div>
+                    <div style={{ fontSize: 11, color: "var(--mut)", textTransform: "uppercase", letterSpacing: .5, fontWeight: 700 }}>{isKoth ? tr("trn_koth_champion") : tr("trn_winner")}</div>
+                    <div style={{ fontWeight: 800, fontSize: 17, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{champ.name}</div>
+                    {isKoth && <div style={{ fontSize: 10, color: "var(--mut)", marginTop: 1 }}>{(trnData.koth_champion_rule || "court_1") === "points" ? tr("trn_koth_champion_points") : tr("trn_koth_champion_court1")}</div>}
                   </div>
                   <div style={{ marginLeft: "auto", textAlign: "right", flexShrink: 0 }}>
-                    <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 22, color: "var(--yellow)", lineHeight: 1 }}>{table[0].points}<span style={{ fontSize: 11, color: "var(--mut)", fontFamily: "'Outfit',sans-serif", fontWeight: 600 }}> {tr("trn_winner_points")}</span></div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: table[0].delta > 0 ? "var(--lime)" : table[0].delta < 0 ? "var(--coral)" : "var(--mut)", marginTop: 3, fontFamily: "'Outfit',sans-serif" }}>{table[0].delta > 0 ? "+" : ""}{table[0].delta} <span style={{ fontSize: 10, color: "var(--mut)", fontWeight: 600 }}>{tr("trn_diff")}</span></div>
+                    <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 22, color: "var(--yellow)", lineHeight: 1 }}>{champ.points}<span style={{ fontSize: 11, color: "var(--mut)", fontFamily: "'Outfit',sans-serif", fontWeight: 600 }}> {tr("trn_winner_points")}</span></div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: champ.delta > 0 ? "var(--lime)" : champ.delta < 0 ? "var(--coral)" : "var(--mut)", marginTop: 3, fontFamily: "'Outfit',sans-serif" }}>{champ.delta > 0 ? "+" : ""}{champ.delta} <span style={{ fontSize: 10, color: "var(--mut)", fontWeight: 600 }}>{tr("trn_diff")}</span></div>
                   </div>
                 </div>
-                {(table[1] || table[2]) && (
+                {!isKoth && (table[1] || table[2]) && (
                   <div style={{ display: "flex", gap: 8 }}>
                     {[1, 2].filter((i) => table[i]).map((i) => (
                       <div key={i} style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 12, background: "var(--surface2)", border: "1px solid var(--line)", minWidth: 0 }}>
