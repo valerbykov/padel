@@ -1,14 +1,14 @@
 // lib/region.js
 // Определение «пользователь в РФ» — для гео-логики входа (по закону скрываем Google для РФ).
 // Приоритет источников:
-//   1) свой эндпоинт на прокси (VITE_SUPABASE_PROXY_URL + "/geo") — надёжно из РФ, без сторонних API;
+//   1) свой /geo на api.padelpack.app (Vultr, geoip по реальному IP клиента); отвязан от роутинг-хоста;
 //   2) публичный ipwho.is — запасной;
 //   3) сигнал гео-фолбэка supabase (ушли на прокси = нас троттлят = почти наверняка РФ).
 import { supabaseEndpoint, preferProxy, preferDirect } from "./supabase";
 
 const KEY = "pp_country";
 let cached; // boolean | undefined
-const PROXY = (import.meta.env.VITE_SUPABASE_PROXY_URL || "").replace(/\/$/, "");
+const GEO = (import.meta.env.VITE_GEO_URL || "https://api.padelpack.app/geo").replace(/\/$/, "");
 
 function fromProxySignal() {
   try { return supabaseEndpoint() === "proxy"; } catch (e) { return false; }
@@ -43,8 +43,8 @@ function remember(cc) {
 export async function detectRegion() {
   // Всегда спрашиваем СВЕЖИЙ /geo (он на нашем сервере, быстрый). Иначе при VPN/переезде
   // застрянем на старой стране из кэша — поэтому кэш тут только как оффлайн-фолбэк.
-  if (PROXY) {
-    try { const cc = await fetchCountry(PROXY + "/geo", (j) => j && j.country); if (cc) return remember(cc); } catch (e) { /* ignore */ }
+  if (GEO) {
+    try { const cc = await fetchCountry(GEO, (j) => j && j.country); if (cc) return remember(cc); } catch (e) { /* ignore */ }
   }
   try { const cc = await fetchCountry("https://ipwho.is/?fields=country_code", (j) => j && j.country_code); if (cc) return remember(cc); } catch (e) { /* ignore */ }
   // Сеть не ответила — берём кэш, затем сигнал прокси.
@@ -56,8 +56,8 @@ export async function detectRegion() {
 // Возвращает ISO-код страны ("RU", "ES", "AR", …), уточняя через сеть. Кэшируется
 // в том же pp_country, что и detectRegion. Для гео-выбора языка на первом заходе.
 export async function detectCountry() {
-  if (PROXY) {
-    try { const cc = await fetchCountry(PROXY + "/geo", (j) => j && j.country); if (cc) { remember(cc); return cc.toUpperCase(); } } catch (e) { /* ignore */ }
+  if (GEO) {
+    try { const cc = await fetchCountry(GEO, (j) => j && j.country); if (cc) { remember(cc); return cc.toUpperCase(); } } catch (e) { /* ignore */ }
   }
   try { const cc = await fetchCountry("https://ipwho.is/?fields=country_code", (j) => j && j.country_code); if (cc) { remember(cc); return cc.toUpperCase(); } } catch (e) { /* ignore */ }
   try { const c = localStorage.getItem(KEY); if (c) return c.toUpperCase(); } catch (e) { /* ignore */ }
