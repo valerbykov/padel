@@ -618,6 +618,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   const [addingRound, setAddingRound] = useState(false);
   const [pinShown, setPinShown] = useState(null);
   const [pinInput, setPinInput] = useState("");
+  const [pinMsg, setPinMsg] = useState(""); // #1: сообщение о неверном PIN — отдельно от toast (кнопки «Ссылка»)
   const [unlocked, setUnlocked] = useState(() => { try { return !!localStorage.getItem("pp_scorepin_" + id); } catch (e) { return false; } });
   const [openCourts, setOpenCourts] = useState({}); // {matchId: true} — раскрытые сыгранные корты
   const initRef = useRef(false);
@@ -666,6 +667,8 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
 
   const fmt = fmtById(trnData.format);
   const amCreator = !!(currentProfileId && trnData.created_by && trnData.created_by === currentProfileId);
+  // #3: имя создателя турнира (для понимания, кто может вводить счёт). Резолвим по составу лиги.
+  const creatorName = trnData.created_by ? ((players || []).find((p) => p.id === trnData.created_by)?.name || null) : null;
   const nameOf = (tpId) => trnData.players.find((p) => p.id === tpId)?.name || "?";
   const _dogAv = (pid) => pid ? dogAvatar(pid) : null;
   const avatarOfTp = (tpId) => {
@@ -765,9 +768,12 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   };
   const unlockPin = async () => {
     const v = pinInput.trim();
+    setPinMsg("");
     const ok = await checkScorePin(trnData.id, v).catch(() => false);
-    if (ok) { try { localStorage.setItem("pp_scorepin_" + id, v); } catch (e) {} setUnlocked(true); setToast(tr("trn_score_unlocked")); setTimeout(() => setToast(""), 1500); }
-    else { setToast(tr("trn_score_pin_wrong")); setTimeout(() => setToast(""), 1800); }
+    // Успех: карточка сама переключается на «Ввод счёта разблокирован» (setUnlocked).
+    // Ошибку показываем ОТДЕЛЬНОЙ строкой под полем, а не в toast (иначе текст лез в кнопку «Ссылка»).
+    if (ok) { try { localStorage.setItem("pp_scorepin_" + id, v); } catch (e) {} setUnlocked(true); }
+    else { setPinMsg(tr("trn_score_pin_wrong")); setTimeout(() => setPinMsg(""), 2500); }
   };
 
   const roundLabel = isBtb
@@ -813,6 +819,11 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
         <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>
           {trnData.players.length}/{trnData.target_size} {tr("trn_players_label").toLowerCase()} · {trnData.points_per_game} {tr("trn_winner_points")} · {fmt.emoji} {fmt.name} · {statusLabel(trnData.status)}
         </div>
+        {creatorName && (
+          <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 4 }}>
+            {tr("created_by_label")}: <span style={{ color: "var(--ink)", fontWeight: 600 }}>{creatorName}</span>
+          </div>
+        )}
         {(trnData.starts_at || trnData.place) && (
           <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 4, display: "flex", gap: 12, flexWrap: "wrap" }}>
             {trnData.starts_at && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={12} />{(() => { try { return new Date(trnData.starts_at).toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } })()}</span>}
@@ -843,6 +854,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                 <input className="tr-input" inputMode="numeric" value={pinInput} onChange={(e) => setPinInput(e.target.value)} placeholder="PIN" style={{ flex: 1 }} />
                 <button className="tr-btn" style={{ padding: "8px 16px", width: "auto" }} onClick={unlockPin}>{tr("trn_score_unlock")}</button>
               </div>
+              {pinMsg && <div style={{ fontSize: 12, color: "var(--coral)", marginTop: 8 }}>{pinMsg}</div>}
             </>
           )}
         </div>

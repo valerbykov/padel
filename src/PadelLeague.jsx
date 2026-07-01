@@ -3,6 +3,7 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "./lib/supabase";
 import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner } from "./lib/padelApi";
+import { bustCache } from "./lib/cache";
 import { getRatingHistory } from "./lib/statsApi";
 import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
 import { t, nGames } from "./lib/i18n";
@@ -177,7 +178,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
 
         {tab === "welcome" && !session && <WelcomeScreen onLogin={onLogin} onBrowseGames={() => goTab("games")} onBrowseTournaments={() => goTab("tournaments")} onOpenLanding={onOpenLanding} theme={theme} lang={lang} onThemeToggle={onThemeToggle} onLangChange={onLangChange} />}
         {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsNonce={openSelfStatsNonce} analyticsNonce={openAnalyticsNonce} /> : <GateScreen />)}
-        {tab === "games" && <Games key={navNonce} groupId={groupId} players={players} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} canCreate={isAdmin || !!activeLeague?.members_can_create} />}
+        {tab === "games" && <Games key={navNonce} groupId={groupId} players={players} profileId={profileId} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} canCreate={isAdmin || !!activeLeague?.members_can_create} />}
         {tab === "tournaments" && <Tournaments key={navNonce} groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} membersCanCreate={!!activeLeague?.members_can_create} />}
         {tab === "history" && (session ? <HistoryView key={navNonce} groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} archiveNonce={archiveNonce} bumpArchive={bumpArchive} /> : <GateScreen />)}
       </div>
@@ -502,6 +503,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
       isAdmin={isAdmin} onEditProfile={onEditProfile}
       onAddToLeague={isAdmin ? async () => {
         await supabase.from("group_members").insert({ group_id: groupId, profile_id: selected.id, rating: 1000 });
+        bustCache(); // #4: список друзей перестраивается сразу
         reload();
         setSelected(null);
       } : undefined}
@@ -1514,7 +1516,7 @@ function MixGroupCard({ games, color, onOpenGame }) {
   );
 }
 
-function Games({ groupId, players, reloadLeaderboard, session, archiveNonce, bumpArchive, onLogin, canCreate = false }) {
+function Games({ groupId, players, profileId, reloadLeaderboard, session, archiveNonce, bumpArchive, onLogin, canCreate = false }) {
   const [games, setGames] = useState([]);
   const [mode, setMode] = useState("list");
   const [selId, setSelId] = useState(null);
@@ -1527,7 +1529,7 @@ function Games({ groupId, players, reloadLeaderboard, session, archiveNonce, bum
   useEffect(() => { loadGames(); }, [loadGames, archiveNonce]);
 
   if (mode === "create")
-    return <CreateGame groupId={groupId} players={players} back={() => setMode("list")} done={() => { setMode("list"); loadGames(); }} />;
+    return <CreateGame groupId={groupId} players={players} profileId={profileId} back={() => setMode("list")} done={() => { setMode("list"); loadGames(); }} />;
 
   if (mode === "view") {
     const g = games.find((x) => x.id === selId);
@@ -1712,7 +1714,7 @@ function GameSlots({ slots, setSlots, players, chosenIds }) {
   );
 }
 
-function CreateGame({ groupId, players, back, done }) {
+function CreateGame({ groupId, players, profileId, back, done }) {
   const [step, setStep] = useState("info"); // "info" | "players"
   const [title, setTitle] = useState("");
   const [titleEdited, setTitleEdited] = useState(false);
@@ -1737,7 +1739,7 @@ function CreateGame({ groupId, players, back, done }) {
     // ISO с таймзоной — чтобы введённое локальное время совпадало с показанным.
     let startsAtIso = null;
     try { if (date) startsAtIso = new Date(date).toISOString(); } catch (e) { startsAtIso = null; }
-    try { const g = await createGame(groupId, { title: title.trim() || null, startsAt: startsAtIso, place, slots }); notifyGameCreated(g?.id); done(); }
+    try { const g = await createGame(groupId, { title: title.trim() || null, startsAt: startsAtIso, place, slots, hostId: profileId || null }); notifyGameCreated(g?.id); done(); }
     catch (e) { alert(t("err_create_game")); setBusy(false); }
   };
 
@@ -1940,6 +1942,8 @@ function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArc
   const filled = slots.filter((s) => s.profile_id || s.guest_name).length;
   const slotsA = slots.filter((s) => s.team === "A");
   const slotsB = slots.filter((s) => s.team === "B");
+  // #3: кто создал игру (host_id) — резолвим по составу лиги.
+  const creatorName = game.host_id ? ((players || []).find((p) => p.id === game.host_id)?.name || null) : null;
 
   const share = async () => {
     const url = linkFor(game.invite_code);
@@ -2020,6 +2024,11 @@ function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArc
             <div style={{ fontSize: 12, color: "var(--mut)", display: "flex", gap: 10, marginTop: 2, flexWrap: "wrap" }}>
               {game.starts_at && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={12} />{fmtDate(game.starts_at)}</span>}
               {game.place && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><MapPin size={12} />{game.place}</span>}
+            </div>
+          )}
+          {creatorName && (
+            <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 4 }}>
+              {t("created_by_label")}: <span style={{ color: "var(--ink)", fontWeight: 600 }}>{creatorName}</span>
             </div>
           )}
         </div>

@@ -118,6 +118,7 @@ export async function addMember(groupId, name, contacts = {}) {
     p_contacts: Object.keys(clean).length ? clean : null,
   });
   if (error) throw error;
+  bustCache(); // #4: сбросить кэш, чтобы список друзей перестроился сразу, без ручного обновления
   return data;
 }
 
@@ -134,6 +135,7 @@ export async function getLeagueablePlayers(groupId) {
 export async function addExistingMember(groupId, profileId) {
   const { error } = await supabase.rpc("add_existing_member_gated", { p_group_id: groupId, p_profile_id: profileId });
   if (error) throw error;
+  bustCache(); // #4: список друзей перестраивается сразу
 }
 
 /* =====================================================================
@@ -342,6 +344,7 @@ export async function removeMember(groupId, profileId) {
   const { error } = await supabase.from("group_members")
     .delete().eq("group_id", groupId).eq("profile_id", profileId);
   if (error) throw error;
+  bustCache(); // #4: список друзей перестраивается сразу
 }
 
 // Назначить/снять организатора. Только владелец (проверяется в RPC set_member_role).
