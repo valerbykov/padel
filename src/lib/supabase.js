@@ -48,9 +48,10 @@ function applyMode(input) {
 }
 
 const FETCH_TIMEOUT_MS = 12000;
-function timedFetch(input, init = {}) {
+const DIRECT_PROBE_MS = 6000; // на direct ждём недолго — при РФ-троттлинге быстро уходим на прокси
+function timedFetch(input, init = {}, ms = FETCH_TIMEOUT_MS) {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+  const timer = setTimeout(() => ctrl.abort(), ms);
   if (init.signal) {
     if (init.signal.aborted) ctrl.abort();
     else init.signal.addEventListener("abort", () => ctrl.abort(), { once: true });
@@ -59,16 +60,17 @@ function timedFetch(input, init = {}) {
 }
 
 // Таймаут + один повтор на свежем соединении (для идемпотентных GET/HEAD).
-async function resilientCore(input, init = {}) {
+async function resilientCore(input, init = {}, opts = {}) {
+  const ms = opts.ms || FETCH_TIMEOUT_MS;
   const method = (init.method || "GET").toUpperCase();
-  const canRetry = method === "GET" || method === "HEAD";
+  const canRetry = opts.retry !== false && (method === "GET" || method === "HEAD");
   try {
-    return await timedFetch(input, init);
+    return await timedFetch(input, init, ms);
   } catch (e) {
     const transient = e && (e.name === "AbortError" || e instanceof TypeError);
     if (canRetry && transient) {
       await new Promise((r) => setTimeout(r, 300));
-      return await timedFetch(input, init);
+      return await timedFetch(input, init, ms);
     }
     throw e;
   }
@@ -77,8 +79,8 @@ async function resilientCore(input, init = {}) {
 // Дедуп одинаковых параллельных GET/HEAD: один сетевой запрос на всех.
 const _getInflight = new Map();
 const reqUrl = (input) => (typeof input === "string" ? input : (input && input.url) || String(input));
-async function fetchBuffered(input, init) {
-  const resp = await resilientCore(input, init);
+async function fetchBuffered(input, init, opts) {
+  const resp = await resilientCore(input, init, opts);
   const body = await resp.arrayBuffer();
   return { body, status: resp.status, statusText: resp.statusText, headers: resp.headers };
 }
@@ -86,32 +88,37 @@ function bufToResponse(b) {
   const nullBody = b.status === 204 || b.status === 205 || b.status === 304;
   return new Response(nullBody ? null : b.body, { status: b.status, statusText: b.statusText, headers: b.headers });
 }
-function dedupFetch(input, init = {}) {
+function dedupFetch(input, init = {}, opts) {
   const method = (init.method || "GET").toUpperCase();
   if (method === "GET" || method === "HEAD") {
     const key = method + " " + reqUrl(input);
     let p = _getInflight.get(key);
     if (!p) {
-      p = fetchBuffered(input, init).finally(() => _getInflight.delete(key));
+      p = fetchBuffered(input, init, opts).finally(() => _getInflight.delete(key));
       _getInflight.set(key, p);
     }
     return p.then(bufToResponse);
   }
-  return resilientCore(input, init);
+  return resilientCore(input, init, opts);
 }
 
 // Точка входа: маршрутизация + авто-фолбэк на прокси при РФ-троттлинге.
 async function customFetch(input, init = {}) {
-  try {
-    return await dedupFetch(applyMode(input), init);
-  } catch (e) {
-    const transient = e && (e.name === "AbortError" || e instanceof TypeError);
-    if (transient && mode === "direct" && PROXY_HOST) {
-      persistMode("proxy");                              // запоминаем выбор для этого браузера
-      return await dedupFetch(applyMode(input), init);   // повтор уже через прокси
+  // На direct с доступным прокси — короткая проба (без 24-секундного ожидания
+  // resilientCore); при сбое как при РФ-троттлинге сразу и навсегда уходим на прокси.
+  if (mode === "direct" && PROXY_HOST) {
+    try {
+      return await dedupFetch(applyMode(input), init, { ms: DIRECT_PROBE_MS, retry: false });
+    } catch (e) {
+      const transient = e && (e.name === "AbortError" || e instanceof TypeError);
+      if (transient) {
+        persistMode("proxy");
+        return await dedupFetch(applyMode(input), init);
+      }
+      throw e;
     }
-    throw e;
   }
+  return dedupFetch(applyMode(input), init);
 }
 
 export const supabase = createClient(baseUrl, anon, {
@@ -127,3 +134,14 @@ export const supabase = createClient(baseUrl, anon, {
 
 // Текущая «дорога» ("direct" | "proxy") — на случай индикатора/отладки.
 export const supabaseEndpoint = () => mode;
+
+// Принудительно перевести на прокси (напр. когда /geo определил РФ) — раньше, чем
+// медленный фолбэк по таймауту сам это сделает.
+export function preferProxy() {
+  if (PROXY_HOST && mode !== "proxy") persistMode("proxy");
+}
+
+// Вернуть на прямой путь (напр. /geo показал НЕ РФ) — маршрут строго по стране.
+export function preferDirect() {
+  if (mode !== "direct") persistMode("direct");
+}

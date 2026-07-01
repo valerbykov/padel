@@ -4,7 +4,7 @@
 //   1) свой эндпоинт на прокси (VITE_SUPABASE_PROXY_URL + "/geo") — надёжно из РФ, без сторонних API;
 //   2) публичный ipwho.is — запасной;
 //   3) сигнал гео-фолбэка supabase (ушли на прокси = нас троттлят = почти наверняка РФ).
-import { supabaseEndpoint } from "./supabase";
+import { supabaseEndpoint, preferProxy, preferDirect } from "./supabase";
 
 const KEY = "pp_country";
 let cached; // boolean | undefined
@@ -35,6 +35,7 @@ async function fetchCountry(url, pick) {
 function remember(cc) {
   try { localStorage.setItem(KEY, cc); } catch (e) { /* ignore */ }
   cached = cc === "RU";
+  try { cc === "RU" ? preferProxy() : preferDirect(); } catch (e) { /* ignore */ } // маршрут строго по стране
   return cached;
 }
 
