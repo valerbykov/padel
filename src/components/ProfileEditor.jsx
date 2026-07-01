@@ -43,8 +43,11 @@ const css = `
 .pc-camera{position:absolute;right:-3px;bottom:-3px;width:32px;height:32px;border-radius:50%;background:var(--lime);color:var(--lime-fg);border:3px solid var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:filter .12s;}
 .pc-camera:hover{filter:brightness(1.05);}
 .pc-provider{display:inline-flex;align-items:center;gap:7px;padding:3px 11px 3px 4px;border-radius:999px;background:var(--surface2);border:1px solid var(--line);font-size:12px;color:var(--mut);font-weight:600;}
-.pc-presets{display:flex;gap:8px;overflow-x:auto;padding:6px 2px 2px;scrollbar-width:none;}
-.pc-presets::-webkit-scrollbar{display:none;}
+.pc-presets{overflow:hidden;padding:8px 0 2px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);}
+.pc-marquee{display:flex;gap:8px;width:max-content;animation:pc-scroll 26s linear infinite;}
+.pc-marquee:hover{animation-play-state:paused;}
+@keyframes pc-scroll{from{transform:translateX(-50%)}to{transform:translateX(0)}}
+@media (prefers-reduced-motion:reduce){.pc-presets{overflow-x:auto}.pc-marquee{animation:none}}
 .pc-preset{width:44px;height:44px;border-radius:50%;cursor:pointer;flex-shrink:0;background:var(--surface2);transition:transform .12s;}
 .pc-preset:hover{transform:scale(1.08);}
 .pc-input{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Outfit';font-size:16px;padding:11px 12px;outline:none;box-sizing:border-box;transition:border-color .15s,box-shadow .15s;}
@@ -84,7 +87,19 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
       if (!user) { setLoading(false); return; }
       setUserId(user.id);
       setEmail(user.email || "");
-      setProvider(user.user_metadata?.provider || user.app_metadata?.provider || "email");
+      // Способ входа. yandex/telegram (свои edge-функции) кладут provider в user_metadata,
+      // но их identity в Supabase — email (magic-link), поэтому их берём ПЕРВЫМИ. Google —
+      // нативный OAuth: его вернёт user.identities (надёжнее, чем app_metadata.provider,
+      // который у аккаунта с email+Google может остаться "email").
+      const um = user.user_metadata || {}, am = user.app_metadata || {};
+      const idents = Array.isArray(user.identities) ? user.identities.map((i) => i.provider) : [];
+      const KNOWN = ["google", "yandex", "telegram"];
+      setProvider(
+        (KNOWN.includes(um.provider) && um.provider) ||
+        idents.find((p) => KNOWN.includes(p)) ||
+        (Array.isArray(am.providers) && am.providers.find((p) => KNOWN.includes(p))) ||
+        am.provider || um.provider || "email"
+      );
       const { data } = await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle();
       if (data) {
         setFirstName(data.first_name || "");
@@ -175,10 +190,14 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
               {/* Пресеты аватара — горизонтальная лента */}
               <div className="pc-label" style={{ textAlign: "center", marginTop: 12 }}>{t("pc_or_pick")}</div>
               <div className="pc-presets">
-                {PRESETS.map((u) => (
-                  <img key={u} src={u} alt="" loading="lazy" onClick={() => setAvatarUrl(u)} className="pc-preset"
-                    style={{ border: avatarUrl === u ? "2px solid var(--lime)" : "2px solid transparent" }} />
-                ))}
+                {/* Бесконечная лента аватарок: список продублирован, трек едет вправо и
+                    зацикливается бесшовно; на hover пауза, чтобы можно было выбрать. */}
+                <div className="pc-marquee">
+                  {[...PRESETS, ...PRESETS].map((u, i) => (
+                    <img key={i} src={u} alt="" loading="lazy" onClick={() => setAvatarUrl(u)} className="pc-preset"
+                      style={{ border: avatarUrl === u ? "2px solid var(--lime)" : "2px solid transparent" }} />
+                  ))}
+                </div>
               </div>
 
               {/* Поля */}
