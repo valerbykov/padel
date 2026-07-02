@@ -1068,27 +1068,34 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
           <div className="tr-card" style={{ overflow: "hidden" }}>
             <div className="tr-d" style={{ fontSize: 15, marginBottom: 10 }}>{done ? tr("trn_final_table") : tr("trn_table")}</div>
             {trnData.status === "finished" && champ && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 14, background: "color-mix(in srgb, var(--yellow) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--yellow) 35%, transparent)" }}>
-                  <span style={{ fontSize: 26, flexShrink: 0 }}>🥇</span>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 11, color: "var(--mut)", textTransform: "uppercase", letterSpacing: .5, fontWeight: 700 }}>{isKoth ? tr("trn_koth_champion") : tr("trn_winner")}</div>
-                    <div style={{ fontWeight: 800, fontSize: 17, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{champ.name}</div>
-                    {isKoth && <div style={{ fontSize: 10, color: "var(--mut)", marginTop: 1 }}>{(trnData.koth_champion_rule || "court_1") === "points" ? tr("trn_koth_champion_points") : tr("trn_koth_champion_court1")}</div>}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
+                {/* Победитель — золотой баннер с медальоном */}
+                <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", borderRadius: 16, background: "linear-gradient(135deg,#caa02e 0%,#f7e08b 46%,#b8891c 100%)", boxShadow: "0 8px 22px -6px rgba(180,140,20,.55)" }}>
+                  <div style={{ flexShrink: 0, width: 58, height: 58, borderRadius: "50%", background: "radial-gradient(circle at 35% 30%, #fff4c2, #e8b93a 55%, #a9791a)", border: "3px solid #fff2b0", boxShadow: "0 3px 8px rgba(0,0,0,.3), inset 0 1px 3px rgba(255,255,255,.6)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Anton',sans-serif", fontSize: 27, color: "#7a5410" }}>1</div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.5, color: "#7a5410", textTransform: "uppercase" }}>{isKoth ? tr("trn_koth_champion") : tr("trn_winner")}</div>
+                    <div style={{ fontWeight: 800, fontSize: 21, color: "#fff", lineHeight: 1.12, textShadow: "0 1px 3px rgba(120,80,0,.45)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{champ.name}</div>
+                    {isKoth && <div style={{ fontSize: 10, color: "#7a5410", marginTop: 1, fontWeight: 600 }}>{(trnData.koth_champion_rule || "court_1") === "points" ? tr("trn_koth_champion_points") : tr("trn_koth_champion_court1")}</div>}
                   </div>
-                  <div style={{ marginLeft: "auto", textAlign: "right", flexShrink: 0 }}>
-                    <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 22, color: "var(--yellow)", lineHeight: 1 }}>{champ.points}<span style={{ fontSize: 11, color: "var(--mut)", fontFamily: "'Outfit',sans-serif", fontWeight: 600 }}> {tr("trn_winner_points")}</span></div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: champ.delta > 0 ? "var(--lime)" : champ.delta < 0 ? "var(--coral)" : "var(--mut)", marginTop: 3, fontFamily: "'Outfit',sans-serif" }}>{champ.delta > 0 ? "+" : ""}{champ.delta} <span style={{ fontSize: 10, color: "var(--mut)", fontWeight: 600 }}>{tr("trn_diff")}</span></div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 25, color: "#fff", lineHeight: 1, textShadow: "0 1px 2px rgba(120,80,0,.4)" }}>{champ.points}<span style={{ fontSize: 12, color: "#7a5410", fontFamily: "'Outfit',sans-serif", fontWeight: 700 }}> {tr("trn_winner_points")}</span></div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: "#fff", marginTop: 3 }}>{champ.delta > 0 ? "+" : ""}{champ.delta} <span style={{ fontSize: 10, color: "#7a5410", fontWeight: 700 }}>{tr("trn_diff")}</span></div>
                   </div>
                 </div>
+                {/* Серебро + бронза */}
                 {!isKoth && (table[1] || table[2]) && (
-                  <div style={{ display: "flex", gap: 8 }}>
-                    {[1, 2].filter((i) => table[i]).map((i) => (
-                      <div key={i} style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 12, background: "var(--surface2)", border: "1px solid var(--line)", minWidth: 0 }}>
-                        <span style={{ fontSize: 16, flexShrink: 0 }}>{["", "🥈", "🥉"][i]}</span>
-                        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{table[i].name}</span>
-                      </div>
-                    ))}
+                  <div style={{ display: "flex", gap: 10 }}>
+                    {[1, 2].filter((i) => table[i]).map((i) => {
+                      const meta = i === 1
+                        ? { grad: "linear-gradient(135deg,#8f989e,#e6ebee 50%,#aab2b8)", ink: "#3a4247", rank: 2 }
+                        : { grad: "linear-gradient(135deg,#9c5f2c,#d9a06a 50%,#8a4f22)", ink: "#40260f", rank: 3 };
+                      return (
+                        <div key={i} style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", borderRadius: 13, background: meta.grad, boxShadow: "0 4px 12px -4px rgba(0,0,0,.4)", minWidth: 0 }}>
+                          <span style={{ flexShrink: 0, width: 26, height: 26, borderRadius: "50%", background: "rgba(255,255,255,.35)", border: "1.5px solid rgba(255,255,255,.65)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Anton',sans-serif", fontSize: 15, color: meta.ink }}>{meta.rank}</span>
+                          <span style={{ flex: 1, fontSize: 14, fontWeight: 800, color: meta.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{table[i].name}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

@@ -14,7 +14,7 @@ export default function StandingsTable({ rows, highlightId, avatarOf }) {
     <div style={{ fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", color: "var(--ink)", minWidth: 0, overflow: "hidden" }}>
       <div style={{ display: "grid", gridTemplateColumns: grid, gap: 6, padding: "0 4px 8px", fontSize: 10, color: "var(--mut)", borderBottom: "1px solid var(--line)" }}>
         <span>{t("st_player")}</span>
-        <span style={{ textAlign: "center" }}>+/-</span>
+        <span style={{ textAlign: "center" }}>{t("st_record")}</span>
         <span style={{ textAlign: "center" }}>{t("st_points")}</span>
         <span style={{ textAlign: "center" }}>{t("st_diff")}</span>
       </div>
@@ -27,30 +27,25 @@ export default function StandingsTable({ rows, highlightId, avatarOf }) {
         return (
           <div key={p.id} style={{
             display: "grid", gridTemplateColumns: grid, gap: 6, alignItems: "center",
-            padding: "8px 4px", borderBottom: "1px solid var(--line)",
-            background: hl ? "rgba(95,160,255,.14)" : "transparent",
+            padding: "6px 8px",
+            borderBottom: hl ? "none" : "1px solid var(--line)",
+            border: hl ? "1px solid color-mix(in srgb, var(--lime) 55%, transparent)" : undefined,
+            background: hl ? "color-mix(in srgb, var(--lime) 12%, transparent)" : "transparent",
             borderRadius: hl ? 10 : 0,
           }}>
-            {/* Колонка: номер + аватар + имя под ней */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, overflow: "hidden" }}>
-              <span style={{ fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", fontWeight: 800, width: 16, flexShrink: 0, color: medal || "var(--mut)", fontSize: 13, lineHeight: 1 }}>
+            {/* Номер + аватар + имя в строку (компактно) */}
+            <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0, overflow: "hidden" }}>
+              <span style={{ fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", fontWeight: 800, width: 16, flexShrink: 0, color: medal || "var(--mut)", fontSize: 13, lineHeight: 1, textAlign: "center" }}>
                 {i + 1}
               </span>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, minWidth: 0, flex: 1 }}>
-                <Avatar name={p.name} url={av.url} id={p.id} size={32} />
-                <span style={{
-                  fontSize: 10, lineHeight: 1.2, textAlign: "center",
-                  wordBreak: "break-word", hyphens: "auto",
-                  fontWeight: hl ? 700 : 500, color: "var(--ink)",
-                  maxWidth: "100%",
-                }}>
-                  {p.name}
-                </span>
-              </div>
+              <Avatar name={p.name} url={av.url} id={p.id} size={26} />
+              <span style={{ fontSize: 13, fontWeight: hl ? 700 : 500, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
+                {p.name}
+              </span>
             </div>
 
             {/* В/Н/П */}
-            <div style={{ textAlign: "center", fontSize: 11, fontVariantNumeric: "tabular-nums", lineHeight: 1.5 }}>
+            <div style={{ textAlign: "center", fontSize: 13, fontVariantNumeric: "tabular-nums", lineHeight: 1.5 }}>
               <span style={{ color: "#3ddc84" }}>{p.wins}</span>
               
               <span style={{ color: "var(--mut)" }}>-{p.draws}-</span>
