@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "631315229236",
+    "project_id": "padelpack-617d2",
+    "storage_bucket": "padelpack-617d2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:631315229236:android:6946e661c38e8158bef861",
+        "android_client_info": {
+          "package_name": "app.padelpack"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB5gZyCt1sTO1fm4kS5nWzxM_Bo7-s8auA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -6,9 +6,10 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
-import { Camera, Check, Loader, LogOut, BarChart3, Sun, Moon, X } from "lucide-react";
+import { Camera, Check, Loader, LogOut, BarChart3, Sun, Moon, X, Bell } from "lucide-react";
 import Avatar from "./Avatar";
 import { t, setLang } from "../lib/i18n";
+import { getNotifPrefs, saveNotifPrefs, registerPush, OFFSET_OPTIONS } from "../lib/notifications";
 
 // Иконка Telegram (фирменный самолётик) — вместо эмодзи-«самолёта» ✈️.
 const TgPlane = ({ size = 14 }) => (
@@ -80,6 +81,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
   const [whatsapp, setWhatsapp] = useState("");
   const [telegram, setTelegram] = useState("");
   const [provider, setProvider] = useState(null);
+  const [notif, setNotif] = useState({ enabled: false, offsets: [] });
 
   useEffect(() => {
     (async () => {
@@ -109,6 +111,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
         setWhatsapp(data.contacts?.whatsapp || "");
         setTelegram(data.contacts?.telegram || "");
       }
+      try { const np = await getNotifPrefs(); setNotif(np); } catch (e) { /* ignore */ }
       setLoading(false);
     })();
   }, []);
@@ -128,6 +131,20 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
       setAvatarUrl(data.publicUrl);
     } catch (err) { setMsg({ ok: false, text: `${t("pc_upload_fail")}: ${err.message}` }); }
     finally { setUploading(false); }
+  };
+
+  const setNotifState = async (next) => {
+    setNotif(next);
+    try { await saveNotifPrefs(next); if (next.enabled) await registerPush(); } catch (e) { /* ignore */ }
+  };
+  const toggleNotif = (on) => {
+    const offsets = on && notif.offsets.length === 0 ? [1440, 120] : notif.offsets;
+    setNotifState({ enabled: on, offsets });
+  };
+  const toggleOffset = (min) => {
+    const has = notif.offsets.includes(min);
+    const offsets = has ? notif.offsets.filter((x) => x !== min) : [...notif.offsets, min];
+    setNotifState({ ...notif, offsets });
   };
 
   const save = async () => {
@@ -241,6 +258,42 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
                 <button className="pc-close" onClick={onThemeToggle} aria-label={t("aria_theme")}>
                   {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
                 </button>
+              </div>
+
+              {/* Напоминания о сборе (личные офсеты; сервер шлёт push по ним) */}
+              <div style={{ marginTop: 12, padding: 12, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                    <Bell size={16} style={{ color: "var(--lime)", flexShrink: 0 }} />
+                    <span className="pc-label" style={{ margin: 0 }}>{t("notif_title")}</span>
+                  </div>
+                  <button role="switch" aria-checked={notif.enabled} onClick={() => toggleNotif(!notif.enabled)}
+                    style={{ width: 44, height: 26, borderRadius: 13, border: "none", cursor: "pointer", flexShrink: 0,
+                      background: notif.enabled ? "var(--lime)" : "var(--surface2)", position: "relative", transition: "background .15s" }}>
+                    <span style={{ position: "absolute", top: 3, left: notif.enabled ? 21 : 3, width: 20, height: 20,
+                      borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
+                  </button>
+                </div>
+                {notif.enabled && (
+                  <>
+                    <div className="pc-label" style={{ marginTop: 10, marginBottom: 6, color: "var(--mut)" }}>{t("notif_desc")}</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {OFFSET_OPTIONS.map((o) => {
+                        const on = notif.offsets.includes(o.min);
+                        return (
+                          <button key={o.min} onClick={() => toggleOffset(o.min)}
+                            style={{ padding: "7px 12px", borderRadius: 10, cursor: "pointer", fontFamily: "'Outfit',sans-serif",
+                              fontSize: 13, fontWeight: 700,
+                              background: on ? "color-mix(in srgb, var(--lime) 16%, transparent)" : "var(--surface2)",
+                              color: on ? "var(--lime)" : "var(--ink)",
+                              border: "1px solid " + (on ? "color-mix(in srgb, var(--lime) 45%, transparent)" : "var(--line)") }}>
+                            {t(o.key)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
 
               <button className="pc-ghost" style={{ width: "100%", padding: 12, marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--coral)", borderColor: "color-mix(in srgb, var(--coral) 30%, transparent)" }} onClick={signOut}>

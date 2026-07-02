@@ -12,6 +12,7 @@ import { LogIn, Sun, Moon } from "lucide-react";
 import { getMyLeagues } from "./lib/padelApi";
 import { t, setLang, applyLang, LANGS, LANG_LABELS, currentLang } from "./lib/i18n";
 import { detectCountry, langFromCountry } from "./lib/region";
+import { getNotifPrefs, registerPush } from "./lib/notifications";
 
 // Быстрый синхронный guess языка для самого первого рендера (до ответа гео):
 // кэш страны → язык браузера → ru (историчный дефолт, основной рынок). Не сохраняется —
@@ -202,6 +203,18 @@ export default function App({ initialShowLogin = false }) {
     })();
     return () => { active = false; };
   }, [session, pNonce]);
+
+  // Push-напоминания: при наличии сессии в нативке регистрируем/обновляем FCM-токен,
+  // если у пользователя включены уведомления. Веб/PWA — эффект тихо ничего не делает.
+  useEffect(() => {
+    if (!session || !window.Capacitor?.isNativePlatform?.()) return;
+    let alive = true;
+    (async () => {
+      try { const { enabled } = await getNotifPrefs(); if (alive && enabled) await registerPush(); }
+      catch (e) { /* ignore */ }
+    })();
+    return () => { alive = false; };
+  }, [session]);
 
   // Отметка ПОСЛЕДНЕГО ЗАХОДА в приложение (не логина) — один раз за сессию,
   // отдельным изолированным эффектом. ВАЖНО: НЕ внутри профильного эффекта и
