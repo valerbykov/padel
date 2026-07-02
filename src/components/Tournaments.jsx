@@ -148,7 +148,7 @@ export function TournamentCard({ trn, color, onClick, onCopy, flush }) {
   const dateStr = whenIso ? (() => { try { return new Date(whenIso).toLocaleString(undefined, trn.starts_at ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" } : { day: "numeric", month: "short" }); } catch (e) { return null; } })() : null;
   return (
     <div className="tr-card" style={{ marginBottom: flush ? 0 : 8, display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={onClick}>
-      <Trophy size={20} color={color} />
+      <Trophy size={24} color={color} style={{ flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{trn.name || fmt.name}</div>
         <div style={{ fontSize: 12, color: "var(--mut)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(trn.players || []).length}/{trn.target_size} {tr("trn_players_label").toLowerCase()} · {trn.points_per_game} {tr("trn_winner_points")} · {fmt.emoji} {fmt.name}</div>
@@ -159,7 +159,7 @@ export function TournamentCard({ trn, color, onClick, onCopy, flush }) {
           </div>
         )}
       </div>
-      <span className="tr-badge" style={{ background: "rgba(255,255,255,.06)", color, flexShrink: 0 }}>{statusLabel(trn.status)}</span>
+      <span className="tr-badge" style={{ background: "rgba(255,255,255,.06)", color: trn.status === "finished" ? "var(--mut)" : color, flexShrink: 0 }}>{statusLabel(trn.status)}</span>
       {onCopy && (
         <button onClick={(e) => { e.stopPropagation(); onCopy(); }} title={tr("trn_copy")}
           style={{ flexShrink: 0, padding: "7px 9px", borderRadius: 10, border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--mut)", cursor: "pointer", display: "flex", alignItems: "center" }}>
