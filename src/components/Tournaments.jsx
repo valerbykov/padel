@@ -3,6 +3,7 @@
 // Создание (2 шага: FormatPicker → конфиг), лобби, раунды, итоги.
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabase";
+import { createPortal } from "react-dom";
 import {
   createTournament, listTournaments, getTournament, addTournamentPlayer, removeTournamentPlayer,
   startTournament, submitMatchScore, finishTournament, tournamentLink, deleteTournament, listMyTournaments, copyTournament,
@@ -13,6 +14,39 @@ import { dogAvatar } from "../lib/avatar";
 import Fab from "./Fab";
 import { getAllKotHTeams } from "../lib/mexicano";
 import CourtView from "./CourtView";
+
+// Конфетти/хлопушки: лёгкий самодостаточный эффект (без внешних либ). burst — нонс:
+// меняется → залп. Портал в body, position:fixed, авто-очистка.
+function Confetti({ burst }) {
+  const [pieces, setPieces] = useState([]);
+  useEffect(() => {
+    if (!burst) return;
+    const colors = ["#c8ff2d", "#ffd23f", "#e5556a", "#3ddc84", "#5aa0ff", "#ff9f43", "#ffffff"];
+    const arr = Array.from({ length: 80 }, (_, i) => ({
+      id: burst + "-" + i,
+      left: Math.random() * 100,
+      bg: colors[i % colors.length],
+      delay: Math.random() * 0.35,
+      dur: 1.8 + Math.random() * 1.6,
+      size: 6 + Math.random() * 7,
+      dx: Math.round((Math.random() * 2 - 1) * 130),
+    }));
+    setPieces(arr);
+    const t = setTimeout(() => setPieces([]), 3600);
+    return () => clearTimeout(t);
+  }, [burst]);
+  if (!pieces.length) return null;
+  return createPortal(
+    <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 9999, overflow: "hidden" }}>
+      <style>{`@keyframes ppConfetti{0%{transform:translate(0,-12vh) rotate(0);opacity:1}100%{transform:translate(var(--dx),112vh) rotate(720deg);opacity:.85}}`}</style>
+      {pieces.map((p) => (
+        <span key={p.id} style={{ position: "absolute", top: 0, left: p.left + "%", width: p.size, height: p.size * 0.6, background: p.bg, borderRadius: 2, "--dx": p.dx + "px", animation: `ppConfetti ${p.dur}s linear ${p.delay}s forwards` }} />
+      ))}
+    </div>,
+    document.body
+  );
+}
+
 import StandingsTable from "./StandingsTable";
 import EmptyState from "./EmptyState";
 import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Share2, Trash2, Plus, Check, Calendar, MapPin } from "lucide-react";
@@ -630,6 +664,11 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   const initRef = useRef(false);
   const roundRef = useRef(false);
   const startingRef = useRef(false);
+  const [burst, setBurst] = useState(0);
+  const firedRef = useRef(false);
+  useEffect(() => {
+    if (trnData && trnData.status === "finished" && !firedRef.current) { firedRef.current = true; setBurst((b) => b + 1); }
+  }, [trnData && trnData.status]);
 
   const load = useCallback(async () => {
     try {
@@ -881,7 +920,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
         <>
           <div className="tr-card" style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{tr("trn_participants")} {trnData.players.length}/{trnData.target_size}</div>
-            <StandingsTable rows={detailedStandings(trnData.players.map((p) => ({ id: p.id, name: p.name })), [])} avatarOf={(row) => ({ url: avatarOfTp(row.id) })} />
+            <StandingsTable rows={detailedStandings(trnData.players.map((p) => ({ id: p.id, name: p.name })), [])} highlightId={(trnData.players || []).find((p) => p.profile_id === currentProfileId)?.id} avatarOf={(row) => ({ url: avatarOfTp(row.id) })} />
             {!readOnly && trnData.players.map((p) => (
               <div key={p.id} style={{ marginTop: 6 }}>
                 <SwipeRow onDelete={async () => { await removeTournamentPlayer(p.id); load(); }}>
@@ -1070,7 +1109,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
             {trnData.status === "finished" && champ && (
               <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
                 {/* Победитель — золотой баннер с медальоном */}
-                <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", borderRadius: 16, background: "linear-gradient(135deg,#caa02e 0%,#f7e08b 46%,#b8891c 100%)", boxShadow: "0 8px 22px -6px rgba(180,140,20,.55)" }}>
+                <div onClick={() => setBurst((b) => b + 1)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", borderRadius: 16, cursor: "pointer", background: "linear-gradient(135deg,#caa02e 0%,#f7e08b 46%,#b8891c 100%)", boxShadow: "0 8px 22px -6px rgba(180,140,20,.55)" }}>
                   <div style={{ flexShrink: 0, width: 58, height: 58, borderRadius: "50%", background: "radial-gradient(circle at 35% 30%, #fff4c2, #e8b93a 55%, #a9791a)", border: "3px solid #fff2b0", boxShadow: "0 3px 8px rgba(0,0,0,.3), inset 0 1px 3px rgba(255,255,255,.6)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Anton',sans-serif", fontSize: 27, color: "#7a5410" }}>1</div>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.5, color: "#7a5410", textTransform: "uppercase" }}>{isKoth ? tr("trn_koth_champion") : tr("trn_winner")}</div>
@@ -1100,7 +1139,8 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                 )}
               </div>
             )}
-            <StandingsTable rows={table} avatarOf={(row) => ({ url: avatarOfTp(row.id) })} />
+            {trnData.status === "finished" && <Confetti burst={burst} />}
+            <StandingsTable rows={table} highlightId={(trnData.players || []).find((p) => p.profile_id === currentProfileId)?.id} avatarOf={(row) => ({ url: avatarOfTp(row.id) })} />
           </div>
         </>
       )}
