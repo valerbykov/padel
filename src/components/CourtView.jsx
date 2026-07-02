@@ -208,8 +208,9 @@ export default function CourtView({
         @keyframes cvArrow{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}
       `}</style>
       {/* Корт */}
-      <div style={{ position: "relative", width: "100%", borderRadius: 14, overflow: "hidden", minHeight: (pickFor && useKeypad) ? 408 : undefined }}>
+      <div style={{ position: "relative", width: "100%", overflow: "visible", minHeight: (pickFor && useKeypad) ? 408 : undefined }}>
         <div style={{ padding: "0 12%" }}>
+        <div style={{ borderRadius: 14, overflow: "hidden" }}>
         <svg className="cv-court" viewBox="0 0 320 180" preserveAspectRatio="none" aria-label={t("court_label")} style={{ aspectRatio: "16 / 9", height: "auto" }}>
           <rect x="0" y="0" width="320" height="180" style={{ fill: "var(--court)" }} />
           <g style={{ fill: "none", stroke: "var(--court-line)" }} strokeWidth="2.4">
@@ -221,6 +222,7 @@ export default function CourtView({
           <rect x="155" y="7" width="10" height="166" style={{ fill: "var(--court-net)" }} />
           <line x1="160" y1="7" x2="160" y2="173" style={{ stroke: "var(--court-line)" }} strokeWidth="1.4" />
         </svg>
+        </div>
         </div>
         {editable && mode !== "sets" && !savedAlready && !pickFor && (
           <>
@@ -250,10 +252,10 @@ export default function CourtView({
           )
         )}
 
-        <Chip name={teamA[0]} avatarUrl={teamAvatarsA[0]} id={teamIdsA[0]} onTap={onOpenPlayer} noTap={scoringActive} x={8} y={20} team="A" />
-        <Chip name={teamA[1]} avatarUrl={teamAvatarsA[1]} id={teamIdsA[1]} onTap={onOpenPlayer} noTap={scoringActive} x={8} y={80} team="A" />
-        <Chip name={teamB[0]} avatarUrl={teamAvatarsB[0]} id={teamIdsB[0]} onTap={onOpenPlayer} noTap={scoringActive} x={92} y={20} team="B" />
-        <Chip name={teamB[1]} avatarUrl={teamAvatarsB[1]} id={teamIdsB[1]} onTap={onOpenPlayer} noTap={scoringActive} x={92} y={80} team="B" />
+        <Chip name={teamA[0]} avatarUrl={teamAvatarsA[0]} id={teamIdsA[0]} onTap={onOpenPlayer} noTap={scoringActive} x={10} y={21} team="A" />
+        <Chip name={teamA[1]} avatarUrl={teamAvatarsA[1]} id={teamIdsA[1]} onTap={onOpenPlayer} noTap={scoringActive} x={10} y={79} team="A" />
+        <Chip name={teamB[0]} avatarUrl={teamAvatarsB[0]} id={teamIdsB[0]} onTap={onOpenPlayer} noTap={scoringActive} x={90} y={21} team="B" />
+        <Chip name={teamB[1]} avatarUrl={teamAvatarsB[1]} id={teamIdsB[1]} onTap={onOpenPlayer} noTap={scoringActive} x={90} y={79} team="B" />
 
         <div style={{
           position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)",

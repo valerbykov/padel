@@ -7,12 +7,12 @@ import Avatar from "./Avatar";
 import { t } from "../lib/i18n";
 
 export default function StandingsTable({ rows, highlightId, avatarOf }) {
-  const grid = "1fr 64px 80px 46px";
+  const grid = "1fr 50px 66px 40px";
   const deltaColor = (d) => (d > 0 ? "#3ddc84" : d < 0 ? "var(--coral)" : "var(--mut)");
 
   return (
     <div style={{ fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", color: "var(--ink)", minWidth: 0, overflow: "hidden" }}>
-      <div style={{ display: "grid", gridTemplateColumns: grid, gap: 6, padding: "0 4px 8px", fontSize: 10, color: "var(--mut)", borderBottom: "1px solid var(--line)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: grid, gap: 5, padding: "0 4px 8px", fontSize: 10, color: "var(--mut)", borderBottom: "1px solid var(--line)" }}>
         <span>{t("st_player")}</span>
         <span style={{ textAlign: "center" }}>{t("st_record")}</span>
         <span style={{ textAlign: "center" }}>{t("st_points")}</span>
@@ -26,7 +26,7 @@ export default function StandingsTable({ rows, highlightId, avatarOf }) {
 
         return (
           <div key={p.id} style={{
-            display: "grid", gridTemplateColumns: grid, gap: 6, alignItems: "center",
+            display: "grid", gridTemplateColumns: grid, gap: 5, alignItems: "center",
             padding: "6px 8px",
             borderBottom: hl ? "none" : "1px solid var(--line)",
             border: hl ? "1px solid color-mix(in srgb, var(--lime) 55%, transparent)" : undefined,
@@ -34,11 +34,11 @@ export default function StandingsTable({ rows, highlightId, avatarOf }) {
             borderRadius: hl ? 10 : 0,
           }}>
             {/* Номер + аватар + имя в строку (компактно) */}
-            <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0, overflow: "hidden" }}>
-              <span style={{ fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", fontWeight: 800, width: 16, flexShrink: 0, color: medal || "var(--mut)", fontSize: 13, lineHeight: 1, textAlign: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, overflow: "hidden" }}>
+              <span style={{ fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", fontWeight: 800, width: 14, flexShrink: 0, color: medal || "var(--mut)", fontSize: 13, lineHeight: 1, textAlign: "center" }}>
                 {i + 1}
               </span>
-              <Avatar name={p.name} url={av.url} id={p.id} size={26} />
+              <Avatar name={p.name} url={av.url} id={p.id} size={24} />
               <span style={{ fontSize: 13, fontWeight: hl ? 700 : 500, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
                 {p.name}
               </span>
