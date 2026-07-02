@@ -1587,15 +1587,16 @@ function SlotPicker({ value, players, taken, onChange, teamLabel }) {
     );
   }
   const matches = q.trim()
-    ? players.filter((p) => p.name.toLowerCase().includes(q.trim().toLowerCase()) && !taken.includes(p.id)).slice(0, 5)
+    ? players.filter((p) => p.name.toLowerCase().includes(q.trim().toLowerCase()) && !taken.includes(p.id)).slice(0, 6)
     : [];
+  const suggestions = (players || []).filter((p) => !taken.includes(p.id)).slice(0, 12);
   return (
     <div style={{ marginBottom: 8 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span className="pl-display" style={{ width: 24, fontSize: 12, color }}>{teamLabel}</span>
         <input className="pl-input" style={{ padding: "9px 10px" }} placeholder={t("slot_search_placeholder")} value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
-      {q.trim() && (
+      {q.trim() ? (
         <div style={{ marginTop: 6, marginLeft: 32, display: "flex", flexDirection: "column", gap: 4 }}>
           {matches.map((p) => (
             <button key={p.id} className="pl-ghost" style={{ padding: "8px 10px", textAlign: "left" }} onClick={() => { onChange({ profileId: p.id, label: p.name }); setQ(""); }}>{p.name}</button>
@@ -1603,6 +1604,19 @@ function SlotPicker({ value, players, taken, onChange, teamLabel }) {
           <button className="pl-btn" style={{ padding: "8px 10px", textAlign: "left" }} onClick={() => { onChange({ guestName: q.trim(), label: q.trim() + " " + t("guest_label") }); setQ(""); }}>{t("add_guest_prefix")}{q.trim()}</button>
           <div style={{ fontSize: 11, color: "var(--mut)", lineHeight: 1.4, padding: "2px 2px" }}>{t("add_guest_league_hint")}</div>
         </div>
+      ) : (
+        suggestions.length > 0 && (
+          <div style={{ marginTop: 6, marginLeft: 32 }}>
+            <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none", WebkitOverflowScrolling: "touch", WebkitMaskImage: "linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)", maskImage: "linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)" }}>
+              {suggestions.map((p) => (
+                <button key={p.id} className="pl-ghost" onClick={() => onChange({ profileId: p.id, label: p.name })}
+                  style={{ flexShrink: 0, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 7, padding: "6px 12px 6px 6px", borderRadius: 999, fontSize: 13 }}>
+                  <Avatar name={p.name} id={p.id} size={22} /> {p.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )
       )}
     </div>
   );

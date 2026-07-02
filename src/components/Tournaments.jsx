@@ -48,6 +48,7 @@ function Confetti({ burst }) {
 }
 
 import StandingsTable from "./StandingsTable";
+import Avatar from "./Avatar";
 import EmptyState from "./EmptyState";
 import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Share2, Trash2, Plus, Check, Calendar, MapPin } from "lucide-react";
 import { t as tr } from "../lib/i18n";
@@ -618,9 +619,11 @@ function AddPlayer({ players, existing, onAdd, disabled }) {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const existingIds = (existing || []).filter((p) => p.profile_id).map((p) => p.profile_id);
+  const available = (players || []).filter((p) => !existingIds.includes(p.id));
   const matches = q.trim()
-    ? players.filter((p) => p.name.toLowerCase().includes(q.trim().toLowerCase()) && !existingIds.includes(p.id)).slice(0, 5)
+    ? available.filter((p) => p.name.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 6)
     : [];
+  const suggestions = available.slice(0, 10);
   const addingRef = useRef(false);
   const add = async (entry) => {
     if (addingRef.current) return;   // защита от двойного тапа → дубль игрока
@@ -633,7 +636,7 @@ function AddPlayer({ players, existing, onAdd, disabled }) {
   return (
     <div style={{ marginTop: 10 }}>
       <input className="tr-input" placeholder={tr("trn_search_placeholder")} value={q} onChange={(e) => setQ(e.target.value)} />
-      {q.trim() && (
+      {q.trim() ? (
         <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 4 }}>
           {matches.map((p) => (
             <button key={p.id} className="tr-ghost" disabled={busy} style={{ padding: "8px 10px", textAlign: "left" }}
@@ -643,6 +646,20 @@ function AddPlayer({ players, existing, onAdd, disabled }) {
             onClick={() => add({ name: q.trim() })}>{tr("trn_guest_add")}{q.trim()}</button>
           <div style={{ fontSize: 11, color: "var(--mut)", lineHeight: 1.4, padding: "2px 2px" }}>{tr("add_guest_league_hint")}</div>
         </div>
+      ) : (
+        suggestions.length > 0 && (
+          <div style={{ marginTop: 8 }}>
+            <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 6 }}>{tr("trn_friends_hint")}</div>
+            <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none", WebkitOverflowScrolling: "touch", WebkitMaskImage: "linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)", maskImage: "linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)" }}>
+              {suggestions.map((p) => (
+                <button key={p.id} className="tr-ghost" disabled={busy} onClick={() => add({ profileId: p.id, name: p.name })}
+                  style={{ flexShrink: 0, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 7, padding: "6px 12px 6px 6px", borderRadius: 999, fontSize: 13 }}>
+                  <Avatar name={p.name} url={undefined} id={p.id} size={22} /> {p.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )
       )}
     </div>
   );
@@ -920,16 +937,16 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
         <>
           <div className="tr-card" style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{tr("trn_participants")} {trnData.players.length}/{trnData.target_size}</div>
-            <StandingsTable rows={detailedStandings(trnData.players.map((p) => ({ id: p.id, name: p.name })), [])} highlightId={(trnData.players || []).find((p) => p.profile_id === currentProfileId)?.id} avatarOf={(row) => ({ url: avatarOfTp(row.id) })} />
-            {!readOnly && trnData.players.map((p) => (
-              <div key={p.id} style={{ marginTop: 6 }}>
-                <SwipeRow onDelete={async () => { await removeTournamentPlayer(p.id); load(); }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 4px" }}>
-                    <span style={{ flex: 1, fontSize: 13 }}>{p.name}</span>
-                    <button style={{ padding: 4, border: "none", background: "none", color: "var(--mut)", cursor: "pointer" }}
-                      onClick={async () => { await removeTournamentPlayer(p.id); load(); }}><X size={14} /></button>
-                  </div>
-                </SwipeRow>
+            {trnData.players.map((p) => (
+              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 4px", borderBottom: "1px solid var(--line)" }}>
+                <Avatar name={p.name} url={avatarOfTp(p.id)} id={p.id} size={34} />
+                <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: p.profile_id === currentProfileId ? "var(--lime)" : "var(--ink)" }}>{p.name}</span>
+                {!readOnly && (
+                  <button aria-label={tr("delete_btn")} onClick={async () => { try { await removeTournamentPlayer(p.id); } catch (e) {} load(); }}
+                    style={{ flexShrink: 0, width: 28, height: 28, borderRadius: "50%", border: "none", background: "color-mix(in srgb, var(--coral) 16%, transparent)", color: "var(--coral)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <X size={15} />
+                  </button>
+                )}
               </div>
             ))}
             {!readOnly && (
