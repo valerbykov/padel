@@ -587,7 +587,13 @@ function AddPlayer({ players, existing, onAdd, disabled }) {
   const matches = q.trim()
     ? players.filter((p) => p.name.toLowerCase().includes(q.trim().toLowerCase()) && !existingIds.includes(p.id)).slice(0, 5)
     : [];
-  const add = async (entry) => { setBusy(true); try { await onAdd(entry); setQ(""); } finally { setBusy(false); } };
+  const addingRef = useRef(false);
+  const add = async (entry) => {
+    if (addingRef.current) return;   // защита от двойного тапа → дубль игрока
+    addingRef.current = true;
+    setBusy(true);
+    try { await onAdd(entry); setQ(""); } finally { setBusy(false); addingRef.current = false; }
+  };
 
   if (disabled) return <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 10 }}>{tr("trn_max_players")}</div>;
   return (
@@ -730,25 +736,29 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     ? (trnData.players.length % 2 !== 0 ? tr("trn_need_even") : null)
     : (trnData.players.length % 4 !== 0 ? tr("trn_need_mult4") : null);
 
+  const roundRef = useRef(false);
   const addMexicanoRound = async () => {
+    if (roundRef.current) return; roundRef.current = true;
     setAddingRound(true);
     try { await generateMexicanoRound(trnData.id, trnData.players, trnData.matches); await load(); setCur(N + 1); }
     catch (e) { alert(e.message || tr("err_create_round")); }
-    finally { setAddingRound(false); }
+    finally { setAddingRound(false); roundRef.current = false; }
   };
 
   const addKotHMatch = async () => {
+    if (roundRef.current) return; roundRef.current = true;
     setAddingRound(true);
     try { await generateKotHRound(trnData.id, trnData.matches); await load(); setCur(N + 1); }
     catch (e) { alert(e.message || tr("err_create_match")); }
-    finally { setAddingRound(false); }
+    finally { setAddingRound(false); roundRef.current = false; }
   };
 
   const addKotHLadderRound = async () => {
+    if (roundRef.current) return; roundRef.current = true;
     setAddingRound(true);
     try { await generateKotHLadderRound(trnData.id, trnData.matches); await load(); setCur(N + 1); }
     catch (e) { alert(e.message || tr("err_create_round")); }
-    finally { setAddingRound(false); }
+    finally { setAddingRound(false); roundRef.current = false; }
   };
 
   const share = async () => {
@@ -757,7 +767,14 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     try { if (navigator.share) { await navigator.share({ title: tr("tab_tournaments"), text, url }); return; } } catch (e) {}
     try { await navigator.clipboard.writeText(text); setToast(tr("copied")); setTimeout(() => setToast(""), 1500); } catch (e) {}
   };
-  const start = async () => { try { await startTournament(trnData.id, trnData.players, trnData.format); load(); } catch (e) { alert(e.message || tr("err_start_tour")); } };
+  const startingRef = useRef(false);
+  const start = async () => {
+    if (startingRef.current) return;
+    startingRef.current = true;
+    try { await startTournament(trnData.id, trnData.players, trnData.format); await load(); }
+    catch (e) { alert(e.message || tr("err_start_tour")); }
+    finally { startingRef.current = false; }
+  };
   const saveScore = async (matchId, a, b) => {
     let pin = null; try { pin = localStorage.getItem("pp_scorepin_" + id); } catch (e) {}
     await submitMatchScore(matchId, a, b, pin || ""); await load();

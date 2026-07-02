@@ -131,6 +131,15 @@ export async function startTournament(tournamentId, players, format = "americano
       throw new Error("Нужно число игроков, кратное 4 (минимум 4)");
   }
 
+  // Защита от двойного старта: атомарно переводим open→active. Если турнир уже
+  // не "open" (двойной тап / повторный вызов уже стартовал) — выходим, не плодя
+  // дублирующее расписание (иначе каждый раунд задваивается).
+  const { data: claimed, error: cErr } = await supabase
+    .from("tournaments").update({ status: "active" })
+    .eq("id", tournamentId).eq("status", "open").select("id");
+  if (cErr) throw cErr;
+  if (!claimed || claimed.length === 0) return; // уже запущен — ничего не вставляем
+
   let rawMatches;
   if (isBtb) rawMatches = buildKotHStart(ids);
   else if (isKoth) rawMatches = buildKotHLadderStart(ids);
@@ -139,9 +148,11 @@ export async function startTournament(tournamentId, players, format = "americano
 
   const matches = rawMatches.map((m) => ({ ...m, tournament_id: tournamentId }));
   const { error: mErr } = await supabase.from("tournament_matches").insert(matches);
-  if (mErr) throw mErr;
-  const { error: tErr } = await supabase.from("tournaments").update({ status: "active" }).eq("id", tournamentId);
-  if (tErr) throw tErr;
+  if (mErr) {
+    // откат статуса, чтобы можно было повторить старт
+    await supabase.from("tournaments").update({ status: "open" }).eq("id", tournamentId);
+    throw mErr;
+  }
 }
 
 /** Мексикано: следующий раунд по текущим очкам. */

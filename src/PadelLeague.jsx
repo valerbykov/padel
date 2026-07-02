@@ -1732,13 +1732,16 @@ function CreateGame({ groupId, players, profileId, back, done }) {
     setTitle(place.trim());
   }, [place, titleEdited]);
 
+  const creatingRef = useRef(false);
   const create = async () => {
+    if (creatingRef.current) return;   // защита от двойного тапа → дубль игры
+    creatingRef.current = true;
     setBusy(true);
     // ISO с таймзоной — чтобы введённое локальное время совпадало с показанным.
     let startsAtIso = null;
     try { if (date) startsAtIso = new Date(date).toISOString(); } catch (e) { startsAtIso = null; }
-    try { const g = await createGame(groupId, { title: title.trim() || null, startsAt: startsAtIso, place, slots, hostId: profileId || null }); notifyGameCreated(g?.id); done(); }
-    catch (e) { alert(t("err_create_game")); setBusy(false); }
+    try { const g = await createGame(groupId, { title: title.trim() || null, startsAt: startsAtIso, place, slots, hostId: profileId || null }); notifyGameCreated(g?.id); creatingRef.current = false; done(); }
+    catch (e) { alert(t("err_create_game")); setBusy(false); creatingRef.current = false; }
   };
 
   const stepBadge = (txt) => (
@@ -1951,18 +1954,21 @@ function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArc
   };
 
   // «Сыграть ещё»: создаём новую игру с теми же игроками в выбранной расстановке.
+  const mixRef = useRef(false);
   const createMix = async (arr) => {
     if (!groupId) return;
+    if (mixRef.current) return;   // защита от двойного тапа
+    mixRef.current = true;
     setMixBusy(true);
     try {
       const newSlots = arr.map((p) => (p.profile_id ? { profileId: p.profile_id } : { guestName: p.guest_name }));
       // Связываем под-игры микса: общий mix_group_id = id исходной игры (или её группы).
       await createGame(groupId, { title: game.title || null, startsAt: new Date().toISOString(), slots: newSlots, mixGroupId: mixKey });
-      setMix(false); setMixBusy(false);
+      setMix(false); setMixBusy(false); mixRef.current = false;
       bumpArchive && bumpArchive();
       reloadGames && reloadGames();
       await loadSession(); // новая игра появляется ниже на той же странице (ввод счёта inline)
-    } catch (e) { alert(t("err_create_game")); setMixBusy(false); }
+    } catch (e) { alert(t("err_create_game")); setMixBusy(false); mixRef.current = false; }
   };
 
   if (prof) return <PlayerDetail key={prof.id} groupId={groupId} player={prof} players={players} close={() => setProf(null)} onOpenPlayer={setProf} />;
