@@ -628,6 +628,8 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   const [unlocked, setUnlocked] = useState(() => { try { return !!localStorage.getItem("pp_scorepin_" + id); } catch (e) { return false; } });
   const [openCourts, setOpenCourts] = useState({}); // {matchId: true} — раскрытые сыгранные корты
   const initRef = useRef(false);
+  const roundRef = useRef(false);
+  const startingRef = useRef(false);
 
   const load = useCallback(async () => {
     try {
@@ -736,7 +738,6 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     ? (trnData.players.length % 2 !== 0 ? tr("trn_need_even") : null)
     : (trnData.players.length % 4 !== 0 ? tr("trn_need_mult4") : null);
 
-  const roundRef = useRef(false);
   const addMexicanoRound = async () => {
     if (roundRef.current) return; roundRef.current = true;
     setAddingRound(true);
@@ -767,7 +768,6 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     try { if (navigator.share) { await navigator.share({ title: tr("tab_tournaments"), text, url }); return; } } catch (e) {}
     try { await navigator.clipboard.writeText(text); setToast(tr("copied")); setTimeout(() => setToast(""), 1500); } catch (e) {}
   };
-  const startingRef = useRef(false);
   const start = async () => {
     if (startingRef.current) return;
     startingRef.current = true;
