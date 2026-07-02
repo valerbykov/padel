@@ -20,9 +20,9 @@ function Chip({ name, avatarUrl, x, y, team, id, onTap }) {
       maxWidth: "28%", cursor: id && onTap ? "pointer" : "default",
     }}>
       <img src={avatarUrl || dogAvatar(name)} onError={avatarFallback(name)} alt="" loading="lazy" decoding="async" style={{
-        width: "clamp(24px,7vw,32px)", height: "clamp(24px,7vw,32px)",
+        width: "clamp(44px,13vw,60px)", height: "clamp(44px,13vw,60px)",
         borderRadius: "50%", objectFit: "cover",
-        border: `2px solid ${color}`, background: "var(--surface)", flexShrink: 0,
+        border: `3px solid ${color}`, background: "var(--surface)", flexShrink: 0,
       }} />
       <div style={{
         background: "color-mix(in srgb, var(--surface) 88%, transparent)", border: `1px solid ${color}`,
@@ -201,6 +201,8 @@ export default function CourtView({
         .cv-setbtn:active{transform:scale(.96);}
         .cv-court{--court:#1f4f86;--court-line:rgba(255,255,255,.85);--court-net:#15365e;display:block;width:100%;}
         body.pl-light .cv-court{--court:#cfe6f7;--court-line:rgba(20,45,80,.5);--court-net:#a7c6e2;}
+        .cv-cta-arrow{display:inline-block;animation:cvArrow 1s ease-in-out infinite;}
+        @keyframes cvArrow{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}
       `}</style>
       {/* Корт */}
       <div style={{ position: "relative", width: "100%", borderRadius: 14, overflow: "hidden", minHeight: (pickFor && useKeypad) ? 408 : undefined }}>
@@ -248,15 +250,22 @@ export default function CourtView({
         <Chip name={teamB[0]} avatarUrl={teamAvatarsB[0]} id={teamIdsB[0]} onTap={onOpenPlayer} x={80} y={28} team="B" />
         <Chip name={teamB[1]} avatarUrl={teamAvatarsB[1]} id={teamIdsB[1]} onTap={onOpenPlayer} x={80} y={72} team="B" />
 
-        <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", display: "flex", alignItems: "center", gap: 8 }}>
-          {box(mode === "sets" ? setsWonA : dA, aWin, "A")}
-          <span style={{ color: "var(--ink)", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22 }}>:</span>
-          {box(mode === "sets" ? setsWonB : dB, bWin, "B")}
+        <div style={{
+          position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)",
+          display: "flex", alignItems: "center", gap: "clamp(8px,3vw,14px)",
+          background: "color-mix(in srgb, var(--surface) 92%, #000)",
+          border: "1px solid color-mix(in srgb, var(--line) 60%, transparent)",
+          borderRadius: 20, padding: "clamp(6px,2.2vw,12px) clamp(14px,5vw,26px)",
+          boxShadow: "0 10px 28px rgba(0,0,0,.5)", pointerEvents: "none",
+        }}>
+          <span style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: "clamp(30px,12vw,48px)", lineHeight: 1, color: aWin ? "var(--lime)" : "var(--ink)" }}>{dispA == null ? 0 : dispA}</span>
+          <span style={{ color: "var(--mut)", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: "clamp(22px,8vw,34px)" }}>:</span>
+          <span style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: "clamp(30px,12vw,48px)", lineHeight: 1, color: bWin ? "var(--lime)" : "var(--ink)" }}>{dispB == null ? 0 : dispB}</span>
         </div>
 
         {editable && mode !== "sets" && !savedAlready && !pickFor && (
-          <div style={{ position: "absolute", left: "50%", bottom: "5%", transform: "translateX(-50%)", fontSize: 11, color: "var(--ink)", background: "color-mix(in srgb, var(--surface) 80%, transparent)", padding: "2px 8px", borderRadius: 8, whiteSpace: "nowrap" }}>
-            {t("court_tap_half")}
+          <div style={{ position: "absolute", left: "50%", bottom: "7%", transform: "translateX(-50%)", pointerEvents: "none", display: "flex", alignItems: "center", gap: 6, fontFamily: "'Outfit',sans-serif", fontSize: "clamp(12px,3.4vw,14px)", fontWeight: 700, color: "var(--lime)", background: "color-mix(in srgb, var(--surface) 86%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 55%, transparent)", padding: "6px 14px", borderRadius: 999, whiteSpace: "nowrap", boxShadow: "0 4px 14px rgba(0,0,0,.35)" }}>
+            {t("court_tap_cta")} <span className="cv-cta-arrow">›</span>
           </div>
         )}
 

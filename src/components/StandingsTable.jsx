@@ -7,7 +7,7 @@ import Avatar from "./Avatar";
 import { t } from "../lib/i18n";
 
 export default function StandingsTable({ rows, highlightId, avatarOf }) {
-  const grid = "1fr 64px 80px 38px";
+  const grid = "1fr 64px 80px 46px";
   const deltaColor = (d) => (d > 0 ? "#3ddc84" : d < 0 ? "var(--coral)" : "var(--mut)");
 
   return (
@@ -16,7 +16,7 @@ export default function StandingsTable({ rows, highlightId, avatarOf }) {
         <span>{t("st_player")}</span>
         <span style={{ textAlign: "center" }}>+/-</span>
         <span style={{ textAlign: "center" }}>{t("st_points")}</span>
-        <span style={{ textAlign: "center" }}>δ</span>
+        <span style={{ textAlign: "center" }}>{t("st_diff")}</span>
       </div>
 
       {rows.map((p, i) => {
