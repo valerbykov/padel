@@ -10,7 +10,7 @@ import { t, nGames } from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
 import Fab from "./components/Fab";
-import { Trophy, Swords, History, Users, UserPlus, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, BadgeCheck, ShieldCheck, EyeOff } from "lucide-react";
+import { Trophy, Swords, History, Users, UserPlus, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, BadgeCheck, ShieldCheck, EyeOff, Crown, User, Search } from "lucide-react";
 import Tournaments, { TournamentView, TournamentCard, css as trCss } from "./components/Tournaments";
 import { deleteTournament } from "./lib/tournamentApi";
 import CourtView from "./components/CourtView";
@@ -377,6 +377,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
   const [inviteCopied, setInviteCopied] = useState(false);
   const [publicLinkCopied, setPublicLinkCopied] = useState(false);
   const ranked = [...players].sort((a, b) => b.rating - a.rating);
+  const [memberQuery, setMemberQuery] = useState("");
 
   // #4: совсем скрыть игрока из «Играли вместе». Оптимистично прячем строку, пишем в
   // аккаунт (hide_partner) и перечитываем список (played_with уже без скрытого).
@@ -622,7 +623,14 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
           <ChevronRight size={18} style={{ color: "var(--lime)", flexShrink: 0 }} />
         </div>
       )}
+      {groupId && ranked.length > 4 && (
+        <div style={{ position: "relative", marginBottom: 10 }}>
+          <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--mut)" }} />
+          <input className="pl-input" style={{ paddingLeft: 34 }} placeholder={t("search_members")} value={memberQuery} onChange={(e) => setMemberQuery(e.target.value)} />
+        </div>
+      )}
       {groupId && ranked.map((p, i) => {
+        if (memberQuery.trim() && !p.name.toLowerCase().includes(memberQuery.trim().toLowerCase())) return null;
         const qb = [];
         if (i === 0) qb.push("🥇");
         if (p.matches >= 5 && p.wins / p.matches >= 0.7) qb.push("🎯");
@@ -636,7 +644,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
             onRemove={canRemove ? async () => { await removeMember(groupId, p.id); reload(); } : null}
             onOrganize={canOrg ? async () => { await setMemberRole(groupId, p.id, p.role === "admin" ? "member" : "admin"); reload(); } : null}
             organizerActive={p.role === "admin"} onTap={() => setSelected(p)}>
-          <div className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", cursor: "pointer" }}>
+          <div className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", cursor: "pointer", border: p.id === profileId ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined, background: p.id === profileId ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined }}>
             <div className="pl-display" style={{ width: 22, fontSize: 22, color: ["var(--yellow)", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)" }}>{i + 1}</div>
             <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -644,9 +652,9 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
                 {p.user_id
                   ? <BadgeCheck size={14} style={{ color: "var(--lime)", flexShrink: 0 }} aria-label={t("account_badge")} />
-                  : <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, background: "var(--surface2)", color: "var(--mut)", border: "1px solid var(--line)", flexShrink: 0 }}>{t("guest_tag")}</span>}
-                {p.role === "owner" && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, background: "color-mix(in srgb, var(--yellow) 18%, transparent)", color: "var(--yellow)", border: "1px solid color-mix(in srgb, var(--yellow) 40%, transparent)", flexShrink: 0 }}>{t("role_owner")}</span>}
-                {p.role === "admin" && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, background: "color-mix(in srgb, var(--lime) 15%, transparent)", color: "var(--lime)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", flexShrink: 0 }}>{t("role_organizer")}</span>}
+                  : <User size={13} style={{ color: "var(--mut)", flexShrink: 0 }} aria-label={t("guest_tag")} />}
+                {p.role === "owner" && <Crown size={14} style={{ color: "var(--yellow)", flexShrink: 0 }} aria-label={t("role_owner")} />}
+                {p.role === "admin" && <ShieldCheck size={14} style={{ color: "var(--lime)", flexShrink: 0 }} aria-label={t("role_organizer")} />}
               </div>
               {/* #5: статистика (слева) отделена от бейджей уровня/ачивок (справа). */}
               <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, fontSize: 12, color: "var(--mut)" }}>
@@ -1434,16 +1442,17 @@ export function GameRow({ g, color, onOpen, flush, bare, label }) {
   const has = (s) => !!(s && (s.profile_id || s.guest_name));
   const m = (g.matches || [])[0];
   const played = g.status === "played";
+  const avSize = bare ? 26 : 38;
   const aWon = played && m && m.sets_a > m.sets_b;
   const bWon = played && m && m.sets_b > m.sets_a;
   const Slot = ({ s, ring }) => has(s)
-    ? <Avatar name={s.profile?.name || s.guest_name} url={s.profile?.avatar_url} id={s.profile_id || s.guest_name} size={26} ring={ring} style={{ marginLeft: -6 }} />
-    : <span style={{ width: 26, height: 26, borderRadius: "50%", border: "1.5px dashed var(--line)", background: "var(--surface2)", flexShrink: 0, display: "inline-block", marginLeft: -6, boxSizing: "border-box" }} />;
+    ? <Avatar name={s.profile?.name || s.guest_name} url={s.profile?.avatar_url} id={s.profile_id || s.guest_name} size={avSize} ring={ring} style={{ marginLeft: bare ? -6 : -12 }} />
+    : <span style={{ width: avSize, height: avSize, borderRadius: "50%", border: "1.5px dashed var(--line)", background: "var(--surface2)", flexShrink: 0, display: "inline-block", marginLeft: bare ? -6 : -12, boxSizing: "border-box" }} />;
   const nm = (slots) => slots.filter(has).map(s => s.profile?.name || s.guest_name).join(" & ") || "—";
   const namesCss = { fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", fontSize: 11.5, lineHeight: 1.25, textAlign: "center", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" };
   const Team = ({ a, b, ring, names, won }) => (
     <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
-      <div style={{ display: "flex", paddingLeft: 6 }}><Slot s={a} ring={ring} /><Slot s={b} ring={ring} /></div>
+      <div style={{ display: "flex", paddingLeft: bare ? 6 : 12 }}><Slot s={a} ring={ring} /><Slot s={b} ring={ring} /></div>
       <div style={{ ...namesCss, color: won ? "var(--lime)" : "var(--mut)", fontWeight: won ? 700 : 500 }}>{names}</div>
     </div>
   );
@@ -1452,12 +1461,12 @@ export function GameRow({ g, color, onOpen, flush, bare, label }) {
       {/* bare-режим (внутри плашки микс-сессии): без шапки, только составы и счёт. */}
       {!bare && (
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <Swords size={18} color={color} style={{ flexShrink: 0 }} />
+        <Swords size={24} color={color} style={{ flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.title || "Padel"}</div>
           {g.starts_at && <div style={{ fontSize: 12, color: "var(--mut)" }}>{fmtDate(g.starts_at)}</div>}
         </div>
-        <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: "rgba(255,255,255,.06)", color, flexShrink: 0 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: "rgba(255,255,255,.06)", color: played ? "var(--mut)" : color, flexShrink: 0 }}>
           {played ? "✓" : `${filled}/4`}
         </span>
       </div>
@@ -1465,7 +1474,7 @@ export function GameRow({ g, color, onOpen, flush, bare, label }) {
       {bare && label && <div style={{ fontSize: 11, fontWeight: 700, color: "var(--mut)", letterSpacing: 0.5 }}>{label}</div>}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "center", gap: 10, marginTop: bare ? 6 : 11 }}>
         <Team a={tA[0]} b={tA[1]} ring="var(--lime)" names={nm(tA)} won={aWon} />
-        <span style={{ fontFamily: "'Anton',sans-serif", fontSize: played ? 18 : 13, color: "var(--mut)", flexShrink: 0, minWidth: 30, textAlign: "center", paddingTop: 5 }}>
+        <span style={{ fontFamily: "'Anton',sans-serif", fontSize: played ? (bare ? 18 : 32) : 13, color: "var(--mut)", flexShrink: 0, minWidth: bare ? 30 : 44, textAlign: "center", paddingTop: bare ? 5 : 10 }}>
           {played && m ? <><span style={{ color: aWon ? "var(--lime)" : "var(--ink)" }}>{m.sets_a}</span><span style={{ color: "var(--mut)" }}>:</span><span style={{ color: bWon ? "var(--lime)" : "var(--ink)" }}>{m.sets_b}</span></> : "—"}
         </span>
         <Team a={tB[0]} b={tB[1]} ring="var(--coral)" names={nm(tB)} won={bWon} />

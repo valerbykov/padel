@@ -19,7 +19,7 @@ function Chip({ name, avatarUrl, x, y, team, id, onTap, noTap }) {
       transform: "translate(-50%,-50%)",
       display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
       maxWidth: "26%", cursor: tappable ? "pointer" : "default",
-      pointerEvents: noTap ? "none" : "auto", zIndex: 2,
+      pointerEvents: noTap ? "none" : "auto",
     }}>
       <img src={avatarUrl || dogAvatar(name)} onError={avatarFallback(name)} alt="" loading="lazy" decoding="async" style={{
         width: "clamp(44px,13vw,60px)", height: "clamp(44px,13vw,60px)",
@@ -278,7 +278,7 @@ export default function CourtView({
 
         {/* Оверлей выбора числа */}
         {pickerOpen && (
-          <div style={{ position: "absolute", inset: 0, background: "color-mix(in srgb, var(--bg) 94%, transparent)", display: "flex", flexDirection: "column", padding: 12, animation: "cvpop .18s ease-out both" }}>
+          <div style={{ position: "absolute", inset: 0, zIndex: 20, background: "var(--bg)", display: "flex", flexDirection: "column", padding: 12, animation: "cvpop .18s ease-out both" }}>
             <style>{`@keyframes cvpop{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}`}</style>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <span style={{ fontFamily: "'Outfit',sans-serif", color: "var(--ink)", fontSize: 13 }}>
