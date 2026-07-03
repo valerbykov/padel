@@ -1442,17 +1442,17 @@ export function GameRow({ g, color, onOpen, flush, bare, label }) {
   const has = (s) => !!(s && (s.profile_id || s.guest_name));
   const m = (g.matches || [])[0];
   const played = g.status === "played";
-  const avSize = bare ? 26 : 38;
+  const avSize = 38;
   const aWon = played && m && m.sets_a > m.sets_b;
   const bWon = played && m && m.sets_b > m.sets_a;
   const Slot = ({ s, ring }) => has(s)
-    ? <Avatar name={s.profile?.name || s.guest_name} url={s.profile?.avatar_url} id={s.profile_id || s.guest_name} size={avSize} ring={ring} style={{ marginLeft: bare ? -6 : -12 }} />
-    : <span style={{ width: avSize, height: avSize, borderRadius: "50%", border: "1.5px dashed var(--line)", background: "var(--surface2)", flexShrink: 0, display: "inline-block", marginLeft: bare ? -6 : -12, boxSizing: "border-box" }} />;
+    ? <Avatar name={s.profile?.name || s.guest_name} url={s.profile?.avatar_url} id={s.profile_id || s.guest_name} size={avSize} ring={ring} style={{ marginLeft: -12 }} />
+    : <span style={{ width: avSize, height: avSize, borderRadius: "50%", border: "1.5px dashed var(--line)", background: "var(--surface2)", flexShrink: 0, display: "inline-block", marginLeft: -12, boxSizing: "border-box" }} />;
   const nm = (slots) => slots.filter(has).map(s => s.profile?.name || s.guest_name).join(" & ") || "—";
   const namesCss = { fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", fontSize: 11.5, lineHeight: 1.25, textAlign: "center", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" };
   const Team = ({ a, b, ring, names, won }) => (
     <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
-      <div style={{ display: "flex", paddingLeft: bare ? 6 : 12 }}><Slot s={a} ring={ring} /><Slot s={b} ring={ring} /></div>
+      <div style={{ display: "flex", paddingLeft: 12 }}><Slot s={a} ring={ring} /><Slot s={b} ring={ring} /></div>
       <div style={{ ...namesCss, color: won ? "var(--lime)" : "var(--mut)", fontWeight: won ? 700 : 500 }}>{names}</div>
     </div>
   );
@@ -1474,7 +1474,7 @@ export function GameRow({ g, color, onOpen, flush, bare, label }) {
       {bare && label && <div style={{ fontSize: 11, fontWeight: 700, color: "var(--mut)", letterSpacing: 0.5 }}>{label}</div>}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "center", gap: 10, marginTop: bare ? 6 : 11 }}>
         <Team a={tA[0]} b={tA[1]} ring="var(--lime)" names={nm(tA)} won={aWon} />
-        <span style={{ fontFamily: "'Anton',sans-serif", fontSize: played ? (bare ? 18 : 32) : 13, color: "var(--mut)", flexShrink: 0, minWidth: bare ? 30 : 44, textAlign: "center", paddingTop: bare ? 5 : 10 }}>
+        <span style={{ fontFamily: "'Anton',sans-serif", fontSize: played ? 32 : 13, color: "var(--mut)", flexShrink: 0, minWidth: 44, textAlign: "center", paddingTop: 10 }}>
           {played && m ? <><span style={{ color: aWon ? "var(--lime)" : "var(--ink)" }}>{m.sets_a}</span><span style={{ color: "var(--mut)" }}>:</span><span style={{ color: bWon ? "var(--lime)" : "var(--ink)" }}>{m.sets_b}</span></> : "—"}
         </span>
         <Team a={tB[0]} b={tB[1]} ring="var(--coral)" names={nm(tB)} won={bWon} />
@@ -1483,7 +1483,7 @@ export function GameRow({ g, color, onOpen, flush, bare, label }) {
       {played && Array.isArray(m?.score_detail) && m.score_detail.length > 0 && (
         <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
           {m.score_detail.map((s, i) => (
-            <span key={i} style={{ fontSize: 11, fontWeight: 700, fontVariantNumeric: "tabular-nums", letterSpacing: 0.3 }}>
+            <span key={i} style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: "tabular-nums", letterSpacing: 0.3 }}>
               <span style={{ color: s.a > s.b ? "var(--lime)" : "var(--ink)" }}>{s.a}</span>
               <span style={{ color: "var(--mut)" }}>:</span>
               <span style={{ color: s.b > s.a ? "var(--lime)" : "var(--ink)" }}>{s.b}</span>
