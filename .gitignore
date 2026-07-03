@@ -26,3 +26,10 @@ dist-ssr
 # Игнорирование файлов переменных окружения
 .env
 .env.example
+
+# Firebase / секреты (не коммитить)
+android/app/google-services.json
+**/google-services.json
+*serviceAccount*.json
+*service-account*.json
+*firebase-adminsdk*.json
