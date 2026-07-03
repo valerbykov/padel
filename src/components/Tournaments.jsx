@@ -215,9 +215,10 @@ function List({ groupId, profileId, create, open, session, onLogin, canCreate = 
               {sec.label}
             </div>
             {visible.map((trn) => {
-              const card = <TournamentCard trn={trn} color={sec.color} onClick={() => open(trn.id)} onCopy={groupId && trn.status === "finished" ? () => setCopySrc(trn) : null} />;
-              return (session && groupId && canCreate)
-                ? <SwipeRow key={trn.id} onDelete={async () => { if (!confirm(tr("trn_delete_confirm"))) return; await deleteTournament(trn.id).catch(() => {}); (groupId ? listTournaments(groupId) : listMyTournaments()).then(setItems).catch(() => {}); }}>{card}</SwipeRow>
+              const canDel = session && groupId && canCreate;
+              const card = <TournamentCard trn={trn} color={sec.color} flush={canDel} onClick={() => open(trn.id)} onCopy={groupId && trn.status === "finished" ? () => setCopySrc(trn) : null} />;
+              return canDel
+                ? <div key={trn.id} style={{ marginBottom: 8 }}><SwipeRow onDelete={async () => { if (!confirm(tr("trn_delete_confirm"))) return; await deleteTournament(trn.id).catch(() => {}); (groupId ? listTournaments(groupId) : listMyTournaments()).then(setItems).catch(() => {}); }}>{card}</SwipeRow></div>
                 : <div key={trn.id}>{card}</div>;
             })}
             {hidden > 0 && (

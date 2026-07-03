@@ -1565,7 +1565,7 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
           <div key={label}>
             <div style={{ fontSize: 12, color: "var(--mut)", fontFamily:"'Anton',sans-serif", textTransform:"uppercase", letterSpacing:1, margin:"12px 2px 6px" }}>{label}</div>
             {items.map(g => {
-              const row = <GameRow key={g.id} g={g} color={color} onOpen={() => { setSelId(g.id); setMode("view"); }} />;
+              const row = <GameRow key={g.id} g={g} color={color} flush={!!del} onOpen={() => { setSelId(g.id); setMode("view"); }} />;
               return del
                 ? <SwipeToDelete key={g.id} onDelete={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(g.id).catch(() => {}); loadGames(); bumpArchive?.(); }}>{row}</SwipeToDelete>
                 : row;
