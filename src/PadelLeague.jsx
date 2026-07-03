@@ -1476,7 +1476,7 @@ export function GameRow({ g, color, onOpen, flush, bare, label }) {
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "center", gap: 10, marginTop: bare ? 6 : 11 }}>
         <Team a={tA[0]} b={tA[1]} ring="var(--lime)" names={nm(tA)} won={aWon} />
         <span style={{ fontFamily: "'Anton',sans-serif", fontSize: played ? 32 : 13, color: "var(--mut)", flexShrink: 0, minWidth: 44, textAlign: "center", paddingTop: 10 }}>
-          {played && m ? <><span style={{ color: aWon ? "var(--lime)" : "var(--ink)" }}>{m.sets_a}</span><span style={{ color: "var(--mut)" }}>:</span><span style={{ color: bWon ? "var(--lime)" : "var(--ink)" }}>{m.sets_b}</span></> : "—"}
+          {played && m ? <><span style={{ color: aWon ? "var(--lime)" : "var(--ink)" }}>{m.sets_a}</span><span style={{ color: "var(--mut)" }}>:</span><span style={{ color: bWon ? "var(--coral)" : "var(--ink)" }}>{m.sets_b}</span></> : "—"}
         </span>
         <Team a={tB[0]} b={tB[1]} ring="var(--coral)" names={nm(tB)} won={bWon} />
       </div>
@@ -1485,9 +1485,9 @@ export function GameRow({ g, color, onOpen, flush, bare, label }) {
         <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
           {m.score_detail.map((s, i) => (
             <span key={i} style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: "tabular-nums", letterSpacing: 0.3 }}>
-              <span style={{ color: s.a > s.b ? "var(--lime)" : "var(--ink)" }}>{s.a}</span>
+              <span style={{ color: s.a > s.b ? "var(--lime)" : "var(--mut)" }}>{s.a}</span>
               <span style={{ color: "var(--mut)" }}>:</span>
-              <span style={{ color: s.b > s.a ? "var(--lime)" : "var(--ink)" }}>{s.b}</span>
+              <span style={{ color: s.b > s.a ? "var(--coral)" : "var(--mut)" }}>{s.b}</span>
             </span>
           ))}
         </div>

@@ -268,7 +268,7 @@ export default function CourtView({
         }}>
           <span style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: "clamp(30px,12vw,48px)", lineHeight: 1, color: aWin ? "var(--lime)" : "var(--ink)" }}>{dispA == null ? 0 : dispA}</span>
           <span style={{ color: "var(--mut)", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: "clamp(22px,8vw,34px)" }}>:</span>
-          <span style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: "clamp(30px,12vw,48px)", lineHeight: 1, color: bWin ? "var(--lime)" : "var(--ink)" }}>{dispB == null ? 0 : dispB}</span>
+          <span style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: "clamp(30px,12vw,48px)", lineHeight: 1, color: bWin ? "var(--coral)" : "var(--ink)" }}>{dispB == null ? 0 : dispB}</span>
         </div>
 
         {editable && mode !== "sets" && !savedAlready && !pickFor && (
