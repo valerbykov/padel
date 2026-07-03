@@ -197,7 +197,7 @@ function List({ groupId, profileId, create, open, session, onLogin, canCreate = 
           <button className="tr-btn" style={{ padding: "7px 14px", fontSize: 12, flexShrink: 0, borderRadius: 10 }} onClick={onLogin}>{tr("sign_in")}</button>
         </div>
       ) : groupId && canCreate ? (
-        <Fab label={tr("trn_create_btn")} icon={<PlusCircle size={20} />} onClick={create} />
+        <Fab label={tr("trn_create_btn")} icon={<Trophy size={24} />} onClick={create} />
       ) : null}
       {items === null && <div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>{tr("loading")}</div>}
       {items !== null && items.length === 0 && (

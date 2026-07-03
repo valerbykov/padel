@@ -188,7 +188,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
           {!session && <button className={`pl-tab ${tab === "welcome" ? "on" : ""}`} onClick={() => goTab("welcome")}><LogIn size={20} strokeWidth={tab === "welcome" ? 2.6 : 2} />{t("tab_start")}</button>}
           {session && <button className={`pl-tab ${tab === "board" ? "on" : ""}`} onClick={() => goTab("board")}><Users size={20} strokeWidth={tab === "board" ? 2.6 : 2} />{t("tab_friends")}</button>}
           <button className={`pl-tab ${tab === "games" ? "on" : ""}`} onClick={() => goTab("games")}><Swords size={20} strokeWidth={tab === "games" ? 2.6 : 2} />{t("tab_games")}</button>
-          <button className={`pl-tab ${tab === "tournaments" ? "on" : ""}`} onClick={() => goTab("tournaments")}><Award size={20} strokeWidth={tab === "tournaments" ? 2.6 : 2} />{t("tab_tournaments")}</button>
+          <button className={`pl-tab ${tab === "tournaments" ? "on" : ""}`} onClick={() => goTab("tournaments")}><Trophy size={20} strokeWidth={tab === "tournaments" ? 2.6 : 2} />{t("tab_tournaments")}</button>
           {session && <button className={`pl-tab ${tab === "history" ? "on" : ""}`} onClick={() => goTab("history")}><History size={20} strokeWidth={tab === "history" ? 2.6 : 2} />{t("tab_history")}</button>}
         </div>
       </nav>
@@ -661,7 +661,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
               <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, fontSize: 12, color: "var(--mut)" }}>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_games")}><Swords size={13} /> {gamesOf(p)}</span>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_tournaments")}><Award size={13} /> {toursOf(p)}</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_tournaments")}><Trophy size={13} /> {toursOf(p)}</span>
                 </span>
                 {qb.length > 0 && <span style={{ letterSpacing: 2, marginLeft: "auto" }}>{qb.join("")}</span>}
               </div>
@@ -695,7 +695,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
         <EmptyState text={t("solo_friends_empty")} />
       ); })()}
 
-      {groupId && (isAdmin || activeLeague?.members_can_add) && <Fab label={t("add_player_form_title")} icon={<UserPlus size={20} />} onClick={() => setOpen(true)} />}
+      {groupId && (isAdmin || activeLeague?.members_can_add) && <Fab label={t("add_player_form_title")} icon={<User size={24} />} onClick={() => setOpen(true)} />}
       {/* Форма добавления — модалка-лист (портал в body), всегда видна, даже при длинном списке. */}
       {groupId && open && createPortal(
         <div onClick={() => { setQuery(""); setOpen(false); }} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-end", justifyContent: "center", fontFamily: "'Outfit',sans-serif" }}>
@@ -1290,7 +1290,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
           </div>
         </div>
         <div className="pl-card" style={{ padding: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--mut)", marginBottom: 10 }}><Award size={14} /> {t("tab_tournaments")}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--mut)", marginBottom: 10 }}><Trophy size={14} /> {t("tab_tournaments")}</div>
           <div style={{ display: "flex", gap: 6 }}>
             {tileStat(myTourStats.total, t("trn_stat_total"), "var(--ink)")}
             {tileStat(myTourStats.podium, t("trn_stat_podium"), "#ffd23f")}
@@ -1391,7 +1391,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
       {playerTours && playerTours.length > 0 && (
         <div className="pl-card" style={{ padding: 14, marginTop: 10 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}><Award size={14} /> {t("tours_heading")}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}><Trophy size={14} /> {t("tours_heading")}</div>
             <div style={{ fontSize: 11, color: "var(--mut)" }}>{t("stat_last10")}</div>
           </div>
           <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
@@ -1554,7 +1554,7 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
           <button className="pl-btn" style={{ padding: "7px 14px", fontSize: 12, flexShrink: 0 }} onClick={onLogin}>{t("sign_in")}</button>
         </div>
       )}
-      {session && groupId && canCreate && <Fab label={t("create_game")} icon={<PlusCircle size={20} />} onClick={() => setMode("create")} />}
+      {session && groupId && canCreate && <Fab label={t("create_game")} icon={<Swords size={24} />} onClick={() => setMode("create")} />}
       {loading && <div className="pl-card" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>{t("loading")}</div>}
       {!loading && games.length === 0 && <EmptyState text={!session ? t("games_empty_guest") : (groupId ? t("games_empty_session") : t("solo_games_empty"))} />}
       {!loading && (() => {
