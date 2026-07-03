@@ -214,7 +214,12 @@ function List({ groupId, profileId, create, open, session, onLogin, canCreate = 
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: sec.color, textTransform: "uppercase", marginBottom: 8, paddingLeft: 4 }}>
               {sec.label}
             </div>
-            {visible.map((trn) => <TournamentCard key={trn.id} trn={trn} color={sec.color} onClick={() => open(trn.id)} onCopy={groupId && trn.status === "finished" ? () => setCopySrc(trn) : null} />)}
+            {visible.map((trn) => {
+              const card = <TournamentCard trn={trn} color={sec.color} onClick={() => open(trn.id)} onCopy={groupId && trn.status === "finished" ? () => setCopySrc(trn) : null} />;
+              return (session && groupId && canCreate)
+                ? <SwipeRow key={trn.id} onDelete={async () => { if (!confirm(tr("trn_delete_confirm"))) return; await deleteTournament(trn.id).catch(() => {}); (groupId ? listTournaments(groupId) : listMyTournaments()).then(setItems).catch(() => {}); }}>{card}</SwipeRow>
+                : <div key={trn.id}>{card}</div>;
+            })}
             {hidden > 0 && (
               <button className="tr-ghost" style={{ width: "100%", padding: "8px 12px", fontSize: 12, marginTop: 4 }} onClick={() => setShowAll(true)}>
                 {tr("trn_show_more_pre")} {hidden} {tr("trn_show_more_suf")}
@@ -223,6 +228,9 @@ function List({ groupId, profileId, create, open, session, onLogin, canCreate = 
           </div>
         );
       })}
+      {items !== null && items.length > 0 && byStatus.active.length === 0 && byStatus.open.length === 0 && (
+        <EmptyState className="tr-card" text={tr("tours_no_active")} />
+      )}
       {/* Завершённые турниры — только во вкладке «История». */}
       {items !== null && byStatus.finished.length > 0 && (
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, padding: "10px 12px", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--line)", fontSize: 12.5, color: "var(--mut)" }}>
@@ -237,16 +245,21 @@ function List({ groupId, profileId, create, open, session, onLogin, canCreate = 
   );
 }
 
-function CopyDialog({ src, groupId, profileId, onClose, onCopied }) {
+export function CopyDialog({ src, groupId, profileId, onClose, onCopied }) {
   const fmt = fmtById(src.format);
   const [name, setName] = useState(`${src.name || fmt.name} ${tr("trn_copy_suffix")}`);
   const [withPlayers, setWithPlayers] = useState(true);
+  const [day, setDay] = useState(() => nowLocalDT().slice(0, 10));
+  const [time, setTime] = useState(() => nowLocalDT().slice(11, 16));
+  const [place, setPlace] = useState(src.place || "");
   const [busy, setBusy] = useState(false);
   const count = (src.players || []).length;
   const go = async () => {
     if (busy) return;
     setBusy(true);
-    try { const t = await copyTournament(src.id, groupId, { name, withPlayers, createdBy: profileId }); onCopied(t.id); }
+    let startsAtIso = null;
+    try { const d = day ? `${day}T${time || "00:00"}` : ""; if (d) startsAtIso = new Date(d).toISOString(); } catch (e) { startsAtIso = null; }
+    try { const t = await copyTournament(src.id, groupId, { name, withPlayers, createdBy: profileId, startsAt: startsAtIso, place }); onCopied(t.id); }
     catch (e) { alert(tr("err_copy_tour")); setBusy(false); }
   };
   return (
@@ -255,6 +268,11 @@ function CopyDialog({ src, groupId, profileId, onClose, onCopied }) {
         <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 12 }}>{tr("trn_copy_title")}</div>
         <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_copy_name_label")}</div>
         <input className="tr-input" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        <div style={{ display: "flex", gap: 8, margin: "10px 0" }}>
+          <input className="tr-input" type="date" value={day} onChange={(e) => setDay(e.target.value)} style={{ flex: 1 }} />
+          <input className="tr-input" type="time" value={time} onChange={(e) => setTime(e.target.value)} style={{ width: 120 }} />
+        </div>
+        <input className="tr-input" placeholder={tr("court_club_placeholder")} value={place} onChange={(e) => setPlace(e.target.value)} style={{ marginBottom: 4 }} />
         <label style={{ display: "flex", alignItems: "center", gap: 10, margin: "6px 0 16px", cursor: count ? "pointer" : "not-allowed", opacity: count ? 1 : 0.5 }}>
           <input type="checkbox" checked={withPlayers && count > 0} disabled={!count} onChange={(e) => setWithPlayers(e.target.checked)}
             style={{ width: 16, height: 16, accentColor: "var(--lime)" }} />

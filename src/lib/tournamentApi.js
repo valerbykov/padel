@@ -33,7 +33,7 @@ export async function createTournament(groupId, { name, pointsPerGame = 32, targ
 
 // Копия существующего турнира: тот же формат/очки/размер, новый статус "open".
 // withPlayers — перенести участников (профили и гостей по имени), без счёта.
-export async function copyTournament(srcId, groupId, { name, withPlayers = true, createdBy = null } = {}) {
+export async function copyTournament(srcId, groupId, { name, withPlayers = true, createdBy = null, startsAt = null, place = null } = {}) {
   const src = await getTournament(srcId);
   const trn = await createTournament(groupId, {
     name: (name && name.trim()) || null,
@@ -42,6 +42,8 @@ export async function copyTournament(srcId, groupId, { name, withPlayers = true,
     format: src.format,
     kotHChampionRule: src.koth_champion_rule || undefined,
     createdBy: createdBy || null,
+    startsAt: startsAt || null,
+    place: place || null,
   });
   if (withPlayers) {
     const players = [...(src.players || [])].sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));

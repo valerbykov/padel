@@ -11,7 +11,7 @@ import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
 import Fab from "./components/Fab";
 import { Trophy, Swords, History, Users, UserPlus, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, BadgeCheck, ShieldCheck, EyeOff, Crown, User, Search } from "lucide-react";
-import Tournaments, { TournamentView, TournamentCard, css as trCss } from "./components/Tournaments";
+import Tournaments, { TournamentView, TournamentCard, CopyDialog, css as trCss } from "./components/Tournaments";
 import { copyTournament } from "./lib/tournamentApi";
 import { deleteTournament } from "./lib/tournamentApi";
 import CourtView from "./components/CourtView";
@@ -1561,15 +1561,21 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
         const upcoming = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length < 4);
         const active   = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length === 4);
         const played   = games.filter(g => g.status === "played");
-        const section = (label, color, items) => items.length === 0 ? null : (
+        const section = (label, color, items, del) => items.length === 0 ? null : (
           <div key={label}>
             <div style={{ fontSize: 12, color: "var(--mut)", fontFamily:"'Anton',sans-serif", textTransform:"uppercase", letterSpacing:1, margin:"12px 2px 6px" }}>{label}</div>
-            {items.map(g => <GameRow key={g.id} g={g} color={color} onOpen={() => { setSelId(g.id); setMode("view"); }} />)}
+            {items.map(g => {
+              const row = <GameRow key={g.id} g={g} color={color} onOpen={() => { setSelId(g.id); setMode("view"); }} />;
+              return del
+                ? <SwipeToDelete key={g.id} onDelete={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(g.id).catch(() => {}); loadGames(); bumpArchive?.(); }}>{row}</SwipeToDelete>
+                : row;
+            })}
           </div>
         );
         return [
-          section(t("upcoming_section"), "var(--mut)", upcoming),
-          section(t("active_section"), "var(--lime)", active),
+          (games.length > 0 && upcoming.length === 0 && active.length === 0) ? <EmptyState key="na" text={t("games_no_active")} /> : null,
+          section(t("upcoming_section"), "var(--mut)", upcoming, canCreate),
+          section(t("active_section"), "var(--lime)", active, canCreate),
           // Сыгранные игры показываем только во вкладке «История».
           played.length > 0 && (
             <div key="hist-hint" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, padding: "10px 12px", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--line)", fontSize: 12.5, color: "var(--mut)" }}>
@@ -2137,9 +2143,47 @@ function SwipeToDelete({ onDelete, onCopy, children }) {
   );
 }
 
+function GameCopyDialog({ src, groupId, onClose, onCopied }) {
+  const [name, setName] = useState(src.title ? `${src.title} ${t("trn_copy_suffix")}` : "");
+  const [day, setDay] = useState(() => nowLocalDT().slice(0, 10));
+  const [time, setTime] = useState(() => nowLocalDT().slice(11, 16));
+  const [place, setPlace] = useState(src.place || "");
+  const [busy, setBusy] = useState(false);
+  const go = async () => {
+    if (busy) return;
+    setBusy(true);
+    let startsAtIso = null;
+    try { const d = day ? `${day}T${time || "00:00"}` : ""; if (d) startsAtIso = new Date(d).toISOString(); } catch (e) { startsAtIso = null; }
+    const layout = [["A", 1], ["A", 2], ["B", 1], ["B", 2]];
+    const slots = layout.map(([tm, pos]) => { const sl = (src.slots || []).find((x) => x.team === tm && x.position === pos); return sl?.profile_id ? { profileId: sl.profile_id } : (sl?.guest_name ? { guestName: sl.guest_name } : null); });
+    try { const gm = await createGame(groupId, { title: name.trim() || null, startsAt: startsAtIso, place, slots }); onCopied(gm?.id); }
+    catch (e) { alert(t("err_create_game")); setBusy(false); }
+  };
+  return createPortal(
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }} onClick={onClose}>
+      <div className="pl-card" style={{ width: "100%", maxWidth: 360 }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 12 }}>{t("copy_game_title")}</div>
+        <input className="pl-input" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        <div style={{ display: "flex", gap: 8, margin: "10px 0" }}>
+          <input className="pl-input" type="date" value={day} onChange={(e) => setDay(e.target.value)} style={{ flex: 1 }} />
+          <input className="pl-input" type="time" value={time} onChange={(e) => setTime(e.target.value)} style={{ width: 120 }} />
+        </div>
+        <input className="pl-input" placeholder={t("court_club_placeholder")} value={place} onChange={(e) => setPlace(e.target.value)} style={{ marginBottom: 12 }} />
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="pl-ghost" style={{ flex: 1, padding: 11 }} onClick={onClose} disabled={busy}>{t("cancel")}</button>
+          <button className="pl-btn" style={{ flex: 1, padding: 11 }} onClick={go} disabled={busy}>{busy ? t("creating") : t("trn_copy_btn")}</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce, bumpArchive }) {
   const [games, setGames] = useState(null);  // сыгранные игры
   const [tours, setTours] = useState([]);     // завершённые турниры
+  const [copyTour, setCopyTour] = useState(null);
+  const [copyGame, setCopyGame] = useState(null);
   const [sel, setSel] = useState(null);       // { type: 'tour' | 'game', data }
   const [swipeHint, setSwipeHint] = useState(() => { try { return !localStorage.getItem("pp_swipe_hint"); } catch (e) { return true; } });
   const dismissHint = () => { try { localStorage.setItem("pp_swipe_hint", "1"); } catch (e) {} setSwipeHint(false); };
@@ -2188,7 +2232,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
       {filter !== "games" && tours.map((tour) => {
         const card = <TournamentCard trn={tour} color="var(--yellow)" flush={isGroupMember} onClick={() => setSel({ type: "tour", data: tour })} />;
         return isGroupMember
-          ? <SwipeToDelete key={tour.id} onCopy={groupId ? async () => { await copyTournament(tour.id, groupId, { withPlayers: true, createdBy: profileId }).catch(() => {}); bumpArchive?.(); } : null} onDelete={async () => { if (!confirm(t("trn_delete_confirm"))) return; await deleteTournament(tour.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+          ? <SwipeToDelete key={tour.id} onCopy={groupId ? () => setCopyTour(tour) : null} onDelete={async () => { if (!confirm(t("trn_delete_confirm"))) return; await deleteTournament(tour.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
           : <div key={tour.id}>{card}</div>;
       })}
 
@@ -2212,10 +2256,12 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
           const g = grp[0];
           const card = <GameRow g={g} color="#7d9488" flush={isGroupMember} onOpen={() => setSel({ type: "game", data: g })} />;
           return isGroupMember
-            ? <SwipeToDelete key={g.id} onCopy={groupId ? async () => { const layout = [["A",1],["A",2],["B",1],["B",2]]; const cslots = layout.map(([tm,pos]) => { const sl = (g.slots||[]).find(x => x.team===tm && x.position===pos); return sl?.profile_id ? { profileId: sl.profile_id } : (sl?.guest_name ? { guestName: sl.guest_name } : null); }); await createGame(groupId, { title: g.title, slots: cslots }).catch(() => {}); bumpArchive?.(); } : null} onDelete={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(g.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+            ? <SwipeToDelete key={g.id} onCopy={groupId ? () => setCopyGame(g) : null} onDelete={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(g.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
             : <div key={g.id}>{card}</div>;
         });
       })()}
+      {copyTour && <CopyDialog src={copyTour} groupId={groupId} profileId={profileId} onClose={() => setCopyTour(null)} onCopied={() => { setCopyTour(null); bumpArchive?.(); }} />}
+      {copyGame && <GameCopyDialog src={copyGame} groupId={groupId} onClose={() => setCopyGame(null)} onCopied={() => { setCopyGame(null); bumpArchive?.(); }} />}
     </div>
   );
 }
