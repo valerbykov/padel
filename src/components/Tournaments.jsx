@@ -214,7 +214,7 @@ function List({ groupId, profileId, create, open, session, onLogin, canCreate = 
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: sec.color, textTransform: "uppercase", marginBottom: 8, paddingLeft: 4 }}>
               {sec.label}
             </div>
-            {visible.map((trn) => <TournamentCard key={trn.id} trn={trn} color={sec.color} onClick={() => open(trn.id)} onCopy={groupId ? () => setCopySrc(trn) : null} />)}
+            {visible.map((trn) => <TournamentCard key={trn.id} trn={trn} color={sec.color} onClick={() => open(trn.id)} onCopy={groupId && trn.status === "finished" ? () => setCopySrc(trn) : null} />)}
             {hidden > 0 && (
               <button className="tr-ghost" style={{ width: "100%", padding: "8px 12px", fontSize: 12, marginTop: 4 }} onClick={() => setShowAll(true)}>
                 {tr("trn_show_more_pre")} {hidden} {tr("trn_show_more_suf")}
@@ -937,24 +937,18 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
         <>
           <div className="tr-card" style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{tr("trn_participants")} {trnData.players.length}/{trnData.target_size}</div>
-            {trnData.players.map((p) => {
-              const del = async () => { try { await removeTournamentPlayer(p.id); } catch (e) {} load(); };
-              const inner = (
-                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 10px" }}>
-                  <Avatar name={p.name} url={avatarOfTp(p.id)} id={p.id} size={34} />
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: p.profile_id === currentProfileId ? "var(--lime)" : "var(--ink)" }}>{p.name}</span>
-                  {!readOnly && (
-                    <button aria-label={tr("delete_btn")} onClick={del}
-                      style={{ flexShrink: 0, width: 28, height: 28, borderRadius: "50%", border: "none", background: "color-mix(in srgb, var(--coral) 16%, transparent)", color: "var(--coral)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <X size={15} />
-                    </button>
-                  )}
-                </div>
-              );
-              return !readOnly
-                ? <div key={p.id} style={{ marginTop: 6, borderRadius: 10, overflow: "hidden" }}><SwipeRow onDelete={del}>{inner}</SwipeRow></div>
-                : <div key={p.id} style={{ borderBottom: "1px solid var(--line)" }}>{inner}</div>;
-            })}
+            {trnData.players.map((p) => (
+              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 4px", borderBottom: "1px solid var(--line)" }}>
+                <Avatar name={p.name} url={avatarOfTp(p.id)} id={p.id} size={34} />
+                <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: p.profile_id === currentProfileId ? "var(--lime)" : "var(--ink)" }}>{p.name}</span>
+                {!readOnly && (
+                  <button aria-label={tr("delete_btn")} onClick={async () => { try { await removeTournamentPlayer(p.id); } catch (e) {} load(); }}
+                    style={{ flexShrink: 0, width: 28, height: 28, borderRadius: "50%", border: "none", background: "color-mix(in srgb, var(--coral) 16%, transparent)", color: "var(--coral)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <X size={15} />
+                  </button>
+                )}
+              </div>
+            ))}
             {!readOnly && (
               <AddPlayer players={players} existing={trnData.players} disabled={trnData.players.length >= trnData.target_size}
                 onAdd={async (entry) => { await addTournamentPlayer(trnData.id, entry); load(); }} />

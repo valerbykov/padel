@@ -12,6 +12,7 @@ import StandingsTable from "./components/StandingsTable";
 import Fab from "./components/Fab";
 import { Trophy, Swords, History, Users, UserPlus, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, BadgeCheck, ShieldCheck, EyeOff, Crown, User, Search } from "lucide-react";
 import Tournaments, { TournamentView, TournamentCard, css as trCss } from "./components/Tournaments";
+import { copyTournament } from "./lib/tournamentApi";
 import { deleteTournament } from "./lib/tournamentApi";
 import CourtView from "./components/CourtView";
 import EmptyState from "./components/EmptyState";
@@ -1641,7 +1642,6 @@ function GameSlots({ slots, setSlots, players, chosenIds }) {
   const rowRefs = useRef([]);        // все 4 слота (для поиска цели)
   const g = useRef({ mode: "idle", idx: -1, x0: 0, y0: 0, pid: null, timer: null });
   const [drag, setDrag] = useState(null);              // { idx, x, y }
-  const [swipe, setSwipe] = useState({ idx: -1, dx: 0 });
   const setSlot = (i, v) => setSlots((s) => s.map((x, j) => (j === i ? v : x)));
   const MAX = 88, LONG = 260, TH = 8;
   const clearTimer = () => { if (g.current.timer) { clearTimeout(g.current.timer); g.current.timer = null; } };
@@ -1672,13 +1672,11 @@ function GameSlots({ slots, setSlots, players, chosenIds }) {
     if (g.current.mode === "idle") return;
     const dX = e.clientX - g.current.x0, dY = e.clientY - g.current.y0;
     if (g.current.mode === "pending") {
-      if (Math.abs(dY) > Math.abs(dX) && Math.abs(dY) > 6) { clearTimer(); g.current.mode = "idle"; release(); return; } // вертикаль → скролл
-      if (dX < -TH) { clearTimer(); g.current.mode = "swipe"; }
-      else if (dX > TH) { clearTimer(); g.current.mode = "idle"; release(); return; }
-      else return;
+      // сдвинулись раньше long-press → это скролл/тап, не перетаскивание
+      if (Math.abs(dX) > TH || Math.abs(dY) > TH) { clearTimer(); g.current.mode = "idle"; release(); }
+      return;
     }
-    if (g.current.mode === "swipe") setSwipe({ idx: g.current.idx, dx: Math.max(-MAX, Math.min(0, dX)) });
-    else if (g.current.mode === "drag") setDrag((d) => (d ? { ...d, x: e.clientX, y: e.clientY } : d));
+    if (g.current.mode === "drag") setDrag((d) => (d ? { ...d, x: e.clientX, y: e.clientY } : d));
   };
   const finish = (e) => {
     clearTimer();
@@ -1689,13 +1687,9 @@ function GameSlots({ slots, setSlots, players, chosenIds }) {
       const tgt = nearestIdx(e.clientX, e.clientY, idx);
       if (tgt >= 0) setSlots((prev) => { const n = [...prev]; const t = n[tgt]; n[tgt] = n[idx]; n[idx] = t; return n; });
       setDrag(null);                                    // не нашли цель → плитка возвращается на место
-    } else if (m === "swipe") {
-      const del = swipe.dx <= -MAX * 0.55;
-      setSwipe({ idx: -1, dx: 0 });
-      if (del) setSlot(idx, null);
     }
   };
-  const active = drag || swipe.idx >= 0;
+  const active = !!drag;
   return (
     <div ref={ref} onPointerDown={down} onPointerMove={move} onPointerUp={finish} onPointerCancel={finish}
       style={{ touchAction: active ? "none" : "pan-y" }}>
@@ -1710,26 +1704,29 @@ function GameSlots({ slots, setSlots, players, chosenIds }) {
             </div>
           );
         }
-        const dx = swipe.idx === i ? swipe.dx : 0;
         return (
           <div key={i} data-slot-idx={i} ref={(el) => (rowRefs.current[i] = el)}
-            style={{ position: "relative", marginBottom: 8, borderRadius: 12, overflow: "hidden", background: "var(--coral)", opacity: drag?.idx === i ? 0.3 : 1 }}>
-            <div style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: MAX, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}><Trash2 size={18} /></div>
-            <div style={{ transform: `translateX(${dx}px)`, transition: (swipe.idx === i && g.current.mode === "swipe") ? "none" : "transform .2s ease", display: "flex", alignItems: "center", gap: 8, background: "var(--surface)" }}>
+            style={{ marginBottom: 8, opacity: drag?.idx === i ? 0.3 : 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span className="pl-display" style={{ width: 24, fontSize: 12, color: ring, flexShrink: 0 }}>{team}</span>
               <div className="pl-slot" style={{ flex: 1, gap: 8 }}>
                 <GripVertical size={16} style={{ color: "var(--mut)", flexShrink: 0 }} />
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.label}</span>
+                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.label}</span>
               </div>
+              <button aria-label={t("delete_btn")} onPointerDown={(e) => e.stopPropagation()} onClick={() => setSlot(i, null)}
+                style={{ flexShrink: 0, width: 28, height: 28, borderRadius: "50%", border: "none", background: "color-mix(in srgb, var(--coral) 16%, transparent)", color: "var(--coral)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <X size={15} />
+              </button>
             </div>
           </div>
         );
       })}
       <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 2, lineHeight: 1.4 }}>{t("slots_dnd_hint")}</div>
-      {drag && slots[drag.idx] && (
+      {drag && slots[drag.idx] && createPortal(
         <div style={{ position: "fixed", left: drag.x, top: drag.y, transform: "translate(-50%,-50%)", pointerEvents: "none", zIndex: 300, padding: "8px 12px", borderRadius: 12, background: "var(--surface)", border: "1.5px solid var(--lime)", boxShadow: "0 8px 24px rgba(0,0,0,.4)", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>
           {slots[drag.idx].label}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -2097,7 +2094,7 @@ function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArc
 
 /* ------------------------------- HistoryView ------------------------------ */
 // Свайп влево по карточке → раскрывается красная зона с корзиной → удаление.
-function SwipeToDelete({ onDelete, children }) {
+function SwipeToDelete({ onDelete, onCopy, children }) {
   const [dx, setDx] = useState(0);
   const [dragging, setDragging] = useState(false);
   const startX = useRef(0), startY = useRef(0), active = useRef(false), busy = useRef(false);
@@ -2107,7 +2104,8 @@ function SwipeToDelete({ onDelete, children }) {
     if (!active.current) return;
     const dX = e.clientX - startX.current, dY = e.clientY - startY.current;
     if (dx === 0 && Math.abs(dY) > Math.abs(dX)) { active.current = false; setDragging(false); return; } // вертикальный скролл
-    setDx(Math.max(-MAX, Math.min(0, dX)));
+    const hi = onCopy ? MAX : 0;   // вправо (копировать) — только если есть onCopy
+    setDx(Math.max(-MAX, Math.min(hi, dX)));
   };
   const up = async () => {
     if (!active.current) return; active.current = false; setDragging(false);
@@ -2115,15 +2113,24 @@ function SwipeToDelete({ onDelete, children }) {
       setDx(-MAX); busy.current = true;
       try { await onDelete(); } finally { busy.current = false; }
       setDx(0);
+    } else if (onCopy && dx >= MAX * 0.55) {
+      setDx(MAX); busy.current = true;
+      try { await onCopy(); } finally { busy.current = false; }
+      setDx(0);
     } else setDx(0);
   };
   return (
-    <div style={{ position: "relative", marginBottom: 8, borderRadius: 16, overflow: "hidden", background: "var(--coral)" }}>
+    <div style={{ position: "relative", marginBottom: 8, borderRadius: 16, overflow: "hidden", background: dx > 0 ? "var(--lime)" : "var(--coral)" }}>
       <div style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: MAX, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
         <Trash2 size={20} />
       </div>
+      {onCopy && (
+        <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: MAX, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--lime-fg)" }}>
+          <Copy size={20} />
+        </div>
+      )}
       <div onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
-        style={{ transform: `translateX(${dx}px)`, transition: dragging ? "none" : "transform .22s ease", touchAction: "pan-y" }}>
+        style={{ transform: `translateX(${dx}px)`, transition: dragging ? "none" : "transform .22s ease", touchAction: "pan-y", background: "var(--surface)" }}>
         {children}
       </div>
     </div>
@@ -2172,7 +2179,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
       </div>
       {isGroupMember && swipeHint && (games.length > 0 || tours.length > 0) && (
         <div onClick={dismissHint} style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 2px 12px", padding: "9px 12px", borderRadius: 12, background: "color-mix(in srgb, var(--coral) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--coral) 30%, transparent)", fontSize: 12.5, color: "var(--mut)", cursor: "pointer" }}>
-          <span style={{ color: "var(--coral)", fontSize: 18, fontWeight: 800, lineHeight: 1 }}>←</span> {t("swipe_hint")} <X size={14} style={{ marginLeft: "auto", color: "var(--mut)", flexShrink: 0 }} />
+          <span style={{ fontSize: 15, fontWeight: 800, lineHeight: 1, flexShrink: 0 }}><span style={{ color: "var(--coral)" }}>←</span><span style={{ color: "var(--lime)" }}>→</span></span> {t("swipe_hint")} <X size={14} style={{ marginLeft: "auto", color: "var(--mut)", flexShrink: 0 }} />
         </div>
       )}
       {filter === "games" && games.length === 0 && <EmptyState text={t("history_no_games")} />}
@@ -2181,7 +2188,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
       {filter !== "games" && tours.map((tour) => {
         const card = <TournamentCard trn={tour} color="var(--yellow)" flush={isGroupMember} onClick={() => setSel({ type: "tour", data: tour })} />;
         return isGroupMember
-          ? <SwipeToDelete key={tour.id} onDelete={async () => { if (!confirm(t("trn_delete_confirm"))) return; await deleteTournament(tour.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+          ? <SwipeToDelete key={tour.id} onCopy={groupId ? async () => { await copyTournament(tour.id, groupId, { withPlayers: true, createdBy: profileId }).catch(() => {}); bumpArchive?.(); } : null} onDelete={async () => { if (!confirm(t("trn_delete_confirm"))) return; await deleteTournament(tour.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
           : <div key={tour.id}>{card}</div>;
       })}
 
@@ -2205,7 +2212,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
           const g = grp[0];
           const card = <GameRow g={g} color="#7d9488" flush={isGroupMember} onOpen={() => setSel({ type: "game", data: g })} />;
           return isGroupMember
-            ? <SwipeToDelete key={g.id} onDelete={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(g.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+            ? <SwipeToDelete key={g.id} onCopy={groupId ? async () => { const layout = [["A",1],["A",2],["B",1],["B",2]]; const cslots = layout.map(([tm,pos]) => { const sl = (g.slots||[]).find(x => x.team===tm && x.position===pos); return sl?.profile_id ? { profileId: sl.profile_id } : (sl?.guest_name ? { guestName: sl.guest_name } : null); }); await createGame(groupId, { title: g.title, slots: cslots }).catch(() => {}); bumpArchive?.(); } : null} onDelete={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(g.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
             : <div key={g.id}>{card}</div>;
         });
       })()}
