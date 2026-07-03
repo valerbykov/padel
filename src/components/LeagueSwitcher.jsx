@@ -40,7 +40,7 @@ export default function LeagueSwitcher({ leagues, activeLeague, isAdmin, onLeagu
   const roleLabel = (r) => r === "owner" ? "★" : r === "admin" ? "⚙" : "";
 
   return (
-    <div style={{ position: "relative", minWidth: 0 }}>
+    <div style={{ position: "relative", minWidth: 0, maxWidth: 210 }}>
       <style>{`
         .ls-trigger{transition:border-color .15s, background .15s;}
         .ls-trigger:hover{border-color:color-mix(in srgb,var(--lime) 45%,transparent);}
@@ -55,7 +55,7 @@ export default function LeagueSwitcher({ leagues, activeLeague, isAdmin, onLeagu
         .ls-pop .pl-ghost{background:var(--surface2);color:var(--ink);border:1px solid var(--line);border-radius:12px;cursor:pointer;}
       `}</style>
       <button className="ls-trigger" onClick={() => { setMenu((v) => !v); setMode(false); setErr(""); }}
-        style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px 6px 7px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 999, cursor: "pointer", color: "var(--ink)", fontFamily: "'Outfit'", fontSize: 13, maxWidth: 210, minWidth: 0, overflow: "hidden" }}>
+        style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px 6px 7px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 999, cursor: "pointer", color: "var(--ink)", fontFamily: "'Outfit'", fontSize: 13, maxWidth: "100%", minWidth: 0, overflow: "hidden" }}>
         {activeLeague
           ? <LeagueLogo url={activeLeague.logo_url} name={activeLeague.name} size={26} radius={999} />
           : <span style={{ width: 26, height: 26, borderRadius: "50%", background: "color-mix(in srgb,var(--lime) 16%,transparent)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
