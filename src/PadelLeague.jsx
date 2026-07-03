@@ -1590,7 +1590,7 @@ function SlotPicker({ value, players, taken, onChange, teamLabel }) {
         <span className="pl-display" style={{ width: 24, fontSize: 12, color }}>{teamLabel}</span>
         <div className="pl-slot" style={{ flex: 1, justifyContent: "space-between" }}>
           <span>{value.label}</span>
-          <button style={{ padding: 4, border: "none", background: "none", color: "var(--mut)", cursor: "pointer" }} onClick={() => onChange(null)}><X size={14} /></button>
+          <button aria-label={t("delete_btn")} onClick={() => onChange(null)} style={{ flexShrink: 0, width: 28, height: 28, borderRadius: "50%", border: "none", background: "color-mix(in srgb, var(--coral) 16%, transparent)", color: "var(--coral)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={15} /></button>
         </div>
       </div>
     );

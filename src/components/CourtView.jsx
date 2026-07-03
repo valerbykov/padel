@@ -135,6 +135,7 @@ export default function CourtView({
 
   const addSet = () => { if (setsDetail.length < 5) setSetsDetail(prev => [...prev, { a: null, b: null }]); };
   const removeLastSet = () => { if (setsDetail.length > 1) setSetsDetail(prev => prev.slice(0, -1)); };
+  const removeSet = (i) => { if (setsDetail.length > 1) setSetsDetail((prev) => prev.filter((_, j) => j !== i)); };
 
   const saveSets = async () => {
     if (!setsValid || busy) return;
@@ -360,7 +361,7 @@ export default function CourtView({
               </div>
               <div style={{ width: 50, flexShrink: 0, display: "flex", justifyContent: "flex-end" }}>
                 {editable && !savedAlready && setsDetail.length > 1 && i === setsDetail.length - 1 && (
-                  <button className="cv-setbtn" onClick={removeLastSet} aria-label={t("delete_btn")} style={{ width: 28, height: 28, borderRadius: 8, border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--coral)", cursor: "pointer", fontSize: 14, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+                  <button onClick={() => removeSet(i)} aria-label={t("delete_btn")} style={{ width: 28, height: 28, borderRadius: "50%", border: "none", background: "color-mix(in srgb, var(--coral) 16%, transparent)", color: "var(--coral)", cursor: "pointer", fontSize: 14, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
                 )}
               </div>
             </div>
