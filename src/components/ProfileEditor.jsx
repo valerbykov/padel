@@ -156,9 +156,12 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
     if (!userId) return;
     setBusy(true); setMsg(null);
     try {
+      // profiles.name — NOT NULL. Если имя/фамилия пустые (напр. вход по SMS),
+      // подставляем телефон / префикс email / запасное имя, иначе БД отклонит апдейт.
+      const safeName = fullName || phone.trim() || (email ? email.split("@")[0] : "") || t("pc_name_fallback");
       const { error } = await supabase.from("profiles").update({
         first_name: firstName || null, last_name: lastName || null,
-        name: fullName || null, phone: phone || null, avatar_url: avatarUrl || null,
+        name: safeName, phone: phone || null, avatar_url: avatarUrl || null,
         contacts: { whatsapp: whatsapp.trim() || undefined, telegram: telegram.trim() || undefined },
       }).eq("user_id", userId);
       if (error) throw error;

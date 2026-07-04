@@ -7,7 +7,7 @@ import TelegramLogin from "./TelegramLogin";
 import { Send, Mail, Phone, Check, AlertCircle, Sun, Moon, ArrowLeft } from "lucide-react";
 import Logo from "./Logo";
 import { t, setLang } from "../lib/i18n";
-import { signInGoogle as authSignInGoogle, signInYandex } from "../lib/auth";
+import { signInGoogle as authSignInGoogle, signInYandex, signInApple as authSignInApple } from "../lib/auth";
 import { isRussiaSync, detectRegion } from "../lib/region";
 import { authRedirectTo } from "../lib/platform";
 
@@ -55,6 +55,7 @@ const emailOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark", lang = "ru", onThemeToggle, onLangChange }) {
   const [method, setMethod] = useState("email"); // telegram | email | sms — по умолчанию email
   const [isRF, setIsRF] = useState(isRussiaSync()); // РФ → скрываем Google (закон об авторизации)
+  const isIOS = typeof window !== "undefined" && window.Capacitor?.getPlatform?.() === "ios"; // Sign in with Apple — только iOS
   useEffect(() => { detectRegion().then(setIsRF); }, []);
   useEffect(() => { if (isRF && method === "telegram") setMethod("email"); }, [isRF, method]);
   const [email, setEmail] = useState("");
@@ -75,6 +76,13 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
       // общая логика: web -> origin, нативка -> системный браузер + deep link
       await authSignInGoogle();
     } catch (e) { setMsg({ kind: "err", text: e.message }); }
+  };
+
+  // Apple: показываем только на iOS и вне РФ (в РФ вход по Apple ID недоступен).
+  const signInApple = async () => {
+    reset();
+    try { await authSignInApple(); }
+    catch (e) { setMsg({ kind: "err", text: e.message }); }
   };
 
   // ----- Email magic-link -----
@@ -161,6 +169,13 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
               <span style={{ color: "#4285F4" }}>G</span><span style={{ color: "#EA4335" }}>o</span><span style={{ color: "#FBBC05" }}>o</span><span style={{ color: "#4285F4" }}>g</span><span style={{ color: "#34A853" }}>l</span><span style={{ color: "#EA4335" }}>e</span>
             </span>
             {t("login_google")}
+          </button>
+          )}
+
+          {!isRF && isIOS && (
+          <button className="lg-oauth" onClick={signInApple} style={{ background: "#000", color: "#fff", border: "none", marginTop: 10 }}>
+            <svg viewBox="0 0 384 512" width="17" height="17" fill="#fff" aria-hidden="true"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+            {t("login_apple")}
           </button>
           )}
 

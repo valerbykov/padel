@@ -53,6 +53,29 @@ export async function signInGoogle() {
   return data;
 }
 
+// Вход через Apple (обязателен на iOS по правилу App Store 4.8, т.к. есть Google).
+// Тот же путь, что Google: нативка — системный браузер + возврат по deep link.
+export async function signInApple() {
+  const redirectTo = authRedirectTo();
+  if (isNativeApp()) {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "apple",
+      options: { redirectTo, skipBrowserRedirect: true },
+    });
+    if (error) throw error;
+    const Browser = capPlugin("Browser");
+    if (Browser && data?.url) await Browser.open({ url: data.url });
+    else if (data?.url) window.location.href = data.url;
+    return data;
+  }
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "apple",
+    options: { redirectTo },
+  });
+  if (error) throw error;
+  return data;
+}
+
 // Обработка возврата по deep link (padelapp://login-callback?...).
 // Вызывается из слушателя appUrlOpen в App.jsx. Поддерживает PKCE (?code=)
 // и implicit-поток (#access_token=). Возвращает true, если сессия установлена.
