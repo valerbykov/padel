@@ -25,11 +25,13 @@ begin
       nullif(trim(concat_ws(' ',
         new.raw_user_meta_data->>'first_name',
         new.raw_user_meta_data->>'last_name')), ''),
-      split_part(new.email, '@', 1)
+      nullif(split_part(coalesce(new.email, ''), '@', 1), ''),
+      new.phone,                       -- регистрация по телефону: имени/почты нет
+      'Игрок'                          -- крайний фолбэк, т.к. profiles.name NOT NULL
     ),
     new.raw_user_meta_data->>'first_name',
     new.raw_user_meta_data->>'last_name',
-    new.raw_user_meta_data->>'phone',
+    coalesce(new.raw_user_meta_data->>'phone', new.phone),
     new.email
   );
   return new;

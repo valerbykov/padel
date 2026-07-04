@@ -6,7 +6,7 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
-import { Camera, Check, Loader, LogOut, BarChart3, Sun, Moon, X, Bell } from "lucide-react";
+import { Camera, Check, Loader, LogOut, BarChart3, Sun, Moon, X, Bell, Trash2 } from "lucide-react";
 import Avatar from "./Avatar";
 import { t, setLang } from "../lib/i18n";
 import { getNotifPrefs, saveNotifPrefs, registerPush, OFFSET_OPTIONS } from "../lib/notifications";
@@ -64,6 +64,8 @@ const css = `
 .pc-seg{display:flex;gap:3px;background:var(--surface2);border:1px solid var(--line);border-radius:11px;padding:3px;}
 .pc-seg button{border:none;background:none;color:var(--mut);padding:6px 13px;border-radius:8px;cursor:pointer;font-family:'Outfit';font-weight:700;font-size:13px;transition:background .12s,color .12s;}
 .pc-seg button.on{background:var(--lime);color:var(--lime-fg);}
+.pc-save{background:var(--lime)!important;color:var(--lime-fg)!important;border:none!important;}
+.pc-save:hover{filter:brightness(1.05);}
 `;
 
 export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpenStats, lang = "ru", onThemeToggle, onLangChange }) {
@@ -82,6 +84,9 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
   const [telegram, setTelegram] = useState("");
   const [provider, setProvider] = useState(null);
   const [notif, setNotif] = useState({ enabled: false, offsets: [] });
+  const [confirmDel, setConfirmDel] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [delMsg, setDelMsg] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -165,6 +170,19 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
 
   const signOut = async () => { try { await supabase.auth.signOut(); } catch (e) {} onClose?.(); };
 
+  const deleteAccount = async () => {
+    setDeleting(true); setDelMsg("");
+    try {
+      const { error } = await supabase.functions.invoke("delete-account");
+      if (error) throw error;
+      try { await supabase.auth.signOut(); } catch (e) {}
+      onClose?.();
+    } catch (err) {
+      setDelMsg(`${t("pc_delete_fail")}: ${err.message || err}`);
+      setDeleting(false);
+    }
+  };
+
   const prov = provider ? (AUTH_PROVIDERS[provider] || { label: t("pc_auth_email"), icon: "@", color: "var(--mut)" }) : null;
 
   return createPortal(
@@ -176,7 +194,14 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
         {/* Шапка: заголовок + явный крестик */}
         <div className="pc-head">
           <h2 className="pc-title">{t("pc_title")}</h2>
-          <button className="pc-close" onClick={onClose} aria-label={t("back")}><X size={18} /></button>
+          <div style={{ display: "flex", gap: 8 }}>
+            {userId && !loading && (
+              <button className="pc-close pc-save" onClick={save} disabled={busy} aria-label={t("pc_save")} title={t("pc_save")}>
+                {busy ? <Loader size={18} /> : <Check size={18} />}
+              </button>
+            )}
+            <button className="pc-close" onClick={onClose} aria-label={t("back")}><X size={18} /></button>
+          </div>
         </div>
 
         <div className="pc-body">
@@ -237,10 +262,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
                 <div><div className="pc-label">{t("pc_email")}</div><input className="pc-input" value={email} disabled /></div>
               </div>
 
-              <button className="pc-btn" style={{ width: "100%", padding: 14, fontSize: 16, marginTop: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} disabled={busy} onClick={save}>
-                <Check size={18} /> {busy ? t("pc_saving") : t("pc_save")}
-              </button>
-              {msg && <div style={{ textAlign: "center", marginTop: 10, fontSize: 13, color: msg.ok ? "var(--lime)" : "var(--coral)" }}>{msg.text}{msg.ok ? " ✓" : ""}</div>}
+              {msg && <div style={{ textAlign: "center", marginTop: 12, fontSize: 13, color: msg.ok ? "var(--lime)" : "var(--coral)" }}>{msg.text}{msg.ok ? " ✓" : ""}</div>}
 
               {onOpenStats && (
                 <button className="pc-ghost" style={{ width: "100%", padding: 12, marginTop: 10, color: "var(--lime)", borderColor: "color-mix(in srgb, var(--lime) 35%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={onOpenStats}>
@@ -296,13 +318,32 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
                 )}
               </div>
 
-              <button className="pc-ghost" style={{ width: "100%", padding: 12, marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--coral)", borderColor: "color-mix(in srgb, var(--coral) 30%, transparent)" }} onClick={signOut}>
-                <LogOut size={15} /> {t("sign_out")}
+              <button className="pc-ghost" style={{ width: "100%", padding: 12, marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={signOut}>
+                <LogOut size={15} style={{ color: "var(--mut)" }} /> {t("sign_out")}
+              </button>
+
+              <button className="pc-ghost" style={{ width: "100%", padding: 12, marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontWeight: 800, background: "color-mix(in srgb, var(--coral) 10%, transparent)", color: "var(--coral)", borderColor: "color-mix(in srgb, var(--coral) 45%, transparent)" }} onClick={() => { setDelMsg(""); setConfirmDel(true); }}>
+                <Trash2 size={15} /> {t("pc_delete_account")}
               </button>
             </>
           )}
         </div>
       </div>
+      {confirmDel && (
+        <div onClick={(e) => { e.stopPropagation(); if (!deleting) setConfirmDel(false); }}
+          style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, boxSizing: "border-box" }}>
+          <div onClick={(e) => e.stopPropagation()}
+            style={{ width: "100%", maxWidth: 320, background: "var(--bg)", border: "1px solid color-mix(in srgb, var(--coral) 40%, transparent)", borderRadius: 18, padding: 18 }}>
+            <div className="pc-d" style={{ fontSize: 17, marginBottom: 6 }}>{t("pc_delete_title")}</div>
+            <div style={{ color: "var(--mut)", fontSize: 13, lineHeight: 1.5, marginBottom: 14 }}>{t("pc_delete_warn")}</div>
+            {delMsg && <div style={{ color: "var(--coral)", fontSize: 13, marginBottom: 10 }}>{delMsg}</div>}
+            <div style={{ display: "flex", gap: 9 }}>
+              <button className="pc-ghost" style={{ flex: 1, padding: 10 }} disabled={deleting} onClick={() => setConfirmDel(false)}>{t("cancel")}</button>
+              <button className="pc-btn" style={{ flex: 1, padding: 10, background: "var(--coral)", color: "var(--lime-fg)" }} disabled={deleting} onClick={deleteAccount}>{deleting ? t("pc_deleting") : t("pc_delete_confirm")}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>,
     document.body
   );
