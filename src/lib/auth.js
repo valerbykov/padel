@@ -3,6 +3,19 @@
 import { supabase } from "./supabase";
 import { authRedirectTo, isNativeApp, capPlugin, NATIVE_REDIRECT } from "./platform";
 
+// --- nonce для нативного Sign in with Apple (Apple хранит SHA256(nonce) в токене,
+//     Supabase сверяет с raw nonce) ---
+function randomNonce(len = 32) {
+  const cs = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const bytes = new Uint8Array(len);
+  (globalThis.crypto || window.crypto).getRandomValues(bytes);
+  return Array.from(bytes, (b) => cs[b % cs.length]).join("");
+}
+async function sha256hex(str) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 /* ---------- регистрация / вход ---------- */
 
 // Регистрация по email. name попадёт в метаданные и далее в profiles (через триггер).
@@ -56,6 +69,23 @@ export async function signInGoogle() {
 // Вход через Apple (обязателен на iOS по правилу App Store 4.8, т.к. есть Google).
 // Тот же путь, что Google: нативка — системный браузер + возврат по deep link.
 export async function signInApple() {
+  // iOS: нативная шторка Apple (без Safari) — быстрый UX и «правильный» путь для App Store.
+  const platform = typeof window !== "undefined" && window.Capacitor?.getPlatform?.();
+  const SignInWithApple = capPlugin("SignInWithApple");
+  if (isNativeApp() && platform === "ios" && SignInWithApple) {
+    const rawNonce = randomNonce();
+    const hashedNonce = await sha256hex(rawNonce);
+    const res = await SignInWithApple.authorize({ scopes: "email name", nonce: hashedNonce });
+    const idToken = res?.response?.identityToken;
+    if (!idToken) throw new Error("Apple: не получен identity token");
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: "apple", token: idToken, nonce: rawNonce,
+    });
+    if (error) throw error;
+    return data;
+  }
+
+  // Веб/Android/фолбэк: OAuth через системный браузер.
   const redirectTo = authRedirectTo();
   if (isNativeApp()) {
     const { data, error } = await supabase.auth.signInWithOAuth({
