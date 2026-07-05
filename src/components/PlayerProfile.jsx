@@ -7,6 +7,7 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { ArrowLeft, Camera, Check, Loader, LogOut, BarChart3 } from "lucide-react";
 import Avatar from "./Avatar";
+import BackButton from "./BackButton";
 import { t } from "../lib/i18n";
 
 const PRESETS = Array.from({ length: 15 }, (_, i) => `/avatars/dog-${String(i + 1).padStart(2, "0")}.png`);
@@ -104,7 +105,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
     <div className={"pc-root" + (theme === "light" ? " pc-light" : "")}>
       <style>{css}</style>
       <div style={{ maxWidth: 460, margin: "0 auto", padding: "calc(20px + env(safe-area-inset-top)) 16px 40px" }}>
-        <button className="pc-ghost" style={{ padding: "6px 12px", marginBottom: 16, display: "inline-flex", alignItems: "center", gap: 6 }} onClick={onClose}><ArrowLeft size={14} /> {t("back")}</button>
+        <BackButton onClick={onClose} style={{ marginBottom: 16 }} />
         <h1 className="pc-d" style={{ fontSize: 26, marginBottom: 16 }}>{t("pc_title")}</h1>
 
         {loading ? (

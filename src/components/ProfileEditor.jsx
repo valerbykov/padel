@@ -38,7 +38,7 @@ const css = `
 .pc-title{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;font-size:20px;margin:0;color:var(--ink);}
 .pc-close{width:36px;height:36px;border-radius:50%;background:var(--surface2);border:1px solid var(--line);color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .12s,border-color .12s,color .12s;}
 .pc-close:hover{background:color-mix(in srgb,var(--coral) 15%,var(--surface2));border-color:color-mix(in srgb,var(--coral) 45%,transparent);color:var(--coral);}
-.pc-body{overflow-y:auto;padding:20px;flex:1;-webkit-overflow-scrolling:touch;}
+.pc-body{overflow-y:auto;overscroll-behavior:contain;padding:20px;flex:1;-webkit-overflow-scrolling:touch;}
 .pc-d{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;color:var(--ink);}
 .pc-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;}
 .pc-camera{position:absolute;right:-3px;bottom:-3px;width:32px;height:32px;border-radius:50%;background:var(--lime);color:var(--lime-fg);border:3px solid var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:filter .12s;}

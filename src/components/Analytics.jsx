@@ -8,6 +8,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { getGroupAnalytics } from "../lib/statsApi";
 import { Swords, CalendarDays, Flame, ArrowLeft } from "lucide-react";
 import { t, nGames, currentLang } from "../lib/i18n";
+import BackButton from "./BackButton";
 
 const getLocale = () => ({ ru: "ru-RU", en: "en-US", es: "es-ES" }[currentLang] || undefined);
 const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -99,11 +100,7 @@ export default function Analytics({ groupId, onBack, players = [], onOpenPlayer 
       <style>{`.an-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;}.an-tile{flex:1;text-align:center;min-width:0;padding:12px 8px;}.an-display{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-.3px;}`}</style>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-        {onBack && (
-          <button className="pl-ghost" style={{ padding: "6px 12px" }} onClick={onBack}>
-            <ArrowLeft size={14} style={{ display: "inline", marginRight: 4 }} />{t("back")}
-          </button>
-        )}
+        {onBack && <BackButton onClick={onBack} />}
         <h1 className="an-display" style={{ fontSize: 24, margin: 0 }}>{t("an_title")}</h1>
       </div>
 

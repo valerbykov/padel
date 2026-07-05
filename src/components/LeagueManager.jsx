@@ -78,7 +78,7 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
   // (.pl-pop с анимацией) и «уезжает» вместе с нижней навигацией.
   return createPortal(
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-end", justifyContent: "center", fontFamily: "'Outfit',sans-serif" }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 460, maxHeight: "92vh", overflowY: "auto", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "20px 20px 0 0", padding: 18, paddingBottom: "max(18px, env(safe-area-inset-bottom))", boxShadow: "0 -8px 40px rgba(0,0,0,.5)" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 460, maxHeight: "92vh", overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "20px 20px 0 0", padding: 18, paddingBottom: "max(18px, env(safe-area-inset-bottom))", boxShadow: "0 -8px 40px rgba(0,0,0,.5)" }}>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
           <div style={{ fontWeight: 800, fontSize: 17, color: "var(--ink)" }}>{t("league_manage")}</div>
           <button onClick={onClose} aria-label="✕" style={{ marginLeft: "auto", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 10, color: "var(--mut)", cursor: "pointer", padding: 6, display: "flex" }}><X size={16} /></button>

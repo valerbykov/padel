@@ -52,6 +52,7 @@ import Avatar from "./Avatar";
 import EmptyState from "./EmptyState";
 import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Share2, Trash2, Plus, Check, Calendar, MapPin } from "lucide-react";
 import { t as tr } from "../lib/i18n";
+import BackButton from "./BackButton";
 const nowLocalDT = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
 
 export const css = `
@@ -431,9 +432,7 @@ function Create({ groupId, profileId, back, open }) {
     return (
       <div className="tr-root">
         <style>{css}</style>
-        <button className="tr-ghost" style={{ padding: "6px 12px", marginBottom: 14 }} onClick={back}>
-          <ArrowLeft size={14} /> {tr("back")}
-        </button>
+        <BackButton onClick={back} style={{ marginBottom: 14 }} />
         <div className="tr-d" style={{ fontSize: 22, marginBottom: 4 }}>{tr("trn_pick_format")}</div>
         <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 16, lineHeight: 1.5 }}>
           {tr("trn_pick_format_sub")}
@@ -622,7 +621,7 @@ function SwipeRow({ onDelete, children }) {
     else setDx(0);
   };
   return (
-    <div style={{ position: "relative", borderRadius: 10, overflow: "hidden", background: "var(--coral)" }}>
+    <div style={{ position: "relative", borderRadius: 16, overflow: "hidden", background: "var(--coral)" }}>
       <div style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: MAX, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
         <Trash2 size={16} />
       </div>
@@ -881,9 +880,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     <div className="tr-root">
       <style>{css}</style>
       {back && (
-        <button className="tr-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={back}>
-          <ArrowLeft size={14} /> {tr("trn_to_list")}
-        </button>
+        <BackButton onClick={back} label={tr("trn_to_list")} style={{ marginBottom: 12 }} />
       )}
 
       {/* Header */}

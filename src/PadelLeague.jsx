@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "./lib/supabase";
+import BackButton from "./components/BackButton";
 import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames } from "./lib/padelApi";
 import { bustCache } from "./lib/cache";
 import { getRatingHistory } from "./lib/statsApi";
@@ -334,7 +335,7 @@ function SwipeRow({ onRemove, onOrganize, organizerActive, onTap, leftLabel, lef
   };
   const actBtn = { position: "absolute", top: 0, bottom: 0, width: 104, border: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontSize: 11, fontWeight: 700 };
   return (
-    <div style={{ position: "relative", marginBottom: 8, borderRadius: 16, overflow: "hidden" }}>
+    <div style={{ position: "relative", marginBottom: 8, borderRadius: 18, overflow: "hidden" }}>
       {RIGHT > 0 && (
         <button type="button" onClick={() => { snapped.current = 0; setDx(0); onOrganize(); }} style={{ ...actBtn, left: 0, background: "var(--lime)", color: "var(--lime-fg)" }}>
           <ShieldCheck size={16} /> {organizerActive ? t("unset_organizer_short") : t("set_organizer_short")}
@@ -699,7 +700,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
       {/* Форма добавления — модалка-лист (портал в body), всегда видна, даже при длинном списке. */}
       {groupId && open && createPortal(
         <div onClick={() => { setQuery(""); setOpen(false); }} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-end", justifyContent: "center", fontFamily: "'Outfit',sans-serif" }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 460, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "20px 20px 0 0", padding: 16, paddingBottom: "max(16px, env(safe-area-inset-bottom))", boxShadow: "0 -8px 40px rgba(0,0,0,.5)", maxHeight: "85vh", overflowY: "auto" }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 460, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "20px 20px 0 0", padding: 16, paddingBottom: "max(16px, env(safe-area-inset-bottom))", boxShadow: "0 -8px 40px rgba(0,0,0,.5)", maxHeight: "85vh", overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <span style={{ fontWeight: 700, fontSize: 15, color: "var(--ink)" }}>{t("add_player_form_title")}</span>
               <button className="pl-ghost" style={{ padding: "2px 8px" }} onClick={() => { setQuery(""); setOpen(false); }}><X size={16} /></button>
@@ -1189,9 +1190,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
   return (
     <div className="pl-pop">
       <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center" }}>
-        <button className="pl-ghost" style={{ padding: "6px 12px" }} onClick={close}>
-          <ArrowLeft size={14} style={{ display: "inline", marginRight: 4 }} />{t("back")}
-        </button>
+        <BackButton onClick={close} />
         {onEditProfile && myId && myId === player.id && (
           <button className="pl-ghost" style={{ padding: "6px 12px", marginLeft: "auto", color: "var(--lime)", borderColor: "color-mix(in srgb, var(--lime) 35%, transparent)" }} onClick={onEditProfile}>
             {t("pc_title")}
@@ -1778,7 +1777,7 @@ function CreateGame({ groupId, players, profileId, back, done }) {
   if (step === "info") {
     return (
       <div className="pl-pop">
-        <button className="pl-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={back}>← {t("back")}</button>
+        <BackButton onClick={back} style={{ marginBottom: 12 }} />
         {stepBadge(t("game_step1"))}
         <div className="pl-card" style={{ padding: 14, marginBottom: 12, display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
@@ -1809,7 +1808,7 @@ function CreateGame({ groupId, players, profileId, back, done }) {
   // ── Шаг 2: игроки ─────────────────────────────────────────────────────────
   return (
     <div className="pl-pop">
-      <button className="pl-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={() => setStep("info")}>← {t("back")}</button>
+      <BackButton onClick={() => setStep("info")} style={{ marginBottom: 12 }} />
       {stepBadge(t("game_step2"))}
       <div className="pl-card" style={{ padding: "12px 14px", marginBottom: 12 }}>
         <div style={{ fontWeight: 600, fontSize: 15 }}>{title || t("game_default_name")}</div>
@@ -2126,7 +2125,7 @@ function SwipeToDelete({ onDelete, onCopy, children }) {
     } else setDx(0);
   };
   return (
-    <div style={{ position: "relative", marginBottom: 8, borderRadius: 16, overflow: "hidden", background: dx > 0 ? "var(--lime)" : "var(--coral)" }}>
+    <div style={{ position: "relative", marginBottom: 8, borderRadius: 18, overflow: "hidden", background: dx > 0 ? "var(--lime)" : "var(--coral)" }}>
       <div style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: MAX, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
         <Trash2 size={20} />
       </div>

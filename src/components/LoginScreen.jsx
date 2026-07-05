@@ -6,6 +6,7 @@ import { supabase } from "../lib/supabase";
 import TelegramLogin from "./TelegramLogin";
 import { Send, Mail, Phone, Check, AlertCircle, Sun, Moon, ArrowLeft } from "lucide-react";
 import Logo from "./Logo";
+import BackButton from "./BackButton";
 import { t, setLang } from "../lib/i18n";
 import { signInGoogle as authSignInGoogle, signInYandex, signInApple as authSignInApple } from "../lib/auth";
 import { isRussiaSync, detectRegion } from "../lib/region";
@@ -141,11 +142,7 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
 
       {/* Top bar */}
       <div className="lg-topbar">
-        {onBack ? (
-          <button className="lg-iconbtn" onClick={onBack} style={{ fontSize: 13, padding: "6px 12px" }}>
-            <ArrowLeft size={14} /> {t("back")}
-          </button>
-        ) : <span />}
+        {onBack ? <BackButton onClick={onBack} /> : <span />}
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           <button className="lg-iconbtn" onClick={() => { const o = ["ru", "en", "es"]; handleLang(o[(o.indexOf(lang) + 1) % o.length]); }} style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {lang.toUpperCase()} <span style={{ opacity: .6, fontWeight: 400 }}>↻</span>
