@@ -53,10 +53,15 @@ async function ensureGoogleInit(Social) {
 }
 
 export async function signInGoogle() {
-  // iOS: нативный Google (capgo social-login) → idToken → Supabase, без Safari.
+  // iOS + Android: нативный Google (capgo social-login) → idToken → Supabase, без браузера.
+  // iOS использует iOSClientId, Android — webClientId (serverClientId).
   const platform = typeof window !== "undefined" && window.Capacitor?.getPlatform?.();
   const Social = capPlugin("SocialLogin");
-  if (isNativeApp() && platform === "ios" && Social && import.meta.env.VITE_GOOGLE_IOS_CLIENT_ID) {
+  const nativeGoogleOk = isNativeApp() && Social && (
+    (platform === "ios" && import.meta.env.VITE_GOOGLE_IOS_CLIENT_ID) ||
+    (platform === "android" && import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID)
+  );
+  if (nativeGoogleOk) {
     await ensureGoogleInit(Social);
     const res = await Social.login({ provider: "google", options: { scopes: ["email", "profile"] } });
     const idToken = res?.result?.idToken;
