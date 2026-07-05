@@ -40,7 +40,32 @@ export async function signInEmail(email, password) {
 // Нативка (Capacitor): Google запрещает вход во встроенном webview, поэтому
 // открываем системный браузер, а возврат ловим по deep link в App.jsx
 // (см. handleAuthCallbackUrl).
+let _googleInited = false;
+async function ensureGoogleInit(Social) {
+  if (_googleInited) return;
+  await Social.initialize({
+    google: {
+      iOSClientId: import.meta.env.VITE_GOOGLE_IOS_CLIENT_ID,
+      webClientId: import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID,
+    },
+  });
+  _googleInited = true;
+}
+
 export async function signInGoogle() {
+  // iOS: нативный Google (capgo social-login) → idToken → Supabase, без Safari.
+  const platform = typeof window !== "undefined" && window.Capacitor?.getPlatform?.();
+  const Social = capPlugin("SocialLogin");
+  if (isNativeApp() && platform === "ios" && Social && import.meta.env.VITE_GOOGLE_IOS_CLIENT_ID) {
+    await ensureGoogleInit(Social);
+    const res = await Social.login({ provider: "google", options: { scopes: ["email", "profile"] } });
+    const idToken = res?.result?.idToken;
+    if (!idToken) throw new Error("Google: не получен idToken");
+    const { data, error } = await supabase.auth.signInWithIdToken({ provider: "google", token: idToken });
+    if (error) throw error;
+    return data;
+  }
+
   const redirectTo = authRedirectTo();
 
   if (isNativeApp()) {
