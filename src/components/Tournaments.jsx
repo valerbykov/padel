@@ -449,9 +449,7 @@ function Create({ groupId, profileId, back, open }) {
   return (
     <div className="tr-root">
       <style>{css}</style>
-      <button className="tr-ghost" style={{ padding: "6px 12px", marginBottom: 12 }} onClick={() => setStep("format")}>
-        <ArrowLeft size={14} /> {tr("trn_change_format")}
-      </button>
+      <BackButton onClick={() => setStep("format")} label={tr("trn_change_format")} style={{ marginBottom: 12 }} />
 
       <div className="tr-card" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {/* Selected format badge */}

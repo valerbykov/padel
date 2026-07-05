@@ -2009,7 +2009,7 @@ function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArc
     return (
       <div className="pl-pop">
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          {back && <button className="pl-ghost" style={{ padding: "6px 12px" }} onClick={back}>{t("to_list")}</button>}
+          {back && <BackButton onClick={back} label={t("to_list")} />}
         </div>
         {list.length > 1 && (
           <div className="pl-display" style={{ fontSize: 18, margin: "0 2px 12px", display: "flex", alignItems: "center", gap: 8 }}>
@@ -2042,7 +2042,7 @@ function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArc
   return (
     <div className="pl-pop">
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        {back && <button className="pl-ghost" style={{ padding: "6px 12px" }} onClick={back}>{t("to_list")}</button>}
+        {back && <BackButton onClick={back} label={t("to_list")} />}
         <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(game.id); bumpArchive && bumpArchive(); reloadGames && reloadGames(); back && back(); }} title={t("delete_btn")}><Trash2 size={14} /></button>
       </div>
       <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
