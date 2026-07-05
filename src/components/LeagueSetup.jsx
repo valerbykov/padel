@@ -2,6 +2,7 @@ import { useState } from "react";
 import Logo from "./Logo";
 import { createLeague, joinLeague } from "../lib/padelApi";
 import { t } from "../lib/i18n";
+import BackButton from "./BackButton";
 
 /**
  * Экран первичной настройки.
@@ -113,7 +114,7 @@ export default function LeagueSetup({ onDone, initialMode = null, initialCode = 
           {busy ? t("creating") : t("ls_create_btn")}
         </button>
       </div>
-      <button style={s.back} onClick={() => { setMode(null); setErr(""); }}>{t("ls_back")}</button>
+      <BackButton onClick={() => { setMode(null); setErr(""); }} label={t("ls_back")} />
     </div>
   );
 
@@ -138,7 +139,7 @@ export default function LeagueSetup({ onDone, initialMode = null, initialCode = 
           {busy ? t("creating") : t("ls_join_btn")}
         </button>
       </div>
-      <button style={s.back} onClick={() => { setMode(null); setErr(""); }}>{t("ls_back")}</button>
+      <BackButton onClick={() => { setMode(null); setErr(""); }} label={t("ls_back")} />
     </div>
   );
 }
