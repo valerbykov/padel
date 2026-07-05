@@ -63,7 +63,10 @@ export async function signInGoogle() {
   );
   if (nativeGoogleOk) {
     await ensureGoogleInit(Social);
-    const res = await Social.login({ provider: "google", options: { scopes: ["email", "profile"] } });
+    // На Android передача scopes включает серверный флоу (требует правки MainActivity),
+    // а нам нужен только idToken (email/профиль уже в нём). Поэтому scopes — только для iOS.
+    const loginOptions = platform === "ios" ? { scopes: ["email", "profile"] } : {};
+    const res = await Social.login({ provider: "google", options: loginOptions });
     const idToken = res?.result?.idToken;
     if (!idToken) throw new Error("Google: не получен idToken");
     const { data, error } = await supabase.auth.signInWithIdToken({ provider: "google", token: idToken });
