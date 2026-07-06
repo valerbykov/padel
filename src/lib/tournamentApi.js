@@ -10,7 +10,7 @@ export const tournamentLink = (code) => `${window.location.origin}/t/${code}`;
 
 const T_SELECT =
   "id, invite_code, name, format, points_per_game, target_size, status, court_names, koth_champion_rule, created_by, created_at, starts_at, place, " +
-  "players:tournament_players(id, profile_id, name, created_at), " +
+  "players:tournament_players(id, profile_id, name, created_at, profile:profiles(name, avatar_url)), " +
   "matches:tournament_matches(id, round_number, court, team_a, team_b, score_a, score_b)";
 
 export async function createTournament(groupId, { name, pointsPerGame = 32, targetSize = 8, createdBy, format = "americano", startsAt, place, kotHChampionRule } = {}) {
@@ -55,12 +55,21 @@ export async function copyTournament(srcId, groupId, { name, withPlayers = true,
   return trn;
 }
 
+// У зарегистрированных игроков имя в tournament_players.name — снимок на момент
+// вступления. Показываем актуальное имя из профиля (для гостей — сохранённое).
+function withLiveNames(t) {
+  if (t && Array.isArray(t.players)) {
+    t.players = t.players.map((p) => (p.profile?.name ? { ...p, name: p.profile.name } : p));
+  }
+  return t;
+}
+
 async function _listTournaments(groupId) {
   let q = supabase.from("tournaments").select(T_SELECT).order("created_at", { ascending: false }).limit(100);
   if (groupId) q = q.eq("group_id", groupId);
   const { data, error } = await q;
   if (error) throw error;
-  return data || [];
+  return (data || []).map(withLiveNames);
 }
 export function listTournaments(groupId) {
   return swr("tours:" + (groupId || "_"), () => _listTournaments(groupId));
@@ -78,7 +87,7 @@ export function listMyTournaments() { return swr("my_tours", _listMyTournaments)
 export async function getTournament(id) {
   const { data, error } = await supabase.from("tournaments").select(T_SELECT).eq("id", id).single();
   if (error) throw error;
-  return data;
+  return withLiveNames(data);
 }
 
 export async function addTournamentPlayer(tournamentId, { profileId = null, name }) {
