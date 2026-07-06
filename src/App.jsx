@@ -8,6 +8,7 @@ import { handleAuthCallbackUrl, handleYandexCallback } from "./lib/auth";
 import Avatar from "./components/Avatar";
 import Logo from "./components/Logo"; // текстовый логотип в топбаре для гостя
 import LeagueSwitcher from "./components/LeagueSwitcher"; // глобальный переключатель лиги в топбаре
+import NotificationBell from "./components/NotificationBell"; // колокольчик уведомлений (новые игры/турниры лиг)
 import { LogIn, Sun, Moon } from "lucide-react";
 import { getMyLeagues } from "./lib/padelApi";
 import { t, setLang, applyLang, LANGS, LANG_LABELS, currentLang } from "./lib/i18n";
@@ -431,18 +432,23 @@ function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme
           : <span onClick={() => window.location.assign("/")} style={{ cursor: "pointer", display: "inline-flex" }} title={t("pub_to_app")}><Logo height={20} /></span>}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-        {/* lang + theme — единая группа-сегмент */}
+        {/* Сегмент: тема (всегда) + язык (только гостям — у залогиненных язык в ЛК,
+            освобождаем место под колокольчик). */}
         <div style={{ display: "flex", gap: 4, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, padding: 3 }}>
-          <button className="tb-btn" onClick={() => { const o = ["ru","en","es"]; onLangChange?.(o[(o.indexOf(lang) + 1) % o.length]); }}
-            title="RU / EN / ES"
-            style={{ border: "none", background: "none", color: "var(--ink)", padding: "5px 9px", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 5, borderRadius: 9, cursor: "pointer", fontFamily: "'Outfit',sans-serif" }}>
-            {lang.toUpperCase()} <span style={{ color: "var(--mut)", fontWeight: 400, fontSize: 13 }}>↻</span>
-          </button>
+          {!session && (
+            <button className="tb-btn" onClick={() => { const o = ["ru","en","es"]; onLangChange?.(o[(o.indexOf(lang) + 1) % o.length]); }}
+              title="RU / EN / ES"
+              style={{ border: "none", background: "none", color: "var(--ink)", padding: "5px 9px", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 5, borderRadius: 9, cursor: "pointer", fontFamily: "'Outfit',sans-serif" }}>
+              {lang.toUpperCase()} <span style={{ color: "var(--mut)", fontWeight: 400, fontSize: 13 }}>↻</span>
+            </button>
+          )}
           <button className="tb-btn" onClick={onThemeToggle} aria-label={t("aria_theme")} title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
             style={{ border: "none", background: "none", color: "var(--mut)", display: "flex", alignItems: "center", padding: "5px 8px", borderRadius: 9, cursor: "pointer" }}>
             {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
           </button>
         </div>
+        {/* Колокольчик уведомлений — только для залогиненных с лигами */}
+        {session && <NotificationBell leagues={leagues} activeLeague={activeLeague} />}
         {/* СПРАВА: профиль (только иконка) для залогиненного, иначе «Войти» */}
         {session ? (
           <button onClick={onProfile} className="tb-profile" aria-label={name || "Профиль"} title={name || "Профиль"}
