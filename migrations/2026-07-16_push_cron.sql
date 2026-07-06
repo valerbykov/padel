@@ -17,7 +17,7 @@ select cron.schedule(
     url     := 'https://ofewhhcwswjxvlqsygxu.supabase.co/functions/v1/send-due-reminders',
     headers := jsonb_build_object(
       'content-type', 'application/json',
-      'x-cron-secret', 'SsBb'
+      'x-cron-secret', '<CRON_SECRET>'
     ),
     body    := '{}'::jsonb
   );

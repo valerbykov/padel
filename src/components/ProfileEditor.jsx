@@ -139,8 +139,17 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
   };
 
   const setNotifState = async (next) => {
-    setNotif(next);
-    try { await saveNotifPrefs(next); if (next.enabled) await registerPush(); } catch (e) { /* ignore */ }
+    const prev = notif;
+    setNotif(next); // оптимистично
+    try {
+      await saveNotifPrefs(next);
+      if (next.enabled) await registerPush();
+    } catch (e) {
+      // Не удалось сохранить — откатываем тумблер и показываем причину,
+      // иначе выбор «молча» слетал бы при следующем открытии вкладки.
+      setNotif(prev);
+      setMsg({ ok: false, text: `${t("pc_notif_fail")}: ${e?.message || e}` });
+    }
   };
   const toggleNotif = (on) => {
     const offsets = on && notif.offsets.length === 0 ? [1440, 120] : notif.offsets;

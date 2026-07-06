@@ -99,10 +99,11 @@ export async function joinTournamentByCode(code, name) {
     const { data } = await supabase.from("profiles").select("id").eq("user_id", user.id).maybeSingle();
     profileId = data?.id || null;
   }
-  const { error } = await supabase.rpc("join_tournament", {
+  const { data, error } = await supabase.rpc("join_tournament", {
     p_code: code, p_name: name.trim(), p_profile_id: profileId,
   });
   if (error) throw error;
+  return data; // { ok, already?, linked? }
 }
 
 export async function getTournamentByCode(code) {

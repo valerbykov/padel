@@ -25,6 +25,18 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="padelpack" />
             </intent-filter>
+            <!-- App Links: https://padelpack.app/{l|j|t|r}/CODE открывать в приложении.
+                 Требует assetlinks.json на https://padelpack.app/.well-known/ с SHA-256 подписи. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="padelpack.app" />
+                <data android:pathPrefix="/l/" />
+                <data android:pathPrefix="/j/" />
+                <data android:pathPrefix="/t/" />
+                <data android:pathPrefix="/r/" />
+            </intent-filter>
         </activity>
 
         <provider

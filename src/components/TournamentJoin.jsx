@@ -48,6 +48,7 @@ export default function TournamentJoin({ code, botName }) {
   const [busy, setBusy] = useState(false);
   const [joined, setJoined] = useState(false);
   const [err, setErr] = useState("");
+  const [joinNote, setJoinNote] = useState("");
   const [session, setSession] = useState(null);
   const [profileName, setProfileName] = useState("");
   const [profileId, setProfileId] = useState(null);
@@ -89,7 +90,12 @@ export default function TournamentJoin({ code, botName }) {
     if (!session && !name.trim()) return;
     if (busy) return;
     setBusy(true); setErr("");
-    try { await joinTournamentByCode(code, display); setJoined(true); await load(); }
+    try {
+      const res = await joinTournamentByCode(code, display);
+      setJoined(true);
+      setJoinNote(res?.already ? tr("tj_already") : res?.linked ? tr("tj_linked") : "");
+      await load();
+    }
     catch (e) {
       const map = { tournament_full: tr("err_tour_full"), tournament_closed: tr("err_tour_closed"), tournament_not_found: tr("err_tour_not_found") };
       setErr(map[e.message] || tr("err_join"));
@@ -115,6 +121,12 @@ export default function TournamentJoin({ code, botName }) {
             </button>
           )}
         </div>
+
+        {joinNote && (
+          <div className="tj-card" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <AlertCircle size={16} /> {joinNote}
+          </div>
+        )}
 
         {t === undefined && (
           <div className="tj-card" style={{ textAlign: "center", color: "var(--mut)" }}>{tr("pub_loading")}</div>

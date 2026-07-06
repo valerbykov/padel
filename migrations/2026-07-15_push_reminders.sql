@@ -70,7 +70,7 @@ as $$
     union
     -- участники турниров
     select p.user_id, 'tournament'::text, t.id,
-           t.title, t.starts_at, t.place
+           t.name, t.starts_at, t.place
     from public.tournaments t
     join public.tournament_players tp on tp.tournament_id = t.id
     join public.profiles p on p.id = tp.profile_id

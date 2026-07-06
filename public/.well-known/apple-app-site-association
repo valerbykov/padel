@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["LRNHLN732W.app.padelpack"],
+        "components": [
+          { "/": "/l/*", "comment": "League public page" },
+          { "/": "/j/*", "comment": "Game invite" },
+          { "/": "/t/*", "comment": "Tournament invite" },
+          { "/": "/r/*", "comment": "Profile claim" }
+        ]
+      }
+    ]
+  }
+}

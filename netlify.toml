@@ -11,3 +11,9 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Universal Links: AASA-файл должен отдаваться как application/json.
+[[headers]]
+  for = "/.well-known/apple-app-site-association"
+  [headers.values]
+    Content-Type = "application/json"

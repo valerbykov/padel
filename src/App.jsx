@@ -153,14 +153,36 @@ export default function App({ initialShowLogin = false }) {
     return p || null;
   });
 
-  // Возврат после входа по deep link в нативной обёртке (Capacitor).
+  // Universal/App Links: https://padelpack.app/{l|j|t|r}/CODE, открытые в нативной обёртке,
+  // прилетают как событие appUrlOpen (webview грузит свой bundle, а не внешний URL),
+  // поэтому путь достаём вручную и «навешиваем» на роутер (getLeaguePublicCode и т.п.
+  // читают window.location.pathname при рендере). routeNonce форсит перерендер.
+  const [routeNonce, setRouteNonce] = useState(0);
+  const routeFromUrl = (url) => {
+    try {
+      const u = new URL(url);
+      const host = u.hostname.replace(/^www\./, "");
+      if (host === "padelpack.app" && /^\/(l|j|t|r)\/[^/]+/i.test(u.pathname)) {
+        window.history.replaceState({}, "", u.pathname + u.search);
+        setRouteNonce((n) => n + 1);
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  };
+
+  // Возврат после входа по deep link + входящие app links в нативной обёртке (Capacitor).
   // На вебе window.Capacitor отсутствует — эффект ничего не делает.
   useEffect(() => {
     const CapApp = window.Capacitor?.Plugins?.App;
     if (!CapApp) return;
     let sub;
+    // холодный старт по ссылке: разбираем URL запуска
+    CapApp.getLaunchUrl?.().then((r) => { if (r?.url) routeFromUrl(r.url); }).catch(() => {});
     const res = CapApp.addListener("appUrlOpen", async ({ url }) => {
-      if (url) { if (!(await handleYandexCallback(url))) await handleAuthCallbackUrl(url); }
+      if (!url) return;
+      if (routeFromUrl(url)) return;                                          // app link на лигу/игру/турнир
+      if (!(await handleYandexCallback(url))) await handleAuthCallbackUrl(url); // иначе — auth-callback
     });
     // Capacitor 8: addListener может вернуть handle напрямую ИЛИ Promise<handle>
     if (res && typeof res.then === "function") res.then((h) => { sub = h; });

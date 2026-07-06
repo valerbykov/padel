@@ -63,13 +63,23 @@ export async function signInGoogle() {
   );
   if (nativeGoogleOk) {
     await ensureGoogleInit(Social);
-    // На Android передача scopes включает серверный флоу (требует правки MainActivity),
-    // а нам нужен только idToken (email/профиль уже в нём). Поэтому scopes — только для iOS.
-    const loginOptions = platform === "ios" ? { scopes: ["email", "profile"] } : {};
+    const isIOS = platform === "ios";
+    // iOS: сами задаём nonce и форсируем интерактивный вход. GIDSignIn кладёт наш nonce
+    // в idToken как есть; тот же nonce отдаём Supabase. Без этого при пути «restore prev
+    // session» токен иногда приходит с nonce, а мы его не передаём → Supabase ругается
+    // "Passed nonce and nonce in id_token should either both exist or not".
+    // На Android — как было (нативный Credential Manager работает без nonce; scopes там
+    // включили бы серверный флоу с правкой MainActivity, поэтому scopes только для iOS).
+    const rawNonce = isIOS ? randomNonce() : undefined;
+    const loginOptions = isIOS
+      ? { scopes: ["email", "profile"], nonce: rawNonce, forcePrompt: true }
+      : {};
     const res = await Social.login({ provider: "google", options: loginOptions });
     const idToken = res?.result?.idToken;
     if (!idToken) throw new Error("Google: не получен idToken");
-    const { data, error } = await supabase.auth.signInWithIdToken({ provider: "google", token: idToken });
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: "google", token: idToken, ...(rawNonce ? { nonce: rawNonce } : {}),
+    });
     if (error) throw error;
     return data;
   }

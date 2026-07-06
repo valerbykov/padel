@@ -36,6 +36,7 @@ export default function GuestJoin({ code, botName }) {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [note, setNote] = useState("");
   const [session, setSession] = useState(null);
   const [profileName, setProfileName] = useState("");
   const [showLogin, setShowLogin] = useState(false);
@@ -75,10 +76,11 @@ export default function GuestJoin({ code, botName }) {
   const take = async (team, position) => {
     const display = session ? (profileName || t("guest_default_name")) : name.trim();
     if (!session && !name.trim()) return;
-    setBusy(true); setErr("");
+    setBusy(true); setErr(""); setNote("");
     try {
-      const { error } = await supabase.rpc("join_game_slot", { p_code: code, p_team: team, p_position: position, p_guest_name: display });
+      const { data, error } = await supabase.rpc("join_game_slot", { p_code: code, p_team: team, p_position: position, p_guest_name: display });
       if (error) throw error;
+      setNote(data?.already ? t("err_already_in_game") : data?.linked ? t("tj_linked") : "");
       await load();
     } catch (e) {
       const map = { slot_taken: t("err_slot_taken"), game_closed: t("err_game_closed"), game_not_found: t("err_game_not_found") };
@@ -137,6 +139,7 @@ export default function GuestJoin({ code, botName }) {
                   </div>
                 ))}
                 {err && <p style={{ color: "var(--coral)", fontSize: 13, marginTop: 8 }}>{err}</p>}
+                {note && <p style={{ color: "var(--ink)", fontSize: 13, marginTop: 8 }}>{note}</p>}
               </>
             )}
           </>

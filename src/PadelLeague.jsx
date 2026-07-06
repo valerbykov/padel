@@ -2102,13 +2102,16 @@ function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArc
 function SwipeToDelete({ onDelete, onCopy, children }) {
   const [dx, setDx] = useState(0);
   const [dragging, setDragging] = useState(false);
-  const startX = useRef(0), startY = useRef(0), active = useRef(false), busy = useRef(false);
+  const startX = useRef(0), startY = useRef(0), active = useRef(false), busy = useRef(false), captured = useRef(false), pid = useRef(null);
   const MAX = 88;
-  const down = (e) => { if (busy.current) return; startX.current = e.clientX; startY.current = e.clientY; active.current = true; setDragging(true); try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} };
+  // Захват указателя откладываем до реального горизонтального свайпа: иначе на десктопе
+  // setPointerCapture на pointerdown перехватывает click, и он не доходит до карточки (мышь «не кликает»).
+  const down = (e) => { if (busy.current) return; startX.current = e.clientX; startY.current = e.clientY; active.current = true; captured.current = false; pid.current = e.pointerId; setDragging(true); };
   const move = (e) => {
     if (!active.current) return;
     const dX = e.clientX - startX.current, dY = e.clientY - startY.current;
     if (dx === 0 && Math.abs(dY) > Math.abs(dX)) { active.current = false; setDragging(false); return; } // вертикальный скролл
+    if (!captured.current && Math.abs(dX) > 6) { try { e.currentTarget.setPointerCapture(pid.current); } catch (_) {} captured.current = true; }
     const hi = onCopy ? MAX : 0;   // вправо (копировать) — только если есть onCopy
     setDx(Math.max(-MAX, Math.min(hi, dX)));
   };
