@@ -95,6 +95,7 @@ export default function App({ initialShowLogin = false }) {
   const [showInstall,   setShowInstall]   = useState(false);
   const [statsNonce, setStatsNonce] = useState(0); // открыть свой профиль игрока из кабинета
   const [analyticsNonce, setAnalyticsNonce] = useState(0); // открыть аналитику лиги из шапки
+  const [openEvent, setOpenEvent] = useState(null); // {kind:'game'|'tour', id, groupId, nonce} — открыть игру/турнир из уведомления
   // «Подробнее о PadelPack» → полноэкранный лендинг (статическая маркетинговая страница).
   const openLanding = useCallback(() => { window.location.href = "/landing.html"; }, []);
 
@@ -288,6 +289,14 @@ export default function App({ initialShowLogin = false }) {
     setActiveLeague((prev) => leagues?.find((l) => l.id === leagueId) || prev);
   }, [leagues]);
 
+  // Тап по уведомлению в колокольчике: переключаем лигу (если событие из другой)
+  // и просим PadelLeague открыть игру/турнир ВНУТРИ приложения (не гостевую ссылку).
+  const handleOpenEvent = useCallback((evt) => {
+    if (!evt?.id) return;
+    if (evt.groupId) setActiveLeague((prev) => (prev?.id === evt.groupId ? prev : (leagues || []).find((l) => l.id === evt.groupId) || prev));
+    setOpenEvent((p) => ({ ...evt, nonce: (p?.nonce || 0) + 1 }));
+  }, [leagues]);
+
   // Лигу отредактировали в окне управления (имя/логотип/телеграм) — мёржим.
   const handleLeagueUpdated = useCallback((lg) => {
     if (!lg?.id) return;
@@ -330,7 +339,7 @@ export default function App({ initialShowLogin = false }) {
           lang={lang} onLangChange={handleLangChange}
           leagues={leagues || []} activeLeague={activeLeague} isAdmin={isAdmin}
           onLeagueChange={handleLeagueChange} onLeagueCreated={handleLeagueDone}
-          onLeagueUpdated={handleLeagueUpdated}
+          onLeagueUpdated={handleLeagueUpdated} onOpenEvent={handleOpenEvent}
         />
         <LeagueSetup
           onDone={(league) => { setPendingJoin(null); handleLeagueDone(league); }}
@@ -362,6 +371,7 @@ export default function App({ initialShowLogin = false }) {
         onLeagueChange={handleLeagueChange}
         onLeagueCreated={handleLeagueDone}
         onLeagueUpdated={handleLeagueUpdated}
+        onOpenEvent={handleOpenEvent}
       />
       {showInstall && (
         <div style={{
@@ -407,13 +417,14 @@ export default function App({ initialShowLogin = false }) {
         onEditProfile={() => setShowProfile(true)}
         openSelfStatsNonce={statsNonce}
         openAnalyticsNonce={analyticsNonce}
+        openEvent={openEvent}
       />
       {profileModal}
     </div>
   );
 }
 
-function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme, onThemeToggle, lang = "ru", onLangChange, leagues = [], activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, onLeagueUpdated }) {
+function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme, onThemeToggle, lang = "ru", onLangChange, leagues = [], activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, onLeagueUpdated, onOpenEvent }) {
   const base = { border: "1px solid var(--line)", borderRadius: 11, padding: "7px 12px", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif", transition: "transform .12s, filter .15s, background .15s" };
   return (
     <div style={{
@@ -448,7 +459,7 @@ function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme
           </button>
         </div>
         {/* Колокольчик уведомлений — только для залогиненных с лигами */}
-        {session && <NotificationBell leagues={leagues} activeLeague={activeLeague} />}
+        {session && <NotificationBell leagues={leagues} activeLeague={activeLeague} onOpen={onOpenEvent} />}
         {/* СПРАВА: профиль (только иконка) для залогиненного, иначе «Войти» */}
         {session ? (
           <button onClick={onProfile} className="tb-profile" aria-label={name || "Профиль"} title={name || "Профиль"}

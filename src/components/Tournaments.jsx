@@ -116,9 +116,17 @@ const statusLabel = (s) => ({ open: tr("trn_sec_open"), active: tr("trn_sec_acti
 
 // ─── Root ──────────────────────────────────────────────────────────────────────
 
-export default function Tournaments({ groupId, players, profileId, bumpArchive, session, onLogin, isAdmin = false, canCreate = false, membersCanCreate = false }) {
+export default function Tournaments({ groupId, players, profileId, bumpArchive, session, onLogin, isAdmin = false, canCreate = false, membersCanCreate = false, openReq = null }) {
   const [mode, setMode] = useState("list");
   const [activeId, setActiveId] = useState(null);
+  // Открытие конкретного турнира из уведомления (TournamentView сам грузит по id).
+  // Эффект ДО ранних return — хуки должны вызываться безусловно.
+  const openedReqRef = useRef(0);
+  useEffect(() => {
+    if (!openReq?.id || openReq.nonce === openedReqRef.current) return;
+    openedReqRef.current = openReq.nonce;
+    setActiveId(openReq.id); setMode("view");
+  }, [openReq]);
   if (mode === "create") return <Create groupId={groupId} profileId={profileId} back={() => setMode("list")} open={(id) => { setActiveId(id); setMode("view"); }} />;
   if (mode === "view") return <TournamentView id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} onArchiveChange={bumpArchive} isAdmin={isAdmin} membersCanCreate={membersCanCreate} />;
   return <List groupId={groupId} profileId={profileId} session={session} onLogin={onLogin} canCreate={canCreate} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;

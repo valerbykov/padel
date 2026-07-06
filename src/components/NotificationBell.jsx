@@ -5,8 +5,9 @@
 // migrations/2026-07-17_notifications_seen.sql). Источник событий — существующие
 // таблицы games/tournaments (отдельной таблицы уведомлений нет): показываем
 // созданные другими участниками за последние 2 недели; всё позже seen_at —
-// непрочитанное (бейдж). Тап по уведомлению → страница игры (/j/CODE) или
-// турнира (/t/CODE). Открытие панели помечает всё просмотренным (watermark-модель:
+// непрочитанное (бейдж). Тап по уведомлению → onOpen({kind,id,groupId}) — App
+// открывает игру/турнир ВНУТРИ приложения (гостевые ссылки /j//t — только фолбэк).
+// Открытие панели помечает всё просмотренным (watermark-модель:
 // одна отметка на всё; события старше N последних при этом тоже считаются
 // прочитанными — осознанный компромисс MVP без таблицы уведомлений).
 // ВАЖНО: у билдера supabase нет .catch(), а ошибки он возвращает в { error },
@@ -35,7 +36,7 @@ const fmtWhen = (iso) => {
   catch (e) { return ""; }
 };
 
-export default function NotificationBell({ leagues = [], activeLeague = null }) {
+export default function NotificationBell({ leagues = [], activeLeague = null, onOpen = null }) {
   const [items, setItems] = useState([]);
   const [loaded, setLoaded] = useState(false);      // первая загрузка завершена (для пустого состояния)
   const [seenAt, setSeenAt] = useState(undefined);  // undefined = ещё не знаем (бейдж скрыт)
@@ -135,7 +136,13 @@ export default function NotificationBell({ leagues = [], activeLeague = null }) 
     })();
   };
 
-  const go = (x) => { window.location.assign(x.kind === "tour" ? `/t/${x.code}` : `/j/${x.code}`); };
+  const go = (x) => {
+    setOpen(false);
+    // Внутри приложения: полноценный экран участника с кнопкой «К списку».
+    if (onOpen) { onOpen({ kind: x.kind, id: x.id, groupId: x.group_id }); return; }
+    // Фолбэк без обработчика — гостевые страницы по коду.
+    window.location.assign(x.kind === "tour" ? `/t/${x.code}` : `/j/${x.code}`);
+  };
 
   if (!leagues || leagues.length === 0) return null;
   const tg = activeLeague?.telegram_url || null;

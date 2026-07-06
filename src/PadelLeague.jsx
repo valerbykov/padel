@@ -110,7 +110,7 @@ function ContactLinks({ contacts = {} }) {
 
 /* --------------------------------- root ----------------------------------- */
 
-export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin, onOpenLanding, onEditProfile, openSelfStatsNonce = 0, openAnalyticsNonce = 0 }) {
+export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin, onOpenLanding, onEditProfile, openSelfStatsNonce = 0, openAnalyticsNonce = 0, openEvent = null }) {
   const [tab, setTab] = useState(session ? "board" : "welcome");
   // Повторный тап по активной вкладке должен возвращать к её корню (закрыть
   // открытую детализацию). Меняем navNonce → key вкладки → ремоунт → сброс.
@@ -163,6 +163,13 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
   // «Моя статистика» из кабинета → вкладка «Друзья» (Board сам выберет себя).
   useEffect(() => { if (openSelfStatsNonce > 0) setTab("board"); }, [openSelfStatsNonce]);
   useEffect(() => { if (openAnalyticsNonce > 0) setTab("board"); }, [openAnalyticsNonce]);
+  // Открытие игры/турнира из уведомления (колокольчик): переключаем вкладку,
+  // сам объект открывает Games/Tournaments через проп openReq.
+  useEffect(() => {
+    if (!openEvent?.nonce) return;
+    if (openEvent.kind === "tour") setTab("tournaments");
+    else if (openEvent.kind === "game") setTab("games");
+  }, [openEvent]);
 
   return (
     <div className={`pl-root${theme === "light" ? " pl-light" : ""}`}>
@@ -179,8 +186,8 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
 
         {tab === "welcome" && !session && <WelcomeScreen onLogin={onLogin} onBrowseGames={() => goTab("games")} onBrowseTournaments={() => goTab("tournaments")} onOpenLanding={onOpenLanding} theme={theme} lang={lang} onThemeToggle={onThemeToggle} onLangChange={onLangChange} />}
         {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsNonce={openSelfStatsNonce} analyticsNonce={openAnalyticsNonce} /> : <GateScreen />)}
-        {tab === "games" && <Games key={navNonce} groupId={groupId} players={players} profileId={profileId} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} canCreate={isAdmin || !!activeLeague?.members_can_create} />}
-        {tab === "tournaments" && <Tournaments key={navNonce} groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} membersCanCreate={!!activeLeague?.members_can_create} />}
+        {tab === "games" && <Games key={navNonce} groupId={groupId} players={players} profileId={profileId} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} canCreate={isAdmin || !!activeLeague?.members_can_create} openReq={openEvent?.kind === "game" ? openEvent : null} />}
+        {tab === "tournaments" && <Tournaments key={navNonce} groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} membersCanCreate={!!activeLeague?.members_can_create} openReq={openEvent?.kind === "tour" ? openEvent : null} />}
         {tab === "history" && (session ? <HistoryView key={navNonce} groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} archiveNonce={archiveNonce} bumpArchive={bumpArchive} /> : <GateScreen />)}
       </div>
 
@@ -1523,7 +1530,7 @@ function MixGroupCard({ games, color, onOpenGame }) {
   );
 }
 
-function Games({ groupId, players, profileId, reloadLeaderboard, session, archiveNonce, bumpArchive, onLogin, canCreate = false }) {
+function Games({ groupId, players, profileId, reloadLeaderboard, session, archiveNonce, bumpArchive, onLogin, canCreate = false, openReq = null }) {
   const [games, setGames] = useState([]);
   const [mode, setMode] = useState("list");
   const [selId, setSelId] = useState(null);
@@ -1534,6 +1541,14 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
     try { setGames(groupId ? await listGames(groupId) : await listMyGames()); } catch (e) { /* noop */ } finally { setLoading(false); }
   }, [groupId]);
   useEffect(() => { loadGames(); }, [loadGames, archiveNonce]);
+
+  // Открытие конкретной игры из уведомления: ждём загрузки списка, один раз на nonce.
+  const openedReqRef = useRef(0);
+  useEffect(() => {
+    if (!openReq?.id || loading || openReq.nonce === openedReqRef.current) return;
+    openedReqRef.current = openReq.nonce;
+    if (games.some((g) => g.id === openReq.id)) { setSelId(openReq.id); setMode("view"); }
+  }, [openReq, loading, games]);
 
   if (mode === "create")
     return <CreateGame groupId={groupId} players={players} profileId={profileId} back={() => setMode("list")} done={() => { setMode("list"); loadGames(); }} />;
