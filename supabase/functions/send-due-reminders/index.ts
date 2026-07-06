@@ -1,13 +1,15 @@
 // supabase/functions/send-due-reminders/index.ts
 //
-// Рассылка push-напоминаний о сборе на игру/турнир (FCM HTTP v1).
+// Рассылка push-напоминаний о сборе на игру/турнир (FCM HTTP v1) + событийных
+// пушей («новая игра/турнир в лиге», «объявление лиги» — due_event_pushes()).
 // Вызывается по расписанию (pg_cron каждые 5 мин). Логика:
 //   1) due_reminders() в БД возвращает «созревшие» пары (участник × событие × офсет),
-//      которые ещё не отправлены (по reminder_log);
+//      которые ещё не отправлены (по reminder_log); due_event_pushes() — свежие
+//      события лиг для участников с включённым notify_events;
 //   2) берём push-токены этих участников;
 //   3) чеканим OAuth-токен FCM из service-account (JWT RS256, Web Crypto);
 //   4) шлём каждому токену уведомление; мёртвые токены (UNREGISTERED) удаляем;
-//   5) пишем reminder_log — защита от повторной отправки.
+//   5) пишем reminder_log — защита от повторной отправки (события — offset_min=0).
 //
 // Секреты (Supabase → Edge Functions → Secrets):
 //   FCM_SERVICE_ACCOUNT = <весь JSON сервисного аккаунта Firebase, одной строкой>
@@ -83,6 +85,16 @@ function compose(d: { event_type: string; title: string | null; place: string | 
   return { title, body };
 }
 
+// Текст событийного пуша (новая игра/турнир/объявление в лиге).
+function composeEvent(d: { event_type: string; title: string | null; place: string | null; league: string | null }) {
+  const lg = d.league ? ` · ${d.league}` : "";
+  if (d.event_type === "new_game")
+    return { title: `Новая игра${lg}`, body: `${d.title || "Игра"}${d.place ? ` · ${d.place}` : ""}` };
+  if (d.event_type === "new_tournament")
+    return { title: `Новый турнир${lg}`, body: d.title || "Турнир" };
+  return { title: `Объявление${lg}`, body: d.title || "" }; // league_post: title = фрагмент текста
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
@@ -100,13 +112,18 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // 1) созревшие напоминания
+    // 1) созревшие напоминания + событийные пуши
     const { data: due, error } = await admin.rpc("due_reminders", { lookback_min: 15 });
     if (error) throw error;
-    if (!due || due.length === 0) return json({ due: 0, sent: 0 });
+    // Функция может отсутствовать до прогона миграции 2026-07-18 — не роняем напоминания,
+    // но ошибку ЛОГИРУЕМ и отдаём в ответе: иначе отказ событийных пушей невидим.
+    const evRes = await admin.rpc("due_event_pushes", { lookback_min: 15 });
+    if (evRes.error) console.error("due_event_pushes:", evRes.error);
+    const events = evRes.error ? [] : (evRes.data || []);
+    if ((!due || due.length === 0) && events.length === 0) return json({ due: 0, events: 0, sent: 0 });
 
-    // 2) токены участников
-    const userIds = [...new Set(due.map((d: any) => d.user_id))];
+    // 2) токены участников (объединяем адресатов напоминаний и событий)
+    const userIds = [...new Set([...(due || []), ...events].map((d: any) => d.user_id))];
     const { data: tokRows } = await admin.from("push_tokens").select("user_id, token").in("user_id", userIds);
     const byUser: Record<string, string[]> = {};
     for (const r of tokRows || []) (byUser[r.user_id] ||= []).push(r.token);
@@ -116,42 +133,60 @@ Deno.serve(async (req) => {
 
     let sent = 0;
     const bad: string[] = [];
-    const log: any[] = [];
+    let log: any[] = [];
+    // Порционная запись лога: при падении/таймауте посреди длинной рассылки уже
+    // отправленные пуши остаются залогированными и НЕ ретраятся следующим кроном.
+    const flushLog = async () => {
+      if (!log.length) return;
+      const chunk = log; log = [];
+      await admin.from("reminder_log").upsert(chunk, {
+        onConflict: "user_id,event_type,event_id,offset_min", ignoreDuplicates: true,
+      });
+    };
 
-    for (const d of due as any[]) {
+    // Единый отправитель: и напоминания, и события идут одним циклом.
+    const outbox: Array<{ user_id: string; event_type: string; event_id: string; offset_min: number; msg: { title: string; body: string } }> = [];
+    for (const d of (due || []) as any[]) {
+      outbox.push({ user_id: d.user_id, event_type: d.event_type, event_id: d.event_id, offset_min: d.offset_min, msg: compose(d) });
+    }
+    for (const d of events as any[]) {
+      outbox.push({ user_id: d.user_id, event_type: d.event_type, event_id: d.event_id, offset_min: 0, msg: composeEvent(d) });
+    }
+
+    for (const d of outbox) {
       const tokens = byUser[d.user_id] || [];
       // логируем факт обработки в любом случае — иначе будет ретраиться каждые 5 мин
       log.push({ user_id: d.user_id, event_type: d.event_type, event_id: d.event_id, offset_min: d.offset_min });
-      if (tokens.length === 0) continue;
-      const { title, body } = compose(d);
+      if (tokens.length === 0) { if (log.length >= 20) await flushLog(); continue; }
+      const { title, body } = d.msg;
       for (const token of tokens) {
-        const r = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${accessToken}`, "content-type": "application/json" },
-          body: JSON.stringify({
-            message: {
-              token,
-              notification: { title, body },
-              data: { event_type: String(d.event_type), event_id: String(d.event_id) },
-              android: { priority: "high" },
-            },
-          }),
-        });
-        if (r.ok) { sent++; continue; }
-        const e = await r.json().catch(() => ({} as any));
-        const code = e?.error?.details?.[0]?.errorCode || e?.error?.status;
-        if (r.status === 404 || code === "UNREGISTERED" || code === "INVALID_ARGUMENT") bad.push(token);
+        // Сетевой сбой одного fetch не должен ронять всю рассылку (и терять лог).
+        try {
+          const r = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${accessToken}`, "content-type": "application/json" },
+            body: JSON.stringify({
+              message: {
+                token,
+                notification: { title, body },
+                data: { event_type: String(d.event_type), event_id: String(d.event_id) },
+                android: { priority: "high" },
+              },
+            }),
+          });
+          if (r.ok) { sent++; continue; }
+          const e = await r.json().catch(() => ({} as any));
+          const code = e?.error?.details?.[0]?.errorCode || e?.error?.status;
+          if (r.status === 404 || code === "UNREGISTERED" || code === "INVALID_ARGUMENT") bad.push(token);
+        } catch (e) { console.error("fcm fetch:", e); }
       }
+      if (log.length >= 20) await flushLog();
     }
 
-    if (log.length) {
-      await admin.from("reminder_log").upsert(log, {
-        onConflict: "user_id,event_type,event_id,offset_min", ignoreDuplicates: true,
-      });
-    }
+    await flushLog();
     if (bad.length) await admin.from("push_tokens").delete().in("token", bad);
 
-    return json({ due: due.length, sent, pruned: bad.length });
+    return json({ due: (due || []).length, events: events.length, events_error: evRes.error ? String(evRes.error.message || evRes.error) : null, sent, pruned: bad.length });
   } catch (e) {
     return json({ error: String(e) }, 500);
   }

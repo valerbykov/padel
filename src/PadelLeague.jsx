@@ -169,6 +169,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
     if (!openEvent?.nonce) return;
     if (openEvent.kind === "tour") setTab("tournaments");
     else if (openEvent.kind === "game") setTab("games");
+    else if (openEvent.kind === "post") setTab("board"); // объявление: лига уже переключена App'ом
   }, [openEvent]);
 
   return (
@@ -1556,7 +1557,7 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
   if (mode === "view") {
     const g = games.find((x) => x.id === selId);
     if (!g) { setMode("list"); return null; }
-    return <GameCard game={g} groupId={groupId} back={() => setMode("list")} reloadGames={loadGames} reloadLeaderboard={reloadLeaderboard} bumpArchive={bumpArchive} players={players} />;
+    return <GameCard game={g} groupId={groupId} profileId={profileId} back={() => setMode("list")} reloadGames={loadGames} reloadLeaderboard={reloadLeaderboard} bumpArchive={bumpArchive} players={players} />;
   }
 
   return (
@@ -1957,7 +1958,7 @@ function GameCourtBlock({ game, index, total, groupId, reloadSession, reloadLead
   );
 }
 
-function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArchive, players = [] }) {
+function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLeaderboard, bumpArchive, players = [] }) {
   const [mix, setMix] = useState(false);
   const [prof, setProf] = useState(null);  // карточка игрока из состава (только просмотр)
   const onOpenPlayer = (id) => { const f = players.find((p) => p.id === id); if (f) setProf(f); };
@@ -2003,7 +2004,7 @@ function GameCard({ game, groupId, back, reloadGames, reloadLeaderboard, bumpArc
     try {
       const newSlots = arr.map((p) => (p.profile_id ? { profileId: p.profile_id } : { guestName: p.guest_name }));
       // Связываем под-игры микса: общий mix_group_id = id исходной игры (или её группы).
-      await createGame(groupId, { title: game.title || null, startsAt: new Date().toISOString(), slots: newSlots, mixGroupId: mixKey });
+      await createGame(groupId, { title: game.title || null, startsAt: new Date().toISOString(), slots: newSlots, mixGroupId: mixKey, hostId: profileId || null });
       setMix(false); setMixBusy(false); mixRef.current = false;
       bumpArchive && bumpArchive();
       reloadGames && reloadGames();
@@ -2160,7 +2161,7 @@ function SwipeToDelete({ onDelete, onCopy, children }) {
   );
 }
 
-function GameCopyDialog({ src, groupId, onClose, onCopied }) {
+function GameCopyDialog({ src, groupId, profileId = null, onClose, onCopied }) {
   const [name, setName] = useState(src.title ? `${src.title} ${t("trn_copy_suffix")}` : "");
   const [day, setDay] = useState(() => nowLocalDT().slice(0, 10));
   const [time, setTime] = useState(() => nowLocalDT().slice(11, 16));
@@ -2173,7 +2174,7 @@ function GameCopyDialog({ src, groupId, onClose, onCopied }) {
     try { const d = day ? `${day}T${time || "00:00"}` : ""; if (d) startsAtIso = new Date(d).toISOString(); } catch (e) { startsAtIso = null; }
     const layout = [["A", 1], ["A", 2], ["B", 1], ["B", 2]];
     const slots = layout.map(([tm, pos]) => { const sl = (src.slots || []).find((x) => x.team === tm && x.position === pos); return sl?.profile_id ? { profileId: sl.profile_id } : (sl?.guest_name ? { guestName: sl.guest_name } : null); });
-    try { const gm = await createGame(groupId, { title: name.trim() || null, startsAt: startsAtIso, place, slots }); onCopied(gm?.id); }
+    try { const gm = await createGame(groupId, { title: name.trim() || null, startsAt: startsAtIso, place, slots, hostId: profileId || null }); onCopied(gm?.id); }
     catch (e) { alert(t("err_create_game")); setBusy(false); }
   };
   return createPortal(
@@ -2216,7 +2217,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
 
   // Проваливание в результаты — те же экраны, что на вкладках Игры/Турниры (там и удаление).
   if (sel?.type === "tour") return <TournamentView id={sel.data.id} players={players} back={() => setSel(null)} isGroupMember={isGroupMember} currentProfileId={profileId} onArchiveChange={bumpArchive} />;
-  if (sel?.type === "game") return <GameCard game={sel.data} groupId={groupId} back={() => setSel(null)} reloadGames={load} reloadLeaderboard={() => {}} bumpArchive={bumpArchive} players={players} />;
+  if (sel?.type === "game") return <GameCard game={sel.data} groupId={groupId} profileId={profileId} back={() => setSel(null)} reloadGames={load} reloadLeaderboard={() => {}} bumpArchive={bumpArchive} players={players} />;
 
   const head = (txt, color = "var(--mut)") => <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color, textTransform: "uppercase", margin: "14px 2px 8px", paddingLeft: 4 }}>{txt}</div>;
 
@@ -2278,7 +2279,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
         });
       })()}
       {copyTour && <CopyDialog src={copyTour} groupId={groupId} profileId={profileId} onClose={() => setCopyTour(null)} onCopied={() => { setCopyTour(null); bumpArchive?.(); }} />}
-      {copyGame && <GameCopyDialog src={copyGame} groupId={groupId} onClose={() => setCopyGame(null)} onCopied={() => { setCopyGame(null); bumpArchive?.(); }} />}
+      {copyGame && <GameCopyDialog src={copyGame} groupId={groupId} profileId={profileId} onClose={() => setCopyGame(null)} onCopied={() => { setCopyGame(null); bumpArchive?.(); }} />}
     </div>
   );
 }

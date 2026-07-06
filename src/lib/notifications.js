@@ -20,27 +20,28 @@ function platformName() {
 }
 
 // Настройки текущего пользователя (или разумный дефолт, если строки ещё нет).
+// notifyEvents — пуши о событиях лиги (новая игра/турнир/объявление), поверх enabled.
 export async function getNotifPrefs() {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { enabled: false, offsets: DEFAULT_OFFSETS };
+  if (!user) return { enabled: false, offsets: DEFAULT_OFFSETS, notifyEvents: true };
   const { data, error } = await supabase
-    .from("notification_prefs").select("enabled, offsets").eq("user_id", user.id).maybeSingle();
-  if (error || !data) return { enabled: false, offsets: DEFAULT_OFFSETS };
+    .from("notification_prefs").select("enabled, offsets, notify_events").eq("user_id", user.id).maybeSingle();
+  if (error || !data) return { enabled: false, offsets: DEFAULT_OFFSETS, notifyEvents: true };
   const offsets = Array.isArray(data.offsets) && data.offsets.length ? data.offsets : DEFAULT_OFFSETS;
-  return { enabled: !!data.enabled, offsets };
+  return { enabled: !!data.enabled, offsets, notifyEvents: data.notify_events !== false };
 }
 
 // Сохранить настройки (upsert по user_id). offsets нормализуем: уникальные, по убыванию.
-export async function saveNotifPrefs({ enabled, offsets }) {
+export async function saveNotifPrefs({ enabled, offsets, notifyEvents = true }) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("not_authed");
   const clean = [...new Set((offsets || []).filter((n) => Number.isFinite(n)))].sort((a, b) => b - a);
   const { error } = await supabase.from("notification_prefs").upsert(
-    { user_id: user.id, enabled: !!enabled, offsets: clean, updated_at: new Date().toISOString() },
+    { user_id: user.id, enabled: !!enabled, offsets: clean, notify_events: !!notifyEvents, updated_at: new Date().toISOString() },
     { onConflict: "user_id" }
   );
   if (error) throw error;
-  return { enabled: !!enabled, offsets: clean };
+  return { enabled: !!enabled, offsets: clean, notifyEvents: !!notifyEvents };
 }
 
 // Сохранить токен устройства (upsert по token — он уникален у FCM).

@@ -4,8 +4,8 @@
 // Данные тянет через get_league_details (RPC), сохраняет в groups (RLS).
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Upload, Send, Copy, Check, Crown, ShieldCheck } from "lucide-react";
-import { getLeagueDetails, updateLeague, uploadLeagueLogo } from "../lib/padelApi";
+import { X, Upload, Send, Copy, Check, Crown, ShieldCheck, Megaphone } from "lucide-react";
+import { getLeagueDetails, updateLeague, uploadLeagueLogo, postLeagueAnnouncement, listLeaguePosts } from "../lib/padelApi";
 import Avatar from "./Avatar";
 import { t } from "../lib/i18n";
 
@@ -22,6 +22,10 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
   const [copied, setCopied] = useState(false);
   const [err, setErr] = useState("");
   const fileRef = useRef(null);
+  // Объявления лиги (league_posts): композер — владельцу/организатору, список — всем.
+  const [posts, setPosts] = useState([]);
+  const [postText, setPostText] = useState("");
+  const [posting, setPosting] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -31,9 +35,23 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
         if (!alive) return;
         setD(det); setName(det.name || ""); setTg(det.telegram_url || ""); setLogo(det.logo_url || ""); setMembersCanAdd(!!det.members_can_add); setMembersCanCreate(!!det.members_can_create);
       } catch (e) { if (alive) setErr(e.message || t("err_generic")); }
+      // Объявления — отдельно и некритично (таблица может отсутствовать до миграции).
+      try { const ps = await listLeaguePosts(groupId, 3); if (alive) setPosts(ps); } catch (e) { /* ignore */ }
     })();
     return () => { alive = false; };
   }, [groupId]);
+
+  const publishPost = async () => {
+    const clean = postText.trim();
+    if (!clean || posting) return;
+    setPosting(true);
+    try {
+      const p = await postLeagueAnnouncement(groupId, clean);
+      setPosts((prev) => [{ ...p, author_name: null }, ...prev].slice(0, 3));
+      setPostText("");
+    } catch (e) { setErr(e.message || t("err_generic")); }
+    finally { setPosting(false); }
+  };
 
   const dirty = d && (
     name.trim() !== (d.name || "") ||
@@ -149,6 +167,32 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
                   <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 5 }}>{t("league_telegram_hint")}</div>
                 </>
               ) : (tg ? <a href={tg} target="_blank" rel="noreferrer" style={{ color: "var(--lime)", fontSize: 14, textDecoration: "none", fontWeight: 600 }}>{t("league_open_channel")} →</a> : <div style={{ color: "var(--mut)", fontSize: 14 }}>—</div>)}
+            </div>
+
+            {/* Объявления лиги: композер — владельцу/организатору, последние — всем.
+                Участники видят их и в колокольчике (+push, если включён). */}
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--mut)", marginBottom: 5 }}><Megaphone size={12} /> {t("league_posts_title")}</div>
+              {canEdit && (
+                <div style={{ display: "flex", gap: 8, marginBottom: posts.length ? 8 : 0 }}>
+                  <input value={postText} onChange={(e) => setPostText(e.target.value)} maxLength={500}
+                    placeholder={t("league_post_placeholder")} onKeyDown={(e) => e.key === "Enter" && publishPost()}
+                    style={{ ...inp, fontSize: 14, padding: "9px 12px", flex: 1 }} />
+                  <button onClick={publishPost} disabled={posting || !postText.trim()}
+                    style={{ flexShrink: 0, padding: "0 14px", borderRadius: 12, border: "none", cursor: posting || !postText.trim() ? "default" : "pointer", background: "var(--lime)", color: "var(--lime-fg)", fontWeight: 700, fontSize: 13, fontFamily: "'Outfit',sans-serif", opacity: posting || !postText.trim() ? 0.55 : 1 }}>
+                    {posting ? "…" : t("league_post_send")}
+                  </button>
+                </div>
+              )}
+              {posts.length === 0 && !canEdit && <div style={{ color: "var(--mut)", fontSize: 14 }}>—</div>}
+              {posts.map((p) => (
+                <div key={p.id} style={{ padding: "8px 12px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, marginBottom: 6 }}>
+                  <div style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.4, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{p.text}</div>
+                  <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 3 }}>
+                    {p.author_name ? p.author_name + " · " : ""}{(() => { try { return new Date(p.created_at).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } })()}
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* #1/#3: кто может добавлять игроков. Видно всем участникам; переключать —

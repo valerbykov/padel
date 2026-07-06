@@ -1,21 +1,23 @@
 // components/NotificationBell.jsx
-// Колокольчик уведомлений в топбаре: новые игры и турниры в лигах пользователя.
+// Колокольчик уведомлений в топбаре. События по всем лигам пользователя:
+//   • новая игра / турнир (создали другие);
+//   • объявление лиги (league_posts, пишет владелец/организатор);
+//   • «тебя поставили в состав» (game_slots.taken_by / tournament_players.added_by);
+//   • «игра прошла — введи счёт» (starts_at позади, счёта нет; для участников и хоста).
 // «Непрочитанное» синхронизируется между устройствами через
-// profiles.notifications_seen_at (RPC touch_notifications_seen — см.
-// migrations/2026-07-17_notifications_seen.sql). Источник событий — существующие
-// таблицы games/tournaments (отдельной таблицы уведомлений нет): показываем
-// созданные другими участниками за последние 2 недели; всё позже seen_at —
-// непрочитанное (бейдж). Тап по уведомлению → onOpen({kind,id,groupId}) — App
-// открывает игру/турнир ВНУТРИ приложения (гостевые ссылки /j//t — только фолбэк).
-// Открытие панели помечает всё просмотренным (watermark-модель:
-// одна отметка на всё; события старше N последних при этом тоже считаются
-// прочитанными — осознанный компромисс MVP без таблицы уведомлений).
-// ВАЖНО: у билдера supabase нет .catch(), а ошибки он возвращает в { error },
-// НЕ бросая исключений — поэтому все результаты проверяем явно.
+// profiles.notifications_seen_at (RPC touch_notifications_seen). Тап по плитке →
+// onOpen({kind,id,groupId}) — App открывает объект ВНУТРИ приложения.
+// Мгновенность: Realtime-подписка на insert games/tournaments/league_posts
+// (+ фолбэк-обновление при возврате на вкладку). Число непрочитанного дублируется
+// на ИКОНКЕ приложения (lib/badge.js: PWA Badging API + Capacitor Badge).
+// Watermark-модель: открытие панели помечает всё просмотренным.
+// ВАЖНО: у билдера supabase нет .catch(), ошибки приходят в { error } без
+// исключений — все результаты проверяем явно.
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bell, Trophy, Swords, Send, X } from "lucide-react";
+import { Bell, Trophy, Swords, Send, X, Megaphone, AlertTriangle, UserPlus } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { setAppBadgeCount } from "../lib/badge";
 import { t } from "../lib/i18n";
 
 const WINDOW_DAYS = 14;  // окно событий
@@ -34,6 +36,16 @@ const ago = (iso) => {
 const fmtWhen = (iso) => {
   try { return new Date(iso).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
   catch (e) { return ""; }
+};
+
+// Вид плитки по типу события: иконка + акцентный цвет (все цвета — тем. переменные).
+const KIND_META = {
+  tour:  { Icon: Trophy,        color: "var(--lime)" },
+  game:  { Icon: Swords,        color: "var(--yellow)" },
+  post:  { Icon: Megaphone,     color: "var(--coral)" },
+  score: { Icon: AlertTriangle, color: "var(--coral)" },
+  slot:  { Icon: UserPlus,      color: "var(--yellow)" },
+  tslot: { Icon: UserPlus,      color: "var(--lime)" },
 };
 
 export default function NotificationBell({ leagues = [], activeLeague = null, onOpen = null }) {
@@ -65,36 +77,103 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
       const user = session?.user;
       if (!user) return;
 
-      const since = new Date(Date.now() - WINDOW_DAYS * 864e5).toISOString();
-      const [profQ, gQ, trQ] = await Promise.all([
+      const now = Date.now();
+      const since = new Date(now - WINDOW_DAYS * 864e5).toISOString();
+      // Волна 1: профиль + события лиг. slots/matches у игр — для «введи счёт».
+      const [profQ, gQ, trQ, pQ] = await Promise.all([
         supabase.from("profiles").select("id, notifications_seen_at").eq("user_id", user.id).maybeSingle(),
+        // Микс-раунды («Сыграть ещё») исключаем — внутренние пере-жеребьёвки, не новость.
         supabase.from("games")
-          .select("id, invite_code, title, place, starts_at, created_at, group_id, host_id")
-          .in("group_id", ids).gt("created_at", since)
+          .select("id, invite_code, title, place, starts_at, status, created_at, group_id, host_id, slots:game_slots(profile_id), matches(id)")
+          .in("group_id", ids).is("mix_group_id", null).gt("created_at", since)
           .order("created_at", { ascending: false }).limit(MAX_ITEMS),
         supabase.from("tournaments")
           .select("id, invite_code, name, format, starts_at, created_at, group_id, created_by")
+          .in("group_id", ids).gt("created_at", since)
+          .order("created_at", { ascending: false }).limit(MAX_ITEMS),
+        supabase.from("league_posts")
+          .select("id, group_id, text, created_at, author_id")
           .in("group_id", ids).gt("created_at", since)
           .order("created_at", { ascending: false }).limit(MAX_ITEMS),
       ]);
       // Без профиля не знаем ни «себя», ни seen_at — оставляем прежнее состояние,
       // иначе всё стало бы «непрочитанным» и всплыли бы собственные события.
       if (profQ.error || !profQ.data) return;
+      // Транзиентная ошибка базовых запросов → НЕ коммитим частичный список
+      // (иначе бейдж «мигнёт» нулём и категории пропадут до следующей загрузки).
+      // posts (pQ) терпим как пустые: таблицы может не быть до миграции 2026-07-18.
+      if (gQ.error || trQ.error) return;
       const me = profQ.data.id || null;
       bumpSeenAt(profQ.data.notifications_seen_at || null);
 
-      // Свои создания не показываем — уведомления про действия других.
-      const games = (gQ.data || []).filter((x) => x.host_id !== me).map((x) => ({
-        kind: "game", id: x.id, code: x.invite_code, at: x.created_at, by: x.host_id, group_id: x.group_id,
-        title: t("bell_new_game"), parts: [x.title || x.place, x.starts_at ? fmtWhen(x.starts_at) : null],
-      }));
-      const tours = (trQ.data || []).filter((x) => x.created_by !== me).map((x) => ({
-        kind: "tour", id: x.id, code: x.invite_code, at: x.created_at, by: x.created_by, group_id: x.group_id,
-        title: t("bell_new_tournament"), parts: [x.name, x.starts_at ? fmtWhen(x.starts_at) : null],
-      }));
+      // Волна 2 (нужен me): «тебя поставили в состав» — слоты игр и составы турниров.
+      const [slQ, tpQ] = me ? await Promise.all([
+        supabase.from("game_slots")
+          .select("id, taken_at, taken_by, game:games(id, invite_code, title, place, starts_at, group_id)")
+          .eq("profile_id", me).gt("taken_at", since)
+          .order("taken_at", { ascending: false }).limit(MAX_ITEMS),
+        supabase.from("tournament_players")
+          .select("id, created_at, added_by, tournament:tournaments(id, invite_code, name, starts_at, group_id)")
+          .eq("profile_id", me).gt("created_at", since)
+          .order("created_at", { ascending: false }).limit(MAX_ITEMS),
+      ]) : [{ data: [] }, { data: [] }];
 
-      // Имена создателей — одним запросом (профили со-участников читаемы по RLS).
-      const byIds = [...new Set([...games, ...tours].map((x) => x.by).filter(Boolean))];
+      const allGames = gQ.data || [];
+      // «Игра прошла — введи счёт»: время позади, счёта нет, я хост или в составе.
+      // Включаем и СВОИ игры — это напоминание о действии, а не новость.
+      const scoreItems = allGames
+        .filter((g) => g.status === "open" && g.starts_at && new Date(g.starts_at).getTime() < now
+          && (g.matches || []).length === 0
+          && (g.host_id === me || (g.slots || []).some((s) => s.profile_id === me)))
+        .map((g) => ({
+          kind: "score", key: "score" + g.id, navKind: "game", navId: g.id, code: g.invite_code,
+          at: g.starts_at, by: null, group_id: g.group_id,
+          title: t("bell_need_score"), parts: [g.title || g.place, fmtWhen(g.starts_at)],
+        }));
+      const scoreIds = new Set(scoreItems.map((x) => x.navId));
+
+      // Новые игры/турниры/объявления — только чужие; игры-«введи счёт» не дублируем.
+      const games = allGames
+        .filter((x) => x.host_id !== me && !scoreIds.has(x.id))
+        .map((x) => ({
+          kind: "game", key: "game" + x.id, navKind: "game", navId: x.id, code: x.invite_code,
+          at: x.created_at, by: x.host_id, group_id: x.group_id,
+          title: t("bell_new_game"), parts: [x.title || x.place, x.starts_at ? fmtWhen(x.starts_at) : null],
+        }));
+      const tours = (trQ.data || [])
+        .filter((x) => x.created_by !== me)
+        .map((x) => ({
+          kind: "tour", key: "tour" + x.id, navKind: "tour", navId: x.id, code: x.invite_code,
+          at: x.created_at, by: x.created_by, group_id: x.group_id,
+          title: t("bell_new_tournament"), parts: [x.name, x.starts_at ? fmtWhen(x.starts_at) : null],
+        }));
+      const posts = (pQ.data || [])
+        .filter((x) => x.author_id !== me)
+        .map((x) => ({
+          kind: "post", key: "post" + x.id, navKind: "post", navId: x.id, code: null,
+          at: x.created_at, by: x.author_id, group_id: x.group_id,
+          title: t("bell_post"), parts: [x.text.length > 90 ? x.text.slice(0, 90) + "…" : x.text],
+        }));
+      // «Тебя поставили»: только когда это сделал другой (taken_by/added_by ≠ я).
+      const slots = (slQ.data || [])
+        .filter((x) => x.taken_by && x.taken_by !== me && x.game && ids.includes(x.game.group_id))
+        .map((x) => ({
+          kind: "slot", key: "slot" + x.id, navKind: "game", navId: x.game.id, code: x.game.invite_code,
+          at: x.taken_at, by: x.taken_by, group_id: x.game.group_id,
+          title: t("bell_added_game"), parts: [x.game.title || x.game.place, x.game.starts_at ? fmtWhen(x.game.starts_at) : null],
+        }));
+      const tslots = (tpQ.data || [])
+        .filter((x) => x.added_by && x.added_by !== me && x.tournament && ids.includes(x.tournament.group_id))
+        .map((x) => ({
+          kind: "tslot", key: "tslot" + x.id, navKind: "tour", navId: x.tournament.id, code: x.tournament.invite_code,
+          at: x.created_at, by: x.added_by, group_id: x.tournament.group_id,
+          title: t("bell_added_tour"), parts: [x.tournament.name, x.tournament.starts_at ? fmtWhen(x.tournament.starts_at) : null],
+        }));
+
+      const merged = [...scoreItems, ...games, ...tours, ...posts, ...slots, ...tslots];
+
+      // Имена авторов — одним запросом (профили со-участников читаемы по RLS).
+      const byIds = [...new Set(merged.map((x) => x.by).filter(Boolean))];
       const names = {};
       if (byIds.length) {
         const { data: ps } = await supabase.from("profiles").select("id, name").in("id", byIds);
@@ -102,7 +181,7 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
       }
       const leagueName = (gid) => (leagues.length > 1 ? (leagues.find((l) => l.id === gid)?.name || null) : null);
       setItems(
-        [...games, ...tours]
+        merged
           .sort((a, b) => new Date(b.at) - new Date(a.at))
           .slice(0, MAX_ITEMS)
           .map((x) => ({ ...x, byName: x.by ? names[x.by] || null : null, league: leagueName(x.group_id) }))
@@ -119,8 +198,28 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [load]);
 
+  // Realtime: мгновенный бейдж при новых событиях в лигах (пока приложение открыто).
+  // Таблицы добавлены в публикацию миграцией 2026-07-18; RLS Realtime уважает.
+  useEffect(() => {
+    const ids = (leagues || []).map((l) => l.id);
+    if (!ids.length) return;
+    const filter = `group_id=in.(${ids.join(",")})`;
+    const ch = supabase.channel("bell-feed")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "games", filter }, () => load(true))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "tournaments", filter }, () => load(true))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "league_posts", filter }, () => load(true))
+      .subscribe();
+    return () => supabase.removeChannel(ch);
+  }, [leagues, load]);
+
   const isNew = (x, mark) => !mark || new Date(x.at) > new Date(mark);
   const unread = seenAt === undefined ? 0 : items.filter((x) => isNew(x, seenAt)).length;
+
+  // Число непрочитанного — на иконку приложения (PWA/Android/iOS).
+  useEffect(() => {
+    if (seenAt === undefined || !loaded) return;
+    setAppBadgeCount(unread);
+  }, [unread, seenAt, loaded]);
 
   const openPanel = () => {
     setShownSeenAt(seenAt || null);
@@ -139,9 +238,9 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
   const go = (x) => {
     setOpen(false);
     // Внутри приложения: полноценный экран участника с кнопкой «К списку».
-    if (onOpen) { onOpen({ kind: x.kind, id: x.id, groupId: x.group_id }); return; }
+    if (onOpen) { onOpen({ kind: x.navKind, id: x.navId, groupId: x.group_id }); return; }
     // Фолбэк без обработчика — гостевые страницы по коду.
-    window.location.assign(x.kind === "tour" ? `/t/${x.code}` : `/j/${x.code}`);
+    if (x.code) window.location.assign(x.navKind === "tour" ? `/t/${x.code}` : `/j/${x.code}`);
   };
 
   if (!leagues || leagues.length === 0) return null;
@@ -177,16 +276,21 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
               )}
               {items.map((x) => {
                 const fresh = isNew(x, shownSeenAt);
-                const sub = [x.league, ...x.parts, x.byName ? `${t("created_by_label").toLowerCase()} ${x.byName}` : null].filter(Boolean).join(" · ");
+                const meta = KIND_META[x.kind] || KIND_META.game;
+                const byLabel = x.byName
+                  ? `${t(x.kind === "slot" || x.kind === "tslot" ? "bell_added_by" : "created_by_label").toLowerCase()} ${x.byName}`
+                  : null;
+                const sub = [x.league, ...x.parts, byLabel].filter(Boolean).join(" · ");
+                const clickable = !!onOpen || !!x.code;
                 return (
-                  <div key={x.kind + x.id} onClick={() => go(x)}
-                    style={{ display: "flex", gap: 11, alignItems: "flex-start", padding: "11px 14px", borderBottom: "1px solid var(--line)", cursor: "pointer", background: fresh ? "color-mix(in srgb, var(--lime) 7%, transparent)" : "none" }}>
-                    <span style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: x.kind === "tour" ? "color-mix(in srgb, var(--lime) 15%, transparent)" : "color-mix(in srgb, var(--yellow) 16%, transparent)", color: x.kind === "tour" ? "var(--lime)" : "var(--yellow)" }}>
-                      {x.kind === "tour" ? <Trophy size={17} /> : <Swords size={17} />}
+                  <div key={x.key} onClick={clickable ? () => go(x) : undefined}
+                    style={{ display: "flex", gap: 11, alignItems: "flex-start", padding: "11px 14px", borderBottom: "1px solid var(--line)", cursor: clickable ? "pointer" : "default", background: fresh ? "color-mix(in srgb, var(--lime) 7%, transparent)" : "none" }}>
+                    <span style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: `color-mix(in srgb, ${meta.color} 15%, transparent)`, color: meta.color }}>
+                      <meta.Icon size={17} />
                     </span>
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: fresh ? "var(--ink)" : "var(--mut)" }}>{x.title}</div>
-                      {sub && <div style={{ fontSize: 11.5, color: "var(--mut)", marginTop: 1, lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</div>}
+                      {sub && <div style={{ fontSize: 11.5, color: "var(--mut)", marginTop: 1, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{sub}</div>}
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
                       <span style={{ fontSize: 10.5, color: "var(--mut)" }}>{ago(x.at)}</span>

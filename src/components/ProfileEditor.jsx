@@ -83,7 +83,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
   const [whatsapp, setWhatsapp] = useState("");
   const [telegram, setTelegram] = useState("");
   const [provider, setProvider] = useState(null);
-  const [notif, setNotif] = useState({ enabled: false, offsets: [] });
+  const [notif, setNotif] = useState({ enabled: false, offsets: [], notifyEvents: true });
   const [confirmDel, setConfirmDel] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [delMsg, setDelMsg] = useState("");
@@ -153,7 +153,9 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
   };
   const toggleNotif = (on) => {
     const offsets = on && notif.offsets.length === 0 ? [1440, 120] : notif.offsets;
-    setNotifState({ enabled: on, offsets });
+    // ...notif — иначе теряется notifyEvents (тумблер событий сбрасывался бы в UI,
+    // а в БД молча перезаписывался в true при каждом щелчке мастер-тумблера).
+    setNotifState({ ...notif, enabled: on, offsets });
   };
   const toggleOffset = (min) => {
     const has = notif.offsets.includes(min);
@@ -325,6 +327,16 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
                           </button>
                         );
                       })}
+                    </div>
+                    {/* Пуши о событиях лиги: новая игра/турнир, объявление */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 12 }}>
+                      <span className="pc-label" style={{ margin: 0, color: "var(--mut)" }}>{t("notif_events_label")}</span>
+                      <button role="switch" aria-checked={notif.notifyEvents} onClick={() => setNotifState({ ...notif, notifyEvents: !notif.notifyEvents })}
+                        style={{ width: 44, height: 26, borderRadius: 13, border: "none", cursor: "pointer", flexShrink: 0,
+                          background: notif.notifyEvents ? "var(--lime)" : "var(--surface2)", position: "relative", transition: "background .15s" }}>
+                        <span style={{ position: "absolute", top: 3, left: notif.notifyEvents ? 21 : 3, width: 20, height: 20,
+                          borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
+                      </button>
                     </div>
                   </>
                 )}

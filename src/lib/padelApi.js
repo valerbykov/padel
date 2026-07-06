@@ -433,6 +433,40 @@ export async function getLeagueDetails(groupId) {
   return data;
 }
 
+// ── Объявления лиги (league_posts) ────────────────────────────────────────────
+// Публикация: владелец/организатор (RLS is_group_admin); author_id проставляется
+// в БД сам (default current_profile_id()). Показываются в колокольчике у всех.
+export async function postLeagueAnnouncement(groupId, text) {
+  const clean = (text || "").trim();
+  if (!clean) throw new Error("empty");
+  const { data, error } = await supabase.from("league_posts")
+    .insert({ group_id: groupId, text: clean })
+    .select("id, text, created_at, author_id").single();
+  if (error) throw error;
+  return data;
+}
+
+// Последние объявления лиги + имена авторов (двумя запросами — без завязки на FK-имя).
+export async function listLeaguePosts(groupId, limit = 3) {
+  const { data, error } = await supabase.from("league_posts")
+    .select("id, text, created_at, author_id")
+    .eq("group_id", groupId).order("created_at", { ascending: false }).limit(limit);
+  if (error) throw error;
+  const posts = data || [];
+  const ids = [...new Set(posts.map((p) => p.author_id).filter(Boolean))];
+  const names = {};
+  if (ids.length) {
+    const { data: ps } = await supabase.from("profiles").select("id, name").in("id", ids);
+    (ps || []).forEach((p) => { names[p.id] = p.name; });
+  }
+  return posts.map((p) => ({ ...p, author_name: p.author_id ? names[p.author_id] || null : null }));
+}
+
+export async function deleteLeaguePost(postId) {
+  const { error } = await supabase.from("league_posts").delete().eq("id", postId);
+  if (error) throw error;
+}
+
 // Сохранить поля лиги (имя/логотип/телеграм). Доступно владельцу/админу (RLS).
 export async function updateLeague(groupId, fields) {
   const patch = {};
