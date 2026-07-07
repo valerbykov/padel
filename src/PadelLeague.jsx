@@ -1481,7 +1481,14 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
 
 /* --------------------------------- Games ---------------------------------- */
 // Карточка игры в списке: состав (аватары команд) + счёт у сыгранных.
-export function GameRow({ g, color, onOpen, flush, bare, label }) {
+// Участвует ли текущий пользователь (me = его profile.id) в игре — по слотам.
+const meInGame = (g, me) => !!me && (g?.slots || []).some((s) => s.profile_id === me);
+// Бейдж «Вы» — лаймовая пилюля для карточек, где играет текущий пользователь.
+function MeBadge({ style }) {
+  return <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.5, padding: "2px 7px", borderRadius: 20, background: "color-mix(in srgb, var(--lime) 18%, transparent)", color: "var(--lime)", flexShrink: 0, textTransform: "uppercase", ...style }}>{t("you_badge")}</span>;
+}
+export function GameRow({ g, color, onOpen, flush, bare, label, me = null }) {
+  const mine = meInGame(g, me);
   const gslots = [...(g.slots || [])].sort((a, b) => ((a.team || "") + (a.position || "")).localeCompare((b.team || "") + (b.position || "")));
   const tA = gslots.filter(s => s.team === "A");
   const tB = gslots.filter(s => s.team === "B");
@@ -1496,6 +1503,21 @@ export function GameRow({ g, color, onOpen, flush, bare, label }) {
     ? <Avatar name={s.profile?.name || s.guest_name} url={s.profile?.avatar_url} id={s.profile_id || s.guest_name} size={avSize} ring={ring} style={{ marginLeft: -12 }} />
     : <span style={{ width: avSize, height: avSize, borderRadius: "50%", border: "1.5px dashed var(--line)", background: "var(--surface2)", flexShrink: 0, display: "inline-block", marginLeft: -12, boxSizing: "border-box" }} />;
   const nm = (slots) => slots.filter(has).map(s => s.profile?.name || s.guest_name).join(" & ") || "—";
+  // Состав с выделением имени текущего пользователя (жирным + лаймовое подчёркивание).
+  const renderNames = (slots) => {
+    const arr = slots.filter(has);
+    if (!arr.length) return "—";
+    const out = [];
+    arr.forEach((sp, i) => {
+      if (i > 0) out.push(<span key={"s" + i} style={{ fontWeight: 400 }}> & </span>);
+      const isMe = !!me && sp.profile_id === me;
+      const label = sp.profile?.name || sp.guest_name;
+      out.push(isMe
+        ? <span key={i} style={{ fontWeight: 700, textDecoration: "underline", textDecorationColor: "var(--lime)", textUnderlineOffset: 2 }}>{label}</span>
+        : <span key={i}>{label}</span>);
+    });
+    return out;
+  };
   const namesCss = { fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", fontSize: 11.5, lineHeight: 1.25, textAlign: "center", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" };
   const Team = ({ a, b, ring, names, won }) => (
     <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
@@ -1504,13 +1526,16 @@ export function GameRow({ g, color, onOpen, flush, bare, label }) {
     </div>
   );
   return (
-    <div className={bare ? "" : "pl-card"} style={{ marginBottom: bare ? 0 : (flush ? 0 : 8), cursor: "pointer", padding: bare ? "10px 2px" : "12px 14px" }} onClick={onOpen}>
+    <div className={bare ? "" : "pl-card"} style={{ marginBottom: bare ? 0 : (flush ? 0 : 8), cursor: "pointer", padding: bare ? "10px 2px" : "12px 14px", boxShadow: (mine && !bare) ? "inset 3px 0 0 var(--lime)" : undefined }} onClick={onOpen}>
       {/* bare-режим (внутри плашки микс-сессии): без шапки, только составы и счёт. */}
       {!bare && (
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <Swords size={24} color={color} style={{ flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.title || "Padel"}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+            <span style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.title || "Padel"}</span>
+            {mine && <MeBadge />}
+          </div>
           {g.starts_at && <div style={{ fontSize: 12, color: "var(--mut)" }}>{fmtDate(g.starts_at)}</div>}
         </div>
         <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: "rgba(255,255,255,.06)", color: played ? "var(--mut)" : color, flexShrink: 0 }}>
@@ -1520,11 +1545,11 @@ export function GameRow({ g, color, onOpen, flush, bare, label }) {
       )}
       {bare && label && <div style={{ fontSize: 11, fontWeight: 700, color: "var(--mut)", letterSpacing: 0.5 }}>{label}</div>}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "center", gap: 10, marginTop: bare ? 6 : 11 }}>
-        <Team a={tA[0]} b={tA[1]} ring="var(--lime)" names={nm(tA)} won={aWon} />
+        <Team a={tA[0]} b={tA[1]} ring="var(--lime)" names={renderNames(tA)} won={aWon} />
         <span style={{ fontFamily: "'Anton',sans-serif", fontSize: played ? 32 : 13, color: "var(--mut)", flexShrink: 0, minWidth: 44, textAlign: "center", paddingTop: 10 }}>
           {played && m ? <><span style={{ color: aWon ? "var(--lime)" : "var(--ink)" }}>{m.sets_a}</span><span style={{ color: "var(--mut)" }}>:</span><span style={{ color: bWon ? "var(--coral)" : "var(--ink)" }}>{m.sets_b}</span></> : "—"}
         </span>
-        <Team a={tB[0]} b={tB[1]} ring="var(--coral)" names={nm(tB)} won={bWon} />
+        <Team a={tB[0]} b={tB[1]} ring="var(--coral)" names={renderNames(tB)} won={bWon} />
       </div>
       {/* Счёт по геймам внутри каждого сета (как было до унификации). */}
       {played && Array.isArray(m?.score_detail) && m.score_detail.length > 0 && (
@@ -1544,15 +1569,19 @@ export function GameRow({ g, color, onOpen, flush, bare, label }) {
 
 // Объединённая плашка микс-сессии: несколько под-игр одного выхода (тот же
 // состав, разные расстановки). Внутри — каждая под-игра со своим счётом.
-function MixGroupCard({ games, color, onOpenGame }) {
+function MixGroupCard({ games, color, onOpenGame, me = null }) {
   const first = games[0];
+  const mine = !!me && games.some((g) => meInGame(g, me));
   const when = first.starts_at || first.created_at;
   return (
-    <div className="pl-card" style={{ padding: 0, overflow: "hidden" }}>
+    <div className="pl-card" style={{ padding: 0, overflow: "hidden", boxShadow: mine ? "inset 3px 0 0 var(--lime)" : undefined }}>
       <div onClick={() => onOpenGame(first)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderBottom: "1px solid var(--line)", cursor: "pointer" }}>
         <Shuffle size={18} color={color} style={{ flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{first.title || t("mix_session_title")}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+            <span style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{first.title || t("mix_session_title")}</span>
+            {mine && <MeBadge />}
+          </div>
           {when && <div style={{ fontSize: 12, color: "var(--mut)" }}>{fmtDate(when)}</div>}
         </div>
         <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: "color-mix(in srgb, var(--lime) 14%, transparent)", color: "var(--lime)", flexShrink: 0 }}>
@@ -1619,7 +1648,7 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
           <div key={label}>
             <div style={{ fontSize: 12, color: "var(--mut)", fontFamily:"'Anton',sans-serif", textTransform:"uppercase", letterSpacing:1, margin:"12px 2px 6px" }}>{label}</div>
             {items.map(g => {
-              const row = <GameRow key={g.id} g={g} color={color} flush={!!del} onOpen={() => { setSelId(g.id); setMode("view"); }} />;
+              const row = <GameRow key={g.id} g={g} color={color} me={profileId} flush={!!del} onOpen={() => { setSelId(g.id); setMode("view"); }} />;
               return del
                 ? <SwipeToDelete key={g.id} onDelete={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(g.id).catch(() => {}); loadGames(); bumpArchive?.(); }}>{row}</SwipeToDelete>
                 : row;
@@ -2245,6 +2274,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
   const [swipeHint, setSwipeHint] = useState(() => { try { return !localStorage.getItem("pp_swipe_hint"); } catch (e) { return true; } });
   const dismissHint = () => { try { localStorage.setItem("pp_swipe_hint", "1"); } catch (e) {} setSwipeHint(false); };
   const [filter, setFilter] = useState("all"); // all | games | tours
+  const [mineOnly, setMineOnly] = useState(false); // «Только мои» — фильтр по участию текущего игрока
 
   const load = useCallback(async () => {
     try { const g = groupId ? await listGames(groupId) : await listMyGames(); setGames((g || []).filter((x) => x.status === "played")); }
@@ -2258,6 +2288,10 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
   if (sel?.type === "tour") return <TournamentView id={sel.data.id} players={players} back={() => setSel(null)} isGroupMember={isGroupMember} currentProfileId={profileId} onArchiveChange={bumpArchive} />;
   if (sel?.type === "game") return <GameCard game={sel.data} groupId={groupId} profileId={profileId} back={() => setSel(null)} reloadGames={load} reloadLeaderboard={() => {}} bumpArchive={bumpArchive} players={players} />;
 
+  const mineTour = (tr) => !profileId || (tr.players || []).some((pl) => pl.profile_id === profileId);
+  const mineGame = (g) => !profileId || meInGame(g, profileId);
+  const vTours = mineOnly ? tours.filter(mineTour) : tours;
+  const vGames = mineOnly ? games.filter(mineGame) : games;
   const head = (txt, color = "var(--mut)") => <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color, textTransform: "uppercase", margin: "14px 2px 8px", paddingLeft: 4 }}>{txt}</div>;
 
   if (games === null) return <div className="pl-pop"><CardSkeleton count={4} /></div>;
@@ -2278,43 +2312,61 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
           }}>{label}</button>
         ))}
       </div>
+      {profileId && (
+        <button onClick={() => setMineOnly((v) => !v)} aria-pressed={mineOnly} style={{
+          display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 12, padding: "7px 12px", borderRadius: 999, cursor: "pointer",
+          fontFamily: "'Outfit',sans-serif", fontSize: 12.5, fontWeight: 700,
+          border: mineOnly ? "1px solid color-mix(in srgb, var(--lime) 55%, transparent)" : "1px solid var(--line)",
+          background: mineOnly ? "color-mix(in srgb, var(--lime) 14%, transparent)" : "var(--surface2)",
+          color: mineOnly ? "var(--lime)" : "var(--mut)",
+        }}>
+          <UserCheck size={14} /> {t("only_mine")}
+        </button>
+      )}
       {isGroupMember && swipeHint && (games.length > 0 || tours.length > 0) && (
         <div onClick={dismissHint} style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 2px 12px", padding: "9px 12px", borderRadius: 12, background: "color-mix(in srgb, var(--coral) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--coral) 30%, transparent)", fontSize: 12.5, color: "var(--mut)", cursor: "pointer" }}>
           <span style={{ fontSize: 15, fontWeight: 800, lineHeight: 1, flexShrink: 0 }}><span style={{ color: "var(--coral)" }}>←</span><span style={{ color: "var(--lime)" }}>→</span></span> {t("swipe_hint")} <X size={14} style={{ marginLeft: "auto", color: "var(--mut)", flexShrink: 0 }} />
         </div>
       )}
-      {filter === "games" && games.length === 0 && <EmptyState text={t("history_no_games")} />}
-      {filter === "tours" && tours.length === 0 && <EmptyState text={t("history_no_tours")} />}
-      {filter !== "games" && tours.length > 0 && head(t("tours_history_heading"), "var(--yellow)")}
-      {filter !== "games" && tours.map((tour) => {
-        const card = <TournamentCard trn={tour} color="var(--yellow)" flush={isGroupMember} onClick={() => setSel({ type: "tour", data: tour })} />;
-        return isGroupMember
-          ? <SwipeToDelete key={tour.id} onCopy={groupId ? () => setCopyTour(tour) : null} onDelete={async () => { if (!confirm(t("trn_delete_confirm"))) return; await deleteTournament(tour.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
-          : <div key={tour.id}>{card}</div>;
+      {filter === "games" && vGames.length === 0 && !mineOnly && <EmptyState text={t("history_no_games")} />}
+      {filter === "tours" && vTours.length === 0 && !mineOnly && <EmptyState text={t("history_no_tours")} />}
+      {mineOnly && vTours.length === 0 && vGames.length === 0 && <EmptyState text={t("history_no_mine")} />}
+      {filter !== "games" && vTours.length > 0 && head(t("tours_history_heading"), "var(--yellow)")}
+      {filter !== "games" && vTours.map((tour) => {
+        const mine = !profileId || (tour.players || []).some((pl) => pl.profile_id === profileId);
+        const card = <TournamentCard trn={tour} color="var(--yellow)" me={profileId} flush={isGroupMember} onClick={() => setSel({ type: "tour", data: tour })} />;
+        const inner = isGroupMember
+          ? <SwipeToDelete onCopy={groupId ? () => setCopyTour(tour) : null} onDelete={async () => { if (!confirm(t("trn_delete_confirm"))) return; await deleteTournament(tour.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+          : card;
+        return <div key={tour.id} style={mine ? undefined : { opacity: 0.55 }}>{inner}</div>;
       })}
 
-      {filter !== "tours" && games.length > 0 && head(t("games_history_heading"))}
+      {filter !== "tours" && vGames.length > 0 && head(t("games_history_heading"))}
       {filter !== "tours" && (() => {
         // Группируем по миксу: ключ = mix_group_id || id. Группа ≥2 → объединённая плашка.
         const byKey = new Map();
-        games.forEach((g) => { const k = g.mix_group_id || g.id; const a = byKey.get(k) || []; a.push(g); byKey.set(k, a); });
+        vGames.forEach((g) => { const k = g.mix_group_id || g.id; const a = byKey.get(k) || []; a.push(g); byKey.set(k, a); });
         const seen = new Set();
         const order = [];
-        games.forEach((g) => { const k = g.mix_group_id || g.id; if (!seen.has(k)) { seen.add(k); order.push(k); } });
+        vGames.forEach((g) => { const k = g.mix_group_id || g.id; if (!seen.has(k)) { seen.add(k); order.push(k); } });
         return order.map((k) => {
           const grp = byKey.get(k);
           if (grp.length >= 2) {
             const ordered = [...grp].sort((a, b) => new Date(a.created_at || a.starts_at || 0) - new Date(b.created_at || b.starts_at || 0));
-            const card = <MixGroupCard games={ordered} color="#7d9488" onOpenGame={(g) => setSel({ type: "game", data: g })} />;
-            return isGroupMember
-              ? <SwipeToDelete key={"mix-" + k} onDelete={async () => { if (!confirm(t("mix_delete_confirm").replace("{n}", ordered.length))) return; for (const gg of ordered) await deleteGame(gg.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
-              : <div key={"mix-" + k}>{card}</div>;
+            const mine = !profileId || ordered.some((gg) => meInGame(gg, profileId));
+            const card = <MixGroupCard games={ordered} color="#7d9488" me={profileId} onOpenGame={(g) => setSel({ type: "game", data: g })} />;
+            const inner = isGroupMember
+              ? <SwipeToDelete onDelete={async () => { if (!confirm(t("mix_delete_confirm").replace("{n}", ordered.length))) return; for (const gg of ordered) await deleteGame(gg.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+              : card;
+            return <div key={"mix-" + k} style={mine ? undefined : { opacity: 0.55 }}>{inner}</div>;
           }
           const g = grp[0];
-          const card = <GameRow g={g} color="#7d9488" flush={isGroupMember} onOpen={() => setSel({ type: "game", data: g })} />;
-          return isGroupMember
-            ? <SwipeToDelete key={g.id} onCopy={groupId ? () => setCopyGame(g) : null} onDelete={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(g.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
-            : <div key={g.id}>{card}</div>;
+          const mine = !profileId || meInGame(g, profileId);
+          const card = <GameRow g={g} color="#7d9488" me={profileId} flush={isGroupMember} onOpen={() => setSel({ type: "game", data: g })} />;
+          const inner = isGroupMember
+            ? <SwipeToDelete onCopy={groupId ? () => setCopyGame(g) : null} onDelete={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(g.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+            : card;
+          return <div key={g.id} style={mine ? undefined : { opacity: 0.55 }}>{inner}</div>;
         });
       })()}
       {copyTour && <CopyDialog src={copyTour} groupId={groupId} profileId={profileId} onClose={() => setCopyTour(null)} onCopied={() => { setCopyTour(null); bumpArchive?.(); }} />}

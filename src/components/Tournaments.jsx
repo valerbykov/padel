@@ -135,8 +135,9 @@ export default function Tournaments({ groupId, players, profileId, bumpArchive, 
 
 // ─── TournamentCard ────────────────────────────────────────────────────────────
 
-export function TournamentCard({ trn, color, onClick, onCopy, flush }) {
+export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null }) {
   const fmt = fmtById(trn.format);
+  const mine = !!me && (trn.players || []).some((pl) => pl.profile_id === me);
   // Завершённый турнир — считаем победителя и дату прямо на карточке (matches есть в выборке).
   let winner = null;
   if (trn.status === "finished") {
@@ -157,10 +158,13 @@ export function TournamentCard({ trn, color, onClick, onCopy, flush }) {
   const whenIso = trn.starts_at || trn.created_at;
   const dateStr = whenIso ? (() => { try { return new Date(whenIso).toLocaleString(undefined, trn.starts_at ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" } : { day: "numeric", month: "short" }); } catch (e) { return null; } })() : null;
   return (
-    <div className="tr-card" style={{ marginBottom: flush ? 0 : 8, display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={onClick}>
+    <div className="tr-card" style={{ marginBottom: flush ? 0 : 8, display: "flex", alignItems: "center", gap: 10, cursor: "pointer", boxShadow: mine ? "inset 3px 0 0 var(--lime)" : undefined }} onClick={onClick}>
       <Trophy size={24} color={color} style={{ flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{trn.name || fmt.name}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+          <span style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{trn.name || fmt.name}</span>
+          {mine && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.5, padding: "2px 7px", borderRadius: 20, background: "color-mix(in srgb, var(--lime) 18%, transparent)", color: "var(--lime)", flexShrink: 0, textTransform: "uppercase" }}>{tr("you_badge")}</span>}
+        </div>
         <div style={{ fontSize: 12, color: "var(--mut)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(trn.players || []).length}/{trn.target_size} {tr("trn_players_label").toLowerCase()} · {trn.points_per_game} {tr("trn_winner_points")} · {fmt.emoji} {fmt.name}</div>
         {(winner || dateStr) && (
           <div style={{ fontSize: 12, marginTop: 3, display: "flex", gap: 10, alignItems: "center", overflow: "hidden" }}>
@@ -226,7 +230,7 @@ function List({ groupId, profileId, create, open, session, onLogin, canCreate = 
             </div>
             {visible.map((trn) => {
               const canDel = session && groupId && canCreate;
-              const card = <TournamentCard trn={trn} color={sec.color} flush={canDel} onClick={() => open(trn.id)} onCopy={groupId && trn.status === "finished" ? () => setCopySrc(trn) : null} />;
+              const card = <TournamentCard trn={trn} color={sec.color} me={profileId} flush={canDel} onClick={() => open(trn.id)} onCopy={groupId && trn.status === "finished" ? () => setCopySrc(trn) : null} />;
               return canDel
                 ? <div key={trn.id} style={{ marginBottom: 8 }}><SwipeRow onDelete={async () => { if (!confirm(tr("trn_delete_confirm"))) return; await deleteTournament(trn.id).catch(() => {}); (groupId ? listTournaments(groupId) : listMyTournaments()).then(setItems).catch(() => {}); }}>{card}</SwipeRow></div>
                 : <div key={trn.id}>{card}</div>;
