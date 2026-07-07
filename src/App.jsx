@@ -11,7 +11,7 @@ import Logo from "./components/Logo"; // текстовый логотип в т
 import LeagueSwitcher from "./components/LeagueSwitcher"; // глобальный переключатель лиги в топбаре
 import NotificationBell from "./components/NotificationBell"; // колокольчик уведомлений (новые игры/турниры лиг)
 import { LogIn, Sun, Moon } from "lucide-react";
-import { getMyLeagues } from "./lib/padelApi";
+import { getMyLeagues, bootstrapApp } from "./lib/padelApi";
 import { t, setLang, applyLang, LANGS, LANG_LABELS, currentLang } from "./lib/i18n";
 import { detectCountry, langFromCountry } from "./lib/region";
 import { getNotifPrefs, registerPush } from "./lib/notifications";
@@ -29,6 +29,11 @@ function guessLangSync() {
 
 // Ленивые чанки: тяжёлые и маршрутные экраны грузятся по требованию.
 const PadelLeague      = lazy(() => import("./PadelLeague"));
+// Тёплый старт: тяжёлый чанк лиги начинаем качать СРАЗУ, параллельно с auth и
+// данными (иначе загрузка стартует только после ответа profiles+лиг — это
+// заметная доля «разогрева» до списка друзей). Vite дедупит динамический
+// импорт — lazy() выше получит уже скачанный модуль.
+if (typeof window !== "undefined") setTimeout(() => { import("./PadelLeague").catch(() => {}); }, 0);
 const LoginScreen      = lazy(() => import("./components/LoginScreen"));
 const ProfileEditor    = lazy(() => import("./components/ProfileEditor"));
 const LeagueSetup      = lazy(() => import("./components/LeagueSetup"));
@@ -216,9 +221,12 @@ export default function App({ initialShowLogin = false }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  // Профиль текущего пользователя. Инстант-пейнт из кэша (localStorage) + фоновая
-  // ревалидация: на повторных входах аватар/имя (и вся цепочка лиг/друзей) рисуются
-  // сразу, без ожидания сети.
+  // Профиль + ЛИГИ + лидерборд активной лиги — ОДНИМ запросом (app_bootstrap):
+  // раньше холодный старт делал каскад из 3-4 последовательных запросов
+  // (profiles → group_members → leaderboard → counts), на медленной сети это и
+  // был «разогрев» до списка друзей. Инстант-пейнт из кэша сохранён; если RPC
+  // ещё не задеплоен — фолбэк на старый путь (profiles + loadLeagues-каскад).
+  const bootBusyRef = useRef(false); // бутстрап в полёте/успешен → каскад лиг не нужен
   useEffect(() => {
     let active = true;
     if (!session) { setProfile(null); return; }
@@ -227,9 +235,29 @@ export default function App({ initialShowLogin = false }) {
     const key = "profile:" + user.id;
     const cached = cachePeek(key);
     if (cached && active) setProfile(cached);
+    bootBusyRef.current = true;
     (async () => {
+      let savedId = null;
+      try { savedId = localStorage.getItem("plActiveLeague"); } catch (e) { /* ignore */ }
+      const boot = await bootstrapApp(savedId);
+      if (!active) { bootBusyRef.current = false; return; }
+      if (boot) {
+        cacheSet(key, boot.profile);
+        setProfile(boot.profile);
+        setLeagues(boot.leagues);
+        setActiveLeague((prev) =>
+          boot.leagues.find((l) => l.id === prev?.id) ||
+          boot.leagues.find((l) => l.id === boot.activeGroupId) ||
+          boot.leagues[0] || null);
+        return; // bootBusyRef остаётся true — эффект лиг ниже пропустит каскад
+      }
+      // Фолбэк (app_bootstrap не задеплоен): старый путь.
+      bootBusyRef.current = false;
       const { data } = await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle();
       if (active && data) { setProfile(data); cacheSet(key, data); }
+      // Сеть не отдала профиль, но есть кэш — хотя бы запускаем каскад лиг по нему
+      // (setProfile(cached) выше эффект лиг пропустил из-за bootBusyRef).
+      else if (active && cached) loadLeagues(cached.id);
     })();
     return () => { active = false; };
   }, [session, pNonce]);
@@ -276,6 +304,8 @@ export default function App({ initialShowLogin = false }) {
 
   useEffect(() => {
     if (!profile) { setLeagues(null); setActiveLeague(null); return; }
+    // Бутстрап сам ставит лиги (или уже поставил) — не дублируем запрос group_members.
+    if (bootBusyRef.current) return;
     loadLeagues(profile.id);
   }, [profile, loadLeagues]);
 

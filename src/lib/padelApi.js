@@ -2,7 +2,7 @@
 // Слой данных: каждая функция соответствует операции в прототипе.
 // Названия таблиц/колонок совпадают со schema.sql.
 import { supabase } from "./supabase";
-import { swr, bustCache, bustKey } from "./cache";
+import { swr, bustCache, bustKey, cacheSet } from "./cache";
 import { WEB_BASE } from "./platform";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -27,6 +27,35 @@ export async function ensureMyProfile(name) {
     .single();
   if (error) throw error;
   return data;
+}
+
+// Холодный старт одним RPC (app_bootstrap): профиль + лиги + лидерборд активной
+// лиги + счётчики. Схлопывает каскад profiles → group_members → leaderboard →
+// counts (3-4 последовательных RTT → 1). Прогревает SWR-кэш, чтобы PadelLeague
+// получил список друзей мгновенно из памяти, без похода в сеть.
+// Возвращает null, если RPC ещё не задеплоен или профиля нет — вызывающий
+// откатывается на старый каскад.
+export async function bootstrapApp(savedGroupId = null) {
+  const { data, error } = await supabase.rpc("app_bootstrap", { p_group_id: savedGroupId || null });
+  if (error || !data || !data.profile) return null;
+  const leagues = (data.leagues || []).map((r) => ({
+    id: r.id, name: r.name, invite_code: r.invite_code, logo_url: r.logo_url,
+    telegram_url: r.telegram_url,
+    members_can_add: !!r.members_can_add, members_can_create: !!r.members_can_create,
+    role: r.role,
+  }));
+  const gid = data.board_group_id || null;
+  if (gid) {
+    // Форма — точно как у _getLeaderboard/_getGroupCounts: swr отдаст из кэша.
+    cacheSet("lb:" + gid, (data.board || []).map((r) => ({
+      id: r.profile.id, name: r.profile.name, avatar_url: r.profile.avatar_url,
+      contacts: r.profile.contacts || {},
+      rating: r.rating, matches: r.matches_played, wins: r.wins,
+      user_id: r.profile.user_id || null, role: r.role,
+    })));
+    if (data.counts) cacheSet("counts:" + gid, { games: data.counts.games || {}, tours: data.counts.tours || {} });
+  }
+  return { profile: data.profile, leagues, activeGroupId: gid };
 }
 
 /* =====================================================================
