@@ -4,8 +4,8 @@
 // Данные тянет через get_league_details (RPC), сохраняет в groups (RLS).
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Upload, Send, Copy, Check, Crown, ShieldCheck, Megaphone, ChevronDown } from "lucide-react";
-import { getLeagueDetails, updateLeague, uploadLeagueLogo, postLeagueAnnouncement, listLeaguePosts, deleteLeaguePost } from "../lib/padelApi";
+import { X, Upload, Send, Copy, Check, Crown, ShieldCheck, ChevronDown } from "lucide-react";
+import { getLeagueDetails, updateLeague, uploadLeagueLogo } from "../lib/padelApi";
 import Avatar from "./Avatar";
 import { t } from "../lib/i18n";
 
@@ -36,12 +36,7 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
   const [copied, setCopied] = useState(false);
   const [err, setErr] = useState("");
   const fileRef = useRef(null);
-  // Объявления лиги (league_posts): композер — владельцу/организатору, список — всем.
-  const [posts, setPosts] = useState([]);
-  const [postText, setPostText] = useState("");
-  const [posting, setPosting] = useState(false);
   const [openTeam, setOpenTeam] = useState(false);
-  const [openPosts, setOpenPosts] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -51,27 +46,9 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
         if (!alive) return;
         setD(det); setName(det.name || ""); setTg(det.telegram_url || ""); setLogo(det.logo_url || ""); setMembersCanAdd(!!det.members_can_add); setMembersCanCreate(!!det.members_can_create);
       } catch (e) { if (alive) setErr(e.message || t("err_generic")); }
-      // Объявления — отдельно и некритично (таблица может отсутствовать до миграции).
-      try { const ps = await listLeaguePosts(groupId, 10); if (alive) setPosts(ps); } catch (e) { /* ignore */ }
     })();
     return () => { alive = false; };
   }, [groupId]);
-
-  const publishPost = async () => {
-    const clean = postText.trim();
-    if (!clean || posting) return;
-    setPosting(true);
-    try {
-      const p = await postLeagueAnnouncement(groupId, clean);
-      setPosts((prev) => [{ ...p, author_name: null }, ...prev].slice(0, 10));
-      setPostText("");
-    } catch (e) { setErr(e.message || t("err_generic")); }
-    finally { setPosting(false); }
-  };
-
-  const removePost = async (id) => {
-    try { await deleteLeaguePost(id); setPosts((ps) => ps.filter((p) => p.id !== id)); } catch (e) { /* ignore */ }
-  };
 
   const dirty = d && (
     name.trim() !== (d.name || "") ||
@@ -180,38 +157,6 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
                 </>
               ) : (tg ? <a href={tg} target="_blank" rel="noreferrer" style={{ color: "var(--lime)", fontSize: 14, textDecoration: "none", fontWeight: 600 }}>{t("league_open_channel")} →</a> : <div style={{ color: "var(--mut)", fontSize: 14 }}>—</div>)}
             </div>
-
-            {/* Объявления лиги (сворачивается). Композер — владельцу/организатору;
-                участники видят их и в колокольчике (+push, если включён). */}
-            <Section icon={<Megaphone size={13} style={{ color: "var(--mut)" }} />} title={t("league_posts_title")}
-              count={posts.length || null} open={openPosts} onToggle={() => setOpenPosts((v) => !v)}>
-              {canEdit && (
-                <div style={{ display: "flex", gap: 8, marginBottom: posts.length ? 8 : 0 }}>
-                  <input value={postText} onChange={(e) => setPostText(e.target.value)} maxLength={500}
-                    placeholder={t("league_post_placeholder")} onKeyDown={(e) => e.key === "Enter" && publishPost()}
-                    style={{ ...inp, fontSize: 14, padding: "9px 12px", flex: 1 }} />
-                  <button onClick={publishPost} disabled={posting || !postText.trim()}
-                    style={{ flexShrink: 0, padding: "0 14px", borderRadius: 12, border: "none", cursor: posting || !postText.trim() ? "default" : "pointer", background: "var(--lime)", color: "var(--lime-fg)", fontWeight: 700, fontSize: 13, fontFamily: "'Outfit',sans-serif", opacity: posting || !postText.trim() ? 0.55 : 1 }}>
-                    {posting ? "…" : t("league_post_send")}
-                  </button>
-                </div>
-              )}
-              {posts.length === 0 && <div style={{ color: "var(--mut)", fontSize: 14 }}>—</div>}
-              {posts.map((p) => (
-                <div key={p.id} style={{ position: "relative", padding: "8px 12px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 12, marginBottom: 6 }}>
-                  <div style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.4, whiteSpace: "pre-wrap", wordBreak: "break-word", paddingRight: canEdit ? 20 : 0 }}>{p.text}</div>
-                  <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 3 }}>
-                    {p.author_name ? p.author_name + " · " : ""}{(() => { try { return new Date(p.created_at).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } })()}
-                  </div>
-                  {canEdit && (
-                    <button onClick={() => removePost(p.id)} aria-label={t("delete_btn")} title={t("delete_btn")}
-                      style={{ position: "absolute", top: 6, right: 6, background: "none", border: "none", color: "var(--mut)", cursor: "pointer", padding: 2, display: "flex" }}>
-                      <X size={13} />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </Section>
 
             <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 6, marginTop: 2 }}>{t("league_rights_title")}</div>
             {/* #1/#3: кто может добавлять игроков. Видно всем участникам; переключать —

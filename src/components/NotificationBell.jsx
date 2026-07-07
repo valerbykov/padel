@@ -15,10 +15,11 @@
 // исключений — все результаты проверяем явно.
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bell, Trophy, Swords, Send, X, Megaphone, AlertTriangle, UserPlus, LineChart, Link2 } from "lucide-react";
+import { Bell, Trophy, Swords, Send, X, Megaphone, AlertTriangle, UserPlus, LineChart, Link2, Users } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { setAppBadgeCount } from "../lib/badge";
 import { t } from "../lib/i18n";
+import { postLeagueAnnouncement, listLeaguePosts, deleteLeaguePost } from "../lib/padelApi";
 
 const WINDOW_DAYS = 14;  // окно событий
 const MAX_ITEMS = 20;    // сколько событий держим в панели
@@ -58,6 +59,11 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
   const [open, setOpen] = useState(false);
   const [shownSeenAt, setShownSeenAt] = useState(null); // снапшот на момент открытия — подсветка «новых»
   const lastLoadRef = useRef(0);
+  // Композер объявлений лиги (только для владельца/организатора активной лиги).
+  const [posts, setPosts] = useState([]);
+  const [postText, setPostText] = useState("");
+  const [posting, setPosting] = useState(false);
+  const [showAllPosts, setShowAllPosts] = useState(false);
 
   // seen_at только растёт — защита от гонки: медленный load() со старым значением
   // не должен перетирать свежую отметку после touch_notifications_seen.
@@ -263,6 +269,31 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
     setAppBadgeCount(unread);
   }, [unread, seenAt, loaded]);
 
+  const canPost = !!activeLeague && (activeLeague.role === "owner" || activeLeague.role === "admin");
+
+  // Объявления активной лиги — для композера (грузим тем, кто может публиковать).
+  useEffect(() => {
+    if (!canPost || !activeLeague?.id) { setPosts([]); return; }
+    let alive = true;
+    listLeaguePosts(activeLeague.id, 10).then((ps) => { if (alive) setPosts(ps); }).catch(() => {});
+    return () => { alive = false; };
+  }, [activeLeague, canPost]);
+
+  const publishPost = async () => {
+    const clean = postText.trim();
+    if (!clean || posting || !activeLeague?.id) return;
+    setPosting(true);
+    try {
+      const np = await postLeagueAnnouncement(activeLeague.id, clean);
+      setPosts((prev) => [{ ...np, author_name: null }, ...prev].slice(0, 10));
+      setPostText("");
+    } catch (e) { /* ignore */ }
+    finally { setPosting(false); }
+  };
+  const removePost = async (id) => {
+    try { await deleteLeaguePost(id); setPosts((ps) => ps.filter((p) => p.id !== id)); } catch (e) { /* ignore */ }
+  };
+
   const openPanel = () => {
     setShownSeenAt(seenAt || null);
     setOpen(true);
@@ -310,6 +341,53 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
                 style={{ marginLeft: "auto", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 10, color: "var(--mut)", cursor: "pointer", padding: 8, display: "flex" }}><X size={16} /></button>
             </div>
             <div style={{ overflowY: "auto" }}>
+              {canPost && (
+                <div style={{ padding: "10px 12px 10px", borderBottom: "1px solid var(--line)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
+                    <Megaphone size={14} style={{ color: "var(--lime)" }} />
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>{t("bell_post_composer")}</span>
+                    <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--mut)", fontWeight: 600, maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <Users size={12} /> {activeLeague?.name}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input value={postText} onChange={(e) => setPostText(e.target.value)} maxLength={500}
+                      placeholder={t("league_post_placeholder")} onKeyDown={(e) => e.key === "Enter" && publishPost()}
+                      style={{ flex: 1, minWidth: 0, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 11, color: "var(--ink)", fontSize: 13.5, padding: "9px 11px", outline: "none", fontFamily: "'Outfit',sans-serif" }} />
+                    <button onClick={publishPost} disabled={posting || !postText.trim()}
+                      style={{ flexShrink: 0, padding: "0 14px", borderRadius: 11, border: "none", cursor: posting || !postText.trim() ? "default" : "pointer", background: "var(--lime)", color: "var(--lime-fg)", fontWeight: 700, fontSize: 13, fontFamily: "'Outfit',sans-serif", opacity: posting || !postText.trim() ? 0.55 : 1 }}>
+                      {posting ? "…" : t("league_post_send")}
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 6 }}>{t("bell_post_hint")}</div>
+                  {posts.length > 0 && (
+                    <div style={{ marginTop: 10 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                        <span style={{ fontSize: 11, color: "var(--mut)", fontWeight: 600 }}>{t("bell_posts_sent")}</span>
+                        <span style={{ fontSize: 11, color: "var(--mut)" }}>· {posts.length}</span>
+                        {posts.length > 2 && (
+                          <button onClick={() => setShowAllPosts((v) => !v)}
+                            style={{ marginLeft: "auto", background: "none", border: "none", color: "var(--lime)", fontSize: 11, fontWeight: 600, cursor: "pointer", padding: 0, fontFamily: "'Outfit',sans-serif" }}>
+                            {showAllPosts ? t("league_posts_collapse") : t("league_posts_showall").replace("{n}", String(posts.length))}
+                          </button>
+                        )}
+                      </div>
+                      {(showAllPosts ? posts : posts.slice(0, 2)).map((p) => (
+                        <div key={p.id} style={{ position: "relative", padding: "8px 12px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 11, marginBottom: 6 }}>
+                          <div style={{ fontSize: 12.5, color: "var(--ink)", lineHeight: 1.4, whiteSpace: "pre-wrap", wordBreak: "break-word", paddingRight: 20 }}>{p.text}</div>
+                          <div style={{ fontSize: 10, color: "var(--mut)", marginTop: 3 }}>
+                            {p.author_name ? p.author_name + " · " : ""}{(() => { try { return new Date(p.created_at).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } })()}
+                          </div>
+                          <button onClick={() => removePost(p.id)} aria-label={t("delete_btn")} title={t("delete_btn")}
+                            style={{ position: "absolute", top: 6, right: 6, background: "none", border: "none", color: "var(--mut)", cursor: "pointer", padding: 2, display: "flex" }}>
+                            <X size={13} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               {!loaded && items.length === 0 && (
                 <div style={{ padding: "26px 14px", textAlign: "center", color: "var(--mut)", fontSize: 13 }}>{t("loading")}</div>
               )}
