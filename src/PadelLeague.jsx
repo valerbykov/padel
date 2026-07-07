@@ -1499,25 +1499,14 @@ export function GameRow({ g, color, onOpen, flush, bare, label, me = null }) {
   const avSize = 38;
   const aWon = played && m && m.sets_a > m.sets_b;
   const bWon = played && m && m.sets_b > m.sets_a;
-  const Slot = ({ s, ring }) => has(s)
-    ? <Avatar name={s.profile?.name || s.guest_name} url={s.profile?.avatar_url} id={s.profile_id || s.guest_name} size={avSize} ring={ring} style={{ marginLeft: -12 }} />
-    : <span style={{ width: avSize, height: avSize, borderRadius: "50%", border: "1.5px dashed var(--line)", background: "var(--surface2)", flexShrink: 0, display: "inline-block", marginLeft: -12, boxSizing: "border-box" }} />;
-  const nm = (slots) => slots.filter(has).map(s => s.profile?.name || s.guest_name).join(" & ") || "—";
-  // Состав с выделением имени текущего пользователя (жирным + лаймовое подчёркивание).
-  const renderNames = (slots) => {
-    const arr = slots.filter(has);
-    if (!arr.length) return "—";
-    const out = [];
-    arr.forEach((sp, i) => {
-      if (i > 0) out.push(<span key={"s" + i} style={{ fontWeight: 400 }}> & </span>);
-      const isMe = !!me && sp.profile_id === me;
-      const label = sp.profile?.name || sp.guest_name;
-      out.push(isMe
-        ? <span key={i} style={{ fontWeight: 700, textDecoration: "underline", textDecorationColor: "var(--lime)", textUnderlineOffset: 2 }}>{label}</span>
-        : <span key={i}>{label}</span>);
-    });
-    return out;
+  const Slot = ({ s, ring }) => {
+    const isMe = !!me && has(s) && s.profile_id === me;
+    const sz = isMe ? avSize + 12 : avSize;
+    return has(s)
+      ? <Avatar name={s.profile?.name || s.guest_name} url={s.profile?.avatar_url} id={s.profile_id || s.guest_name} size={sz} ring={ring} style={{ marginLeft: -12, position: "relative", zIndex: isMe ? 2 : 1 }} />
+      : <span style={{ width: avSize, height: avSize, borderRadius: "50%", border: "1.5px dashed var(--line)", background: "var(--surface2)", flexShrink: 0, display: "inline-block", marginLeft: -12, boxSizing: "border-box" }} />;
   };
+  const nm = (slots) => slots.filter(has).map(s => s.profile?.name || s.guest_name).join(" & ") || "—";
   const namesCss = { fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", fontSize: 11.5, lineHeight: 1.25, textAlign: "center", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" };
   const Team = ({ a, b, ring, names, won }) => (
     <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
@@ -1526,7 +1515,7 @@ export function GameRow({ g, color, onOpen, flush, bare, label, me = null }) {
     </div>
   );
   return (
-    <div className={bare ? "" : "pl-card"} style={{ marginBottom: bare ? 0 : (flush ? 0 : 8), cursor: "pointer", padding: bare ? "10px 2px" : "12px 14px", boxShadow: (mine && !bare) ? "inset 3px 0 0 var(--lime)" : undefined }} onClick={onOpen}>
+    <div className={bare ? "" : "pl-card"} style={{ marginBottom: bare ? 0 : (flush ? 0 : 8), cursor: "pointer", padding: bare ? "10px 2px" : "12px 14px", border: (mine && !bare) ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined, background: (mine && !bare) ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined }} onClick={onOpen}>
       {/* bare-режим (внутри плашки микс-сессии): без шапки, только составы и счёт. */}
       {!bare && (
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1545,11 +1534,11 @@ export function GameRow({ g, color, onOpen, flush, bare, label, me = null }) {
       )}
       {bare && label && <div style={{ fontSize: 11, fontWeight: 700, color: "var(--mut)", letterSpacing: 0.5 }}>{label}</div>}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "center", gap: 10, marginTop: bare ? 6 : 11 }}>
-        <Team a={tA[0]} b={tA[1]} ring="var(--lime)" names={renderNames(tA)} won={aWon} />
+        <Team a={tA[0]} b={tA[1]} ring="var(--lime)" names={nm(tA)} won={aWon} />
         <span style={{ fontFamily: "'Anton',sans-serif", fontSize: played ? 32 : 13, color: "var(--mut)", flexShrink: 0, minWidth: 44, textAlign: "center", paddingTop: 10 }}>
           {played && m ? <><span style={{ color: aWon ? "var(--lime)" : "var(--ink)" }}>{m.sets_a}</span><span style={{ color: "var(--mut)" }}>:</span><span style={{ color: bWon ? "var(--coral)" : "var(--ink)" }}>{m.sets_b}</span></> : "—"}
         </span>
-        <Team a={tB[0]} b={tB[1]} ring="var(--coral)" names={renderNames(tB)} won={bWon} />
+        <Team a={tB[0]} b={tB[1]} ring="var(--coral)" names={nm(tB)} won={bWon} />
       </div>
       {/* Счёт по геймам внутри каждого сета (как было до унификации). */}
       {played && Array.isArray(m?.score_detail) && m.score_detail.length > 0 && (
@@ -1574,7 +1563,7 @@ function MixGroupCard({ games, color, onOpenGame, me = null }) {
   const mine = !!me && games.some((g) => meInGame(g, me));
   const when = first.starts_at || first.created_at;
   return (
-    <div className="pl-card" style={{ padding: 0, overflow: "hidden", boxShadow: mine ? "inset 3px 0 0 var(--lime)" : undefined }}>
+    <div className="pl-card" style={{ padding: 0, overflow: "hidden", border: mine ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined, background: mine ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined }}>
       <div onClick={() => onOpenGame(first)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderBottom: "1px solid var(--line)", cursor: "pointer" }}>
         <Shuffle size={18} color={color} style={{ flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>

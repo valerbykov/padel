@@ -158,7 +158,7 @@ export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null }
   const whenIso = trn.starts_at || trn.created_at;
   const dateStr = whenIso ? (() => { try { return new Date(whenIso).toLocaleString(undefined, trn.starts_at ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" } : { day: "numeric", month: "short" }); } catch (e) { return null; } })() : null;
   return (
-    <div className="tr-card" style={{ marginBottom: flush ? 0 : 8, display: "flex", alignItems: "center", gap: 10, cursor: "pointer", boxShadow: mine ? "inset 3px 0 0 var(--lime)" : undefined }} onClick={onClick}>
+    <div className="tr-card" style={{ marginBottom: flush ? 0 : 8, display: "flex", alignItems: "center", gap: 10, cursor: "pointer", border: mine ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined, background: mine ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined }} onClick={onClick}>
       <Trophy size={24} color={color} style={{ flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
@@ -968,7 +968,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
           <div className="tr-card" style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{tr("trn_participants")} {trnData.players.length}/{trnData.target_size}</div>
             {trnData.players.map((p) => (
-              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 4px", borderBottom: "1px solid var(--line)" }}>
+              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 8px", borderBottom: "1px solid var(--line)", background: p.profile_id === currentProfileId ? "color-mix(in srgb, var(--lime) 10%, transparent)" : undefined, borderRadius: p.profile_id === currentProfileId ? 8 : undefined }}>
                 <Avatar name={p.name} url={avatarOfTp(p.id)} id={p.id} size={34} />
                 <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: p.profile_id === currentProfileId ? "var(--lime)" : "var(--ink)" }}>{p.name}</span>
                 {!readOnly && (
