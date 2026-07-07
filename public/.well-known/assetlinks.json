@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "app.padelpack",
       "sha256_cert_fingerprints": [
-        "CA:5B:E3:B5:83:1D:F1:0D:C3:19:29:69:19:C8:2F:CB:49:C8:83:6F:85:5B:8C:FF:A4:75:E1:46:8C:8F:6C:80"
+        "CA:5B:E3:B5:83:1D:F1:0D:C3:19:29:69:19:C8:2F:CB:49:C8:83:6F:85:5B:8C:FF:A4:75:E1:46:8C:8F:6C:80",
+        "E2:EF:22:3A:02:C0:01:BA:0B:A1:7D:53:2D:02:45:7F:09:E7:70:98:1C:32:B0:F7:8E:12:A7:72:ED:DF:74:0D"
       ]
     }
   }
