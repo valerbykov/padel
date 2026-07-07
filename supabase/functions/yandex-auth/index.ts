@@ -77,6 +77,18 @@ Deno.serve(async (req) => {
     if (error) throw error;
     if (link.user?.id) await admin.auth.admin.updateUserById(link.user.id, { user_metadata: meta });
 
+    // Аватар из Яндекса → прямо в profiles.avatar_url (handle_new_user его не копирует,
+    // и для уже существующих юзеров триггер не срабатывает). Ставим только если своё
+    // фото ещё не задано (не перетираем загруженное пользователем). Некритично: ошибку глотаем.
+    if (avatar && link.user?.id) {
+      try {
+        await admin.from("profiles")
+          .update({ avatar_url: avatar })
+          .eq("user_id", link.user.id)
+          .is("avatar_url", null);
+      } catch (_) { /* аватар — украшение, вход не рушим */ }
+    }
+
     return json({
       email,
       token: link.properties.email_otp,
