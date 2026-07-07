@@ -72,6 +72,22 @@ async function getFcmAccessToken(sa: { client_email: string; private_key: string
   return data.access_token as string;
 }
 
+// --- APNs auth token (ES256 JWT из .p8, EC-ключ P-256). Кэшируется в вызове. ---
+async function getApnsAuthToken(p8Pem: string, keyId: string, teamId: string): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: "ES256", kid: keyId, typ: "JWT" };
+  const claim = { iss: teamId, iat: now };
+  const unsigned = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(claim))}`;
+  const key = await crypto.subtle.importKey(
+    "pkcs8", pemToDer(p8Pem),
+    { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"],
+  );
+  const sig = new Uint8Array(
+    await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, new TextEncoder().encode(unsigned)),
+  );
+  return `${unsigned}.${b64url(sig)}`;
+}
+
 // --- текст уведомления ---
 const OFFSET_LABEL: Record<number, string> = {
   1440: "за день", 300: "за 5 часов", 120: "за 2 часа", 60: "за час",
@@ -124,12 +140,20 @@ Deno.serve(async (req) => {
 
     // 2) токены участников (объединяем адресатов напоминаний и событий)
     const userIds = [...new Set([...(due || []), ...events].map((d: any) => d.user_id))];
-    const { data: tokRows } = await admin.from("push_tokens").select("user_id, token").in("user_id", userIds);
-    const byUser: Record<string, string[]> = {};
-    for (const r of tokRows || []) (byUser[r.user_id] ||= []).push(r.token);
+    const { data: tokRows } = await admin.from("push_tokens").select("user_id, token, platform").in("user_id", userIds);
+    const byUser: Record<string, Array<{ token: string; platform: string }>> = {};
+    for (const r of tokRows || []) (byUser[r.user_id] ||= []).push({ token: r.token, platform: r.platform || "android" });
 
-    // 3) FCM access token
+    // 3) FCM access token (Android) + конфиг APNs (iOS напрямую)
     const accessToken = await getFcmAccessToken(sa);
+    const apnsKey = Deno.env.get("APNS_KEY");
+    const apnsKeyId = Deno.env.get("APNS_KEY_ID");
+    const apnsTeamId = Deno.env.get("APNS_TEAM_ID");
+    const apnsTopic = Deno.env.get("APNS_TOPIC") || "app.padelpack";
+    const apnsPrimary = (Deno.env.get("APNS_ENV") || "production") === "sandbox" ? "api.sandbox.push.apple.com" : "api.push.apple.com";
+    const apnsFallback = apnsPrimary === "api.push.apple.com" ? "api.sandbox.push.apple.com" : "api.push.apple.com";
+    const apnsConfigured = !!(apnsKey && apnsKeyId && apnsTeamId);
+    let apnsAuth: string | null = null;
 
     let sent = 0;
     const bad: string[] = [];
@@ -159,30 +183,46 @@ Deno.serve(async (req) => {
       log.push({ user_id: d.user_id, event_type: d.event_type, event_id: d.event_id, offset_min: d.offset_min });
       if (tokens.length === 0) { if (log.length >= 20) await flushLog(); continue; }
       const { title, body } = d.msg;
-      for (const token of tokens) {
+      for (const tk of tokens) {
         // Сетевой сбой одного fetch не должен ронять всю рассылку (и терять лог).
         try {
+          if (tk.platform === "ios") {
+            // iOS — напрямую в APNs (Firebase не нужен). JWT ES256 из .p8, кэшируем на вызов.
+            if (!apnsConfigured) continue;
+            if (!apnsAuth) { try { apnsAuth = await getApnsAuthToken(apnsKey!, apnsKeyId!, apnsTeamId!); } catch (e) { console.error("apns jwt:", e); } }
+            if (!apnsAuth) continue;
+            const hdrs = { authorization: `bearer ${apnsAuth}`, "apns-topic": apnsTopic, "apns-push-type": "alert", "apns-priority": "10" };
+            const payload = JSON.stringify({ aps: { alert: { title, body }, sound: "default", badge: 1 }, event_type: String(d.event_type), event_id: String(d.event_id) });
+            let r = await fetch(`https://${apnsPrimary}/3/device/${tk.token}`, { method: "POST", headers: hdrs, body: payload });
+            if (r.status === 400) {
+              const e = await r.json().catch(() => ({} as any));
+              // токен может быть из другого окружения (sandbox↔prod) — пробуем второй хост
+              if (e?.reason === "BadDeviceToken") r = await fetch(`https://${apnsFallback}/3/device/${tk.token}`, { method: "POST", headers: hdrs, body: payload });
+            }
+            if (r.ok) { sent++; continue; }
+            const e2 = await r.json().catch(() => ({} as any));
+            if (r.status === 410 || e2?.reason === "Unregistered" || e2?.reason === "BadDeviceToken") bad.push(tk.token);
+            else console.error("apns:", r.status, e2?.reason);
+            continue;
+          }
+          // Android / прочее — FCM HTTP v1.
           const r = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
             method: "POST",
             headers: { Authorization: `Bearer ${accessToken}`, "content-type": "application/json" },
             body: JSON.stringify({
               message: {
-                token,
+                token: tk.token,
                 notification: { title, body },
                 data: { event_type: String(d.event_type), event_id: String(d.event_id) },
                 android: { priority: "high" },
-                apns: {
-                  headers: { "apns-priority": "10", "apns-push-type": "alert" },
-                  payload: { aps: { sound: "default", badge: 1 } },
-                },
               },
             }),
           });
           if (r.ok) { sent++; continue; }
           const e = await r.json().catch(() => ({} as any));
           const code = e?.error?.details?.[0]?.errorCode || e?.error?.status;
-          if (r.status === 404 || code === "UNREGISTERED" || code === "INVALID_ARGUMENT") bad.push(token);
-        } catch (e) { console.error("fcm fetch:", e); }
+          if (r.status === 404 || code === "UNREGISTERED" || code === "INVALID_ARGUMENT") bad.push(tk.token);
+        } catch (e) { console.error("push fetch:", e); }
       }
       if (log.length >= 20) await flushLog();
     }
