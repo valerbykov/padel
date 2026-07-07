@@ -15,7 +15,7 @@
 // исключений — все результаты проверяем явно.
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bell, Trophy, Swords, Send, X, Megaphone, AlertTriangle, UserPlus } from "lucide-react";
+import { Bell, Trophy, Swords, Send, X, Megaphone, AlertTriangle, UserPlus, LineChart, Link2 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { setAppBadgeCount } from "../lib/badge";
 import { t } from "../lib/i18n";
@@ -46,6 +46,9 @@ const KIND_META = {
   score: { Icon: AlertTriangle, color: "var(--coral)" },
   slot:  { Icon: UserPlus,      color: "var(--yellow)" },
   tslot: { Icon: UserPlus,      color: "var(--lime)" },
+  rating:{ Icon: LineChart,     color: "var(--lime)" },
+  gjoin: { Icon: Link2,         color: "var(--yellow)" },
+  tjoin: { Icon: Link2,         color: "var(--lime)" },
 };
 
 export default function NotificationBell({ leagues = [], activeLeague = null, onOpen = null }) {
@@ -107,7 +110,7 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
       bumpSeenAt(profQ.data.notifications_seen_at || null);
 
       // Волна 2 (нужен me): «тебя поставили в состав» — слоты игр и составы турниров.
-      const [slQ, tpQ] = me ? await Promise.all([
+      const [slQ, tpQ, rcQ, gjQ, tjQ] = me ? await Promise.all([
         supabase.from("game_slots")
           .select("id, taken_at, taken_by, game:games(id, invite_code, title, place, starts_at, group_id)")
           .eq("profile_id", me).gt("taken_at", since)
@@ -116,7 +119,22 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
           .select("id, created_at, added_by, tournament:tournaments(id, invite_code, name, starts_at, group_id)")
           .eq("profile_id", me).gt("created_at", since)
           .order("created_at", { ascending: false }).limit(MAX_ITEMS),
-      ]) : [{ data: [] }, { data: [] }];
+        // «результат внесён / рейтинг изменился» — мои строки rating_changes.
+        supabase.from("rating_changes")
+          .select("id, delta, created_at, group_id, match:matches(game_id)")
+          .eq("profile_id", me).in("group_id", ids).gt("created_at", since)
+          .order("created_at", { ascending: false }).limit(MAX_ITEMS),
+        // «кто-то вступил по твоей ссылке» в игру, где я хост (self-join: taken_by = profile_id).
+        supabase.from("game_slots")
+          .select("id, taken_at, taken_by, profile_id, game:games!inner(id, invite_code, title, place, starts_at, group_id, host_id)")
+          .eq("game.host_id", me).gt("taken_at", since)
+          .order("taken_at", { ascending: false }).limit(MAX_ITEMS),
+        // ...в турнир, который создал я (self-join: added_by = profile_id).
+        supabase.from("tournament_players")
+          .select("id, created_at, added_by, profile_id, tournament:tournaments!inner(id, invite_code, name, starts_at, group_id, created_by)")
+          .eq("tournament.created_by", me).gt("created_at", since)
+          .order("created_at", { ascending: false }).limit(MAX_ITEMS),
+      ]) : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }];
 
       const allGames = gQ.data || [];
       // «Игра прошла — введи счёт»: время позади, счёта нет, я хост или в составе.
@@ -170,7 +188,31 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
           title: t("bell_added_tour"), parts: [x.tournament.name, x.tournament.starts_at ? fmtWhen(x.tournament.starts_at) : null],
         }));
 
-      const merged = [...scoreItems, ...games, ...tours, ...posts, ...slots, ...tslots];
+      // «результат внесён / рейтинг» — для игровых матчей (навигация в игру).
+      const ratings = (rcQ.data || [])
+        .filter((x) => x.match && x.match.game_id)
+        .map((x) => ({
+          kind: "rating", key: "rating" + x.id, navKind: "game", navId: x.match.game_id, code: null,
+          at: x.created_at, by: null, group_id: x.group_id,
+          title: t("bell_result"), parts: [`${x.delta > 0 ? "+" : ""}${x.delta} ${t("bell_rating_unit")}`],
+        }));
+      // Вступления по ссылке: только self-join (кто вступил = кого вписали) и не я.
+      const gjoins = (gjQ.data || [])
+        .filter((x) => x.game && x.taken_by && x.taken_by === x.profile_id && x.taken_by !== me && ids.includes(x.game.group_id))
+        .map((x) => ({
+          kind: "gjoin", key: "gjoin" + x.id, navKind: "game", navId: x.game.id, code: x.game.invite_code,
+          at: x.taken_at, by: x.profile_id, group_id: x.game.group_id,
+          title: t("bell_joined"), parts: [x.game.title || x.game.place, x.game.starts_at ? fmtWhen(x.game.starts_at) : null],
+        }));
+      const tjoins = (tjQ.data || [])
+        .filter((x) => x.tournament && x.added_by && x.added_by === x.profile_id && x.added_by !== me && ids.includes(x.tournament.group_id))
+        .map((x) => ({
+          kind: "tjoin", key: "tjoin" + x.id, navKind: "tour", navId: x.tournament.id, code: x.tournament.invite_code,
+          at: x.created_at, by: x.profile_id, group_id: x.tournament.group_id,
+          title: t("bell_joined"), parts: [x.tournament.name, x.tournament.starts_at ? fmtWhen(x.tournament.starts_at) : null],
+        }));
+
+      const merged = [...scoreItems, ...games, ...tours, ...posts, ...slots, ...tslots, ...ratings, ...gjoins, ...tjoins];
 
       // Имена авторов — одним запросом (профили со-участников читаемы по RLS).
       const byIds = [...new Set(merged.map((x) => x.by).filter(Boolean))];
@@ -277,9 +319,10 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
               {items.map((x) => {
                 const fresh = isNew(x, shownSeenAt);
                 const meta = KIND_META[x.kind] || KIND_META.game;
-                const byLabel = x.byName
-                  ? `${t(x.kind === "slot" || x.kind === "tslot" ? "bell_added_by" : "created_by_label").toLowerCase()} ${x.byName}`
-                  : null;
+                const byVerb = (x.kind === "slot" || x.kind === "tslot") ? "bell_added_by"
+                  : (x.kind === "gjoin" || x.kind === "tjoin") ? "bell_joined_by"
+                  : "created_by_label";
+                const byLabel = x.byName ? `${t(byVerb).toLowerCase()} ${x.byName}` : null;
                 const sub = [x.league, ...x.parts, byLabel].filter(Boolean).join(" · ");
                 const clickable = !!onOpen || !!x.code;
                 return (

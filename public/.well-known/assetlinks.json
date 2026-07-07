@@ -5,7 +5,7 @@
       "namespace": "android_app",
       "package_name": "app.padelpack",
       "sha256_cert_fingerprints": [
-        "REPLACE_WITH_PLAY_APP_SIGNING_SHA256"
+        "CA:5B:E3:B5:83:1D:F1:0D:C3:19:29:69:19:C8:2F:CB:49:C8:83:6F:85:5B:8C:FF:A4:75:E1:46:8C:8F:6C:80"
       ]
     }
   }
