@@ -12,6 +12,7 @@ import {
 import { standings, detailedStandings, allMatchesPlayed } from "../lib/americano";
 import { dogAvatar } from "../lib/avatar";
 import Fab from "./Fab";
+import { CardSkeleton } from "./Skeleton";
 import { getAllKotHTeams } from "../lib/mexicano";
 import CourtView from "./CourtView";
 
@@ -208,7 +209,7 @@ function List({ groupId, profileId, create, open, session, onLogin, canCreate = 
       ) : groupId && canCreate ? (
         <Fab label={tr("trn_create_btn")} icon={<Trophy size={24} />} onClick={create} />
       ) : null}
-      {items === null && <div className="tr-card" style={{ textAlign: "center", color: "var(--mut)" }}>{tr("loading")}</div>}
+      {items === null && <CardSkeleton count={4} />}
       {items !== null && items.length === 0 && (
         <EmptyState className="tr-card" variant="podium"
           text={!session ? tr("trn_empty_guest") : groupId ? tr("trn_empty_session") : tr("solo_tours_empty")} />

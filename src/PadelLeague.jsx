@@ -5,6 +5,7 @@ import { supabase } from "./lib/supabase";
 import BackButton from "./components/BackButton";
 import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames } from "./lib/padelApi";
 import { WEB_BASE } from "./lib/platform";
+import { CardSkeleton } from "./components/Skeleton";
 import { bustCache } from "./lib/cache";
 import { getRatingHistory } from "./lib/statsApi";
 import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
@@ -41,6 +42,7 @@ body.pl-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;-
 .pl-root.pl-light{color-scheme:light;background-image:radial-gradient(circle at 80% -10%,rgba(42,122,0,.06),transparent 45%),radial-gradient(circle at 0% 110%,rgba(40,120,90,.08),transparent 40%);}
 .pl-display{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;}
 .pl-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;}
+.plsk{background:var(--surface2);border-radius:8px;animation:plsk 1.2s ease-in-out infinite;}@keyframes plsk{0%,100%{opacity:.45}50%{opacity:.85}}
 .pl-btn{background:var(--lime);color:var(--lime-fg);font-weight:700;border:none;border-radius:14px;cursor:pointer;transition:transform .12s,filter .15s,box-shadow .15s;}
 .pl-btn:hover:not(:disabled){filter:brightness(1.05);box-shadow:0 6px 18px -8px color-mix(in srgb,var(--lime) 70%,transparent);}
 .pl-btn:active{transform:scale(.97);}.pl-btn:disabled{filter:grayscale(.6) brightness(.7);cursor:not-allowed;}
@@ -118,6 +120,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
   const [navNonce, setNavNonce] = useState(0);
   const goTab = useCallback((x) => { setNavNonce((n) => (x === tab ? n + 1 : n)); setTab(x); }, [tab]);
   const [players, setPlayers] = useState([]);
+  const [lbLoaded, setLbLoaded] = useState(false);
   const [archiveNonce, setArchiveNonce] = useState(0);
   const bumpArchive = useCallback(() => setArchiveNonce((n) => n + 1), []);
 
@@ -137,9 +140,12 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
       const data = groupId ? await getLeaderboard(groupId) : await getPlayedWith();
       if (seq === lbSeq.current) setPlayers(data);
     } catch (e) { /* noop */ }
+    finally { if (seq === lbSeq.current) setLbLoaded(true); }
   }, [groupId, leaguesReady, leagues]);
 
   useEffect(() => { loadLeaderboard(); }, [loadLeaderboard]);
+  // при смене лиги — снова показать скелетон, пока грузятся её друзья
+  useEffect(() => { setLbLoaded(false); }, [groupId]);
 
   // После логина/выхода синхронизируем вкладку.
   // Баг: tab инициализировался один раз ("welcome") и не менялся при появлении
@@ -187,7 +193,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
         )}
 
         {tab === "welcome" && !session && <WelcomeScreen onLogin={onLogin} onBrowseGames={() => goTab("games")} onBrowseTournaments={() => goTab("tournaments")} onOpenLanding={onOpenLanding} theme={theme} lang={lang} onThemeToggle={onThemeToggle} onLangChange={onLangChange} />}
-        {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsNonce={openSelfStatsNonce} analyticsNonce={openAnalyticsNonce} /> : <GateScreen />)}
+        {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} loading={!lbLoaded} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsNonce={openSelfStatsNonce} analyticsNonce={openAnalyticsNonce} /> : <GateScreen />)}
         {tab === "games" && <Games key={navNonce} groupId={groupId} players={players} profileId={profileId} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} canCreate={isAdmin || !!activeLeague?.members_can_create} openReq={openEvent?.kind === "game" ? openEvent : null} />}
         {tab === "tournaments" && <Tournaments key={navNonce} groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} membersCanCreate={!!activeLeague?.members_can_create} openReq={openEvent?.kind === "tour" ? openEvent : null} />}
         {tab === "history" && (session ? <HistoryView key={navNonce} groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} archiveNonce={archiveNonce} bumpArchive={bumpArchive} /> : <GateScreen />)}
@@ -363,7 +369,25 @@ function SwipeRow({ onRemove, onOrganize, organizerActive, onTap, leftLabel, lef
   );
 }
 
-function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leagues, activeLeague, onLeagueChange, onLeagueCreated, onEditProfile, selfStatsNonce = 0, analyticsNonce = 0 }) {
+function PlayerRowSkeleton({ count = 5 }) {
+  return (
+    <>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", marginBottom: 8, opacity: i === count - 1 ? 0.6 : 1 }}>
+          <div style={{ width: 22, flexShrink: 0 }} />
+          <div className="plsk" style={{ width: 38, height: 38, borderRadius: "50%", flexShrink: 0, animationDelay: `${i * 0.08}s` }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="plsk" style={{ width: "55%", height: 13, marginBottom: 8, animationDelay: `${i * 0.08 + 0.05}s` }} />
+            <div className="plsk" style={{ width: "35%", height: 10, animationDelay: `${i * 0.08 + 0.1}s` }} />
+          </div>
+          <div className="plsk" style={{ width: 38, height: 16, flexShrink: 0, animationDelay: `${i * 0.08 + 0.15}s` }} />
+        </div>
+      ))}
+    </>
+  );
+}
+
+function Board({ groupId, players, loading = false, reload, profileId, bumpArchive, isAdmin, leagues, activeLeague, onLeagueChange, onLeagueCreated, onEditProfile, selfStatsNonce = 0, analyticsNonce = 0 }) {
   const [open, setOpen] = useState(false);
   const [showStats, setShowStats] = useState(false);  // дашборд аналитики лиги
   const [query, setQuery] = useState("");
@@ -640,6 +664,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
           <input className="pl-input" style={{ paddingLeft: 34 }} placeholder={t("search_members")} value={memberQuery} onChange={(e) => setMemberQuery(e.target.value)} />
         </div>
       )}
+      {groupId && loading && ranked.length === 0 && <PlayerRowSkeleton count={5} />}
       {groupId && ranked.map((p, i) => {
         if (memberQuery.trim() && !p.name.toLowerCase().includes(memberQuery.trim().toLowerCase())) return null;
         const qb = [];
@@ -1573,7 +1598,7 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
         </div>
       )}
       {session && groupId && canCreate && <Fab label={t("create_game")} icon={<Swords size={24} />} onClick={() => setMode("create")} />}
-      {loading && <div className="pl-card" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>{t("loading")}</div>}
+      {loading && <CardSkeleton count={4} />}
       {!loading && games.length === 0 && <EmptyState text={!session ? t("games_empty_guest") : (groupId ? t("games_empty_session") : t("solo_games_empty"))} />}
       {!loading && (() => {
         const upcoming = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length < 4);
@@ -2224,7 +2249,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
 
   const head = (txt, color = "var(--mut)") => <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color, textTransform: "uppercase", margin: "14px 2px 8px", paddingLeft: 4 }}>{txt}</div>;
 
-  if (games === null) return <div className="pl-card pl-pop" style={{ padding: 20, textAlign: "center", color: "var(--mut)" }}>{t("loading")}</div>;
+  if (games === null) return <div className="pl-pop"><CardSkeleton count={4} /></div>;
   if (games.length === 0 && tours.length === 0) return <EmptyState className="pl-card pl-pop" variant="clock" text={t("history_empty")} />;
 
   return (
