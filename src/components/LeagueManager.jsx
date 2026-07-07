@@ -4,7 +4,7 @@
 // Данные тянет через get_league_details (RPC), сохраняет в groups (RLS).
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Upload, Send, Copy, Check, Crown, ShieldCheck, ChevronDown } from "lucide-react";
+import { X, Upload, Send, Copy, Check, Star, Users, ShieldCheck, ChevronDown } from "lucide-react";
 import { getLeagueDetails, updateLeague, uploadLeagueLogo } from "../lib/padelApi";
 import Avatar from "./Avatar";
 import { t } from "../lib/i18n";
@@ -130,19 +130,25 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
             </div>
 
             {/* Команда: владелец + организаторы (сворачивается) */}
-            <Section icon={<Crown size={13} style={{ color: "var(--lime)" }} />} title={t("league_team")}
+            <Section icon={<Users size={13} style={{ color: "var(--mut)" }} />} title={t("league_team")}
               count={Array.isArray(d.organizers) && d.organizers.length ? 1 + d.organizers.length : null}
               open={openTeam} onToggle={() => setOpenTeam((v) => !v)}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 14, marginBottom: (Array.isArray(d.organizers) && d.organizers.length) ? 6 : 0 }}>
                 <Avatar url={org.avatar_url} name={org.name} size={34} />
                 <div style={{ fontWeight: 600, fontSize: 14, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{org.name || "—"}</div>
-                <Crown size={16} style={{ color: "var(--lime)", marginLeft: "auto", flexShrink: 0 }} />
+                <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
+                  <span style={{ fontSize: 11, color: "var(--mut)", fontWeight: 600 }}>{t("role_owner")}</span>
+                  <Star size={16} style={{ color: "var(--yellow)" }} />
+                </div>
               </div>
               {Array.isArray(d.organizers) && d.organizers.map((o, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 14, marginBottom: 6 }}>
                   <Avatar url={o.avatar_url} name={o.name} size={30} />
                   <div style={{ fontWeight: 600, fontSize: 14, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{o.name}</div>
-                  <ShieldCheck size={14} style={{ color: "var(--lime)", marginLeft: "auto", flexShrink: 0 }} />
+                  <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
+                    <span style={{ fontSize: 11, color: "var(--mut)", fontWeight: 600 }}>{t("role_organizer")}</span>
+                    <ShieldCheck size={14} style={{ color: "var(--yellow)" }} />
+                  </div>
                 </div>
               ))}
             </Section>

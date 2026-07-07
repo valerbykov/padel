@@ -11,7 +11,7 @@ import { t, nGames } from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
 import Fab from "./components/Fab";
-import { Trophy, Swords, History, Users, UserPlus, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, BadgeCheck, ShieldCheck, EyeOff, Crown, User, Search } from "lucide-react";
+import { Trophy, Swords, History, Users, UserPlus, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, UserCheck, ShieldCheck, EyeOff, Star, User, Search } from "lucide-react";
 import Tournaments, { TournamentView, TournamentCard, CopyDialog, css as trCss } from "./components/Tournaments";
 import { copyTournament } from "./lib/tournamentApi";
 import { deleteTournament } from "./lib/tournamentApi";
@@ -660,11 +660,13 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 600, fontSize: 15, display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
-                {p.user_id
-                  ? <BadgeCheck size={14} style={{ color: "var(--lime)", flexShrink: 0 }} aria-label={t("account_badge")} />
-                  : <User size={13} style={{ color: "var(--mut)", flexShrink: 0 }} aria-label={t("guest_tag")} />}
-                {p.role === "owner" && <Crown size={14} style={{ color: "var(--yellow)", flexShrink: 0 }} aria-label={t("role_owner")} />}
-                {p.role === "admin" && <ShieldCheck size={14} style={{ color: "var(--lime)", flexShrink: 0 }} aria-label={t("role_organizer")} />}
+                {p.role === "owner"
+                  ? <Star size={14} style={{ color: "var(--yellow)", flexShrink: 0 }} aria-label={t("role_owner")} />
+                  : p.role === "admin"
+                    ? <ShieldCheck size={14} style={{ color: "var(--yellow)", flexShrink: 0 }} aria-label={t("role_organizer")} />
+                    : p.user_id
+                      ? <UserCheck size={14} style={{ color: "var(--lime)", flexShrink: 0 }} aria-label={t("account_badge")} />
+                      : <User size={13} style={{ color: "var(--mut)", flexShrink: 0 }} aria-label={t("guest_tag")} />}
               </div>
               {/* #5: статистика (слева) отделена от бейджей уровня/ачивок (справа). */}
               <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, fontSize: 12, color: "var(--mut)" }}>
