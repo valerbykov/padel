@@ -125,7 +125,7 @@ export default function LeaguePublicPage({ code }) {
                     borderBottom: i < league.members.length - 1 ? "1px solid var(--line)" : "none",
                   }}>
                     <div style={{ width: 20, textAlign: "center", fontFamily: "'Anton',sans-serif", fontSize: 17, color: rankColor, flexShrink: 0 }}>{i + 1}</div>
-                    <Avatar name={p.name} url={p.avatar_url} size={34} />
+                    <Avatar name={p.name} url={p.avatar_url} id={p.id || p.profile_id} size={34} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {p.name}{i === 0 ? " 🥇" : ""}

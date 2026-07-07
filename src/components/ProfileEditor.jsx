@@ -76,6 +76,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [profileId, setProfileId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -113,6 +114,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
         setLastName(data.last_name || "");
         setPhone(data.phone || "");
         setAvatarUrl(data.avatar_url || "");
+        setProfileId(data.id);
         setWhatsapp(data.contacts?.whatsapp || "");
         setTelegram(data.contacts?.telegram || "");
       }
@@ -228,7 +230,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
               {/* Hero: аватар с камерой + имя + способ входа */}
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginBottom: 6 }}>
                 <div style={{ position: "relative" }}>
-                  <Avatar url={avatarUrl} name={fullName} id={userId} size={94} style={{ border: "2px solid var(--line)" }} />
+                  <Avatar url={avatarUrl} name={fullName} id={profileId || userId} size={94} style={{ border: "2px solid var(--line)" }} />
                   <label className="pc-camera" aria-label={t("pc_upload_photo")} title={t("pc_upload_photo")}>
                     {uploading ? <Loader size={15} /> : <Camera size={15} />}
                     <input type="file" accept="image/*" style={{ display: "none" }} onChange={upload} disabled={uploading} />

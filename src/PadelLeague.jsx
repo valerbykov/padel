@@ -893,7 +893,7 @@ function PartnerCard({ label, bp, name, avatarUrl, help, onOpen }) {
         <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "var(--mut)", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 10, padding: "8px 10px", marginBottom: 10 }}>{help}</div>
       )}
       <div onClick={onOpen} style={{ display: "flex", alignItems: "center", gap: 10, cursor: onOpen ? "pointer" : "default" }}>
-        <img src={avatarUrl} onError={avatarFallback(name)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
+        <img src={avatarUrl} onError={avatarFallback(bp?.id || name)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, fontSize: 14 }}>{name || "?"}</div>
           <div style={{ fontSize: 12, color: "var(--mut)" }}>{bp.w} {t("wins_short")} · {bp.l} {t("losses_short")} · {bp.total} {t("matches")}</div>

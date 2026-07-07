@@ -372,7 +372,7 @@ export default function App({ initialShowLogin = false }) {
     return (
       <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
         <TopBar
-          session={session} name={profile?.name} avatarUrl={profile?.avatar_url}
+          session={session} name={profile?.name} avatarUrl={profile?.avatar_url} avatarId={profile?.id}
           onLogin={() => setShowLogin(true)}
           onProfile={() => setShowProfile(true)}
           onSignOut={() => supabase.auth.signOut()}
@@ -398,7 +398,7 @@ export default function App({ initialShowLogin = false }) {
       <TopBar
         session={session}
         name={profile?.name}
-        avatarUrl={profile?.avatar_url}
+        avatarUrl={profile?.avatar_url} avatarId={profile?.id}
         onLogin={() => setShowLogin(true)}
         onProfile={() => setShowProfile(true)}
         onSignOut={() => supabase.auth.signOut()}
@@ -465,7 +465,7 @@ export default function App({ initialShowLogin = false }) {
   );
 }
 
-function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme, onThemeToggle, lang = "ru", onLangChange, leagues = [], activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, onLeagueUpdated, onOpenEvent }) {
+function TopBar({ session, name, avatarUrl, avatarId, onLogin, onProfile, onSignOut, theme, onThemeToggle, lang = "ru", onLangChange, leagues = [], activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, onLeagueUpdated, onOpenEvent }) {
   const base = { border: "1px solid var(--line)", borderRadius: 11, padding: "7px 12px", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif", transition: "transform .12s, filter .15s, background .15s" };
   return (
     <div style={{
@@ -505,7 +505,7 @@ function TopBar({ session, name, avatarUrl, onLogin, onProfile, onSignOut, theme
         {session ? (
           <button onClick={onProfile} className="tb-profile" aria-label={name || "Профиль"} title={name || "Профиль"}
             style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "1px solid transparent", borderRadius: 999, cursor: "pointer", padding: 2, transition: "background .15s" }}>
-            <Avatar url={avatarUrl} name={name} size={32} />
+            <Avatar url={avatarUrl} id={avatarId} name={name} size={32} />
           </button>
         ) : (
           <button className="tb-btn" onClick={onLogin} style={{ ...base, background: "var(--lime)", color: "var(--lime-fg)", border: "none", fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
