@@ -238,7 +238,12 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
     } catch (e) { /* уведомления не должны ронять топбар */ }
   }, [leagues, bumpSeenAt]);
 
-  useEffect(() => { load(true); }, [load]);
+  // Первая загрузка отложена: 3 волны запросов колокольчика не должны
+  // конкурировать с критическим путём холодного старта (bootstrap+чанк лиги).
+  useEffect(() => {
+    const tm = setTimeout(() => load(true), 1800);
+    return () => clearTimeout(tm);
+  }, [load]);
   // Обновляем при возврате на вкладку (с троттлингом) — бейдж не отстаёт.
   useEffect(() => {
     const onVis = () => { if (document.visibilityState === "visible") load(); };
@@ -251,13 +256,17 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
   useEffect(() => {
     const ids = (leagues || []).map((l) => l.id);
     if (!ids.length) return;
-    const filter = `group_id=in.(${ids.join(",")})`;
-    const ch = supabase.channel("bell-feed")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "games", filter }, () => load(true))
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "tournaments", filter }, () => load(true))
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "league_posts", filter }, () => load(true))
-      .subscribe();
-    return () => supabase.removeChannel(ch);
+    // Websocket поднимаем с задержкой — рукопожатие Realtime не мешает старту.
+    let ch = null;
+    const tm = setTimeout(() => {
+      const filter = `group_id=in.(${ids.join(",")})`;
+      ch = supabase.channel("bell-feed")
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "games", filter }, () => load(true))
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "tournaments", filter }, () => load(true))
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "league_posts", filter }, () => load(true))
+        .subscribe();
+    }, 2200);
+    return () => { clearTimeout(tm); if (ch) supabase.removeChannel(ch); };
   }, [leagues, load]);
 
   const isNew = (x, mark) => !mark || new Date(x.at) > new Date(mark);

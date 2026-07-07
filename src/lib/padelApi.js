@@ -54,6 +54,13 @@ export async function bootstrapApp(savedGroupId = null) {
       user_id: r.profile.user_id || null, role: r.role,
     })));
     if (data.counts) cacheSet("counts:" + gid, { games: data.counts.games || {}, tours: data.counts.tours || {} });
+    // Стрики и «не-участники» — Board пропустит тяжёлые listTournaments/getBoardMatches.
+    // at — метка свежести: Board доверяет прайму 10 минут, дальше — обычный путь.
+    if (data.board_stats) cacheSet("bstats:" + gid, {
+      at: Date.now(),
+      streaks: data.board_stats.streaks || {},
+      extra: data.board_stats.extra || [],
+    });
   }
   return { profile: data.profile, leagues, activeGroupId: gid };
 }

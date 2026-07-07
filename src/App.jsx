@@ -267,11 +267,12 @@ export default function App({ initialShowLogin = false }) {
   useEffect(() => {
     if (!session || !window.Capacitor?.isNativePlatform?.()) return;
     let alive = true;
-    (async () => {
+    // Отложено: не конкурируем с критическим путём (bootstrap+чанк) за канал.
+    const tm = setTimeout(async () => {
       try { const { enabled } = await getNotifPrefs(); if (alive && enabled) await registerPush(); }
       catch (e) { /* ignore */ }
-    })();
-    return () => { alive = false; };
+    }, 2500);
+    return () => { alive = false; clearTimeout(tm); };
   }, [session]);
 
   // Отметка ПОСЛЕДНЕГО ЗАХОДА в приложение (не логина) — один раз за сессию,
@@ -283,7 +284,11 @@ export default function App({ initialShowLogin = false }) {
   useEffect(() => {
     if (!session || seenRef.current) return;
     seenRef.current = true;
-    (async () => { try { await supabase.rpc("touch_last_seen"); } catch (e) { /* тихо игнорируем */ } })();
+    // Отметка не срочная — уступаем канал критическому пути холодного старта.
+    const tm = setTimeout(async () => {
+      try { await supabase.rpc("touch_last_seen"); } catch (e) { /* тихо игнорируем */ }
+    }, 2000);
+    return () => clearTimeout(tm);
   }, [session]);
 
   // Загрузить список лиг пользователя.

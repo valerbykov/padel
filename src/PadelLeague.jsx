@@ -6,7 +6,7 @@ import BackButton from "./components/BackButton";
 import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames } from "./lib/padelApi";
 import { WEB_BASE } from "./lib/platform";
 import { CardSkeleton } from "./components/Skeleton";
-import { bustCache } from "./lib/cache";
+import { bustCache, cachePeek } from "./lib/cache";
 import { getRatingHistory } from "./lib/statsApi";
 import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
 import { t, nGames } from "./lib/i18n";
@@ -444,6 +444,17 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
   useEffect(() => {
     let active = true;
     if (!groupId) { setSrv(null); setExtraPlayers([]); setTourCounts({}); setTourCountsByName({}); setMatchCounts({}); setStreaks({}); return () => { active = false; }; }
+    // Быстрый путь: app_bootstrap уже посчитал стрики и «не-участников» на сервере
+    // (bstats:<gid>) — пропускаем listTournaments + getBoardMatches (до 500 строк).
+    // Прайму доверяем 10 минут; любые мутации всё равно делают bustCache().
+    const primed = cachePeek("bstats:" + groupId);
+    if (primed && primed.at && Date.now() - primed.at < 600000) {
+      setStreaks(primed.streaks || {});
+      setExtraPlayers(primed.extra || []);
+      setTourCounts({}); setTourCountsByName({}); setMatchCounts({});
+      getGroupCounts(groupId).then((c) => { if (active) setSrv(c); }).catch(() => { if (active) setSrv(null); });
+      return () => { active = false; };
+    }
     const memberIds = new Set(players.map((p) => p.id));
     Promise.all([
       listTournaments(groupId),

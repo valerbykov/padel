@@ -16,9 +16,15 @@
 
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Шрифты самохостятся (см. /fonts) — без render-blocking CSS с Google (из РФ ходит плохо) -->
+  <style>
+    @font-face { font-family: 'Outfit'; font-style: normal; font-weight: 400 800; font-display: swap;
+      src: url(/fonts/outfit-latin.woff2) format('woff2'); }
+    @font-face { font-family: 'Anton'; font-style: normal; font-weight: 400; font-display: swap;
+      src: url(/fonts/anton-latin.woff2) format('woff2'); }
+  </style>
+  <link rel="preload" href="/fonts/outfit-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/fonts/anton-latin.woff2" as="font" type="font/woff2" crossorigin />
 
   <style>
     :root{
