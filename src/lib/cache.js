@@ -44,6 +44,18 @@ export function swr(key, fn) {
 
 // Точечно сбросить один ключ (память + localStorage) — чтобы следующий swr() сходил
 // на сервер за свежими данными именно по нему, не сбрасывая весь кэш.
+// Мгновенное чтение/запись кэша без сети — для инстант-пейнта из localStorage
+// (профиль и т.п.): показать последнее известное сразу, ревалидацию сделать в фоне.
+export function cachePeek(key) {
+  const c = MEM.get(key);
+  if (c) return c.v;
+  return lsGet(key);
+}
+export function cacheSet(key, v) {
+  MEM.set(key, { v, t: Date.now() });
+  lsSet(key, v);
+}
+
 export function bustKey(key) {
   MEM.delete(key);
   INFLIGHT.delete(key);

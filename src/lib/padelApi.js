@@ -397,6 +397,7 @@ export async function claimProfile(code) {
 export async function createLeague(name) {
   const { data, error } = await supabase.rpc("create_league", { p_name: name.trim() });
   if (error) throw error;
+  bustCache();
   return data;
 }
 
@@ -404,12 +405,13 @@ export async function createLeague(name) {
 export async function joinLeague(code) {
   const { data, error } = await supabase.rpc("join_league", { p_code: code.trim().toUpperCase() });
   if (error) throw error;
+  bustCache();
   return data;
 }
 
 // Все лиги, в которых состоит профиль. Возвращает массив
 // { id, name, invite_code, logo_url, telegram_url, role }.
-export async function getMyLeagues(profileId) {
+async function _getMyLeagues(profileId) {
   const { data, error } = await supabase
     .from("group_members")
     .select("role, group:groups(id, name, invite_code, logo_url, telegram_url, members_can_add, members_can_create)")
@@ -425,6 +427,11 @@ export async function getMyLeagues(profileId) {
     members_can_create: !!r.group.members_can_create,
     role: r.role,
   }));
+}
+// swr: мгновенно из кэша (localStorage) + ревалидация в фоне. Ключ на профиль.
+export function getMyLeagues(profileId) {
+  if (!profileId) return Promise.resolve([]);
+  return swr("myleagues:" + profileId, () => _getMyLeagues(profileId));
 }
 
 // Детали лиги для окна управления: + организатор (владелец) и роль вызывающего.

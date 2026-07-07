@@ -5,6 +5,7 @@
 import React, { useEffect, useState, useCallback, useRef, lazy } from "react";
 import { supabase } from "./lib/supabase";
 import { handleAuthCallbackUrl, handleYandexCallback } from "./lib/auth";
+import { cachePeek, cacheSet } from "./lib/cache";
 import Avatar from "./components/Avatar";
 import Logo from "./components/Logo"; // текстовый логотип в топбаре для гостя
 import LeagueSwitcher from "./components/LeagueSwitcher"; // глобальный переключатель лиги в топбаре
@@ -215,15 +216,20 @@ export default function App({ initialShowLogin = false }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  // Профиль текущего пользователя.
+  // Профиль текущего пользователя. Инстант-пейнт из кэша (localStorage) + фоновая
+  // ревалидация: на повторных входах аватар/имя (и вся цепочка лиг/друзей) рисуются
+  // сразу, без ожидания сети.
   useEffect(() => {
     let active = true;
     if (!session) { setProfile(null); return; }
+    const user = session.user;            // уже есть из getSession — без лишнего getUser()
+    if (!user) return;
+    const key = "profile:" + user.id;
+    const cached = cachePeek(key);
+    if (cached && active) setProfile(cached);
     (async () => {
-      const user = session.user;            // уже есть из getSession — без лишнего getUser()
-      if (!user) return;
       const { data } = await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle();
-      if (active) setProfile(data);
+      if (active && data) { setProfile(data); cacheSet(key, data); }
     })();
     return () => { active = false; };
   }, [session, pNonce]);
