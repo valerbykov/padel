@@ -3,13 +3,14 @@
 // Названия таблиц/колонок совпадают со schema.sql.
 import { supabase } from "./supabase";
 import { swr, bustCache, bustKey } from "./cache";
+import { WEB_BASE } from "./platform";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const genCode = () =>
   Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join("");
 
 // Ссылка-приглашение на текущем домене PWA: /j/:code
-export const linkFor = (code) => `${window.location.origin}/j/${code}`;
+export const linkFor = (code) => `${WEB_BASE}/j/${code}`;
 
 /* =====================================================================
    ПРОФИЛИ / АВТОРИЗАЦИЯ

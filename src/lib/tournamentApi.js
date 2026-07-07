@@ -3,10 +3,11 @@ import { supabase } from "./supabase";
 import { buildMatches, standings } from "./americano";
 import { buildFirstRound, buildMexicanoRound, buildKotHStart, buildKotHNextMatch, buildKotHLadderStart, buildKotHLadderRound } from "./mexicano";
 import { swr, bustCache } from "./cache";
+import { WEB_BASE } from "./platform";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const genCode = () => Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join("");
-export const tournamentLink = (code) => `${window.location.origin}/t/${code}`;
+export const tournamentLink = (code) => `${WEB_BASE}/t/${code}`;
 
 const T_SELECT =
   "id, invite_code, name, format, points_per_game, target_size, status, court_names, koth_champion_rule, created_by, created_at, starts_at, place, " +

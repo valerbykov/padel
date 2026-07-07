@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { supabase } from "./lib/supabase";
 import BackButton from "./components/BackButton";
 import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames } from "./lib/padelApi";
+import { WEB_BASE } from "./lib/platform";
 import { bustCache } from "./lib/cache";
 import { getRatingHistory } from "./lib/statsApi";
 import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
@@ -541,7 +542,7 @@ function Board({ groupId, players, reload, profileId, bumpArchive, isAdmin, leag
 
   const copyPublicLink = async () => {
     if (!activeLeague?.invite_code) return;
-    const url = `${window.location.origin}/l/${activeLeague.invite_code}`;
+    const url = `${WEB_BASE}/l/${activeLeague.invite_code}`;
     try { await navigator.clipboard.writeText(url); } catch (e) {}
     setPublicLinkCopied(true); setTimeout(() => setPublicLinkCopied(false), 1800);
   };
@@ -789,7 +790,7 @@ function DeletePlayerModal({ player, onConfirm, onCancel }) {
 /* -------------------- ClaimLinkButton ------------------------------------ */
 function ClaimLinkButton({ claimCode }) {
   const [toast, setToast] = useState("");
-  const link = `${window.location.origin}/r/${claimCode}`;
+  const link = `${WEB_BASE}/r/${claimCode}`;
   const copy = async () => {
     try { await navigator.clipboard.writeText(link); }
     catch (e) {}

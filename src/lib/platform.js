@@ -10,6 +10,11 @@
 export const NATIVE_SCHEME = "padelpack";
 export const NATIVE_REDIRECT = `${NATIVE_SCHEME}://login-callback`;
 
+// Канонический веб-домен для ссылок-«поделиться». В нативке window.location.origin =
+// capacitor://localhost, поэтому для share-ссылок берём фиксированный домен (на него
+// же настроены App Links / Universal Links).
+export const WEB_BASE = "https://padelpack.app";
+
 // true — приложение запущено как нативное (iOS/Android через Capacitor).
 export function isNativeApp() {
   return !!(
