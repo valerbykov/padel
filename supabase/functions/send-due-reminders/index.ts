@@ -171,6 +171,10 @@ Deno.serve(async (req) => {
                 notification: { title, body },
                 data: { event_type: String(d.event_type), event_id: String(d.event_id) },
                 android: { priority: "high" },
+                apns: {
+                  headers: { "apns-priority": "10", "apns-push-type": "alert" },
+                  payload: { aps: { sound: "default", badge: 1 } },
+                },
               },
             }),
           });

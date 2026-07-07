@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import FirebaseCore
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -7,7 +8,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Firebase (нужен для push на iOS: свопит APNs-токен в FCM-токен).
+        // Защитно: конфигурируем только если добавлен GoogleService-Info.plist,
+        // чтобы сборка без него не падала на старте.
+        if let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+           let options = FirebaseOptions(contentsOfFile: path) {
+            FirebaseApp.configure(options: options)
+        }
         return true
     }
 

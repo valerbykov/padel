@@ -60,6 +60,7 @@ export async function registerPush() {
   if (!isNativeApp()) return false;
   const PN = capPlugin("PushNotifications");
   if (!PN) return false;
+  const isIOS = platformName() === "ios";
   try {
     let perm = await PN.checkPermissions();
     if (perm.receive === "prompt" || perm.receive === "prompt-with-rationale") {
@@ -68,10 +69,22 @@ export async function registerPush() {
     if (perm.receive !== "granted") return false;
     if (!registerPush._bound) {
       registerPush._bound = true;
-      PN.addListener("registration", (t) => { saveToken(t && t.value).catch(() => {}); });
+      // На Android событие "registration" отдаёт FCM-токен — его и сохраняем.
+      // На iOS это «сырой» APNs-токен, который FCM HTTP v1 не принимает, поэтому
+      // там токен берём отдельно из плагина FCM (ниже), а этот игнорируем.
+      PN.addListener("registration", (t) => { if (!isIOS) saveToken(t && t.value).catch(() => {}); });
       PN.addListener("registrationError", () => {});
     }
     await PN.register();
+    // iOS: после регистрации в APNs запрашиваем FCM-токен (Firebase свопит APNs→FCM).
+    // Требует Firebase в iOS-проекте и плагин @capacitor-community/fcm. Если плагина
+    // ещё нет — тихо пропускаем (плохой APNs-токен в БД не попадёт).
+    if (isIOS) {
+      const FCM = capPlugin("FCM");
+      if (FCM?.getToken) {
+        try { const r = await FCM.getToken(); await saveToken(r?.token); } catch (_) {}
+      }
+    }
     return true;
   } catch (_) { return false; }
 }
