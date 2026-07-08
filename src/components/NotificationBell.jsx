@@ -3,7 +3,9 @@
 //   • новая игра / турнир (создали другие);
 //   • объявление лиги (league_posts, пишет владелец/организатор);
 //   • «тебя поставили в состав» (game_slots.taken_by / tournament_players.added_by);
-//   • «игра прошла — введи счёт» (starts_at позади, счёта нет; для участников и хоста).
+//   • «игра прошла — введи счёт» (starts_at позади, счёта нет; для участников и хоста);
+//   • «скоро игра» (kind=soon) — до старта меньше max-офсета напоминаний; зеркало
+//     пуш-напоминаний, закреплена сверху, в счётчик непрочитанного не входит.
 // «Непрочитанное» синхронизируется между устройствами через
 // profiles.notifications_seen_at (RPC touch_notifications_seen). Тап по плитке →
 // onOpen({kind,id,groupId}) — App открывает объект ВНУТРИ приложения.
@@ -15,7 +17,7 @@
 // исключений — все результаты проверяем явно.
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bell, Trophy, Swords, Send, X, Megaphone, AlertTriangle, UserPlus, LineChart, Link2, Users } from "lucide-react";
+import { Bell, Trophy, Swords, Send, X, Megaphone, AlertTriangle, UserPlus, LineChart, Link2, Users, AlarmClock } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { setAppBadgeCount } from "../lib/badge";
 import { t } from "../lib/i18n";
@@ -50,6 +52,7 @@ const KIND_META = {
   rating:{ Icon: LineChart,     color: "var(--lime)" },
   gjoin: { Icon: Link2,         color: "var(--yellow)" },
   tjoin: { Icon: Link2,         color: "var(--lime)" },
+  soon:  { Icon: AlarmClock,    color: "var(--yellow)" }, // < часа до сбора — коралловая (в рендере)
 };
 
 export default function NotificationBell({ leagues = [], activeLeague = null, onOpen = null }) {
@@ -116,7 +119,7 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
       bumpSeenAt(profQ.data.notifications_seen_at || null);
 
       // Волна 2 (нужен me): «тебя поставили в состав» — слоты игр и составы турниров.
-      const [slQ, tpQ, rcQ, gjQ, tjQ] = me ? await Promise.all([
+      const [slQ, tpQ, rcQ, gjQ, tjQ, upQ, prefQ] = me ? await Promise.all([
         supabase.from("game_slots")
           .select("id, taken_at, taken_by, game:games(id, invite_code, title, place, starts_at, group_id)")
           .eq("profile_id", me).gt("taken_at", since)
@@ -140,7 +143,16 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
           .select("id, created_at, added_by, profile_id, tournament:tournaments!inner(id, invite_code, name, starts_at, group_id, created_by)")
           .eq("tournament.created_by", me).gt("created_at", since)
           .order("created_at", { ascending: false }).limit(MAX_ITEMS),
-      ]) : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }];
+        // «Скоро игра»: будущие игры (≤24ч), где я в составе — зеркало пуш-напоминаний.
+        supabase.from("games")
+          .select("id, invite_code, title, place, starts_at, group_id, slots:game_slots!inner(profile_id)")
+          .in("group_id", ids).eq("slots.profile_id", me)
+          .gt("starts_at", new Date(now).toISOString())
+          .lt("starts_at", new Date(now + 864e5).toISOString())
+          .order("starts_at", { ascending: true }).limit(6),
+        // Офсеты напоминаний — окно показа плитки (дефолт как в notifications.js).
+        supabase.from("notification_prefs").select("offsets").eq("user_id", user.id).maybeSingle(),
+      ]) : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: null }];
 
       const allGames = gQ.data || [];
       // «Игра прошла — введи счёт»: время позади, счёта нет, я хост или в составе.
@@ -218,6 +230,29 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
           title: t("bell_joined"), parts: [x.tournament.name, x.tournament.starts_at ? fmtWhen(x.tournament.starts_at) : null],
         }));
 
+      // «Скоро игра»: показываем, когда до старта осталось меньше максимального
+      // офсета напоминаний пользователя. В счётчик непрочитанного НЕ входит
+      // (это состояние, а не событие) — см. фильтр kind !== "soon" в unread.
+      const offs = Array.isArray(prefQ?.data?.offsets) && prefQ.data.offsets.length ? prefQ.data.offsets : [1440, 120];
+      const maxOffMin = Math.max(...offs.filter((n) => Number.isFinite(n)), 0);
+      const upcoming = (upQ?.data || [])
+        .filter((g) => {
+          const mins = (new Date(g.starts_at).getTime() - now) / 60000;
+          return mins > 0 && mins <= maxOffMin;
+        })
+        .map((g) => {
+          const mins = Math.max(1, Math.round((new Date(g.starts_at).getTime() - now) / 60000));
+          const rel = mins < 60
+            ? t("bell_in_min").replace("{n}", String(mins))
+            : t("bell_in_hr").replace("{n}", String(Math.round(mins / 60)));
+          return {
+            kind: "soon", key: "soon" + g.id, navKind: "game", navId: g.id, code: g.invite_code,
+            at: g.starts_at, by: null, group_id: g.group_id, urgent: mins < 60,
+            title: `${t("bell_soon_game")} — ${rel}`,
+            parts: [g.title || g.place, fmtWhen(g.starts_at)],
+          };
+        });
+
       const merged = [...scoreItems, ...games, ...tours, ...posts, ...slots, ...tslots, ...ratings, ...gjoins, ...tjoins];
 
       // Имена авторов — одним запросом (профили со-участников читаемы по RLS).
@@ -228,9 +263,9 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
         (ps || []).forEach((p) => { names[p.id] = p.name; });
       }
       const leagueName = (gid) => (leagues.length > 1 ? (leagues.find((l) => l.id === gid)?.name || null) : null);
+      // «Скоро игра» закрепляем сверху (ближайшая — первой), остальное — по свежести.
       setItems(
-        merged
-          .sort((a, b) => new Date(b.at) - new Date(a.at))
+        [...upcoming, ...merged.sort((a, b) => new Date(b.at) - new Date(a.at))]
           .slice(0, MAX_ITEMS)
           .map((x) => ({ ...x, byName: x.by ? names[x.by] || null : null, league: leagueName(x.group_id) }))
       );
@@ -270,7 +305,9 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
   }, [leagues, load]);
 
   const isNew = (x, mark) => !mark || new Date(x.at) > new Date(mark);
-  const unread = seenAt === undefined ? 0 : items.filter((x) => isNew(x, seenAt)).length;
+  // «soon» — вне счётчика: это постоянное напоминание, а не новое событие,
+  // иначе бейдж «горел» бы перед каждой игрой.
+  const unread = seenAt === undefined ? 0 : items.filter((x) => x.kind !== "soon" && isNew(x, seenAt)).length;
 
   // Число непрочитанного — на иконку приложения (PWA/Android/iOS).
   useEffect(() => {
@@ -404,8 +441,11 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
                 <div style={{ padding: "26px 14px", textAlign: "center", color: "var(--mut)", fontSize: 13 }}>{t("bell_empty")}</div>
               )}
               {items.map((x) => {
-                const fresh = isNew(x, shownSeenAt);
+                const soon = x.kind === "soon";
+                const fresh = !soon && isNew(x, shownSeenAt);
                 const meta = KIND_META[x.kind] || KIND_META.game;
+                // Срочность «скоро игры»: меньше часа до сбора — коралловая.
+                const color = soon && x.urgent ? "var(--coral)" : meta.color;
                 const byVerb = (x.kind === "slot" || x.kind === "tslot") ? "bell_added_by"
                   : (x.kind === "gjoin" || x.kind === "tjoin") ? "bell_joined_by"
                   : "created_by_label";
@@ -414,16 +454,16 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
                 const clickable = !!onOpen || !!x.code;
                 return (
                   <div key={x.key} onClick={clickable ? () => go(x) : undefined}
-                    style={{ display: "flex", gap: 11, alignItems: "flex-start", padding: "11px 14px", borderBottom: "1px solid var(--line)", cursor: clickable ? "pointer" : "default", background: fresh ? "color-mix(in srgb, var(--lime) 7%, transparent)" : "none" }}>
-                    <span style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: `color-mix(in srgb, ${meta.color} 15%, transparent)`, color: meta.color }}>
+                    style={{ display: "flex", gap: 11, alignItems: "flex-start", padding: "11px 14px", borderBottom: "1px solid var(--line)", cursor: clickable ? "pointer" : "default", background: fresh ? "color-mix(in srgb, var(--lime) 7%, transparent)" : soon ? `color-mix(in srgb, ${color} 6%, transparent)` : "none" }}>
+                    <span style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}>
                       <meta.Icon size={17} />
                     </span>
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: fresh ? "var(--ink)" : "var(--mut)" }}>{x.title}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: fresh || soon ? "var(--ink)" : "var(--mut)" }}>{x.title}</div>
                       {sub && <div style={{ fontSize: 11.5, color: "var(--mut)", marginTop: 1, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{sub}</div>}
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
-                      <span style={{ fontSize: 10.5, color: "var(--mut)" }}>{ago(x.at)}</span>
+                      {!soon && <span style={{ fontSize: 10.5, color: "var(--mut)" }}>{ago(x.at)}</span>}
                       {fresh && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--lime)" }} />}
                     </div>
                   </div>
