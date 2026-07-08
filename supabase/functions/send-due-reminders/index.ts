@@ -201,7 +201,10 @@ Deno.serve(async (req) => {
             }
             if (r.ok) { sent++; continue; }
             const e2 = await r.json().catch(() => ({} as any));
-            if (r.status === 410 || e2?.reason === "Unregistered" || e2?.reason === "BadDeviceToken") bad.push(tk.token);
+            if (r.status === 410 || e2?.reason === "Unregistered" || e2?.reason === "BadDeviceToken") {
+              bad.push(tk.token);
+              console.log("apns prune:", r.status, e2?.reason, tk.token.slice(0, 12));
+            }
             else console.error("apns:", r.status, e2?.reason);
             continue;
           }
@@ -221,7 +224,10 @@ Deno.serve(async (req) => {
           if (r.ok) { sent++; continue; }
           const e = await r.json().catch(() => ({} as any));
           const code = e?.error?.details?.[0]?.errorCode || e?.error?.status;
-          if (r.status === 404 || code === "UNREGISTERED" || code === "INVALID_ARGUMENT") bad.push(tk.token);
+          if (r.status === 404 || code === "UNREGISTERED" || code === "INVALID_ARGUMENT") {
+            bad.push(tk.token);
+            console.log("fcm prune:", r.status, code, tk.token.slice(0, 12));
+          }
         } catch (e) { console.error("push fetch:", e); }
       }
       if (log.length >= 20) await flushLog();
