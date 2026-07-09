@@ -64,15 +64,17 @@ export async function signInGoogle() {
   if (nativeGoogleOk) {
     await ensureGoogleInit(Social);
     const isIOS = platform === "ios";
-    // iOS: сами задаём nonce и форсируем интерактивный вход. GIDSignIn кладёт наш nonce
-    // в idToken как есть; тот же nonce отдаём Supabase. Без этого при пути «restore prev
-    // session» токен иногда приходит с nonce, а мы его не передаём → Supabase ругается
-    // "Passed nonce and nonce in id_token should either both exist or not".
+    // iOS: nonce по схеме Apple/One-Tap — Google получает SHA256(rawNonce) (плагин передаёт
+    // его в GIDSignIn как есть, и он попадает в idToken), а Supabase — rawNonce: gotrue
+    // хеширует переданный nonce и сверяет с клеймом токена. Отдать обоим сырой nonce
+    // нельзя — получится "Nonces mismatch". forcePrompt: путь «restore previous session»
+    // вернул бы токен без нашего nonce.
     // На Android — как было (нативный Credential Manager работает без nonce; scopes там
     // включили бы серверный флоу с правкой MainActivity, поэтому scopes только для iOS).
     const rawNonce = isIOS ? randomNonce() : undefined;
+    const hashedNonce = rawNonce ? await sha256hex(rawNonce) : undefined;
     const loginOptions = isIOS
-      ? { scopes: ["email", "profile"], nonce: rawNonce, forcePrompt: true }
+      ? { scopes: ["email", "profile"], nonce: hashedNonce, forcePrompt: true }
       : {};
     const res = await Social.login({ provider: "google", options: loginOptions });
     const idToken = res?.result?.idToken;
