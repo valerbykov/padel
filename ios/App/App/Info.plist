@@ -10,6 +10,8 @@
 	<string>PadelPack uses the camera so you can take a photo for your profile.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>PadelPack accesses your photos so you can choose a profile picture.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>The camera interface may request microphone access; PadelPack does not record audio.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
