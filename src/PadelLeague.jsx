@@ -768,7 +768,10 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
             return (
               <div key={p.id} onClick={() => setSelected(p)} className="pl-card"
                 style={{ flex: isFirst ? 1.15 : 1, textAlign: "center", padding: isFirst ? "13px 6px 11px" : "11px 6px 9px", cursor: "pointer", minWidth: 0,
-                  border: isFirst ? "1px solid color-mix(in srgb, var(--yellow) 35%, transparent)" : undefined }}>
+                  // Своя плитка подсвечивается как своя строка в списке; иначе у лидера — золотая рамка.
+                  border: p.id === profileId ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)"
+                    : isFirst ? "1px solid color-mix(in srgb, var(--yellow) 35%, transparent)" : undefined,
+                  background: p.id === profileId ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined }}>
                 {isFirst && <div style={{ fontSize: 15, lineHeight: 1, marginBottom: 4 }}>👑</div>}
                 <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt=""
                   style={{ width: isFirst ? 58 : 48, height: isFirst ? 58 : 48, borderRadius: "50%", objectFit: "cover", border: `${isFirst ? 3 : 2.5}px solid ${ring}`, margin: "0 auto", display: "block" }} />
