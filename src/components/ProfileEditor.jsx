@@ -13,7 +13,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
-import { Camera, Check, Loader, LogOut, BarChart3, Sun, Moon, X, Bell, Trash2, User, Phone, Mail, Globe, ChevronRight, ChevronDown, Lock, ArrowUp, ArrowDown } from "lucide-react";
+import { Camera, Check, Loader, LogOut, BarChart3, Sun, Moon, X, Bell, Trash2, User, Phone, Mail, Globe, ChevronRight, ChevronDown, Lock, ArrowUp, ArrowDown, MessageCircle } from "lucide-react";
 import Avatar from "./Avatar";
 import { t, setLang } from "../lib/i18n";
 import { saveNotifPrefs, registerPush, OFFSET_OPTIONS } from "../lib/notifications";
@@ -448,6 +448,21 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
                     {telegram.trim() && (
                       <a href={`https://t.me/${telegram.replace(/^@/, "")}`} target="_blank" rel="noopener noreferrer"
                         style={{ flexShrink: 0, width: 40, height: 40, borderRadius: "50%", background: "#229ed9", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}><TgPlane size={20} /></a>
+                    )}
+                  </div>
+                )}
+                <button className="pc-row" onClick={() => toggleRow("wa")} aria-expanded={editRow === "wa"}>
+                  <span className="pc-chip" style={{ background: "rgba(37,211,102,.14)", color: "#25d366" }}><MessageCircle size={15} /></span>
+                  <span className="pc-rlabel">WhatsApp</span>
+                  <span className="pc-rval">{whatsapp || "—"}</span>
+                  <Chevron open={editRow === "wa"} />
+                </button>
+                {editRow === "wa" && (
+                  <div className="pc-edit" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <input className="pc-input" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="+7 999 000-00-00" inputMode="tel" autoFocus />
+                    {whatsapp.trim() && (
+                      <a href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
+                        style={{ flexShrink: 0, width: 40, height: 40, borderRadius: "50%", background: "#25d366", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}><MessageCircle size={20} /></a>
                     )}
                   </div>
                 )}
