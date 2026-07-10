@@ -7,7 +7,7 @@ import { getLeaderboard, addMember, removeMember, createGame, listGames, submitR
 import { WEB_BASE } from "./lib/platform";
 import { CardSkeleton } from "./components/Skeleton";
 import { bustCache, cachePeek } from "./lib/cache";
-import { getRatingHistory } from "./lib/statsApi";
+import { getRatingHistory, getWeekDeltas } from "./lib/statsApi";
 import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
 import { t, nGames } from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
@@ -467,6 +467,14 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
   const [publicLinkCopied, setPublicLinkCopied] = useState(false);
   const ranked = [...players].sort((a, b) => b.rating - a.rating);
   const [memberQuery, setMemberQuery] = useState("");
+  // Недельные тренды рейтинга (↑/↓ у строк и в планке «Ты сейчас») — фоном, не блокируют.
+  const [weekDeltas, setWeekDeltas] = useState({});
+  useEffect(() => {
+    if (!groupId) { setWeekDeltas({}); return; }
+    let alive = true;
+    getWeekDeltas(groupId).then((m) => { if (alive) setWeekDeltas(m); }).catch(() => {});
+    return () => { alive = false; };
+  }, [groupId, players.length]);
 
   // #4: совсем скрыть игрока из «Играли вместе». Оптимистично прячем строку, пишем в
   // аккаунт (hide_partner) и перечитываем список (played_with уже без скрытого).
@@ -723,6 +731,31 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
           <ChevronRight size={18} style={{ color: "var(--lime)", flexShrink: 0 }} />
         </div>
       )}
+      {/* Пьедестал топ-3: лидер в центре крупнее; тап открывает карточку игрока.
+          При активном поиске прячем — все совпадения показываются строками. */}
+      {groupId && !memberQuery.trim() && ranked.length >= 3 && (
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 8, marginBottom: 12 }}>
+          {[ranked[1], ranked[0], ranked[2]].map((p, idx) => {
+            const isFirst = idx === 1;
+            const place = isFirst ? 1 : idx === 0 ? 2 : 3;
+            const ring = isFirst ? "var(--yellow)" : place === 2 ? "#cfd8d0" : "#cd7f4d";
+            return (
+              <div key={p.id} onClick={() => setSelected(p)} className="pl-card"
+                style={{ flex: isFirst ? 1.15 : 1, textAlign: "center", padding: isFirst ? "13px 6px 11px" : "11px 6px 9px", cursor: "pointer", minWidth: 0,
+                  border: isFirst ? "1px solid color-mix(in srgb, var(--yellow) 35%, transparent)" : undefined }}>
+                {isFirst && <div style={{ fontSize: 15, lineHeight: 1, marginBottom: 4 }}>👑</div>}
+                <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt=""
+                  style={{ width: isFirst ? 58 : 48, height: isFirst ? 58 : 48, borderRadius: "50%", objectFit: "cover", border: `${isFirst ? 3 : 2.5}px solid ${ring}`, margin: "0 auto", display: "block" }} />
+                <div style={{ fontSize: isFirst ? 12.5 : 11.5, fontWeight: isFirst ? 800 : 700, marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {p.name}
+                </div>
+                <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: isFirst ? 17 : 14, color: ring, marginTop: 2, lineHeight: 1 }}>{p.rating}</div>
+                <div style={{ fontSize: 10, color: "var(--mut)", marginTop: 2 }}>{p.id === profileId ? t("fr_you") : isFirst ? t("podium_leader") : t("podium_place").replace("{n}", String(place))}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
       {groupId && ranked.length > 4 && (
         <div style={{ position: "relative", marginBottom: 10 }}>
           <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--mut)" }} />
@@ -731,13 +764,18 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
       )}
       {groupId && loading && ranked.length === 0 && <PlayerRowSkeleton count={5} />}
       {groupId && ranked.map((p, i) => {
-        if (memberQuery.trim() && !p.name.toLowerCase().includes(memberQuery.trim().toLowerCase())) return null;
+        const searching = !!memberQuery.trim();
+        if (searching && !p.name.toLowerCase().includes(memberQuery.trim().toLowerCase())) return null;
+        if (!searching && ranked.length >= 3 && i < 3) return null; // топ-3 на пьедестале
+        // Ачивки-эмодзи: максимум три, серия — с числом.
         const qb = [];
+        if ((streaks[p.id] || 0) >= 3) qb.push(`🔥${streaks[p.id]}`);
         if (i === 0) qb.push("🥇");
         if (p.matches >= 5 && p.wins / p.matches >= 0.7) qb.push("🎯");
         if (p.matches >= 20) qb.push("⚡");
         if (toursOf(p) >= 3) qb.push("🏆");
-        if ((streaks[p.id] || 0) >= 3) qb.push("🔥"); // «На подъёме» — 3+ победы подряд
+        const badges = qb.slice(0, 3);
+        const wd = weekDeltas[p.id] || 0;
         const canRemove = isAdmin && p.role !== "owner" && p.id !== profileId;
         const canOrg = activeLeague?.role === "owner" && p.user_id && p.role !== "owner" && p.id !== profileId;
         return (
@@ -745,9 +783,9 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
             onRemove={canRemove ? async () => { await removeMember(groupId, p.id); reload(); } : null}
             onOrganize={canOrg ? async () => { await setMemberRole(groupId, p.id, p.role === "admin" ? "member" : "admin"); reload(); } : null}
             organizerActive={p.role === "admin"} onTap={() => setSelected(p)}>
-          <div className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", cursor: "pointer", border: p.id === profileId ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined, background: p.id === profileId ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined }}>
-            <div className="pl-display" style={{ width: 22, fontSize: 22, color: ["var(--yellow)", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)" }}>{i + 1}</div>
-            <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
+          <div className="pl-card" style={{ display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", cursor: "pointer", border: p.id === profileId ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined, background: p.id === profileId ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined }}>
+            <div className="pl-display" style={{ width: 22, fontSize: 16, color: ["var(--yellow)", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)", textAlign: "center", flexShrink: 0 }}>{i + 1}</div>
+            <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 600, fontSize: 15, display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
@@ -758,21 +796,49 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
                     : p.user_id
                       ? <UserCheck size={14} style={{ color: "var(--lime)", flexShrink: 0 }} aria-label={t("account_badge")} />
                       : <User size={13} style={{ color: "var(--mut)", flexShrink: 0 }} aria-label={t("guest_tag")} />}
+                {p.id === profileId && <span style={{ fontSize: 9.5, color: "var(--lime-fg)", background: "var(--lime)", borderRadius: 6, padding: "1px 6px", fontWeight: 800, flexShrink: 0 }}>{t("fr_you")}</span>}
               </div>
-              {/* #5: статистика (слева) отделена от бейджей уровня/ачивок (справа). */}
               <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, fontSize: 12, color: "var(--mut)" }}>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_games")}><Swords size={13} /> {gamesOf(p)}</span>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_tournaments")}><Trophy size={13} /> {toursOf(p)}</span>
                 </span>
-                {qb.length > 0 && <span style={{ letterSpacing: 2, marginLeft: "auto" }}>{qb.join("")}</span>}
+                {badges.length > 0 && <span style={{ letterSpacing: 1, marginLeft: "auto" }}>{badges.join(" ")}</span>}
               </div>
             </div>
-            <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />
+            {/* Рейтинг + недельный тренд вместо шеврона: главный сюжет таблицы */}
+            <div style={{ textAlign: "right", flexShrink: 0 }}>
+              <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 16, color: "var(--lime)", lineHeight: 1 }}>{p.rating}</div>
+              {wd !== 0
+                ? <div style={{ fontSize: 10, fontWeight: 700, marginTop: 3, color: wd > 0 ? "var(--lime)" : "var(--coral)" }}>{wd > 0 ? "↑" : "↓"} {Math.abs(wd)}</div>
+                : <div style={{ fontSize: 10, marginTop: 3, color: "var(--mut)", opacity: .55 }}>—</div>}
+            </div>
           </div>
           </SwipeRow>
         );
       })}
+
+      {/* Планка «Ты сейчас»: место, рейтинг, тренд и мостик к цели; тап — своя карточка */}
+      {groupId && !memberQuery.trim() && (() => {
+        const meIdx = ranked.findIndex((p) => p.id === profileId);
+        if (meIdx < 0 || ranked.length < 2) return null;
+        const me = ranked[meIdx];
+        const d = weekDeltas[me.id] || 0;
+        const gap = meIdx > 0 ? ranked[meIdx - 1].rating - me.rating : me.rating - ranked[1].rating;
+        return (
+          <div onClick={() => setSelected(me)}
+            style={{ position: "sticky", bottom: "calc(env(safe-area-inset-bottom, 0px) + 66px)", zIndex: 5, marginTop: 10,
+              background: "var(--surface2)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", borderRadius: 14,
+              padding: "10px 14px", display: "flex", alignItems: "center", gap: 9, cursor: "pointer", boxShadow: "0 6px 20px rgba(0,0,0,.35)" }}>
+            <span style={{ fontSize: 12, color: "var(--mut)", flexShrink: 0 }}>{t("fr_you_now")}</span>
+            <span style={{ fontSize: 13.5, fontWeight: 800, fontFamily: "'Outfit',sans-serif", flexShrink: 0 }}>#{meIdx + 1} · {me.rating}</span>
+            {d !== 0 && <span style={{ fontSize: 11, fontWeight: 700, color: d > 0 ? "var(--lime)" : "var(--coral)", flexShrink: 0 }}>{d > 0 ? "↑" : "↓"} {Math.abs(d)} {t("wk_suffix")}</span>}
+            <span style={{ marginLeft: "auto", fontSize: 11.5, fontWeight: 700, color: "var(--lime)", textAlign: "right" }}>
+              {meIdx === 0 ? t("fr_gap_lead").replace("{n}", String(gap)) : t("fr_to_place").replace("{p}", String(meIdx)).replace("{n}", String(gap))} →
+            </span>
+          </div>
+        );
+      })()}
 
       {!groupId && (() => {
         const friends = ranked.filter((p) => p.id !== profileId && !hiddenIds.has(p.id));

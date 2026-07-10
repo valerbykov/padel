@@ -29,6 +29,21 @@ export async function getRatingHistory(groupId, profileId) {
   return (data || []).map((d) => ({ r: d.rating_after, at: d.created_at }));
 }
 
+// Недельные дельты рейтинга всех участников лиги: profile_id → Σdelta за 7 дней.
+// Один лёгкий запрос для трендов в таблице «Друзья».
+export async function getWeekDeltas(groupId) {
+  const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString();
+  const { data, error } = await supabase
+    .from("rating_changes")
+    .select("profile_id, delta")
+    .eq("group_id", groupId)
+    .gt("created_at", weekAgo);
+  if (error) throw error;
+  const map = {};
+  (data || []).forEach((r) => { map[r.profile_id] = (map[r.profile_id] || 0) + (r.delta || 0); });
+  return map;
+}
+
 export async function getGroupAnalytics(groupId) {
   // Передаём таймзону клиента, чтобы сервер группировал матчи по дням в ЛОКАЛЬНОЙ
   // дате пользователя (иначе вечерние матчи «уезжают» на соседний день).
