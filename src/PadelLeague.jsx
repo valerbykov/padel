@@ -630,7 +630,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
     finally { setBusy(false); }
   };
 
-  if (showStats) return <Analytics groupId={groupId} players={players} onBack={() => setShowStats(false)} onOpenPlayer={(p) => { setShowStats(false); setSelected(p); }} />;
+  if (showStats) return <Analytics groupId={groupId} players={players} profileId={profileId} onBack={() => setShowStats(false)} onOpenPlayer={(p) => { setShowStats(false); setSelected(p); }} />;
 
   if (selected) return (
     <PlayerDetail key={selected.id} groupId={groupId} player={selected} players={players} close={() => setSelected(null)} onOpenPlayer={setSelected}
