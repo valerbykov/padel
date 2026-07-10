@@ -1515,16 +1515,18 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
         const p = players.find((x) => x.id === nm.id);
         const total = nm.w + nm.l + nm.d;
         return (
-          <div className="pl-card" style={{ padding: "12px 14px", marginBottom: 10, cursor: p ? "pointer" : "default" }} onClick={p ? () => onOpenPlayer(p) : undefined}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <img src={playerAvatar(p?.avatar_url, nm.id || nm.name)} onError={avatarFallback(nm.id || nm.name)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+          <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
+            {/* Заголовок в шапке плитки — как у «лучшего напарника», имя не обрезается */}
+            <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{t("nemesis_label")}</div>
+            <div onClick={p ? () => onOpenPlayer(p) : undefined} style={{ display: "flex", alignItems: "center", gap: 10, cursor: p ? "pointer" : "default" }}>
+              <img src={playerAvatar(p?.avatar_url, nm.id || nm.name)} onError={avatarFallback(nm.id || nm.name)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p?.name || nm.name || "?"} <span style={{ fontSize: 10.5, color: "var(--mut)", fontWeight: 600 }}>· {t("nemesis_label")}</span></div>
-                <div style={{ fontSize: 11.5, color: "var(--mut)", marginTop: 1 }}>{t("nemesis_against").replace("{w}", String(nm.w)).replace("{n}", String(total))}</div>
+                <div style={{ fontWeight: 600, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p?.name || nm.name || "?"}</div>
+                <div style={{ fontSize: 12, color: "var(--mut)" }}>{t("nemesis_against").replace("{w}", String(nm.w)).replace("{n}", String(total))}</div>
               </div>
               <div style={{ textAlign: "right", flexShrink: 0 }}>
-                <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 17, color: "var(--coral)" }}>{nm.w}–{nm.l}</div>
-                <div style={{ fontSize: 9.5, color: "var(--mut)" }}>{t("vs_meetings")}</div>
+                <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22, lineHeight: 1.1, color: "var(--coral)" }}>{nm.w}–{nm.l}</div>
+                <div style={{ fontSize: 10, color: "var(--mut)" }}>{t("vs_meetings")}</div>
               </div>
             </div>
           </div>
