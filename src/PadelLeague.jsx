@@ -495,6 +495,21 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
   const [leagueErr, setLeagueErr] = useState("");
   const ranked = [...players].sort((a, b) => b.rating - a.rating);
   const [memberQuery, setMemberQuery] = useState("");
+  // Пилюля «Ты сейчас»: во всю ширину в своём месте списка; когда прилипла к низу
+  // (position:sticky сработал и она встала рядом с FAB) — плавно уступает ему угол.
+  // Определяем «прилипание» сентинелом сразу после пилюли: он ниже вьюпорта → pinned.
+  const [youPinned, setYouPinned] = useState(true);
+  const youIoRef = useRef(null);
+  const youSentinelRef = useCallback((el) => {
+    if (youIoRef.current) { youIoRef.current.disconnect(); youIoRef.current = null; }
+    if (el && typeof IntersectionObserver !== "undefined") {
+      // -132px ≈ высота пилюли (56) + её отступ от низа (74): сентинел «виден»
+      // только когда пилюля полностью встала в поток.
+      youIoRef.current = new IntersectionObserver(([e]) => setYouPinned(!e.isIntersecting), { rootMargin: "0px 0px -132px 0px" });
+      youIoRef.current.observe(el);
+    }
+  }, []);
+
   // Недельные тренды рейтинга (↑/↓ у строк и в планке «Ты сейчас») — фоном, не блокируют.
   const [weekDeltas, setWeekDeltas] = useState({});
   useEffect(() => {
@@ -862,11 +877,14 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
         const d = weekDeltas[me.id] || 0;
         const gap = meIdx > 0 ? ranked[meIdx - 1].rating - me.rating : me.rating - ranked[1].rating;
         return (
+          <>
           <div onClick={() => setSelected(me)}
             // Пилюля в пару к FAB: та же высота (56), полное скругление, общая тень,
-            // низ выровнен по низу FAB. marginRight уступает угол только когда FAB виден.
+            // низ выровнен по низу FAB. Угол уступает только в прилипшем состоянии
+            // (youPinned) и только когда FAB виден; в потоке — во всю ширину.
             style={{ position: "sticky", bottom: "calc(env(safe-area-inset-bottom, 0px) + 74px)", zIndex: 5, marginTop: 10,
-              marginRight: (isAdmin || activeLeague?.members_can_add) ? 68 : 0,
+              marginRight: youPinned && (isAdmin || activeLeague?.members_can_add) ? 68 : 0,
+              transition: "margin-right .25s ease",
               height: 56, boxSizing: "border-box",
               background: "var(--surface2)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", borderRadius: 999,
               padding: "8px 18px", display: "flex", flexDirection: "column", justifyContent: "center", cursor: "pointer",
@@ -880,6 +898,9 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
             </div>
             <div style={{ fontSize: 9.5, color: "var(--mut)", marginTop: 1 }}>{t("fr_pos_hint")}</div>
           </div>
+          {/* Сентинел: пока он ниже вьюпорта — пилюля прилипла (pinned) */}
+          <div ref={youSentinelRef} style={{ height: 1 }} />
+          </>
         );
       })()}
 
