@@ -4,7 +4,7 @@ const LeagueSetup = lazy(() => import("./components/LeagueSetup"));
 import { createPortal } from "react-dom";
 import { supabase } from "./lib/supabase";
 import BackButton from "./components/BackButton";
-import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames } from "./lib/padelApi";
+import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, joinGameSlot, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames } from "./lib/padelApi";
 import { WEB_BASE } from "./lib/platform";
 import { CardSkeleton } from "./components/Skeleton";
 import { bustCache, cachePeek } from "./lib/cache";
@@ -2446,6 +2446,23 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
   const nameOf = (s) => s.profile?.name || s.guest_name;
   const avatarOf = (s) => s.profile_id ? playerAvatar(s.profile?.avatar_url, s.profile_id) : null;
   const filled = slots.filter((s) => s.profile_id || s.guest_name).length;
+  // «Вписаться самому»: свободный слот занимается в один тап (тот же RPC, что /j/CODE).
+  const [joinBusy, setJoinBusy] = useState(false);
+  const [joinErr, setJoinErr] = useState("");
+  const meInGameHere = !!profileId && slots.some((s) => s.profile_id === profileId);
+  const canTake = game.status === "open" && !!profileId && !meInGameHere && !!game.invite_code;
+  const takeSlot = async (s) => {
+    if (joinBusy) return;
+    setJoinBusy(true); setJoinErr("");
+    try {
+      const myName = players.find((p) => p.id === profileId)?.name || "";
+      await joinGameSlot(game.invite_code, s.team, s.position, myName);
+      await reloadGames();
+    } catch (e) {
+      const map = { slot_taken: t("err_slot_taken"), game_closed: t("err_game_closed"), game_not_found: t("err_game_not_found") };
+      setJoinErr(map[e.message] || t("err_join_slot"));
+    } finally { setJoinBusy(false); }
+  };
   const slotsA = slots.filter((s) => s.team === "A");
   const slotsB = slots.filter((s) => s.team === "B");
   // #3: кто создал игру (host_id) — резолвим по составу лиги.
@@ -2545,13 +2562,24 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
       </div>
 
       <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
-        {slots.map((s, i) => (
-          <div key={i} className="pl-slot">
-            <span className="pl-display" style={{ fontSize: 11, color: s.team === "A" ? "var(--lime)" : "var(--coral)", width: 30 }}>{s.team}</span>
-            <span style={{ flex: 1, color: nameOf(s) ? "var(--ink)" : "var(--mut)" }}>{nameOf(s) || t("slot_free")}</span>
-            {nameOf(s) && <Check size={15} color="var(--lime)" />}
-          </div>
-        ))}
+        {slots.map((s, i) => {
+          const free = !nameOf(s);
+          return (
+            <div key={i} className="pl-slot">
+              <span className="pl-display" style={{ fontSize: 11, color: s.team === "A" ? "var(--lime)" : "var(--coral)", width: 30 }}>{s.team}</span>
+              <span style={{ flex: 1, color: free ? "var(--mut)" : "var(--ink)" }}>{free ? t("slot_free") : nameOf(s)}</span>
+              {!free && <Check size={15} color="var(--lime)" />}
+              {/* Свободный слот — занять в один тап (участник, ещё не в игре) */}
+              {free && canTake && (
+                <button onClick={() => takeSlot(s)} disabled={joinBusy}
+                  style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 999, border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", background: "color-mix(in srgb, var(--lime) 14%, transparent)", color: "var(--lime)", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Outfit',sans-serif", opacity: joinBusy ? .6 : 1 }}>
+                  <UserPlus size={12} /> {t("pub_take_slot")}
+                </button>
+              )}
+            </div>
+          );
+        })}
+        {joinErr && <div style={{ fontSize: 12, color: "var(--coral)", textAlign: "center" }}>{joinErr}</div>}
       </div>
 
       <div style={{ marginTop: 12 }}>

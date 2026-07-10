@@ -449,6 +449,17 @@ export async function createDemoLeague(lang = "ru") {
   return data;
 }
 
+// Занять свободный слот игры собой — с экрана игры внутри приложения.
+// Тот же RPC, что у гостевой страницы /j/CODE: сервер линкует профиль по сессии.
+export async function joinGameSlot(code, team, position, guestName) {
+  const { data, error } = await supabase.rpc("join_game_slot", {
+    p_code: code, p_team: team, p_position: position, p_guest_name: guestName || "",
+  });
+  if (error) throw error;
+  bustCache();
+  return data;
+}
+
 // Вступить в лигу по 6-символьному коду. Возвращает { id, name, role }.
 export async function joinLeague(code) {
   const { data, error } = await supabase.rpc("join_league", { p_code: code.trim().toUpperCase() });
