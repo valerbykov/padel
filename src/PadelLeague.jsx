@@ -503,9 +503,10 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
   const youSentinelRef = useCallback((el) => {
     if (youIoRef.current) { youIoRef.current.disconnect(); youIoRef.current = null; }
     if (el && typeof IntersectionObserver !== "undefined") {
-      // -132px ≈ высота пилюли (56) + её отступ от низа (74): сентинел «виден»
-      // только когда пилюля полностью встала в поток.
-      youIoRef.current = new IntersectionObserver(([e]) => setYouPinned(!e.isIntersecting), { rootMargin: "0px 0px -132px 0px" });
+      // -200px ≈ отступ FAB (74) + высота FAB (56) + высота пилюли (56) + зазор:
+      // расширяемся только когда пилюля в потоке поднялась ВЫШЕ зоны FAB, иначе
+      // в переходной полосе полноширинная пилюля наезжала бы на кнопку.
+      youIoRef.current = new IntersectionObserver(([e]) => setYouPinned(!e.isIntersecting), { rootMargin: "0px 0px -200px 0px" });
       youIoRef.current.observe(el);
     }
   }, []);
