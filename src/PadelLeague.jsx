@@ -149,8 +149,9 @@ const TIERS = [
   { key: "tier_trainee",  min: 900,  color: "#a9bfb2" },
   { key: "tier_puppy",    min: -Infinity, color: "var(--mut)", emoji: "🐶" },
 ];
-const tierOf = (r) => TIERS.find((tr) => r >= tr.min);
-const tierAbove = (r) => { const i = TIERS.findIndex((tr) => r >= tr.min); return i > 0 ? TIERS[i - 1] : null; };
+// Защитно: у игроков вне лиги («Играли вместе») rating отсутствует — NaN не должен ронять UI.
+const tierOf = (r) => TIERS.find((tr) => (Number(r) || 0) >= tr.min) || TIERS[TIERS.length - 1];
+const tierAbove = (r) => { const i = TIERS.findIndex((tr) => (Number(r) || 0) >= tr.min); return i > 0 ? TIERS[i - 1] : null; };
 
 function TierChip({ rating, compact = false }) {
   const tr = tierOf(rating);
@@ -1508,18 +1509,20 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
           })()}
           <div style={{ minWidth: 0, flex: 1 }}>
             <div className="pl-display" style={{ fontSize: 19, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{player.name}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
-              <TierChip rating={player.rating} />
-              <button type="button" onClick={() => setShowTiers((s) => !s)} aria-label={t("tier_ladder_title")} title={t("tier_ladder_title")}
-                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", border: "1px solid var(--line)", background: showTiers ? "var(--surface2)" : "none", color: "var(--mut)", cursor: "pointer", padding: 0, flexShrink: 0 }}>
-                <HelpCircle size={11} />
-              </button>
-              {rank >= 0 && (
-                <span style={{ fontSize: 11.5, color: "var(--mut)" }}>
-                  {t("rank_in_league").replace("{n}", String(rank + 1))}{betterPct ? ` · ${t("better_than").replace("{p}", String(betterPct))}` : ""}
-                </span>
-              )}
-            </div>
+            {player.rating != null && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
+                <TierChip rating={player.rating} />
+                <button type="button" onClick={() => setShowTiers((s) => !s)} aria-label={t("tier_ladder_title")} title={t("tier_ladder_title")}
+                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", border: "1px solid var(--line)", background: showTiers ? "var(--surface2)" : "none", color: "var(--mut)", cursor: "pointer", padding: 0, flexShrink: 0 }}>
+                  <HelpCircle size={11} />
+                </button>
+                {rank >= 0 && (
+                  <span style={{ fontSize: 11.5, color: "var(--mut)" }}>
+                    {t("rank_in_league").replace("{n}", String(rank + 1))}{betterPct ? ` · ${t("better_than").replace("{p}", String(betterPct))}` : ""}
+                  </span>
+                )}
+              </div>
+            )}
             <ContactLinks contacts={player.contacts} />
           </div>
           <div style={{ textAlign: "right", flexShrink: 0 }}>
