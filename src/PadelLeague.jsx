@@ -13,7 +13,7 @@ import { t, nGames } from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
 import Fab from "./components/Fab";
-import { Trophy, Swords, History, Users, UserPlus, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, UserCheck, ShieldCheck, EyeOff, Star, User, Search, Pencil } from "lucide-react";
+import { Trophy, Swords, History, Users, UserPlus, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, UserCheck, ShieldCheck, EyeOff, Star, User, Search, Pencil, Send, MessageCircle } from "lucide-react";
 import Tournaments, { TournamentView, TournamentCard, CopyDialog, css as trCss } from "./components/Tournaments";
 import { copyTournament } from "./lib/tournamentApi";
 import { deleteTournament } from "./lib/tournamentApi";
@@ -138,23 +138,29 @@ function RatingChart({ rows }) {
 }
 
 // Контакты: иконки-ссылки
+// Контакты: компактные круглые иконки — встраиваются в шапку карточки игрока
+// (под строкой места в лиге), не разрывая композицию.
 function ContactLinks({ contacts = {} }) {
   if (!contacts || !Object.values(contacts).some(Boolean)) return null;
   const links = [
-    contacts.whatsapp && { href: `https://wa.me/${contacts.whatsapp.replace(/\D/g, "")}`, label: "WA", color: "#25d366" },
-    contacts.telegram && { href: `https://t.me/${contacts.telegram.replace(/^@/, "")}`, label: "TG", color: "#229ed9" },
-    contacts.email    && { href: `mailto:${contacts.email}`, label: "✉", color: "var(--mut)" },
-    contacts.phone    && { href: `tel:${contacts.phone}`, label: "☎", color: "var(--mut)" },
+    contacts.telegram && { href: `https://t.me/${contacts.telegram.replace(/^@/, "")}`, icon: Send, color: "#4db8e8", label: "Telegram" },
+    contacts.whatsapp && { href: `https://wa.me/${contacts.whatsapp.replace(/\D/g, "")}`, icon: MessageCircle, color: "#25d366", label: "WhatsApp" },
+    contacts.email    && { href: `mailto:${contacts.email}`, icon: Mail, color: "var(--mut)", label: "Email" },
+    contacts.phone    && { href: `tel:${contacts.phone}`, icon: Phone, color: "var(--mut)", label: "Phone" },
   ].filter(Boolean);
   return (
-    <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 8, flexWrap: "wrap" }}>
-      {links.map((l) => (
-        <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer" style={{
-          padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700,
-          background: "rgba(255,255,255,.07)", border: `1px solid ${l.color}`,
-          color: l.color, textDecoration: "none",
-        }}>{l.label}</a>
-      ))}
+    <div style={{ display: "flex", gap: 6, marginTop: 7, flexWrap: "wrap" }}>
+      {links.map((l) => {
+        const Ico = l.icon;
+        return (
+          <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer" aria-label={l.label} title={l.label}
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: 28, height: 28, borderRadius: 9, display: "inline-flex", alignItems: "center", justifyContent: "center",
+              background: `color-mix(in srgb, ${l.color} 14%, transparent)`, color: l.color, textDecoration: "none" }}>
+            <Ico size={14} />
+          </a>
+        );
+      })}
     </div>
   );
 }
@@ -1389,6 +1395,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
                 {t("rank_in_league").replace("{n}", String(rank + 1))}{betterPct ? ` · ${t("better_than").replace("{p}", String(betterPct))}` : ""}
               </div>
             )}
+            <ContactLinks contacts={player.contacts} />
           </div>
           <div style={{ textAlign: "right", flexShrink: 0 }}>
             <div className="pl-display" style={{ fontSize: 27, color: "var(--lime)", lineHeight: 1 }}>{player.rating}</div>
@@ -1399,7 +1406,6 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
             )}
           </div>
         </div>
-        <ContactLinks contacts={player.contacts} />
 
         {/* #5: действия отделены от бейджей — разделитель + сгруппированный блок кнопок. */}
         {hasActions && (
