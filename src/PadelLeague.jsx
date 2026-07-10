@@ -138,6 +138,32 @@ function RatingChart({ rows }) {
 }
 
 // Контакты: иконки-ссылки
+// Звания «стаи» — расшифровка числового рейтинга. Цвет звания един везде:
+// чип в шапке статистики, чип в строке таблицы, прогресс до следующего звания.
+// Эмодзи — только у крайних званий, середина лестницы текстом.
+const TIERS = [
+  { key: "tier_leader",   min: 1350, color: "#ff9f2d",       emoji: "🐺" },
+  { key: "tier_predator", min: 1200, color: "var(--yellow)" },
+  { key: "tier_hunter",   min: 1100, color: "var(--lime)" },
+  { key: "tier_player",   min: 1000, color: "#4db8e8" },
+  { key: "tier_trainee",  min: 900,  color: "#a9bfb2" },
+  { key: "tier_puppy",    min: -Infinity, color: "var(--mut)", emoji: "🐶" },
+];
+const tierOf = (r) => TIERS.find((tr) => r >= tr.min);
+const tierAbove = (r) => { const i = TIERS.findIndex((tr) => r >= tr.min); return i > 0 ? TIERS[i - 1] : null; };
+
+function TierChip({ rating, compact = false }) {
+  const tr = tierOf(rating);
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: compact ? 9.5 : 10.5, fontWeight: 800,
+      padding: compact ? "1px 7px" : "3px 9px", borderRadius: 999, flexShrink: 0, whiteSpace: "nowrap",
+      background: `color-mix(in srgb, ${tr.color} 13%, transparent)`, color: tr.color,
+      border: `1px solid color-mix(in srgb, ${tr.color} 35%, transparent)` }}>
+      {tr.emoji ? tr.emoji + " " : ""}{t(compact ? tr.key + "_short" : tr.key)}
+    </span>
+  );
+}
+
 // Контакты: компактные круглые иконки — встраиваются в шапку карточки игрока
 // (под строкой места в лиге), не разрывая композицию.
 function ContactLinks({ contacts = {} }) {
@@ -798,8 +824,9 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
                       : <User size={13} style={{ color: "var(--mut)", flexShrink: 0 }} aria-label={t("guest_tag")} />}
                 {p.id === profileId && <span style={{ fontSize: 9.5, color: "var(--lime-fg)", background: "var(--lime)", borderRadius: 6, padding: "1px 6px", fontWeight: 800, flexShrink: 0 }}>{t("fr_you")}</span>}
               </div>
-              <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, fontSize: 12, color: "var(--mut)" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 7, fontSize: 12, color: "var(--mut)", marginTop: 2 }}>
+                <TierChip rating={p.rating} compact />
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_games")}><Swords size={13} /> {gamesOf(p)}</span>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_tournaments")}><Trophy size={13} /> {toursOf(p)}</span>
                 </span>
@@ -1042,6 +1069,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
   const [genBusy, setGenBusy] = useState(false);
   const [showL, setShowL] = useState(false); // развернуть список лиг
   const [showAch, setShowAch] = useState(false); // легенда ачивок («?»)
+  const [showTiers, setShowTiers] = useState(false); // легенда званий («?» у чипа)
   const isInLeague = players.some((p) => p.id === player.id);
 
   const generateClaimCode = async () => {
@@ -1403,15 +1431,19 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
     };
   })();
 
+  // Средняя «цена победы» из истории — для оценок «≈ N побед» (цель и звание).
+  const avgWin = (() => {
+    const wd = (hist || []).map((p, i) => p.r - (i === 0 ? 1000 : hist[i - 1].r)).filter((d) => d > 0);
+    return wd.length ? wd.reduce((s, d) => s + d, 0) / wd.length : 10;
+  })();
+
   // Цель (своя карточка): разрыв до соседа сверху + оценка в победных матчах
-  // (средняя положительная дельта из истории; турнирные победы тоже двигают рейтинг).
+  // (турнирные победы тоже двигают рейтинг).
   const goal = (() => {
     if (rank < 0 || !ranked.length) return null;
     if (rank === 0) return { leader: true, gap: ranked.length > 1 ? player.rating - ranked[1].rating : 0 };
     const ahead = ranked[rank - 1];
     const gap = ahead.rating - player.rating;
-    const winDeltas = (hist || []).map((p, i) => p.r - (i === 0 ? 1000 : hist[i - 1].r)).filter((d) => d > 0);
-    const avgWin = winDeltas.length ? winDeltas.reduce((s, d) => s + d, 0) / winDeltas.length : 10;
     return { leader: false, ahead, gap, est: Math.max(1, Math.ceil(gap / avgWin)) };
   })();
 
@@ -1473,11 +1505,18 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
           })()}
           <div style={{ minWidth: 0, flex: 1 }}>
             <div className="pl-display" style={{ fontSize: 19, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{player.name}</div>
-            {rank >= 0 && (
-              <div style={{ fontSize: 11.5, color: "var(--mut)", marginTop: 2 }}>
-                {t("rank_in_league").replace("{n}", String(rank + 1))}{betterPct ? ` · ${t("better_than").replace("{p}", String(betterPct))}` : ""}
-              </div>
-            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
+              <TierChip rating={player.rating} />
+              <button type="button" onClick={() => setShowTiers((s) => !s)} aria-label={t("tier_ladder_title")} title={t("tier_ladder_title")}
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", border: "1px solid var(--line)", background: showTiers ? "var(--surface2)" : "none", color: "var(--mut)", cursor: "pointer", padding: 0, flexShrink: 0 }}>
+                <HelpCircle size={11} />
+              </button>
+              {rank >= 0 && (
+                <span style={{ fontSize: 11.5, color: "var(--mut)" }}>
+                  {t("rank_in_league").replace("{n}", String(rank + 1))}{betterPct ? ` · ${t("better_than").replace("{p}", String(betterPct))}` : ""}
+                </span>
+              )}
+            </div>
             <ContactLinks contacts={player.contacts} />
           </div>
           <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -1489,6 +1528,42 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
             )}
           </div>
         </div>
+
+        {/* Легенда званий — лестница с диапазонами + механика ELO в двух строках */}
+        {showTiers && (
+          <div style={{ marginTop: 10, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, padding: "10px 12px" }}>
+            <div style={{ fontWeight: 700, fontSize: 12, color: "var(--ink)", marginBottom: 4 }}>{t("tier_ladder_title")}</div>
+            <div style={{ fontSize: 11, color: "var(--mut)", lineHeight: 1.5, marginBottom: 9 }}>{t("tier_help")}</div>
+            {TIERS.map((tr, i) => (
+              <div key={tr.key} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                <TierChip rating={tr.min === -Infinity ? 0 : tr.min} />
+                <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--mut)" }}>
+                  {i === 0 ? `${tr.min}+` : tr.min === -Infinity ? t("tier_upto").replace("{n}", String(TIERS[i - 1].min)) : `${tr.min}–${TIERS[i - 1].min - 1}`}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Прогресс до следующего звания (своя карточка) — вторая цель рядом с местом в лиге */}
+        {myId === player.id && (() => {
+          const cur = tierOf(player.rating), next = tierAbove(player.rating);
+          if (!next) return null;
+          const lo = cur.min === -Infinity ? next.min - 200 : cur.min;
+          const prog = Math.max(0.04, Math.min((player.rating - lo) / (next.min - lo), 1));
+          const gap = next.min - player.rating;
+          return (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ display: "flex", fontSize: 10.5, color: "var(--mut)", marginBottom: 5, gap: 8, flexWrap: "wrap" }}>
+                <span>{t("tier_next").replace("{t}", t(next.key)).replace("{n}", String(gap))}</span>
+                <span style={{ marginLeft: "auto" }}>{t("tier_wins_est").replace("{n}", String(Math.max(1, Math.ceil(gap / avgWin))))}</span>
+              </div>
+              <div style={{ height: 6, background: "var(--surface2)", borderRadius: 4, overflow: "hidden" }}>
+                <span style={{ display: "block", width: `${Math.round(prog * 100)}%`, height: "100%", background: next.color, borderRadius: 4 }} />
+              </div>
+            </div>
+          );
+        })()}
 
         {/* График рейтинга с периодами — в той же карточке */}
         <div style={{ marginTop: 14 }}>
