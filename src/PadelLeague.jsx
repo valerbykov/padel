@@ -972,6 +972,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
   const [tourH2H, setTourH2H] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [playerLeagues, setPlayerLeagues] = useState(null);
+  const [leagueRanks, setLeagueRanks] = useState({}); // gid → { rank, total }
   const [localClaimCode, setLocalClaimCode] = useState(player.claim_code || null);
   const [genBusy, setGenBusy] = useState(false);
   const [showL, setShowL] = useState(false); // развернуть список лиг
@@ -1002,11 +1003,27 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
     // Загружаем матчи группы для статистики
     getStatMatches(groupId).then((data) => setAllMatches(data || []));
 
-    // Лиги игрока
+    // Лиги игрока (RLS отдаёт только общие с текущим пользователем лиги; свои — все).
+    // Вторым лёгким запросом — рейтинги участников этих лиг для места «#N из M».
     supabase.from("group_members")
-      .select("role, group:groups(id, name)")
+      .select("role, rating, matches_played, group:groups(id, name, logo_url)")
       .eq("profile_id", player.id)
-      .then(({ data }) => setPlayerLeagues((data || []).map((r) => ({ id: r.group.id, name: r.group.name, role: r.role }))));
+      .then(({ data }) => {
+        const rows = (data || []).map((r) => ({ id: r.group.id, name: r.group.name, logo: r.group.logo_url || null, role: r.role, rating: r.rating, matches: r.matches_played }));
+        setPlayerLeagues(rows);
+        const ids = rows.map((r) => r.id);
+        if (!ids.length) return;
+        supabase.from("group_members").select("group_id, rating").in("group_id", ids)
+          .then(({ data: all }) => {
+            if (!all) return;
+            const ranks = {};
+            rows.forEach((lg) => {
+              const rs = all.filter((x) => x.group_id === lg.id);
+              ranks[lg.id] = { rank: rs.filter((x) => x.rating > lg.rating).length + 1, total: rs.length };
+            });
+            setLeagueRanks(ranks);
+          });
+      });
 
     // Загружаем турниры игрока
     listTournaments(groupId).then((all) => {
@@ -1407,32 +1424,38 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
           </div>
         </div>
 
-        {/* #5: действия отделены от бейджей — разделитель + сгруппированный блок кнопок. */}
+        {/* График рейтинга с периодами — в той же карточке */}
+        <div style={{ marginTop: 14 }}>
+          <RatingChart rows={hist || []} />
+        </div>
+
+        {/* Действия админа — вспомогательная зона ПОД графиком: компактные кнопки,
+            не разрывают чтение «игрок → рейтинг → график». */}
         {hasActions && (
-          <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 8, alignItems: "stretch" }}>
             {hasCompactAction && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                 {showAddToLeague && (
                   <button onClick={onAddToLeague}
-                    style={{ padding: "8px 16px", border: "none", borderRadius: 10, background: "var(--lime)", color: "var(--lime-fg)", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "'Outfit'" }}>
+                    style={{ padding: "7px 13px", border: "none", borderRadius: 10, background: "var(--lime)", color: "var(--lime-fg)", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, fontFamily: "'Outfit'" }}>
                     {t("add_to_league")}
                   </button>
                 )}
                 {showSetRole && (
                   <button onClick={() => onSetRole(player.role === "admin" ? "member" : "admin")}
-                    style={{ padding: "8px 14px", border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", borderRadius: 10, background: "none", color: "var(--lime)", fontSize: 12, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "'Outfit'" }}>
-                    <ShieldCheck size={12} /> {player.role === "admin" ? t("unset_organizer") : t("set_organizer")}
+                    style={{ padding: "7px 12px", border: "1px solid var(--line)", borderRadius: 10, background: "var(--surface2)", color: "var(--ink)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, fontFamily: "'Outfit'" }}>
+                    <ShieldCheck size={12} style={{ color: "var(--yellow)" }} /> {player.role === "admin" ? t("unset_organizer") : t("set_organizer")}
                   </button>
                 )}
                 {showGenClaim && (
                   <button onClick={generateClaimCode} disabled={genBusy}
-                    style={{ padding: "8px 16px", border: "1px solid rgba(200,255,45,.4)", borderRadius: 10, background: "rgba(200,255,45,.07)", color: "var(--lime)", fontSize: 12, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "'Outfit'" }}>
-                    <Share2 size={13} /> {genBusy ? t("creating") : t("create_claim_link")}
+                    style={{ padding: "7px 12px", border: "1px solid var(--line)", borderRadius: 10, background: "var(--surface2)", color: "var(--lime)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, fontFamily: "'Outfit'" }}>
+                    <Share2 size={12} /> {genBusy ? t("creating") : t("create_claim_link")}
                   </button>
                 )}
                 {showDelete && (
                   <button onClick={() => setShowDeleteModal(true)}
-                    style={{ padding: "8px 14px", border: "1px solid rgba(255,106,82,.35)", borderRadius: 10, background: "none", color: "var(--coral)", fontSize: 12, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "'Outfit'" }}>
+                    style={{ padding: "7px 12px", border: "1px solid var(--line)", borderRadius: 10, background: "var(--surface2)", color: "var(--coral)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, fontFamily: "'Outfit'" }}>
                     <Trash2 size={12} /> {t("remove_from_league")}
                   </button>
                 )}
@@ -1441,10 +1464,6 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
             {showClaimLink && <ClaimLinkButton claimCode={localClaimCode} />}
           </div>
         )}
-        {/* График рейтинга с периодами — в той же карточке */}
-        <div style={{ marginTop: 14 }}>
-          <RatingChart rows={hist || []} />
-        </div>
       </div>
 
       {/* KPI: винрейт по всем матчам (игры + турниры), текущая серия, рекорд серии */}
@@ -1686,17 +1705,40 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
           })}
         </div>
       )}
-      {/* Лиги игрока */}
+      {/* Лиги игрока: лого/монограмма, рейтинг · место · игры, иконка роли (как в списке друзей) */}
       {playerLeagues && playerLeagues.length > 0 && (
         <div className="pl-card" style={{ padding: 14, marginTop: 10 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>{t("leagues_heading")} ({playerLeagues.length})</div>
-          {(showL ? playerLeagues : playerLeagues.slice(0, 3)).map((lg) => (
-            <div key={lg.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: "1px solid var(--line)" }}>
-              <Trophy size={13} color="var(--mut)" style={{ flexShrink: 0 }} />
-              <div style={{ flex: 1, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lg.name}</div>
-              {lg.role !== "member" && <span style={{ fontSize: 10, color: "var(--lime)", flexShrink: 0, padding: "2px 6px", border: "1px solid rgba(200,255,45,.3)", borderRadius: 8 }}>{lg.role}</span>}
-            </div>
-          ))}
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>{t("leagues_heading")} ({playerLeagues.length})</div>
+          {(showL ? playerLeagues : playerLeagues.slice(0, 3)).map((lg, i) => {
+            const mono = ["var(--lime)", "var(--yellow)", "#4db8e8", "var(--coral)"][i % 4];
+            const rk = leagueRanks[lg.id];
+            const sub = [
+              lg.rating != null ? lg.rating : null,
+              rk ? t("lg_place").replace("{r}", String(rk.rank)).replace("{n}", String(rk.total)) : null,
+              lg.matches != null ? `${lg.matches} ${t("matches")}` : null,
+            ].filter((x) => x !== null);
+            return (
+              <div key={lg.id} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 0", borderBottom: "1px solid var(--line)" }}>
+                {lg.logo
+                  ? <img src={lg.logo} alt="" style={{ width: 38, height: 38, borderRadius: 12, objectFit: "cover", flexShrink: 0 }} />
+                  : <span style={{ width: 38, height: 38, borderRadius: 12, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 15, background: `color-mix(in srgb, ${mono} 13%, transparent)`, color: mono }}>{(lg.name || "?").trim().charAt(0).toUpperCase()}</span>}
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lg.name}</div>
+                  {sub.length > 0 && (
+                    <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 1 }}>
+                      {lg.rating != null && <span style={{ color: "var(--lime)", fontWeight: 700 }}>{lg.rating}</span>}
+                      {sub.slice(1).map((s, j) => <span key={j}> · {s}</span>)}
+                    </div>
+                  )}
+                </div>
+                {lg.role === "owner"
+                  ? <Star size={15} style={{ color: "var(--yellow)", flexShrink: 0 }} aria-label={t("role_owner")} title={t("role_owner")} />
+                  : lg.role === "admin"
+                    ? <ShieldCheck size={15} style={{ color: "var(--yellow)", flexShrink: 0 }} aria-label={t("role_organizer")} title={t("role_organizer")} />
+                    : null}
+              </div>
+            );
+          })}
           {moreBtn(playerLeagues.length, showL, () => setShowL((v) => !v))}
         </div>
       )}
