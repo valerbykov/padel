@@ -34,6 +34,9 @@ const PadelLeague      = lazy(() => import("./PadelLeague"));
 // заметная доля «разогрева» до списка друзей). Vite дедупит динамический
 // импорт — lazy() выше получит уже скачанный модуль.
 if (typeof window !== "undefined") setTimeout(() => { import("./PadelLeague").catch(() => {}); }, 0);
+// ЛК открывают часто — греем его чанк на холостом ходу (после критического пути),
+// чтобы первое открытие не платило RTT за JS.
+if (typeof window !== "undefined") setTimeout(() => { import("./components/ProfileEditor").catch(() => {}); }, 3500);
 const LoginScreen      = lazy(() => import("./components/LoginScreen"));
 const ProfileEditor    = lazy(() => import("./components/ProfileEditor"));
 const LeagueSetup      = lazy(() => import("./components/LeagueSetup"));
@@ -352,6 +355,7 @@ export default function App({ initialShowLogin = false }) {
   const profileModal = (showProfile && session) ? (
     <ProfileEditor onClose={() => setShowProfile(false)} onSaved={() => setPNonce((n) => n + 1)} theme={theme}
       lang={lang} onThemeToggle={toggleTheme} onLangChange={handleLangChange}
+      profile={profile} activeLeague={activeLeague}
       onOpenStats={() => { setShowProfile(false); setStatsNonce((n) => n + 1); }} />
   ) : null;
 
