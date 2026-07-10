@@ -776,9 +776,9 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
                 {isFirst && <div style={{ fontSize: 15, lineHeight: 1, marginBottom: 4 }}>👑</div>}
                 <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt=""
                   style={{ width: isFirst ? 58 : 48, height: isFirst ? 58 : 48, borderRadius: "50%", objectFit: "cover", border: `${isFirst ? 3 : 2.5}px solid ${ring}`, margin: "0 auto", display: "block" }} />
-                {/* Статус тем же языком, что в строках: ⭐/🛡/✓/гость */}
+                {/* Статус тем же языком, что в строках: ⭐/🛡/✓/гость. Имя — до двух строк. */}
                 <div style={{ fontSize: isFirst ? 12.5 : 11.5, fontWeight: isFirst ? 800 : 700, marginTop: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, minWidth: 0 }}>
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                  <span style={{ overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: 1.25, wordBreak: "break-word" }}>{p.name}</span>
                   {p.role === "owner"
                     ? <Star size={12} style={{ color: "var(--yellow)", flexShrink: 0 }} aria-label={t("role_owner")} />
                     : p.role === "admin"
