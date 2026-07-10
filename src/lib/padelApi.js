@@ -42,6 +42,7 @@ export async function bootstrapApp(savedGroupId = null) {
     id: r.id, name: r.name, invite_code: r.invite_code, logo_url: r.logo_url,
     telegram_url: r.telegram_url,
     members_can_add: !!r.members_can_add, members_can_create: !!r.members_can_create,
+    is_demo: !!r.is_demo, // app_bootstrap может не отдавать поле — тогда сработает localStorage-фолбэк
     role: r.role,
   }));
   const gid = data.board_group_id || null;
@@ -437,6 +438,17 @@ export async function createLeague(name) {
   return data;
 }
 
+// Демо-лига («Демо-стая»): персональная песочница с собаками и наигранной
+// историей. Сервер идемпотентен (одна на пользователя). id запоминаем локально —
+// по нему Board показывает демо-плашку даже там, где is_demo не доехал из кэша.
+export async function createDemoLeague(lang = "ru") {
+  const { data, error } = await supabase.rpc("create_demo_league", { p_lang: lang });
+  if (error) throw error;
+  try { localStorage.setItem("pp_demo_gid", data.id); } catch (e) { /* приват-режим */ }
+  bustCache();
+  return data;
+}
+
 // Вступить в лигу по 6-символьному коду. Возвращает { id, name, role }.
 export async function joinLeague(code) {
   const { data, error } = await supabase.rpc("join_league", { p_code: code.trim().toUpperCase() });
@@ -450,7 +462,7 @@ export async function joinLeague(code) {
 async function _getMyLeagues(profileId) {
   const { data, error } = await supabase
     .from("group_members")
-    .select("role, group:groups(id, name, invite_code, logo_url, telegram_url, members_can_add, members_can_create)")
+    .select("role, group:groups(id, name, invite_code, logo_url, telegram_url, members_can_add, members_can_create, is_demo)")
     .eq("profile_id", profileId);
   if (error) throw error;
   return (data || []).map((r) => ({
@@ -461,6 +473,7 @@ async function _getMyLeagues(profileId) {
     telegram_url: r.group.telegram_url,
     members_can_add: !!r.group.members_can_add,
     members_can_create: !!r.group.members_can_create,
+    is_demo: !!r.group.is_demo,
     role: r.role,
   }));
 }

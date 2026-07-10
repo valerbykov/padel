@@ -1,5 +1,6 @@
 // PadelLeague.jsx — основной экран на реальных данных Supabase.
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
+const LeagueSetup = lazy(() => import("./components/LeagueSetup"));
 import { createPortal } from "react-dom";
 import { supabase } from "./lib/supabase";
 import BackButton from "./components/BackButton";
@@ -486,6 +487,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
   const [hiddenIds, setHiddenIds] = useState(() => new Set()); // #4: оптимистично скрытые из «Играли вместе»
   const [showLeagueMenu, setShowLeagueMenu] = useState(false);
   const [showNewLeague, setShowNewLeague] = useState(false); // "create" | "join" | false
+  const [showCreateLeague, setShowCreateLeague] = useState(false); // оверлей LeagueSetup (CTA демо-плашки)
   const [newLeagueName, setNewLeagueName] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [leagueBusy, setLeagueBusy] = useState(false);
@@ -742,6 +744,29 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
               </div>
             </div>
           ))}
+        </div>
+      )}
+      {/* Демо-плашка: пунктир = «песочница». CTA ведёт в создание настоящей лиги. */}
+      {groupId && (activeLeague?.is_demo || (() => { try { return localStorage.getItem("pp_demo_gid") === groupId; } catch (e) { return false; } })()) && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 13px", marginBottom: 12, background: "color-mix(in srgb, var(--lime) 8%, transparent)", border: "1px dashed color-mix(in srgb, var(--lime) 45%, transparent)", borderRadius: 14 }}>
+          <span style={{ fontSize: 18, flexShrink: 0 }}>🐕</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--ink)" }}>{t("demo_banner_title")}</div>
+            <div style={{ fontSize: 10.5, color: "var(--mut)" }}>{t("demo_banner_sub")}</div>
+          </div>
+          <button onClick={() => setShowCreateLeague(true)}
+            style={{ flexShrink: 0, background: "var(--lime)", color: "var(--lime-fg)", fontSize: 11, fontWeight: 800, border: "none", borderRadius: 9, padding: "7px 11px", cursor: "pointer", fontFamily: "'Outfit',sans-serif" }}>
+            {t("demo_create_own")}
+          </button>
+        </div>
+      )}
+      {showCreateLeague && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 250, background: "var(--bg)", overflowY: "auto" }}>
+          <Suspense fallback={null}>
+            <LeagueSetup initialMode="create"
+              onDone={(lg) => { setShowCreateLeague(false); onLeagueCreated && onLeagueCreated(lg); }}
+              onCancel={() => setShowCreateLeague(false)} />
+          </Suspense>
         </div>
       )}
       {/* #3: Аналитика лиги — верхний блок-плитка над списком друзей (раньше был значок в шапке). */}

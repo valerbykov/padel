@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Logo from "./Logo";
-import { createLeague, joinLeague } from "../lib/padelApi";
-import { t } from "../lib/i18n";
+import { createLeague, joinLeague, createDemoLeague } from "../lib/padelApi";
+import { t, currentLang } from "../lib/i18n";
 import BackButton from "./BackButton";
 
 /**
@@ -21,6 +21,17 @@ export default function LeagueSetup({ onDone, initialMode = null, initialCode = 
     setBusy(true); setErr("");
     try {
       const league = await createLeague(name.trim());
+      onDone(league);
+    } catch (e) {
+      setErr(e.message || t("err_generic"));
+    } finally { setBusy(false); }
+  }
+
+  // Демо-стая: персональная песочница с собаками — «покажи, не рассказывай».
+  async function handleDemo() {
+    setBusy(true); setErr("");
+    try {
+      const league = await createDemoLeague(currentLang);
       onDone(league);
     } catch (e) {
       setErr(e.message || t("err_generic"));
@@ -87,6 +98,15 @@ export default function LeagueSetup({ onDone, initialMode = null, initialCode = 
         <button style={s.btnPrimary}  onClick={() => setMode("create")}>{t("ls_create_league")}</button>
         <button style={s.btnSecondary} onClick={() => setMode("join")}>{t("ls_by_code")}</button>
       </div>
+      <div style={{ width: "100%", maxWidth: 320 }}>
+        <button disabled={busy} onClick={handleDemo}
+          style={{ width: "100%", padding: "12px 0", borderRadius: 12, background: "none", cursor: "pointer",
+            border: "1px dashed color-mix(in srgb, var(--lime) 45%, transparent)", color: "var(--lime)", fontSize: 15, fontWeight: 700 }}>
+          {busy ? t("creating") : t("ls_demo")}
+        </button>
+        <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 6 }}>{t("ls_demo_hint")}</div>
+      </div>
+      {err && <div style={s.err}>{err}</div>}
       {onCancel && (
         <button style={s.back} onClick={onCancel}>{t("ls_skip")}</button>
       )}
