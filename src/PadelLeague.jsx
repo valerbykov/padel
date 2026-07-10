@@ -863,17 +863,22 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
         const gap = meIdx > 0 ? ranked[meIdx - 1].rating - me.rating : me.rating - ranked[1].rating;
         return (
           <div onClick={() => setSelected(me)}
-            style={{ position: "sticky", bottom: "calc(env(safe-area-inset-bottom, 0px) + 66px)", zIndex: 5, marginTop: 10,
-              // marginRight освобождает угол под FAB «добавить игрока» — иначе он перекрывал планку.
+            // Пилюля в пару к FAB: та же высота (56), полное скругление, общая тень,
+            // низ выровнен по низу FAB. marginRight уступает угол только когда FAB виден.
+            style={{ position: "sticky", bottom: "calc(env(safe-area-inset-bottom, 0px) + 74px)", zIndex: 5, marginTop: 10,
               marginRight: (isAdmin || activeLeague?.members_can_add) ? 68 : 0,
-              background: "var(--surface2)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", borderRadius: 14,
-              padding: "10px 14px", display: "flex", alignItems: "center", gap: 9, cursor: "pointer", boxShadow: "0 6px 20px rgba(0,0,0,.35)" }}>
-            <span style={{ fontSize: 12, color: "var(--mut)", flexShrink: 0 }}>{t("fr_you_now")}</span>
-            <span style={{ fontSize: 13.5, fontWeight: 800, fontFamily: "'Outfit',sans-serif", flexShrink: 0 }}>#{meIdx + 1} · {me.rating}</span>
-            {d !== 0 && <span style={{ fontSize: 11, fontWeight: 700, color: d > 0 ? "var(--lime)" : "var(--coral)", flexShrink: 0 }}>{d > 0 ? "↑" : "↓"} {Math.abs(d)} {t("wk_suffix")}</span>}
-            <span style={{ marginLeft: "auto", fontSize: 11.5, fontWeight: 700, color: "var(--lime)", textAlign: "right" }}>
-              {meIdx === 0 ? t("fr_gap_lead").replace("{n}", String(gap)) : t("fr_to_place").replace("{p}", String(meIdx)).replace("{n}", String(gap))} →
-            </span>
+              height: 56, boxSizing: "border-box",
+              background: "var(--surface2)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", borderRadius: 999,
+              padding: "8px 18px", display: "flex", flexDirection: "column", justifyContent: "center", cursor: "pointer",
+              boxShadow: "0 6px 22px -6px rgba(0,0,0,.55)" }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 7, minWidth: 0 }}>
+              <span style={{ fontSize: 13.5, fontWeight: 800, fontFamily: "'Outfit',sans-serif", flexShrink: 0 }}>#{meIdx + 1} · {me.rating}</span>
+              {d !== 0 && <span style={{ fontSize: 10.5, fontWeight: 700, color: d > 0 ? "var(--lime)" : "var(--coral)", flexShrink: 0 }}>{d > 0 ? "↑" : "↓"} {Math.abs(d)}</span>}
+              <span style={{ marginLeft: "auto", fontSize: 11.5, fontWeight: 700, color: "var(--lime)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {meIdx === 0 ? t("fr_gap_lead").replace("{n}", String(gap)) : t("fr_to_place").replace("{p}", String(meIdx)).replace("{n}", String(gap))} →
+              </span>
+            </div>
+            <div style={{ fontSize: 9.5, color: "var(--mut)", marginTop: 1 }}>{t("fr_pos_hint")}</div>
           </div>
         );
       })()}
@@ -2580,7 +2585,6 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
             <div key={i} className="pl-slot">
               <span className="pl-display" style={{ fontSize: 11, color: s.team === "A" ? "var(--lime)" : "var(--coral)", width: 30 }}>{s.team}</span>
               <span style={{ flex: 1, color: free ? "var(--mut)" : "var(--ink)" }}>{free ? t("slot_free") : nameOf(s)}</span>
-              {!free && <Check size={15} color="var(--lime)" />}
               {/* Убрать из состава: хост — любого, игрок — себя */}
               {!free && canClear(s) && (
                 <button onClick={() => clearSlot(s)} disabled={joinBusy} aria-label={t("delete_btn")} title={t("delete_btn")}
