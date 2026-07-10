@@ -972,7 +972,6 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
   const [tourH2H, setTourH2H] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [playerLeagues, setPlayerLeagues] = useState(null);
-  const [leagueRanks, setLeagueRanks] = useState({}); // gid → { rank, total }
   const [localClaimCode, setLocalClaimCode] = useState(player.claim_code || null);
   const [genBusy, setGenBusy] = useState(false);
   const [showL, setShowL] = useState(false); // развернуть список лиг
@@ -1004,26 +1003,14 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
     getStatMatches(groupId).then((data) => setAllMatches(data || []));
 
     // Лиги игрока (RLS отдаёт только общие с текущим пользователем лиги; свои — все).
-    // Вторым лёгким запросом — рейтинги участников этих лиг для места «#N из M».
+    // Лёгкий вариант: рейтинг и игры едут тем же запросом, место не считаем.
     supabase.from("group_members")
       .select("role, rating, matches_played, group:groups(id, name, logo_url)")
       .eq("profile_id", player.id)
-      .then(({ data }) => {
-        const rows = (data || []).map((r) => ({ id: r.group.id, name: r.group.name, logo: r.group.logo_url || null, role: r.role, rating: r.rating, matches: r.matches_played }));
-        setPlayerLeagues(rows);
-        const ids = rows.map((r) => r.id);
-        if (!ids.length) return;
-        supabase.from("group_members").select("group_id, rating").in("group_id", ids)
-          .then(({ data: all }) => {
-            if (!all) return;
-            const ranks = {};
-            rows.forEach((lg) => {
-              const rs = all.filter((x) => x.group_id === lg.id);
-              ranks[lg.id] = { rank: rs.filter((x) => x.rating > lg.rating).length + 1, total: rs.length };
-            });
-            setLeagueRanks(ranks);
-          });
-      });
+      .then(({ data }) => setPlayerLeagues((data || []).map((r) => ({
+        id: r.group.id, name: r.group.name, logo: r.group.logo_url || null,
+        role: r.role, rating: r.rating, matches: r.matches_played,
+      }))));
 
     // Загружаем турниры игрока
     listTournaments(groupId).then((all) => {
@@ -1711,12 +1698,6 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>{t("leagues_heading")} ({playerLeagues.length})</div>
           {(showL ? playerLeagues : playerLeagues.slice(0, 3)).map((lg, i) => {
             const mono = ["var(--lime)", "var(--yellow)", "#4db8e8", "var(--coral)"][i % 4];
-            const rk = leagueRanks[lg.id];
-            const sub = [
-              lg.rating != null ? lg.rating : null,
-              rk ? t("lg_place").replace("{r}", String(rk.rank)).replace("{n}", String(rk.total)) : null,
-              lg.matches != null ? `${lg.matches} ${t("matches")}` : null,
-            ].filter((x) => x !== null);
             return (
               <div key={lg.id} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 0", borderBottom: "1px solid var(--line)" }}>
                 {lg.logo
@@ -1724,10 +1705,10 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
                   : <span style={{ width: 38, height: 38, borderRadius: 12, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 15, background: `color-mix(in srgb, ${mono} 13%, transparent)`, color: mono }}>{(lg.name || "?").trim().charAt(0).toUpperCase()}</span>}
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lg.name}</div>
-                  {sub.length > 0 && (
+                  {(lg.rating != null || lg.matches != null) && (
                     <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 1 }}>
                       {lg.rating != null && <span style={{ color: "var(--lime)", fontWeight: 700 }}>{lg.rating}</span>}
-                      {sub.slice(1).map((s, j) => <span key={j}> · {s}</span>)}
+                      {lg.matches != null && <span>{lg.rating != null ? " · " : ""}{lg.matches} {t("matches")}</span>}
                     </div>
                   )}
                 </div>
