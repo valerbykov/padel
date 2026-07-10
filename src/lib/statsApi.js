@@ -16,7 +16,8 @@ export async function getPlayerRecentMatches(groupId, profileId, limit = 10) {
   return data || [];
 }
 
-// История рейтинга для графика: старт 1000 + значения после каждого матча.
+// История рейтинга: точки с датами (r = рейтинг после матча, at = когда).
+// Даты нужны графику для фильтра по периоду, недельной дельты и рекордов по месяцам.
 export async function getRatingHistory(groupId, profileId) {
   const { data, error } = await supabase
     .from("rating_changes")
@@ -25,7 +26,7 @@ export async function getRatingHistory(groupId, profileId) {
     .eq("profile_id", profileId)
     .order("created_at", { ascending: true });
   if (error) throw error;
-  return [1000, ...data.map((d) => d.rating_after)];
+  return (data || []).map((d) => ({ r: d.rating_after, at: d.created_at }));
 }
 
 export async function getGroupAnalytics(groupId) {

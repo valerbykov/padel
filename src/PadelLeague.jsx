@@ -13,7 +13,7 @@ import { t, nGames } from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
 import Fab from "./components/Fab";
-import { Trophy, Swords, History, Users, UserPlus, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, UserCheck, ShieldCheck, EyeOff, Star, User, Search } from "lucide-react";
+import { Trophy, Swords, History, Users, UserPlus, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, UserCheck, ShieldCheck, EyeOff, Star, User, Search, Pencil } from "lucide-react";
 import Tournaments, { TournamentView, TournamentCard, CopyDialog, css as trCss } from "./components/Tournaments";
 import { copyTournament } from "./lib/tournamentApi";
 import { deleteTournament } from "./lib/tournamentApi";
@@ -71,21 +71,69 @@ body.pl-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;-
 }
 `;
 
-function LineChart({ values }) {
-  const w = 300, h = 120, pad = 10;
-  if (!values || values.length < 2)
-    return <div style={{ color: "var(--mut)", fontSize: 13, textAlign: "center", padding: "26px 0" }}>{t("chart_empty")}</div>;
+// График рейтинга: период (месяц / 3 мес / всё), рецессивная сетка с осью,
+// метка пика и акцент на текущей точке. rows = [{ r, at }] по возрастанию даты.
+function RatingChart({ rows }) {
+  const [period, setPeriod] = useState("all"); // 'm' | '3m' | 'all'
+  const all = rows || [];
+  const cutoff = period === "m" ? Date.now() - 30 * 864e5 : period === "3m" ? Date.now() - 91 * 864e5 : 0;
+  let pts0 = cutoff ? all.filter((p) => new Date(p.at).getTime() >= cutoff) : all;
+  // «Всё время» начинается со стартовых 1000; период — с последней точки до среза,
+  // чтобы линия не начиналась «из воздуха».
+  if (!cutoff) pts0 = [{ r: 1000, at: null }, ...pts0];
+  else {
+    const before = all.filter((p) => new Date(p.at).getTime() < cutoff);
+    pts0 = [before.length ? before[before.length - 1] : { r: 1000, at: null }, ...pts0];
+  }
+  const seg = (
+    <div style={{ display: "flex", gap: 3, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 11, padding: 3, marginBottom: 10 }}>
+      {[["m", t("period_month")], ["3m", t("period_3m")], ["all", t("period_all")]].map(([k, label]) => (
+        <button key={k} onClick={() => setPeriod(k)}
+          style={{ flex: 1, border: "none", background: period === k ? "var(--lime)" : "none", color: period === k ? "var(--lime-fg)" : "var(--mut)", padding: "6px 0", borderRadius: 8, cursor: "pointer", fontFamily: "'Outfit'", fontWeight: 700, fontSize: 12 }}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+  if (pts0.length < 2)
+    return <>{seg}<div style={{ color: "var(--mut)", fontSize: 13, textAlign: "center", padding: "26px 0" }}>{t("chart_empty")}</div></>;
+  const values = pts0.map((p) => p.r);
+  const w = 360, h = 150, padL = 36, padR = 10, top = 22, bottom = 26;
   const min = Math.min(...values), max = Math.max(...values), span = max - min || 1;
-  const x = (i) => pad + (i * (w - 2 * pad)) / (values.length - 1);
-  const y = (v) => h - pad - ((v - min) / span) * (h - 2 * pad);
+  const x = (i) => padL + (i * (w - padL - padR)) / (values.length - 1);
+  const y = (v) => top + (h - top - bottom) - ((v - min) / span) * (h - top - bottom);
   const pts = values.map((v, i) => `${x(i)},${y(v)}`).join(" ");
+  // Пик — максимальный рейтинг периода (метку не рисуем, если пик = текущая точка).
+  const peakI = values.indexOf(max);
+  const lastI = values.length - 1;
+  // Сетка: 3 «красивых» уровня.
+  const grid = [max, (max + min) / 2, min].map((v) => Math.round(v));
+  const fd = (iso) => { try { return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" }); } catch (e) { return ""; } };
+  const firstAt = pts0.find((p) => p.at)?.at;
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: "auto" }}>
-      <defs><linearGradient id="plg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style={{ stopColor: "var(--lime)", stopOpacity: 0.32 }} /><stop offset="100%" style={{ stopColor: "var(--lime)", stopOpacity: 0 }} /></linearGradient></defs>
-      <polygon points={`${pad},${h - pad} ${pts} ${w - pad},${h - pad}`} fill="url(#plg)" />
-      <polyline points={pts} fill="none" strokeWidth="2.5" style={{ stroke: "var(--lime)" }} strokeLinejoin="round" strokeLinecap="round" />
-      {values.map((v, i) => <circle key={i} cx={x(i)} cy={y(v)} r="2.5" strokeWidth="2" style={{ fill: "var(--bg)", stroke: "var(--lime)" }} />)}
-    </svg>
+    <>
+      {seg}
+      <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: "auto" }}>
+        <defs><linearGradient id="plg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style={{ stopColor: "var(--lime)", stopOpacity: 0.28 }} /><stop offset="100%" style={{ stopColor: "var(--lime)", stopOpacity: 0 }} /></linearGradient></defs>
+        {grid.map((v, gi) => (
+          <g key={gi}>
+            <line x1={padL} y1={y(v)} x2={w - padR} y2={y(v)} style={{ stroke: "var(--line)" }} strokeWidth="1" />
+            <text x={padL - 6} y={y(v) + 3} fontSize="9" textAnchor="end" style={{ fill: "var(--mut)" }} fontFamily="'Outfit',sans-serif">{v}</text>
+          </g>
+        ))}
+        <polygon points={`${x(0)},${y(min)} ${pts} ${x(lastI)},${y(min)}`} fill="url(#plg)" />
+        <polyline points={pts} fill="none" strokeWidth="2" style={{ stroke: "var(--lime)" }} strokeLinejoin="round" strokeLinecap="round" />
+        {peakI !== lastI && values[peakI] > values[lastI] && (
+          <g>
+            <circle cx={x(peakI)} cy={y(values[peakI])} r="3" strokeWidth="2" style={{ fill: "var(--surface)", stroke: "var(--yellow)" }} />
+            <text x={Math.min(Math.max(x(peakI), padL + 24), w - padR - 24)} y={y(values[peakI]) - 8} fontSize="9.5" fontWeight="700" textAnchor="middle" style={{ fill: "var(--yellow)" }} fontFamily="'Outfit',sans-serif">{t("chart_peak")} {values[peakI]}</text>
+          </g>
+        )}
+        <circle cx={x(lastI)} cy={y(values[lastI])} r="4" strokeWidth="2" style={{ fill: "var(--lime)", stroke: "var(--surface)" }} />
+        {firstAt && <text x={padL} y={h - 8} fontSize="9" style={{ fill: "var(--mut)" }} fontFamily="'Outfit',sans-serif">{fd(firstAt)}</text>}
+        <text x={w - padR} y={h - 8} fontSize="9" textAnchor="end" style={{ fill: "var(--mut)" }} fontFamily="'Outfit',sans-serif">{fd(new Date().toISOString())}</text>
+      </svg>
+    </>
   );
 }
 
@@ -936,7 +984,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
   };
 
   useEffect(() => {
-    getRatingHistory(groupId, player.id).then(setHist).catch(() => setHist([player.rating]));
+    getRatingHistory(groupId, player.id).then(setHist).catch(() => setHist([]));
 
     // Определяем свой profile_id
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -1054,18 +1102,31 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
   const toTotal = toWins + toLosses + toDraws;
   const vsTotal = vsWins + vsLosses + vsDraws;
 
-  // Best partner (most wins when teamed together)
-  const bestPartner = (() => {
-    if (!allMatches) return null;
-    const stats = {};
-    allMatches.forEach((m) => {
-      const pInA = (m.team_a || []).includes(player.id);
-      const pInB = (m.team_b || []).includes(player.id);
-      if (!pInA && !pInB) return;
-      const teammates = pInA ? (m.team_a || []) : (m.team_b || []);
-      // Разница ПО ГЕЙМАМ (точнее, чем по сетам). Режим «sets» → сумма геймов по
-      // сетам из score_detail; режимы «free»/«sum» детального счёта не пишут, но там
-      // sets_a/sets_b и есть сам счёт — берём его напрямую.
+  // Единый проход по ВСЕМ матчам игрока (игры + турнирные): напарники, соперники
+  // (для «немезиды»), скальп (сильнейший побеждённый) и турнирные В/Н/П для кольца.
+  // Разница в играх — по геймам (score_detail, как раньше), в турнирах — по очкам.
+  const peopleStats = (() => {
+    const mates = {}, opps = {};
+    let scalp = null;
+    const tourWLD = { w: 0, d: 0, l: 0 };
+    const feedMate = (key, id, name, my) => {
+      if (!mates[key]) mates[key] = { id, name, w: 0, l: 0, d: 0, diff: 0 };
+      mates[key].diff += my;
+      if (my === 0) mates[key].d++; else if (my > 0) mates[key].w++; else mates[key].l++;
+    };
+    const feedOpp = (key, id, name, won, draw) => {
+      if (!opps[key]) opps[key] = { id, name, w: 0, l: 0, d: 0 };
+      if (draw) opps[key].d++; else if (won) opps[key].w++; else opps[key].l++;
+    };
+    const considerScalp = (pid, won) => {
+      if (!won || !pid) return;
+      const p = players.find((x) => x.id === pid);
+      if (p && p.id !== player.id && (!scalp || p.rating > scalp.rating)) scalp = p;
+    };
+    (allMatches || []).forEach((m) => {
+      const inA = (m.team_a || []).includes(player.id);
+      const inB = (m.team_b || []).includes(player.id);
+      if (!inA && !inB) return;
       let myG;
       if (Array.isArray(m.score_detail) && m.score_detail.length > 0) {
         const ga = m.score_detail.reduce((s, x) => s + (x.a || 0), 0);
@@ -1074,49 +1135,43 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
       } else {
         myG = (m.sets_a || 0) - (m.sets_b || 0);
       }
-      const my = pInA ? myG : -myG;
-      teammates.forEach((tid) => {
-        if (tid === player.id) return;
-        if (!stats[tid]) stats[tid] = { id: tid, w: 0, l: 0, d: 0, diff: 0 };
-        stats[tid].diff += my;
-        if (my === 0) stats[tid].d++; else if (my > 0) stats[tid].w++; else stats[tid].l++;
-      });
+      const my = inA ? myG : -myG;
+      const draw = m.sets_a === m.sets_b;
+      const won = !draw && (inA ? m.sets_a > m.sets_b : m.sets_b > m.sets_a);
+      (inA ? m.team_a : m.team_b).forEach((tid) => { if (tid && tid !== player.id) feedMate(String(tid), tid, nameOf(tid), my); });
+      (inA ? m.team_b : m.team_a).forEach((oid) => { if (!oid) return; feedOpp(String(oid), oid, nameOf(oid), won, draw); considerScalp(oid, won); });
     });
-    return pickBestPartner(Object.values(stats));
-  })();
-
-  // Best partner в ТУРНИРАХ (по матчам завершённых турниров игрока, rawTours).
-  // team_a/team_b хранят id участников турнира (tp.id) → маппим к профилю/имени.
-  const bestPartnerTour = (() => {
-    if (!rawTours || rawTours.length === 0) return null;
-    const stats = {}; // ключ: profile_id || ("g:"+имя)
-    rawTours.forEach((tour) => {
+    (rawTours || []).forEach((tour) => {
       const myTp = (tour.players || []).find((p) => p.profile_id === player.id);
       if (!myTp) return;
       const byTpId = {};
       (tour.players || []).forEach((p) => { byTpId[p.id] = p; });
       (tour.matches || []).forEach((m) => {
-        if (m.score_a == null) return;
+        if (m.score_a == null || (m.round_number || 0) <= 0) return;
         const inA = (m.team_a || []).includes(myTp.id);
         const inB = (m.team_b || []).includes(myTp.id);
         if (!inA && !inB) return;
-        const mates = inA ? (m.team_a || []) : (m.team_b || []);
-        const my = inA ? (m.score_a - m.score_b) : (m.score_b - m.score_a); // разница очков (как в американо)
-        mates.forEach((tid) => {
+        const my = inA ? m.score_a - m.score_b : m.score_b - m.score_a;
+        const draw = my === 0, won = my > 0;
+        if (draw) tourWLD.d++; else if (won) tourWLD.w++; else tourWLD.l++;
+        (inA ? m.team_a : m.team_b).forEach((tid) => {
           if (tid === myTp.id) return;
-          const tp = byTpId[tid];
-          if (!tp) return;
-          const key = tp.profile_id || ("g:" + (tp.name || tid));
-          if (!stats[key]) stats[key] = { id: tp.profile_id || null, name: tp.name || "?", w: 0, l: 0, d: 0, diff: 0 };
-          stats[key].diff += my;
-          if (my === 0) stats[key].d++; else if (my > 0) stats[key].w++; else stats[key].l++;
+          const tp = byTpId[tid]; if (!tp) return;
+          feedMate(tp.profile_id ? String(tp.profile_id) : "g:" + (tp.name || tid), tp.profile_id || null, tp.name || "?", my);
+        });
+        (inA ? m.team_b : m.team_a).forEach((tid) => {
+          const tp = byTpId[tid]; if (!tp) return;
+          feedOpp(tp.profile_id ? String(tp.profile_id) : "g:" + (tp.name || tid), tp.profile_id || null, tp.name || "?", won, draw);
+          considerScalp(tp.profile_id, won);
         });
       });
     });
-    return pickBestPartner(Object.values(stats));
+    // Немезида: ≥3 личных встреч и отрицательный баланс; берём худший.
+    const nemesis = Object.values(opps)
+      .filter((o) => o.w + o.l >= 3 && o.l > o.w)
+      .sort((a, b) => (a.w - a.l) - (b.w - b.l) || b.l - a.l)[0] || null;
+    return { partner: pickBestPartner(Object.values(mates)), nemesis, scalp, tourWLD };
   })();
-
-  // «Лучший партнёр» вынесен в модульный компонент PartnerCard (с подсказкой «?»).
 
   // Текущая серия побед игрока (для ачивки «На подъёме») — по последним матчам лиги.
   // Считаем так же, как streaks в списке друзей: подряд идущие победы с конца, ничья/поражение рвут.
@@ -1135,31 +1190,31 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
     return s;
   })();
 
-  // Ачивки
-  const badges = (() => {
-    const result = [];
-    const rankedAll = [...players].sort((a, b) => b.rating - a.rating);
-    if (rankedAll.length > 0 && rankedAll[0].id === player.id)
-      result.push({ id: "leader", icon: "🥇", label: t("badge_leader"), title: t("badge_leader_title") });
-    if (player.matches >= 5 && player.wins / player.matches >= 0.7)
-      result.push({ id: "sniper", icon: "🎯", label: t("badge_sniper"), title: t("badge_sniper_title") });
-    if (player.matches >= 20)
-      result.push({ id: "veteran", icon: "⚡", label: t("badge_veteran"), title: t("badge_veteran_title") });
-    if (winStreak >= 3)
-      result.push({ id: "rising", icon: "🔥", label: t("badge_rising"), title: t("badge_rising_title") });
-    if (playerTours && playerTours.length >= 3)
-      result.push({ id: "tourney", icon: "🏆", label: t("badge_tourney"), title: t("badge_tourney_title") });
-    return result;
-  })();
+  // Место в лиге и перцентиль («лучше X% игроков») — для строки под именем.
+  const ranked = [...players].sort((a, b) => b.rating - a.rating);
+  const rank = ranked.findIndex((p) => p.id === player.id); // -1 = не в лиге
+  const betterPct = rank >= 0 && ranked.length > 1
+    ? Math.round(((ranked.length - 1 - rank) / (ranked.length - 1)) * 100) : null;
 
-  // Все ачивки с правилами — для подсказки-легенды по «?» (показываем и те, которых пока нет).
-  const ALL_ACH = [
-    { icon: "🥇", label: t("badge_leader"),  rule: t("badge_leader_title") },
-    { icon: "🎯", label: t("badge_sniper"),  rule: t("badge_sniper_title") },
-    { icon: "⚡", label: t("badge_veteran"), rule: t("badge_veteran_title") },
-    { icon: "🔥", label: t("badge_rising"),  rule: t("badge_rising_title") },
-    { icon: "🏆", label: t("badge_tourney"), rule: t("badge_tourney_title") },
-  ];
+  // Ачивки с прогрессом: on = открыта, prog 0..1 — насколько близко, progLabel — подпись.
+  const achList = (() => {
+    const leaderOk = ranked.length > 0 && ranked[0].id === player.id;
+    const wr = player.matches > 0 ? player.wins / player.matches : 0;
+    const toursN = (playerTours || []).length;
+    const ofL = (a, b) => t("ach_of").replace("{a}", String(Math.min(a, b))).replace("{b}", String(b));
+    return [
+      { icon: "🥇", label: t("badge_leader"),  rule: t("badge_leader_title"),  on: leaderOk,
+        prog: leaderOk ? 1 : (ranked[0] ? Math.min(player.rating / ranked[0].rating, 1) : 0), progLabel: rank >= 0 ? `#${rank + 1}` : "" },
+      { icon: "🎯", label: t("badge_sniper"),  rule: t("badge_sniper_title"),  on: player.matches >= 5 && wr >= 0.7,
+        prog: Math.min(player.matches / 5, 1) * Math.min(wr / 0.7, 1), progLabel: `${Math.round(wr * 100)}%` },
+      { icon: "⚡", label: t("badge_veteran"), rule: t("badge_veteran_title"), on: player.matches >= 20,
+        prog: Math.min(player.matches / 20, 1), progLabel: ofL(player.matches, 20) },
+      { icon: "🔥", label: t("badge_rising"),  rule: t("badge_rising_title"),  on: winStreak >= 3,
+        prog: Math.min(winStreak / 3, 1), progLabel: ofL(winStreak, 3) },
+      { icon: "🏆", label: t("badge_tourney"), rule: t("badge_tourney_title"), on: (playerTours || []).length >= 3,
+        prog: Math.min(toursN / 3, 1), progLabel: ofL(toursN, 3) },
+    ];
+  })();
 
   const statRow = (label, w, d, l, total) => total === 0 ? null : (
     <div style={{ marginBottom: 10 }}>
@@ -1198,25 +1253,91 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
     });
     return { w, l, d, total: w + l + d };
   })();
-  const myTourStats = (() => {
-    const list = playerTours || [];
-    return {
-      total: list.length,
-      podium: list.filter((r) => r.position >= 1 && r.position <= 3).length,
-      wins: list.filter((r) => r.position === 1).length,
-    };
-  })();
-  const tileStat = (n, label, color) => (
-    <div style={{ flex: 1, textAlign: "center" }}>
-      <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 22, color }}>{n}</div>
-      <div style={{ fontSize: 10, color: "var(--mut)", marginTop: 2 }}>{label}</div>
-    </div>
-  );
+  // Винрейт по ВСЕМ матчам (игры + турнирные) — для KPI-кольца.
+  const combinedWLD = {
+    w: myGames.w + peopleStats.tourWLD.w,
+    d: myGames.d + peopleStats.tourWLD.d,
+    l: myGames.l + peopleStats.tourWLD.l,
+  };
+  const combinedTotal = combinedWLD.w + combinedWLD.d + combinedWLD.l;
+  const winPct = combinedTotal > 0 ? Math.round((combinedWLD.w / combinedTotal) * 100) : null;
 
-  // Все матчи игрока (для блока «Игры»), новые сверху.
+  // Недельная дельта рейтинга — чип в шапке.
+  const weekDelta = (() => {
+    if (!hist || hist.length === 0) return 0;
+    const weekAgo = Date.now() - 7 * 864e5;
+    const recent = hist.filter((p) => new Date(p.at).getTime() >= weekAgo);
+    if (recent.length === 0) return 0;
+    const before = hist.filter((p) => new Date(p.at).getTime() < weekAgo);
+    return recent[recent.length - 1].r - (before.length ? before[before.length - 1].r : 1000);
+  })();
+
+  // Рекордная серия побед (по играм, исторический максимум).
+  const streakRec = (() => {
+    if (!allMatches) return 0;
+    const rows = allMatches
+      .filter((m) => [...(m.team_a || []), ...(m.team_b || [])].includes(player.id))
+      .sort((a, b) => (a.played_at || "").localeCompare(b.played_at || ""));
+    let cur = 0, max = 0;
+    rows.forEach((m) => {
+      if (m.sets_a === m.sets_b) { cur = 0; return; }
+      const won = (m.team_a || []).includes(player.id) ? m.sets_a > m.sets_b : m.sets_b > m.sets_a;
+      if (won) { cur++; if (cur > max) max = cur; } else cur = 0;
+    });
+    return max;
+  })();
+
+  // Все матчи игрока, новые сверху.
   const playerMatches = (allMatches || [])
     .filter((m) => [...(m.team_a || []), ...(m.team_b || [])].includes(player.id))
     .sort((a, b) => (b.played_at || "").localeCompare(a.played_at || ""));
+
+  // Лента формы: игры (В/Н/П) и турниры (место) одной хронологией; старые → новые.
+  const formEvents = (() => {
+    const evs = playerMatches.map((m) => {
+      const inA = (m.team_a || []).includes(player.id);
+      const draw = m.sets_a === m.sets_b;
+      const won = !draw && (inA ? m.sets_a > m.sets_b : m.sets_b > m.sets_a);
+      return { type: "game", at: m.played_at || "", won, draw,
+        hint: `${(m.team_a || []).map(nameOf).join(" & ")} ${m.sets_a}:${m.sets_b} ${(m.team_b || []).map(nameOf).join(" & ")}${m.played_at ? " · " + fmtDate(m.played_at) : ""}` };
+    });
+    (playerTours || []).forEach((tr) => evs.push({ type: "tour", at: tr.date || "", pos: tr.position, total: tr.total,
+      hint: `${tr.name || t("fmt_americano_name")} · ${tr.position}/${tr.total}` }));
+    return evs.sort((a, b) => (b.at || "").localeCompare(a.at || "")).slice(0, 10).reverse();
+  })();
+
+  // Рекорды по месяцам: дельта = последний рейтинг месяца − последний прошлого (или 1000).
+  const monthRecs = (() => {
+    if (!hist || hist.length === 0) return null;
+    const months = [];
+    hist.forEach((p) => {
+      const k = (p.at || "").slice(0, 7);
+      if (!k) return;
+      if (!months.length || months[months.length - 1].key !== k) months.push({ key: k, last: p.r });
+      else months[months.length - 1].last = p.r;
+    });
+    if (!months.length) return null;
+    const rows = months.map((m, i) => ({ key: m.key, delta: m.last - (i === 0 ? 1000 : months[i - 1].last) }));
+    const best = [...rows].sort((a, b) => b.delta - a.delta)[0];
+    const worst = [...rows].sort((a, b) => a.delta - b.delta)[0];
+    const label = (k) => { try { return new Date(k + "-01").toLocaleDateString(undefined, { month: "long", year: "numeric" }); } catch (e) { return k; } };
+    return {
+      best: { ...best, label: label(best.key) },
+      worst: rows.length > 1 && worst.key !== best.key ? { ...worst, label: label(worst.key) } : null,
+    };
+  })();
+
+  // Цель (своя карточка): разрыв до соседа сверху + оценка в победных матчах
+  // (средняя положительная дельта из истории; турнирные победы тоже двигают рейтинг).
+  const goal = (() => {
+    if (rank < 0 || !ranked.length) return null;
+    if (rank === 0) return { leader: true, gap: ranked.length > 1 ? player.rating - ranked[1].rating : 0 };
+    const ahead = ranked[rank - 1];
+    const gap = ahead.rating - player.rating;
+    const winDeltas = (hist || []).map((p, i) => p.r - (i === 0 ? 1000 : hist[i - 1].r)).filter((d) => d > 0);
+    const avgWin = winDeltas.length ? winDeltas.reduce((s, d) => s + d, 0) / winDeltas.length : 10;
+    return { leader: false, ahead, gap, est: Math.max(1, Math.ceil(gap / avgWin)) };
+  })();
 
   // Кнопка «ещё N / свернуть» для списков длиннее 3.
   const moreBtn = (count, expanded, onToggle) => count > 3 && (
@@ -1238,46 +1359,46 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
     <div className="pl-pop">
       <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center" }}>
         <BackButton onClick={close} />
-        {onEditProfile && myId && myId === player.id && (
-          <button className="pl-ghost" style={{ padding: "6px 12px", marginLeft: "auto", color: "var(--lime)", borderColor: "color-mix(in srgb, var(--lime) 35%, transparent)" }} onClick={onEditProfile}>
-            {t("pc_title")}
-          </button>
-        )}
       </div>
 
-      {/* Шапка игрока */}
-      <div className="pl-card" style={{ padding: 18, marginBottom: 10, textAlign: "center" }}>
-        <img src={playerAvatar(player.avatar_url, player.id)} onError={avatarFallback(player.id)} alt="" style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--line)", marginBottom: 8 }} />
-        <div className="pl-display" style={{ fontSize: 24 }}>{player.name}</div>
-        {/* Ачивки + «?» с легендой правил (работает и на тач, в отличие от hover-подсказки). */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", alignItems: "center", marginTop: 10 }}>
-          {badges.map((b) => (
-            <span key={b.id} title={b.title} style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              padding: "3px 10px", borderRadius: 20,
-              background: "color-mix(in srgb, var(--lime) 10%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--lime) 30%, transparent)",
-              fontSize: 11, fontWeight: 600, color: "var(--lime)",
-            }}>
-              {b.icon} {b.label}
-            </span>
-          ))}
-          <button type="button" onClick={() => setShowAch((s) => !s)} aria-label={t("ach_help")} title={t("ach_help")}
-            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", border: "1px solid var(--line)", background: showAch ? "var(--surface2)" : "none", color: "var(--mut)", cursor: "pointer", padding: 0, flexShrink: 0 }}>
-            <HelpCircle size={12} />
-          </button>
-        </div>
-        {showAch && (
-          <div style={{ marginTop: 8, textAlign: "left", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, padding: "10px 12px" }}>
-            <div style={{ fontWeight: 700, color: "var(--ink)", marginBottom: 6, fontSize: 12 }}>{t("ach_legend_title")}</div>
-            {ALL_ACH.map((a) => (
-              <div key={a.label} style={{ display: "flex", gap: 8, alignItems: "baseline", marginBottom: 4, fontSize: 11.5, lineHeight: 1.4, color: "var(--mut)" }}>
-                <span style={{ fontSize: 13, flexShrink: 0, width: 16, textAlign: "center" }}>{a.icon}</span>
-                <span><b style={{ color: "var(--ink)", fontWeight: 700 }}>{a.label}</b> — {a.rule}</span>
+      {/* Шапка-герой: аватар (свой → личный кабинет по тапу), имя, место в лиге,
+          рейтинг с недельной дельтой; ниже — контакты, действия и график. */}
+      <div className="pl-card" style={{ padding: 16, marginBottom: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {(() => {
+            const self = !!onEditProfile && !!myId && myId === player.id;
+            const av = (
+              <span style={{ position: "relative", display: "inline-block", flexShrink: 0 }}>
+                <img src={playerAvatar(player.avatar_url, player.id)} onError={avatarFallback(player.id)} alt=""
+                  style={{ width: 54, height: 54, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--lime)", display: "block" }} />
+                {self && (
+                  <span style={{ position: "absolute", right: -3, bottom: -3, width: 19, height: 19, borderRadius: "50%", background: "var(--lime)", color: "var(--lime-fg)", border: "2px solid var(--surface)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Pencil size={9} strokeWidth={2.5} />
+                  </span>
+                )}
+              </span>
+            );
+            return self
+              ? <button onClick={onEditProfile} aria-label={t("pc_title")} title={t("pc_title")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>{av}</button>
+              : av;
+          })()}
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div className="pl-display" style={{ fontSize: 19, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{player.name}</div>
+            {rank >= 0 && (
+              <div style={{ fontSize: 11.5, color: "var(--mut)", marginTop: 2 }}>
+                {t("rank_in_league").replace("{n}", String(rank + 1))}{betterPct ? ` · ${t("better_than").replace("{p}", String(betterPct))}` : ""}
               </div>
-            ))}
+            )}
           </div>
-        )}
+          <div style={{ textAlign: "right", flexShrink: 0 }}>
+            <div className="pl-display" style={{ fontSize: 27, color: "var(--lime)", lineHeight: 1 }}>{player.rating}</div>
+            {weekDelta !== 0 && (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 2, fontSize: 10.5, fontWeight: 700, marginTop: 3, color: weekDelta > 0 ? "var(--lime)" : "var(--coral)" }}>
+                {weekDelta > 0 ? <ChevronUp size={11} /> : <ChevronDown size={11} />}{weekDelta > 0 ? "+" : ""}{weekDelta} {t("wk_suffix")}
+              </div>
+            )}
+          </div>
+        </div>
         <ContactLinks contacts={player.contacts} />
 
         {/* #5: действия отделены от бейджей — разделитель + сгруппированный блок кнопок. */}
@@ -1314,46 +1435,196 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
             {showClaimLink && <ClaimLinkButton claimCode={localClaimCode} />}
           </div>
         )}
+        {/* График рейтинга с периодами — в той же карточке */}
+        <div style={{ marginTop: 14 }}>
+          <RatingChart rows={hist || []} />
+        </div>
       </div>
 
-      {/* Рейтинг + график */}
+      {/* KPI: винрейт по всем матчам (игры + турниры), текущая серия, рекорд серии */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
+        <div className="pl-card" style={{ padding: "12px 8px", textAlign: "center" }}>
+          {(() => { const C = 2 * Math.PI * 26; return (
+            <svg viewBox="0 0 64 64" style={{ width: 58, height: 58 }} role="img" aria-label={`${winPct === null ? "—" : winPct + "%"} ${t("kpi_winrate")}`}>
+              <circle cx="32" cy="32" r="26" fill="none" strokeWidth="7" style={{ stroke: "var(--surface2)" }} />
+              {winPct !== null && winPct > 0 && <circle cx="32" cy="32" r="26" fill="none" strokeWidth="7" strokeLinecap="round" style={{ stroke: "var(--lime)" }} strokeDasharray={`${(C * winPct) / 100} ${C}`} transform="rotate(-90 32 32)" />}
+              <text x="32" y="37" fontSize="15" fontWeight="800" textAnchor="middle" style={{ fill: "var(--ink)" }} fontFamily="'Outfit',sans-serif">{winPct === null ? "—" : winPct + "%"}</text>
+            </svg>
+          ); })()}
+          <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 2 }}>{t("kpi_winrate")}</div>
+        </div>
+        <div className="pl-card" style={{ padding: 12, display: "flex", flexDirection: "column", justifyContent: "center", textAlign: "center" }}>
+          <div className="pl-display" style={{ fontSize: 24, color: winStreak > 0 ? "var(--lime)" : "var(--mut)" }}>{winStreak}</div>
+          <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 3 }}>{t("kpi_streak_now")}</div>
+          <div style={{ fontSize: 9.5, color: "var(--mut)", opacity: .7, marginTop: 3 }}>{t("kpi_now")}</div>
+        </div>
+        <div className="pl-card" style={{ padding: 12, display: "flex", flexDirection: "column", justifyContent: "center", textAlign: "center" }}>
+          <div className="pl-display" style={{ fontSize: 24, color: streakRec > 0 ? "var(--yellow)" : "var(--mut)" }}>{streakRec}</div>
+          <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 3 }}>{t("kpi_streak_rec")}</div>
+        </div>
+      </div>
+
+      {/* Форма: последние 10 событий — игры (квадрат В/Н/П) и турниры (круг с местом) */}
+      {formEvents.length > 0 && (
+        <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>{t("stat_form")}</div>
+            <div style={{ fontSize: 11, color: "var(--mut)" }}>{t("stat_last10")}</div>
+          </div>
+          <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+            {formEvents.map((ev, i) => {
+              if (ev.type === "tour") {
+                const c = ev.pos === 1 ? "var(--yellow)" : ev.pos === 2 ? "#cfd8d0" : ev.pos === 3 ? "#cd7f4d" : "var(--mut)";
+                return (
+                  <span key={"f" + i} title={ev.hint}
+                    style={{ width: 28, height: 28, borderRadius: "50%", background: `color-mix(in srgb, ${c} 16%, transparent)`, border: `1.5px solid color-mix(in srgb, ${c} 55%, transparent)`, color: c, display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 12, fontFamily: "'Outfit',sans-serif", flexShrink: 0 }}>
+                    {ev.pos}
+                  </span>
+                );
+              }
+              const c = ev.draw ? "var(--mut)" : ev.won ? "#3ddc84" : "var(--coral)";
+              return (
+                <span key={"f" + i} title={ev.hint}
+                  style={{ width: 28, height: 28, borderRadius: 8, background: `color-mix(in srgb, ${c} 16%, transparent)`, border: `1.5px solid color-mix(in srgb, ${c} 55%, transparent)`, color: c, display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 12, fontFamily: "'Outfit',sans-serif", flexShrink: 0 }}>
+                  {ev.draw ? t("result_draw") : ev.won ? t("result_win") : t("result_loss")}
+                </span>
+              );
+            })}
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 9, color: "var(--mut)" }}>{t("form_legend_game")} · {t("form_legend_tour")}</span>
+            <span style={{ fontSize: 9, color: "var(--mut)" }}>{t("recency_hint")}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Люди: лучший напарник (игры + турниры) и неудобный соперник */}
+      {peopleStats.partner && (() => {
+        const bp = peopleStats.partner;
+        const p = players.find((x) => x.id === bp.id);
+        return <PartnerCard key="bp-all" label={t("best_partner_all")} bp={bp} name={p?.name || bp.name || nameMap[bp.id] || "?"} avatarUrl={playerAvatar(p?.avatar_url, bp.id || bp.name)} help={t("best_partner_help_all")} onOpen={p ? () => onOpenPlayer(p) : undefined} />;
+      })()}
+      {peopleStats.nemesis && (() => {
+        const nm = peopleStats.nemesis;
+        const p = players.find((x) => x.id === nm.id);
+        const total = nm.w + nm.l + nm.d;
+        return (
+          <div className="pl-card" style={{ padding: "12px 14px", marginBottom: 10, cursor: p ? "pointer" : "default" }} onClick={p ? () => onOpenPlayer(p) : undefined}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <img src={playerAvatar(p?.avatar_url, nm.id || nm.name)} onError={avatarFallback(nm.id || nm.name)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p?.name || nm.name || "?"} <span style={{ fontSize: 10.5, color: "var(--mut)", fontWeight: 600 }}>· {t("nemesis_label")}</span></div>
+                <div style={{ fontSize: 11.5, color: "var(--mut)", marginTop: 1 }}>{t("nemesis_against").replace("{w}", String(nm.w)).replace("{n}", String(total))}</div>
+              </div>
+              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 17, color: "var(--coral)" }}>{nm.w}–{nm.l}</div>
+                <div style={{ fontSize: 9.5, color: "var(--mut)" }}>{t("vs_meetings")}</div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Цель (только своя карточка) + личные рекорды */}
+      {((goal && myId === player.id) || monthRecs || peopleStats.scalp) && (
+        <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
+          {goal && myId === player.id && (
+            <div style={{ marginBottom: (monthRecs || peopleStats.scalp) ? 14 : 0 }}>
+              <div style={{ fontSize: 11, color: "var(--mut)", fontWeight: 700, letterSpacing: .3, textTransform: "uppercase", marginBottom: 7 }}>{t("goal_heading")}</div>
+              {goal.leader ? (
+                <>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 13.5, fontWeight: 700 }}>{t("goal_leader").replace("{n}", String(goal.gap))}</span>
+                    <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--mut)" }}>{t("goal_defend")}</span>
+                  </div>
+                  <div style={{ height: 8, background: "var(--surface2)", borderRadius: 5, marginTop: 8, overflow: "hidden" }}>
+                    <span style={{ display: "block", width: "100%", height: "100%", background: "var(--lime)" }} />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 13.5, fontWeight: 700 }}>{t("goal_to").replace("{p}", String(rank)).replace("{n}", String(goal.gap))}</span>
+                    <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--mut)" }}>{t("goal_ahead").replace("{name}", goal.ahead.name).replace("{r}", String(goal.ahead.rating))}</span>
+                  </div>
+                  <div style={{ height: 8, background: "var(--surface2)", borderRadius: 5, marginTop: 8, overflow: "hidden" }}>
+                    <span style={{ display: "block", width: `${Math.max(8, Math.min(100 - goal.gap, 96))}%`, height: "100%", background: "var(--lime)", borderRadius: 5 }} />
+                  </div>
+                  <div style={{ display: "flex", marginTop: 5, fontSize: 9.5, color: "var(--mut)", gap: 8, flexWrap: "wrap" }}>
+                    <span>{t("goal_you").replace("{r}", String(player.rating))}</span>
+                    <span style={{ marginLeft: "auto" }}>{t("goal_est").replace("{n}", String(goal.est))}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          {(monthRecs || peopleStats.scalp) && (
+            <>
+              <div style={{ fontSize: 11, color: "var(--mut)", fontWeight: 700, letterSpacing: .3, textTransform: "uppercase", marginBottom: 8 }}>{t("rec_heading")}</div>
+              <div style={{ display: "grid", gridTemplateColumns: `repeat(${[monthRecs && monthRecs.best, monthRecs && monthRecs.worst, peopleStats.scalp].filter(Boolean).length}, 1fr)`, gap: 8 }}>
+                {monthRecs && (
+                  <div style={{ background: "var(--surface2)", borderRadius: 13, padding: "10px 6px", textAlign: "center" }}>
+                    <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 16, color: "var(--lime)" }}>{monthRecs.best.delta > 0 ? "+" : ""}{monthRecs.best.delta}</div>
+                    <div style={{ fontSize: 9.5, color: "var(--mut)", marginTop: 3, lineHeight: 1.3 }}>{t("rec_best_month")}<br />{monthRecs.best.label}</div>
+                  </div>
+                )}
+                {monthRecs && monthRecs.worst && (
+                  <div style={{ background: "var(--surface2)", borderRadius: 13, padding: "10px 6px", textAlign: "center" }}>
+                    <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 16, color: "var(--coral)" }}>{monthRecs.worst.delta > 0 ? "+" : ""}{monthRecs.worst.delta}</div>
+                    <div style={{ fontSize: 9.5, color: "var(--mut)", marginTop: 3, lineHeight: 1.3 }}>{t("rec_worst_month")}<br />{monthRecs.worst.label}</div>
+                  </div>
+                )}
+                {peopleStats.scalp && (
+                  <div style={{ background: "var(--surface2)", borderRadius: 13, padding: "10px 6px", textAlign: "center" }} title={peopleStats.scalp.name}>
+                    <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 16, color: "var(--yellow)" }}>{peopleStats.scalp.rating}</div>
+                    <div style={{ fontSize: 9.5, color: "var(--mut)", marginTop: 3, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t("rec_scalp")}<br />{peopleStats.scalp.name}</div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Достижения: открытые + прогресс к остальным; «?» — легенда правил */}
       <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
-          <div className="pl-display" style={{ fontSize: 36, color: "var(--lime)" }}>{player.rating}</div>
-          <div style={{ fontSize: 12, color: "var(--mut)" }}>{t("rating")}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <div style={{ fontSize: 13, fontWeight: 600 }}>{t("ach_heading")}</div>
+          <span style={{ fontSize: 11, color: "var(--mut)" }}>{t("ach_of").replace("{a}", String(achList.filter((a) => a.on).length)).replace("{b}", String(achList.length))}</span>
+          <button type="button" onClick={() => setShowAch((s) => !s)} aria-label={t("ach_help")} title={t("ach_help")}
+            style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", border: "1px solid var(--line)", background: showAch ? "var(--surface2)" : "none", color: "var(--mut)", cursor: "pointer", padding: 0, flexShrink: 0 }}>
+            <HelpCircle size={12} />
+          </button>
         </div>
-        <LineChart values={hist || [player.rating]} />
-      </div>
-
-      {/* Плитки: игры и турниры */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-        <div className="pl-card" style={{ padding: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--mut)", marginBottom: 10 }}><Swords size={14} /> {t("tab_games")}</div>
-          <div style={{ display: "flex", gap: 6 }}>
-            {tileStat(myGames.w, t("stat_wins"), "#3ddc84")}
-            {tileStat(myGames.d, t("stat_draws"), "var(--ink)")}
-            {tileStat(myGames.l, t("stat_losses"), "var(--coral)")}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
+          {achList.map((a) => (
+            <div key={a.label} title={`${a.label} — ${a.rule}`}
+              style={{ background: "var(--surface2)", borderRadius: 12, padding: "9px 3px", textAlign: "center", border: a.on ? "1px solid color-mix(in srgb, var(--lime) 30%, transparent)" : "1px solid transparent", opacity: a.on ? 1 : .78 }}>
+              <div style={{ fontSize: 17, filter: a.on ? "none" : "grayscale(1)" }}>{a.icon}</div>
+              <div style={{ fontSize: 8.5, fontWeight: 700, marginTop: 4, color: a.on ? "var(--ink)" : "var(--mut)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.label}</div>
+              {!a.on && (
+                <>
+                  <div style={{ height: 3, background: "var(--line)", borderRadius: 2, marginTop: 5, overflow: "hidden" }}>
+                    <span style={{ display: "block", width: `${Math.round(Math.min(a.prog, 1) * 100)}%`, height: "100%", background: "var(--mut)" }} />
+                  </div>
+                  <div style={{ fontSize: 8, color: "var(--mut)", marginTop: 2 }}>{a.progLabel}</div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+        {showAch && (
+          <div style={{ marginTop: 10, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, padding: "10px 12px" }}>
+            <div style={{ fontWeight: 700, color: "var(--ink)", marginBottom: 6, fontSize: 12 }}>{t("ach_legend_title")}</div>
+            {achList.map((a) => (
+              <div key={a.label} style={{ display: "flex", gap: 8, alignItems: "baseline", marginBottom: 4, fontSize: 11.5, lineHeight: 1.4, color: "var(--mut)" }}>
+                <span style={{ fontSize: 13, flexShrink: 0, width: 16, textAlign: "center" }}>{a.icon}</span>
+                <span><b style={{ color: "var(--ink)", fontWeight: 700 }}>{a.label}</b> — {a.rule}</span>
+              </div>
+            ))}
           </div>
-        </div>
-        <div className="pl-card" style={{ padding: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--mut)", marginBottom: 10 }}><Trophy size={14} /> {t("tab_tournaments")}</div>
-          <div style={{ display: "flex", gap: 6 }}>
-            {tileStat(myTourStats.total, t("trn_stat_total"), "var(--ink)")}
-            {tileStat(myTourStats.podium, t("trn_stat_podium"), "#ffd23f")}
-            {tileStat(myTourStats.wins, t("trn_stat_wins"), "var(--lime)")}
-          </div>
-        </div>
+        )}
       </div>
-
-      {/* Лучший партнёр — отдельно по играм и по турнирам */}
-      {bestPartner && (() => {
-        const bp = players.find((p) => p.id === bestPartner.id);
-        return <PartnerCard key="bp-games" label={t("best_partner_games")} bp={bestPartner} name={bp?.name || nameMap[bestPartner.id] || "?"} avatarUrl={playerAvatar(bp?.avatar_url, bestPartner.id)} help={t("best_partner_help_games")} onOpen={bp ? () => onOpenPlayer(bp) : undefined} />;
-      })()}
-      {bestPartnerTour && (() => {
-        const tp = players.find((p) => p.id === bestPartnerTour.id);
-        return <PartnerCard key="bp-tour" label={t("best_partner_tour")} bp={bestPartnerTour} name={bestPartnerTour.name} avatarUrl={playerAvatar(tp?.avatar_url, bestPartnerTour.id || bestPartnerTour.name)} help={t("best_partner_help_tour")} onOpen={tp ? () => onOpenPlayer(tp) : undefined} />;
-      })()}
 
       {/* Статистика с этим игроком */}
       {myId && myId !== player.id && withPlayer.length > 0 && (
@@ -1405,56 +1676,6 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
               </div>
             );
           })}
-        </div>
-      )}
-      {/* Игры — «форма» за последние 10: кружок В / Н / П */}
-      {playerMatches.length > 0 && (
-        <div className="pl-card" style={{ padding: 14, marginTop: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}><Swords size={14} /> {t("games_heading")}</div>
-            <div style={{ fontSize: 11, color: "var(--mut)" }}>{t("stat_last10")}</div>
-          </div>
-          <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-            {playerMatches.slice(0, 10).reverse().map((m) => {
-              const inA = (m.team_a || []).includes(player.id);
-              const draw = m.sets_a === m.sets_b;
-              const won = inA ? m.sets_a > m.sets_b : m.sets_b > m.sets_a;
-              const c = draw ? "var(--mut)" : won ? "#3ddc84" : "var(--coral)";
-              return (
-                <span key={m.id} title={`${(m.team_a || []).map(nameOf).join(" & ")} ${m.sets_a}:${m.sets_b} ${(m.team_b || []).map(nameOf).join(" & ")}${m.played_at ? " · " + fmtDate(m.played_at) : ""}`}
-                  style={{ width: 28, height: 28, borderRadius: "50%", background: `color-mix(in srgb, ${c} 16%, transparent)`, border: `1.5px solid color-mix(in srgb, ${c} 55%, transparent)`, color: c, display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 12, fontFamily: "'Outfit',sans-serif", flexShrink: 0 }}>
-                  {draw ? t("result_draw") : won ? t("result_win") : t("result_loss")}
-                </span>
-              );
-            })}
-          </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 7 }}>
-            <span style={{ fontSize: 9, color: "var(--mut)" }}>{t("recency_hint")}</span>
-          </div>
-        </div>
-      )}
-      {/* Турниры — последние 10: кружок = занятое место */}
-      {playerTours && playerTours.length > 0 && (
-        <div className="pl-card" style={{ padding: 14, marginTop: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}><Trophy size={14} /> {t("tours_heading")}</div>
-            <div style={{ fontSize: 11, color: "var(--mut)" }}>{t("stat_last10")}</div>
-          </div>
-          <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-            {playerTours.slice(0, 10).reverse().map((tour) => {
-              const pos = tour.position;
-              const c = pos === 1 ? "var(--yellow)" : pos === 2 ? "#cfd8d0" : pos === 3 ? "#cd7f4d" : "var(--mut)";
-              return (
-                <span key={tour.id} title={`${tour.name || t("fmt_americano_name")} · ${pos}/${tour.total}`}
-                  style={{ width: 28, height: 28, borderRadius: "50%", background: `color-mix(in srgb, ${c} 16%, transparent)`, border: `1.5px solid color-mix(in srgb, ${c} 55%, transparent)`, color: c, display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13, fontFamily: "'Outfit',sans-serif", flexShrink: 0 }}>
-                  {pos}
-                </span>
-              );
-            })}
-          </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 7 }}>
-            <span style={{ fontSize: 9, color: "var(--mut)" }}>{t("recency_hint")}</span>
-          </div>
         </div>
       )}
       {/* Лиги игрока */}
