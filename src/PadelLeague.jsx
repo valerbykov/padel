@@ -776,8 +776,16 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
                 {isFirst && <div style={{ fontSize: 15, lineHeight: 1, marginBottom: 4 }}>👑</div>}
                 <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt=""
                   style={{ width: isFirst ? 58 : 48, height: isFirst ? 58 : 48, borderRadius: "50%", objectFit: "cover", border: `${isFirst ? 3 : 2.5}px solid ${ring}`, margin: "0 auto", display: "block" }} />
-                <div style={{ fontSize: isFirst ? 12.5 : 11.5, fontWeight: isFirst ? 800 : 700, marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {p.name}
+                {/* Статус тем же языком, что в строках: ⭐/🛡/✓/гость */}
+                <div style={{ fontSize: isFirst ? 12.5 : 11.5, fontWeight: isFirst ? 800 : 700, marginTop: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, minWidth: 0 }}>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                  {p.role === "owner"
+                    ? <Star size={12} style={{ color: "var(--yellow)", flexShrink: 0 }} aria-label={t("role_owner")} />
+                    : p.role === "admin"
+                      ? <ShieldCheck size={12} style={{ color: "var(--yellow)", flexShrink: 0 }} aria-label={t("role_organizer")} />
+                      : p.user_id
+                        ? <UserCheck size={12} style={{ color: "var(--lime)", flexShrink: 0 }} aria-label={t("account_badge")} />
+                        : <User size={11} style={{ color: "var(--mut)", flexShrink: 0 }} aria-label={t("guest_tag")} />}
                 </div>
                 <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: isFirst ? 17 : 14, color: ring, marginTop: 2, lineHeight: 1 }}>{p.rating}</div>
                 <div style={{ fontSize: 10, color: "var(--mut)", marginTop: 2 }}>{p.id === profileId ? t("fr_you") : isFirst ? t("podium_leader") : t("podium_place").replace("{n}", String(place))}</div>
