@@ -449,6 +449,15 @@ export async function createDemoLeague(lang = "ru") {
   return data;
 }
 
+// Освободить слот игры (хост убирает игрока / игрок убирает себя).
+export async function clearGameSlot(slotId) {
+  const { error } = await supabase.from("game_slots")
+    .update({ profile_id: null, guest_name: null })
+    .eq("id", slotId);
+  if (error) throw error;
+  bustCache();
+}
+
 // Занять свободный слот игры собой — с экрана игры внутри приложения.
 // Тот же RPC, что у гостевой страницы /j/CODE: сервер линкует профиль по сессии.
 export async function joinGameSlot(code, team, position, guestName) {

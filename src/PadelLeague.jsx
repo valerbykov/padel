@@ -4,7 +4,7 @@ const LeagueSetup = lazy(() => import("./components/LeagueSetup"));
 import { createPortal } from "react-dom";
 import { supabase } from "./lib/supabase";
 import BackButton from "./components/BackButton";
-import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, joinGameSlot, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames } from "./lib/padelApi";
+import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, joinGameSlot, clearGameSlot, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames } from "./lib/padelApi";
 import { WEB_BASE } from "./lib/platform";
 import { CardSkeleton } from "./components/Skeleton";
 import { bustCache, cachePeek } from "./lib/cache";
@@ -864,6 +864,8 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
         return (
           <div onClick={() => setSelected(me)}
             style={{ position: "sticky", bottom: "calc(env(safe-area-inset-bottom, 0px) + 66px)", zIndex: 5, marginTop: 10,
+              // marginRight освобождает угол под FAB «добавить игрока» — иначе он перекрывал планку.
+              marginRight: (isAdmin || activeLeague?.members_can_add) ? 68 : 0,
               background: "var(--surface2)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", borderRadius: 14,
               padding: "10px 14px", display: "flex", alignItems: "center", gap: 9, cursor: "pointer", boxShadow: "0 6px 20px rgba(0,0,0,.35)" }}>
             <span style={{ fontSize: 12, color: "var(--mut)", flexShrink: 0 }}>{t("fr_you_now")}</span>
@@ -2463,6 +2465,16 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
       setJoinErr(map[e.message] || t("err_join_slot"));
     } finally { setJoinBusy(false); }
   };
+  // Красный крестик: хост убирает любого из состава, игрок — себя.
+  const canClear = (s) => game.status === "open" && !!profileId &&
+    (game.host_id === profileId || (s.profile_id && s.profile_id === profileId));
+  const clearSlot = async (s) => {
+    if (joinBusy) return;
+    setJoinBusy(true); setJoinErr("");
+    try { await clearGameSlot(s.id); await reloadGames(); }
+    catch (e) { setJoinErr(t("err_generic")); }
+    finally { setJoinBusy(false); }
+  };
   const slotsA = slots.filter((s) => s.team === "A");
   const slotsB = slots.filter((s) => s.team === "B");
   // #3: кто создал игру (host_id) — резолвим по составу лиги.
@@ -2569,6 +2581,13 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
               <span className="pl-display" style={{ fontSize: 11, color: s.team === "A" ? "var(--lime)" : "var(--coral)", width: 30 }}>{s.team}</span>
               <span style={{ flex: 1, color: free ? "var(--mut)" : "var(--ink)" }}>{free ? t("slot_free") : nameOf(s)}</span>
               {!free && <Check size={15} color="var(--lime)" />}
+              {/* Убрать из состава: хост — любого, игрок — себя */}
+              {!free && canClear(s) && (
+                <button onClick={() => clearSlot(s)} disabled={joinBusy} aria-label={t("delete_btn")} title={t("delete_btn")}
+                  style={{ flexShrink: 0, width: 26, height: 26, borderRadius: "50%", border: "none", background: "color-mix(in srgb, var(--coral) 16%, transparent)", color: "var(--coral)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: joinBusy ? .6 : 1 }}>
+                  <X size={14} />
+                </button>
+              )}
               {/* Свободный слот — занять в один тап (участник, ещё не в игре) */}
               {free && canTake && (
                 <button onClick={() => takeSlot(s)} disabled={joinBusy}
