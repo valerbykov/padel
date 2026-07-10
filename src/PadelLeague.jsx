@@ -1356,14 +1356,27 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
     </button>
   );
 
-  // #5: действия игрока — отдельный блок под бейджами (раньше были вперемешку).
-  const showGenClaim   = !player.user_id && !localClaimCode && isAdmin;
-  const showClaimLink  = !player.user_id && !!localClaimCode;
+  // Действия админа — единый ряд компактных кнопок. Недоступные не прячем,
+  // а засериваем с причиной (title/aria): ряд стабилен и предсказуем.
   const showAddToLeague = !!onAddToLeague && !isInLeague;
-  const showDelete     = !!onDelete && isAdmin && !!myId && myId !== player.id && isInLeague;
-  const showSetRole    = !!onSetRole && isOwner && !!player.user_id && player.role !== "owner" && myId !== player.id && isInLeague;
-  const hasCompactAction = showAddToLeague || showSetRole || showGenClaim || showDelete;
-  const hasActions = hasCompactAction || showClaimLink;
+  const adminRow = isInLeague && !!myId && myId !== player.id;
+  const rowBtns = [];
+  if (adminRow && !!onSetRole && isOwner && player.role !== "owner")
+    rowBtns.push({ key: "org", Icon: ShieldCheck, tint: "var(--yellow)",
+      label: player.role === "admin" ? t("unset_organizer_short") : t("set_organizer_short"),
+      disabled: !player.user_id, hint: !player.user_id ? t("org_needs_account") : null,
+      onClick: () => onSetRole(player.role === "admin" ? "member" : "admin") });
+  if (adminRow && isAdmin && !localClaimCode)
+    rowBtns.push({ key: "claim", Icon: Share2, tint: "var(--lime)",
+      label: genBusy ? t("creating") : t("btn_claim_short"),
+      disabled: !!player.user_id || genBusy, hint: player.user_id ? t("claim_has_account") : null,
+      onClick: generateClaimCode });
+  if (adminRow && isAdmin && !!onDelete)
+    rowBtns.push({ key: "del", Icon: Trash2, tint: "var(--coral)",
+      label: t("btn_remove_short"), disabled: false, hint: null,
+      onClick: () => setShowDeleteModal(true) });
+  const showClaimLink = !player.user_id && !!localClaimCode;
+  const hasActions = showAddToLeague || rowBtns.length > 0 || showClaimLink;
 
   return (
     <div className="pl-pop">
@@ -1416,36 +1429,26 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
           <RatingChart rows={hist || []} />
         </div>
 
-        {/* Действия админа — вспомогательная зона ПОД графиком: компактные кнопки,
-            не разрывают чтение «игрок → рейтинг → график». */}
+        {/* Действия админа — вспомогательная зона ПОД графиком: один ряд равных
+            кнопок (иконка + короткая подпись), недоступные засерены с причиной. */}
         {hasActions && (
-          <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 8, alignItems: "stretch" }}>
-            {hasCompactAction && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-                {showAddToLeague && (
-                  <button onClick={onAddToLeague}
-                    style={{ padding: "7px 13px", border: "none", borderRadius: 10, background: "var(--lime)", color: "var(--lime-fg)", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, fontFamily: "'Outfit'" }}>
-                    {t("add_to_league")}
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 8 }}>
+            {showAddToLeague && (
+              <button onClick={onAddToLeague}
+                style={{ padding: "10px 14px", border: "none", borderRadius: 12, background: "var(--lime)", color: "var(--lime-fg)", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'Outfit'" }}>
+                {t("add_to_league")}
+              </button>
+            )}
+            {rowBtns.length > 0 && (
+              <div style={{ display: "grid", gridTemplateColumns: `repeat(${rowBtns.length}, 1fr)`, gap: 7 }}>
+                {rowBtns.map((b) => (
+                  <button key={b.key} onClick={b.disabled ? undefined : b.onClick} disabled={b.disabled}
+                    title={b.hint || b.label} aria-label={b.hint ? `${b.label} — ${b.hint}` : b.label}
+                    style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "9px 4px", borderRadius: 12, border: "1px solid var(--line)", background: "var(--surface2)", cursor: b.disabled ? "default" : "pointer", fontFamily: "'Outfit'", opacity: b.disabled ? 0.4 : 1 }}>
+                    <b.Icon size={15} style={{ color: b.tint }} />
+                    <span style={{ fontSize: 11, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{b.label}</span>
                   </button>
-                )}
-                {showSetRole && (
-                  <button onClick={() => onSetRole(player.role === "admin" ? "member" : "admin")}
-                    style={{ padding: "7px 12px", border: "1px solid var(--line)", borderRadius: 10, background: "var(--surface2)", color: "var(--ink)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, fontFamily: "'Outfit'" }}>
-                    <ShieldCheck size={12} style={{ color: "var(--yellow)" }} /> {player.role === "admin" ? t("unset_organizer") : t("set_organizer")}
-                  </button>
-                )}
-                {showGenClaim && (
-                  <button onClick={generateClaimCode} disabled={genBusy}
-                    style={{ padding: "7px 12px", border: "1px solid var(--line)", borderRadius: 10, background: "var(--surface2)", color: "var(--lime)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, fontFamily: "'Outfit'" }}>
-                    <Share2 size={12} /> {genBusy ? t("creating") : t("create_claim_link")}
-                  </button>
-                )}
-                {showDelete && (
-                  <button onClick={() => setShowDeleteModal(true)}
-                    style={{ padding: "7px 12px", border: "1px solid var(--line)", borderRadius: 10, background: "var(--surface2)", color: "var(--coral)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, fontFamily: "'Outfit'" }}>
-                    <Trash2 size={12} /> {t("remove_from_league")}
-                  </button>
-                )}
+                ))}
               </div>
             )}
             {showClaimLink && <ClaimLinkButton claimCode={localClaimCode} />}
