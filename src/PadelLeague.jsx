@@ -22,6 +22,7 @@ import CourtView from "./components/CourtView";
 import EmptyState from "./components/EmptyState";
 import Avatar from "./components/Avatar";
 import LeagueLogo from "./components/LeagueLogo";
+import InviteCard from "./components/InviteCard";
 import Analytics from "./components/Analytics";
 import { dogAvatar, playerAvatar, DOG_COUNT, avatarFallback } from "./lib/avatar";
 
@@ -492,8 +493,6 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
   const [joinCode, setJoinCode] = useState("");
   const [leagueBusy, setLeagueBusy] = useState(false);
   const [leagueErr, setLeagueErr] = useState("");
-  const [inviteCopied, setInviteCopied] = useState(false);
-  const [publicLinkCopied, setPublicLinkCopied] = useState(false);
   const ranked = [...players].sort((a, b) => b.rating - a.rating);
   const [memberQuery, setMemberQuery] = useState("");
   // Недельные тренды рейтинга (↑/↓ у строк и в планке «Ты сейчас») — фоном, не блокируют.
@@ -659,20 +658,6 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
     />
   );
 
-  const copyInvite = async () => {
-    if (!activeLeague?.invite_code) return;
-    const text = `Вступай в лигу «${activeLeague.name}» — код: ${activeLeague.invite_code}`;
-    try { await navigator.clipboard.writeText(text); } catch (e) {}
-    setInviteCopied(true); setTimeout(() => setInviteCopied(false), 1800);
-  };
-
-  const copyPublicLink = async () => {
-    if (!activeLeague?.invite_code) return;
-    const url = `${WEB_BASE}/l/${activeLeague.invite_code}`;
-    try { await navigator.clipboard.writeText(url); } catch (e) {}
-    setPublicLinkCopied(true); setTimeout(() => setPublicLinkCopied(false), 1800);
-  };
-
   const handleCreateLeague = async () => {
     if (!newLeagueName.trim() || leagueBusy) return;
     setLeagueBusy(true); setLeagueErr("");
@@ -709,23 +694,10 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
         </div>
       )}
 
-      {/* Компактная плашка: логотип лиги + код приглашения + копировать/поделиться.
-          #4: видна только тем, кто может приглашать в лигу (владелец/организатор
-          или когда включено «участники могут добавлять»). */}
+      {/* Единая инвайт-карта (код + копировать/поделиться/QR) — общий компонент
+          с «Управлением лигой». #4: видна только тем, кто может приглашать. */}
       {activeLeague?.invite_code && (isAdmin || activeLeague?.members_can_add) && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, padding: "8px 10px 8px 8px", background: "color-mix(in srgb, var(--lime) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", borderRadius: 14, fontFamily: "'Outfit',sans-serif" }}>
-          <LeagueLogo url={activeLeague.logo_url} name={activeLeague.name} size={38} radius={12} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 10, color: "var(--mut)", lineHeight: 1 }}>{t("league_invite_label")}</div>
-            <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 22, letterSpacing: 3, color: "var(--lime)", lineHeight: 1.15 }}>{activeLeague.invite_code}</div>
-          </div>
-          <button onClick={copyInvite} title={t("copy_code")} aria-label={t("copy_code")} style={{ flexShrink: 0, width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--lime) 18%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", borderRadius: 11, color: "var(--lime)", cursor: "pointer" }}>
-            {inviteCopied ? <Check size={16} /> : <Copy size={16} />}
-          </button>
-          <button onClick={copyPublicLink} title={t("league_page")} aria-label={t("league_page")} style={{ flexShrink: 0, width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--lime) 18%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", borderRadius: 11, color: "var(--lime)", cursor: "pointer" }}>
-            {publicLinkCopied ? <Check size={16} /> : <Share2 size={16} />}
-          </button>
-        </div>
+        <InviteCard compact code={activeLeague.invite_code} leagueName={activeLeague.name} logoUrl={activeLeague.logo_url} style={{ marginBottom: 14 }} />
       )}
 
       {groupId && ranked.length === 0 && (

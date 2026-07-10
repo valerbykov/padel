@@ -4,9 +4,10 @@
 // Данные тянет через get_league_details (RPC), сохраняет в groups (RLS).
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Upload, Send, Copy, Check, Star, Users, ShieldCheck, ChevronDown } from "lucide-react";
+import { X, Upload, Send, Check, Star, Users, ShieldCheck, ChevronDown, Loader, UserPlus, Swords } from "lucide-react";
 import { getLeagueDetails, updateLeague, uploadLeagueLogo } from "../lib/padelApi";
 import Avatar from "./Avatar";
+import InviteCard from "./InviteCard";
 import { t } from "../lib/i18n";
 
 function Section({ icon, title, count, open, onToggle, children }) {
@@ -33,7 +34,6 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [err, setErr] = useState("");
   const fileRef = useRef(null);
   const [openTeam, setOpenTeam] = useState(false);
@@ -79,11 +79,24 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
     finally { setBusy(false); }
   };
 
-  const copyCode = () => {
-    if (!d?.invite_code) return;
-    try { navigator.clipboard?.writeText(d.invite_code); } catch (_) {}
-    setCopied(true); setTimeout(() => setCopied(false), 1500);
+  // Автосохранение (единый паттерн с личным кабинетом): дебаунс после правок,
+  // хвост дебаунса не теряется при закрытии шторки.
+  const saveTmRef = useRef(null);
+  const saveRef = useRef(save);
+  saveRef.current = save;
+  useEffect(() => {
+    if (!d || !canEdit || !dirty) return;
+    clearTimeout(saveTmRef.current);
+    saveTmRef.current = setTimeout(() => saveRef.current(), 800);
+    return () => clearTimeout(saveTmRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name, tg, logo, membersCanAdd, membersCanCreate]);
+  const handleClose = () => {
+    clearTimeout(saveTmRef.current);
+    if (dirty && canEdit) saveRef.current();
+    onClose && onClose();
   };
+
 
   const org = d?.organizer || {};
   const initial = (name.trim()[0] || "?").toUpperCase();
@@ -92,11 +105,15 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
   // Портал в body: иначе fixed-оверлей попадает в трансформируемого предка
   // (.pl-pop с анимацией) и «уезжает» вместе с нижней навигацией.
   return createPortal(
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-end", justifyContent: "center", fontFamily: "'Outfit',sans-serif" }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 460, maxHeight: "92vh", overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "20px 20px 0 0", padding: 18, paddingBottom: 0, boxShadow: "0 -8px 40px rgba(0,0,0,.5)" }}>
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
+    <div onClick={handleClose} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-end", justifyContent: "center", fontFamily: "'Outfit',sans-serif" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 460, maxHeight: "92vh", overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "20px 20px 0 0", padding: 18, paddingBottom: "max(18px, env(safe-area-inset-bottom))", boxShadow: "0 -8px 40px rgba(0,0,0,.5)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
           <div style={{ fontWeight: 800, fontSize: 17, color: "var(--ink)" }}>{t("league_manage")}</div>
-          <button onClick={onClose} aria-label="✕" style={{ marginLeft: "auto", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 10, color: "var(--mut)", cursor: "pointer", padding: 6, display: "flex" }}><X size={16} /></button>
+          <span aria-live="polite" style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: "var(--mut)", whiteSpace: "nowrap" }}>
+            {busy && <><Loader size={12} /> {t("league_saving")}</>}
+            {!busy && saved && <><Check size={13} style={{ color: "var(--lime)" }} /> {t("pc_saved").toLowerCase()}</>}
+          </span>
+          <button onClick={handleClose} aria-label="✕" style={{ background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 10, color: "var(--mut)", cursor: "pointer", padding: 6, display: "flex", flexShrink: 0 }}><X size={16} /></button>
         </div>
 
         {!d && !err && <div style={{ color: "var(--mut)", fontSize: 13, padding: "24px 0", textAlign: "center" }}>…</div>}
@@ -153,67 +170,59 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
               ))}
             </Section>
 
-            {/* Телеграм-канал */}
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--mut)", marginBottom: 5 }}><Send size={12} /> {t("league_telegram")}</div>
-              {canEdit ? (
-                <>
-                  <input value={tg} onChange={(e) => setTg(e.target.value)} placeholder="https://t.me/..." inputMode="url" style={{ ...inp, fontSize: 15, padding: "9px 12px" }} />
-                  <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 5 }}>{t("league_telegram_hint")}</div>
-                </>
-              ) : (tg ? <a href={tg} target="_blank" rel="noreferrer" style={{ color: "var(--lime)", fontSize: 14, textDecoration: "none", fontWeight: 600 }}>{t("league_open_channel")} →</a> : <div style={{ color: "var(--mut)", fontSize: 14 }}>—</div>)}
-            </div>
-
-            <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 6, marginTop: 2 }}>{t("league_rights_title")}</div>
-            {/* #1/#3: кто может добавлять игроков. Видно всем участникам; переключать —
-                только владельцу/организатору (для остальных плашка read-only). */}
-            <div onClick={canEdit ? () => setMembersCanAdd((v) => !v) : undefined} role="switch" aria-checked={membersCanAdd} aria-disabled={!canEdit}
-              style={{ display: "flex", alignItems: "flex-start", gap: 11, cursor: canEdit ? "pointer" : "default", marginBottom: 12, padding: "11px 12px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 14, opacity: canEdit ? 1 : 0.72 }}>
-              <div style={{ flexShrink: 0, marginTop: 1, width: 42, height: 24, borderRadius: 999, background: membersCanAdd ? "var(--lime)" : "var(--line)", position: "relative", transition: "background .15s" }}>
-                <span style={{ position: "absolute", top: 3, left: membersCanAdd ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{t("members_can_add_label")}</div>
-                <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 2, lineHeight: 1.35 }}>{t("members_can_add_hint")}</div>
-              </div>
-            </div>
-
-            {/* #1/#3: кто может создавать игры и турниры (аналогично — видно всем, меняет владелец/организатор) */}
-            <div onClick={canEdit ? () => setMembersCanCreate((v) => !v) : undefined} role="switch" aria-checked={membersCanCreate} aria-disabled={!canEdit}
-              style={{ display: "flex", alignItems: "flex-start", gap: 11, cursor: canEdit ? "pointer" : "default", marginBottom: 12, padding: "11px 12px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 14, opacity: canEdit ? 1 : 0.72 }}>
-              <div style={{ flexShrink: 0, marginTop: 1, width: 42, height: 24, borderRadius: 999, background: membersCanCreate ? "var(--lime)" : "var(--line)", position: "relative", transition: "background .15s" }}>
-                <span style={{ position: "absolute", top: 3, left: membersCanCreate ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{t("members_can_create_label")}</div>
-                <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 2, lineHeight: 1.35 }}>{t("members_can_create_hint")}</div>
-              </div>
-            </div>
-
-            {/* Код приглашения — #4: только тем, кто может приглашать (владелец/организатор
-                или включено «участники могут добавлять»). */}
+            {/* Инвайт-карта — общий компонент с вкладкой «Друзья»: код + ссылка + QR.
+                #4: только тем, кто может приглашать. */}
             {d.invite_code && (canEdit || membersCanAdd) && (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "color-mix(in srgb,var(--lime) 8%,transparent)", border: "1px solid color-mix(in srgb,var(--lime) 30%,transparent)", borderRadius: 14, marginBottom: 16 }}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 11, color: "var(--mut)" }}>{t("league_invite_label")}</div>
-                  <div style={{ fontFamily: "'Anton',sans-serif", fontSize: 20, letterSpacing: 4, color: "var(--lime)" }}>{d.invite_code}</div>
-                </div>
-                <button onClick={copyCode} style={{ marginLeft: "auto", background: "color-mix(in srgb,var(--lime) 18%,transparent)", border: "1px solid color-mix(in srgb,var(--lime) 35%,transparent)", borderRadius: 10, color: "var(--lime)", cursor: "pointer", padding: "7px 12px", display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontFamily: "'Outfit',sans-serif" }}>
-                  {copied ? <><Check size={13} /> {t("code_copied")}</> : <><Copy size={13} /> {t("copy_code")}</>}
-                </button>
-              </div>
+              <InviteCard code={d.invite_code} leagueName={name} style={{ marginBottom: 12 }} />
             )}
 
-            <div style={{ position: "sticky", bottom: 0, margin: "6px -18px 0", padding: "12px 18px", paddingBottom: "max(18px, env(safe-area-inset-bottom))", background: "var(--surface)", borderTop: "1px solid var(--line)" }}>
-              {canEdit ? (
-                <button onClick={save} disabled={busy || !dirty}
-                  style={{ width: "100%", padding: 13, background: "var(--lime)", color: "var(--lime-fg)", border: "none", borderRadius: 14, fontWeight: 700, fontSize: 15, cursor: dirty && !busy ? "pointer" : "default", opacity: dirty && !busy ? 1 : 0.55, fontFamily: "'Outfit',sans-serif" }}>
-                  {saved ? t("league_saved") : busy ? t("league_saving") : t("league_save")}
-                </button>
-              ) : (
-                <div style={{ textAlign: "center", fontSize: 12, color: "var(--mut)", padding: "4px 0 2px" }}>{t("league_view_only")}</div>
+            {/* Телеграм-канал — строка с иконкой-чипом, единый стиль с кабинетом */}
+            <div style={{ background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 14, padding: "11px 12px", marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+                <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(34,158,217,.16)", color: "#4db8e8" }}><Send size={15} /></span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", flexShrink: 0 }}>{t("league_telegram")}</span>
+                {!canEdit && (tg
+                  ? <a href={tg} target="_blank" rel="noreferrer" style={{ marginLeft: "auto", color: "var(--lime)", fontSize: 12.5, textDecoration: "none", fontWeight: 600 }}>{t("league_open_channel")} →</a>
+                  : <span style={{ marginLeft: "auto", color: "var(--mut)", fontSize: 13 }}>—</span>)}
+              </div>
+              {canEdit && (
+                <>
+                  <input value={tg} onChange={(e) => setTg(e.target.value)} placeholder="https://t.me/..." inputMode="url" style={{ ...inp, fontSize: 14, padding: "9px 12px", marginTop: 9 }} />
+                  <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 5 }}>{t("league_telegram_hint")}</div>
+                </>
               )}
             </div>
+
+            {/* Права участников — строки с иконками и тумблерами */}
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--mut)", letterSpacing: .3, textTransform: "uppercase", margin: "2px 2px 6px" }}>{t("league_rights_title")}</div>
+            <div style={{ background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 14, marginBottom: 12, opacity: canEdit ? 1 : 0.72 }}>
+              <div onClick={canEdit ? () => setMembersCanAdd((v) => !v) : undefined} role="switch" aria-checked={membersCanAdd} aria-disabled={!canEdit}
+                style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 12px", borderBottom: "1px solid var(--line)", cursor: canEdit ? "pointer" : "default" }}>
+                <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--lime) 13%, transparent)", color: "var(--lime)" }}><UserPlus size={15} /></span>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{t("members_can_add_label")}</div>
+                  <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 1, lineHeight: 1.35 }}>{t("members_can_add_hint")}</div>
+                </div>
+                <div style={{ flexShrink: 0, width: 42, height: 24, borderRadius: 999, background: membersCanAdd ? "var(--lime)" : "var(--line)", position: "relative", transition: "background .15s" }}>
+                  <span style={{ position: "absolute", top: 3, left: membersCanAdd ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
+                </div>
+              </div>
+              <div onClick={canEdit ? () => setMembersCanCreate((v) => !v) : undefined} role="switch" aria-checked={membersCanCreate} aria-disabled={!canEdit}
+                style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 12px", cursor: canEdit ? "pointer" : "default" }}>
+                <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--yellow) 13%, transparent)", color: "var(--yellow)" }}><Swords size={15} /></span>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{t("members_can_create_label")}</div>
+                  <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 1, lineHeight: 1.35 }}>{t("members_can_create_hint")}</div>
+                </div>
+                <div style={{ flexShrink: 0, width: 42, height: 24, borderRadius: 999, background: membersCanCreate ? "var(--lime)" : "var(--line)", position: "relative", transition: "background .15s" }}>
+                  <span style={{ position: "absolute", top: 3, left: membersCanCreate ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
+                </div>
+              </div>
+            </div>
+
+            {!canEdit && (
+              <div style={{ textAlign: "center", fontSize: 12, color: "var(--mut)", padding: "2px 0 4px" }}>{t("league_view_only")}</div>
+            )}
           </>
         )}
       </div>
