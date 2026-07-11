@@ -3021,9 +3021,12 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
   const vGames = mGames.filter(pInGame);
 
   // Дельты фокус-игрока: у обычных матчей ключ match_id, у турнирных — tournament_match_id.
+  // Бейджи ±N на карточках — только когда игрок явно выбран в карусели
+  // (без выбора непонятно, «чья» дельта); сводка месяца по умолчанию — моя.
   const deltaMap = new Map((deltaRows || []).map((r) => [r.match_id || r.tournament_match_id, r.delta]));
-  const gDelta = (g) => { const id = g.matches?.[0]?.id; return id != null && deltaMap.has(id) ? deltaMap.get(id) : null; };
+  const gDelta = (g) => { if (!pFilter) return null; const id = g.matches?.[0]?.id; return id != null && deltaMap.has(id) ? deltaMap.get(id) : null; };
   const trDelta = (tr) => {
+    if (!pFilter) return null;
     let sum = 0, found = false;
     (tr.matches || []).forEach((m) => { if (deltaMap.has(m.id)) { sum += deltaMap.get(m.id); found = true; } });
     return found ? sum : null;
@@ -3080,7 +3083,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
     if (ev.kind === "tour") {
       const tour = ev.tour;
       const mine = !profileId || mineTour(tour);
-      const card = <TournamentCard trn={tour} color="var(--yellow)" me={profileId} myDelta={trDelta(tour)} flush={isGroupMember} onClick={() => setSel({ type: "tour", data: tour })} />;
+      const card = <TournamentCard trn={tour} color="var(--yellow)" me={profileId} placeFor={focusId} myDelta={trDelta(tour)} flush={isGroupMember} onClick={() => setSel({ type: "tour", data: tour })} />;
       const inner = isGroupMember
         ? <SwipeToDelete onCopy={groupId ? () => setCopyTour(tour) : null} onDelete={async () => { if (!confirm(t("trn_delete_confirm"))) return; await deleteTournament(tour.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
         : card;

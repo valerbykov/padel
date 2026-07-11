@@ -172,14 +172,16 @@ function TournamentHero({ trn, onOpen }) {
 
 // ─── TournamentCard ────────────────────────────────────────────────────────────
 
-export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null, onTake = null, myDelta = null }) {
+export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null, onTake = null, myDelta = null, placeFor = null }) {
   const fmt = fmtById(trn.format);
   const mine = !!me && (trn.players || []).some((pl) => pl.profile_id === me);
   // Завершённый турнир — победитель, топ-3 (мини-подиум), моё место и дата.
   let winner = null;
   let top3 = [];
+  // Место считаем для фокус-игрока (выбранного в карусели «Истории»), по умолчанию — своё.
+  const pf = placeFor || me;
   let myPlace = null;
-  const myTp = me ? (trn.players || []).find((pl) => pl.profile_id === me) : null;
+  const myTp = pf ? (trn.players || []).find((pl) => pl.profile_id === pf) : null;
   if (trn.status === "finished") {
     try {
       if (trn.format === "king_of_hill") {
@@ -228,7 +230,13 @@ export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null, 
           {(winner || dateStr || myPlace) && (
             <div style={{ fontSize: 12, marginTop: 3, display: "flex", gap: 10, alignItems: "center", overflow: "hidden" }}>
               {winner && <span style={{ color: "var(--yellow)", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>🥇 {winner}</span>}
-              {myPlace && myPlace > 1 && <span style={{ color: "var(--mut)", flexShrink: 0 }}>{tr("hist_you_place").replace("{p}", String(myPlace))}</span>}
+              {myPlace && myPlace > 1 && (
+                <span style={{ color: "var(--mut)", flexShrink: 0 }}>
+                  {pf === me
+                    ? tr("hist_you_place").replace("{p}", String(myPlace))
+                    : tr("hist_place_of").replace("{name}", (myTp?.name || "").split(" ")[0]).replace("{p}", String(myPlace))}
+                </span>
+              )}
               {dateStr && <span style={{ color: "var(--mut)", flexShrink: 0 }}>{dateStr}</span>}
             </div>
           )}
