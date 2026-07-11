@@ -47,15 +47,6 @@ function circleAvatar(ctx, im, cx, cy, d, border) {
   ctx.lineWidth = 8; ctx.strokeStyle = border; ctx.stroke();
 }
 
-function pill(ctx, text, cx, y, fg, bg) {
-  ctx.font = F(800, 30);
-  const w = ctx.measureText(text).width + 48;
-  rr(ctx, cx - w / 2, y, w, 56, 28);
-  ctx.fillStyle = bg; ctx.fill();
-  ctx.fillStyle = fg; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillText(text, cx, y + 30);
-  return w;
-}
 
 // Общий фон + шапка «PadelPack | справа контекст» + брендовый футер.
 function frame(ctx, { glow, rightText }) {
@@ -109,7 +100,6 @@ export async function renderGameCard({ title, dateStr, teamA, teamB, setsA, sets
 
   const aWin = setsA > setsB, bWin = setsB > setsA;
   ctx.font = F(800, 150); ctx.textAlign = "center";
-  const score = `${setsA}:${setsB}`;
   ctx.fillStyle = C.mut; ctx.fillText(":", W / 2, cy + 52);
   ctx.textAlign = "right"; ctx.fillStyle = aWin ? C.lime : C.ink; ctx.fillText(String(setsA), W / 2 - 30, cy + 52);
   ctx.textAlign = "left"; ctx.fillStyle = bWin ? C.coral : C.ink; ctx.fillText(String(setsB), W / 2 + 30, cy + 52);

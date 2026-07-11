@@ -17,5 +17,13 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // Идиома кодовой базы: `catch (e) {}` — молча глотаем необязательные
+      // ошибки (кэш, clipboard и т.п.). Не считаем это проблемой.
+      'no-unused-vars': ['error', { caughtErrors: 'none', varsIgnorePattern: '^_|^React$' }],
+      'no-empty': ['error', { allowEmptyCatch: true }],
+      // Хелперы рядом с компонентами — осознанный паттерн; правило только про HMR.
+      'react-refresh/only-export-components': 'off',
+    },
   },
 ])
