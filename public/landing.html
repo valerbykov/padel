@@ -61,7 +61,10 @@
 
     /* ── Header ── */
     header{position:sticky; top:0; z-index:50; backdrop-filter:blur(12px);
-      background:color-mix(in srgb,var(--bg) 80%,transparent); border-bottom:1px solid var(--line);}
+      background:color-mix(in srgb,var(--bg) 80%,transparent); border-bottom:1px solid var(--line);
+      /* В нативной обёртке webview лежит под статус-баром (viewport-fit=cover) —
+         без отступа логотип и переключатели заезжают под часы. */
+      padding-top:env(safe-area-inset-top);}
     .nav{display:flex; align-items:center; justify-content:space-between; height:62px;}
     .nav-left{display:flex; align-items:center; gap:10px;}
     .nav-right{display:flex; align-items:center; gap:8px;}
