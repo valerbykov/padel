@@ -157,11 +157,15 @@ export default function App({ initialShowLogin = false }) {
   const claimCode       = getClaimCode();
   const leaguePublicCode = getLeaguePublicCode();
 
-  // ?join=CODE — автозаполнение формы вступления в лигу
+  // ?join=CODE — автозаполнение формы вступления в лигу. В нативной обёртке
+  // полная навигация webview теряет query, поэтому публичная страница лиги
+  // дублирует код в localStorage (pp_pending_join) — читаем оба источника.
   const [pendingJoin, setPendingJoin] = useState(() => {
     const p = new URLSearchParams(window.location.search).get("join")?.toUpperCase();
     if (p) window.history.replaceState({}, "", window.location.pathname);
-    return p || null;
+    let ls = null;
+    try { ls = localStorage.getItem("pp_pending_join"); if (ls) localStorage.removeItem("pp_pending_join"); } catch (e) {}
+    return p || (ls ? ls.toUpperCase() : null);
   });
 
   // Universal/App Links: https://padelpack.app/{l|j|t|r}/CODE, открытые в нативной обёртке,

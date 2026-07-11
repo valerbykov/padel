@@ -162,7 +162,8 @@ export default function LeaguePublicPage({ code }) {
             </div>
 
             {/* Кнопка вступить */}
-            <a href={joinUrl} className="lp-join-btn" style={{ marginBottom: 12 }}>
+            <a href={joinUrl} className="lp-join-btn" style={{ marginBottom: 12 }}
+              onClick={() => { try { localStorage.setItem("pp_pending_join", code); } catch (e) {} }}>
               {t("pub_join_league")}
             </a>
             <div style={{ fontSize: 12, color: "var(--mut)", textAlign: "center", marginBottom: 28 }}>
