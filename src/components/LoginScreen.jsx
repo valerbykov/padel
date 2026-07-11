@@ -1,14 +1,17 @@
 // components/LoginScreen.jsx
-// Единый экран входа: Telegram + Email (magic-link) + SMS (код).
+// Единый экран входа: Telegram + Email (magic-link или пароль).
+// Вход по паролю нужен и ревью-аккаунту Apple (почта ревьюеру недоступна),
+// и аккаунтам, созданным админом. SMS-вкладку убрали: реального провайдера
+// для пользователей нет, а телефон в поле путал ревьюеров (отказ 2.1(a)).
 // Поддерживает светлую/тёмную тему и переключение языка.
 import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import TelegramLogin from "./TelegramLogin";
-import { Send, Mail, Phone, Check, AlertCircle, Sun, Moon, ArrowLeft } from "lucide-react";
+import { Send, Mail, KeyRound, Check, AlertCircle, Sun, Moon, ArrowLeft } from "lucide-react";
 import Logo from "./Logo";
 import BackButton from "./BackButton";
 import { t, setLang } from "../lib/i18n";
-import { signInGoogle as authSignInGoogle, signInYandex, signInApple as authSignInApple } from "../lib/auth";
+import { signInGoogle as authSignInGoogle, signInYandex, signInApple as authSignInApple, signInEmail } from "../lib/auth";
 import { isRussiaSync, detectRegion } from "../lib/region";
 import { authRedirectTo } from "../lib/platform";
 
@@ -51,7 +54,6 @@ const mkCss = (isLight) => `
 `;
 
 const emailOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
-const phoneLike = (v) => /^\+?[\d\s()-]{7,}$/.test(v.trim());
 
 export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark", lang = "ru", onThemeToggle, onLangChange }) {
   const [method, setMethod] = useState("email"); // telegram | email | sms — по умолчанию email
@@ -60,9 +62,8 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
   useEffect(() => { detectRegion().then(setIsRF); }, []);
   useEffect(() => { if (isRF && method === "telegram") setMethod("email"); }, [isRF, method]);
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [code, setCode] = useState("");
-  const [smsSent, setSmsSent] = useState(false);
+  const [pwMode, setPwMode] = useState(false); // вход по паролю (ревью-аккаунт, админские)
+  const [pw, setPw] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState({ kind: "", text: "" });
 
@@ -87,18 +88,11 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
   };
 
   // ----- Email magic-link -----
-  // Кнопка всегда активна и всегда отвечает (ревью Apple 2.1(a): их тестер ввёл
-  // телефон во вкладке Email — кнопка была молча задизейблена, и это выглядело
-  // как зависание). Телефон уводим на вкладку SMS, невалидный email объясняем.
+  // Кнопка всегда активна и всегда отвечает (ревью Apple 2.1(a): молчаливый
+  // disabled выглядел как зависание) — невалидный ввод объясняем текстом.
   const sendEmail = async () => {
     if (busy) return;
-    const v = email.trim();
-    if (phoneLike(v)) {
-      setPhone(v); setMethod("sms"); setSmsSent(false);
-      setMsg({ kind: "ok", text: t("login_phone_in_email") });
-      return;
-    }
-    if (!emailOk(v)) { setMsg({ kind: "err", text: t("login_email_invalid") }); return; }
+    if (!emailOk(email.trim())) { setMsg({ kind: "err", text: t("login_email_invalid") }); return; }
     setBusy(true); reset();
     try {
       const { error } = await supabase.auth.signInWithOtp({
@@ -111,36 +105,18 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
     finally { setBusy(false); }
   };
 
-  // ----- SMS: шаг 1 — отправить код -----
-  const sendSms = async () => {
+  // ----- Email + пароль -----
+  const signInPw = async () => {
     if (busy) return;
-    const v = phone.trim();
-    if (emailOk(v)) {
-      setEmail(v); setMethod("email");
-      setMsg({ kind: "ok", text: t("login_email_in_phone") });
-      return;
-    }
-    if (!phoneLike(v)) { setMsg({ kind: "err", text: t("login_phone_invalid") }); return; }
+    if (!emailOk(email.trim())) { setMsg({ kind: "err", text: t("login_email_invalid") }); return; }
+    if (!pw) { setMsg({ kind: "err", text: t("login_pw_empty") }); return; }
     setBusy(true); reset();
     try {
-      const { error } = await supabase.auth.signInWithOtp({ phone: phone.trim() });
-      if (error) throw error;
-      setSmsSent(true);
-      setMsg({ kind: "ok", text: t("login_sms_sent") });
-    } catch (e) { setMsg({ kind: "err", text: e.message }); }
-    finally { setBusy(false); }
-  };
-
-  // ----- SMS: шаг 2 — проверить код -----
-  const verifySms = async () => {
-    if (busy) return;
-    if (!code.trim()) { setMsg({ kind: "err", text: t("login_code_empty") }); return; }
-    setBusy(true); reset();
-    try {
-      const { error } = await supabase.auth.verifyOtp({ phone: phone.trim(), token: code.trim(), type: "sms" });
-      if (error) throw error;
+      await signInEmail(email.trim(), pw);
       onSuccess?.();
-    } catch (e) { setMsg({ kind: "err", text: e.message }); }
+    } catch (e) {
+      setMsg({ kind: "err", text: /invalid/i.test(e.message || "") ? t("login_pw_wrong") : (e.message || t("err_generic")) });
+    }
     finally { setBusy(false); }
   };
 
@@ -205,11 +181,13 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} /> {t("login_or")} <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
           </div>
 
-          <div className="lg-seg">
-            {!isRF && <button className={method === "telegram" ? "on" : ""} onClick={() => { setMethod("telegram"); reset(); }}><Send size={14} />Telegram</button>}
-            <button className={method === "email" ? "on" : ""} onClick={() => { setMethod("email"); reset(); }}><Mail size={14} />Email</button>
-            <button className={method === "sms" ? "on" : ""} onClick={() => { setMethod("sms"); reset(); }}><Phone size={14} />SMS</button>
-          </div>
+          {/* Сегмент нужен, только если способов больше одного (в РФ — только email). */}
+          {!isRF && (
+            <div className="lg-seg">
+              <button className={method === "telegram" ? "on" : ""} onClick={() => { setMethod("telegram"); reset(); }}><Send size={14} />Telegram</button>
+              <button className={method === "email" ? "on" : ""} onClick={() => { setMethod("email"); reset(); }}><Mail size={14} />Email</button>
+            </div>
+          )}
 
           {!isRF && method === "telegram" && (
             <div>
@@ -219,35 +197,28 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
           )}
 
           {method === "email" && (
-            <div>
-              <input className="lg-input" type="email" placeholder="you@mail.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-              <button className="lg-btn" disabled={busy} onClick={sendEmail}>
-                <Mail size={16} /> {busy ? t("login_sending") : t("login_get_link")}
-              </button>
-              <Msg />
-            </div>
-          )}
-
-          {method === "sms" && (
-            <div>
-              {!smsSent ? (
-                <>
-                  <input className="lg-input" type="tel" placeholder="+7 900 000-00-00" value={phone} onChange={(e) => setPhone(e.target.value)} />
-                  <button className="lg-btn" disabled={busy} onClick={sendSms}>
-                    <Phone size={16} /> {busy ? t("login_sending") : t("login_get_code")}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <input className="lg-input" inputMode="numeric" placeholder={t("login_sms_ph")} value={code} onChange={(e) => setCode(e.target.value)} />
-                  <button className="lg-btn" disabled={busy} onClick={verifySms}>
-                    <Check size={16} /> {busy ? t("login_checking") : t("login_verify_code")}
-                  </button>
-                  <button className="lg-btn lg-btn-sec" onClick={() => { setSmsSent(false); setCode(""); reset(); }}>
-                    {t("login_change_phone")}
-                  </button>
-                </>
+            <div style={{ marginTop: isRF ? 14 : 0 }}>
+              <input className="lg-input" type="email" autoComplete="email" placeholder="you@mail.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+              {pwMode && (
+                <input className="lg-input" type="password" autoComplete="current-password" placeholder={t("login_pw_ph")}
+                  value={pw} onChange={(e) => setPw(e.target.value)} style={{ marginTop: 8 }}
+                  onKeyDown={(e) => e.key === "Enter" && signInPw()} />
               )}
+              {pwMode ? (
+                <button className="lg-btn" disabled={busy} onClick={signInPw}>
+                  <KeyRound size={16} /> {busy ? t("login_checking") : t("login_pw_btn")}
+                </button>
+              ) : (
+                <button className="lg-btn" disabled={busy} onClick={sendEmail}>
+                  <Mail size={16} /> {busy ? t("login_sending") : t("login_get_link")}
+                </button>
+              )}
+              {/* Вход по паролю: ревью-аккаунт Apple и приглашённые админом.
+                  Обычные пользователи живут без пароля — ссылка нарочно неброская. */}
+              <button onClick={() => { setPwMode((v) => !v); reset(); }}
+                style={{ display: "block", margin: "10px auto 0", background: "none", border: "none", color: "var(--mut)", fontSize: 12.5, cursor: "pointer", fontFamily: "'Outfit',sans-serif", textDecoration: "underline", textUnderlineOffset: 3 }}>
+                {pwMode ? t("login_pw_link") : t("login_pw_toggle")}
+              </button>
               <Msg />
             </div>
           )}
