@@ -278,8 +278,9 @@ export function CopyDialog({ src, groupId, profileId, onClose, onCopied }) {
     try { const t = await copyTournament(src.id, groupId, { name, withPlayers, createdBy: profileId, startsAt: startsAtIso, place }); onCopied(t.id); }
     catch (e) { alert(tr("err_copy_tour")); setBusy(false); }
   };
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }} onClick={onClose}>
+  // Портал в body: fixed-оверлей внутри анимируемого предка «уезжает» от вьюпорта.
+  return createPortal(
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px", fontFamily: "'Outfit',sans-serif" }} onClick={onClose}>
       <div className="tr-card" style={{ width: "100%", maxWidth: 360 }} onClick={(e) => e.stopPropagation()}>
         <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 12 }}>{tr("trn_copy_title")}</div>
         <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_copy_name_label")}</div>
@@ -299,7 +300,8 @@ export function CopyDialog({ src, groupId, profileId, onClose, onCopied }) {
           <button className="tr-btn" style={{ flex: 1, padding: 11 }} onClick={go} disabled={busy}>{busy ? tr("creating") : tr("trn_copy_btn")}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

@@ -348,6 +348,15 @@ export default function App({ initialShowLogin = false }) {
     setActiveLeague((prev) => (prev && prev.id === lg.id ? { ...prev, ...lg } : prev));
   }, []);
 
+  // Пользователь покинул лигу или удалил её: убираем из списка; если она была
+  // активной — переключаемся на первую оставшуюся.
+  const handleLeagueLeft = useCallback((gid) => {
+    const next = (leagues || []).filter((l) => l.id !== gid);
+    setLeagues(next);
+    setActiveLeague((prev) => (prev && prev.id === gid ? next[0] || null : prev));
+    try { if (localStorage.getItem("pp_demo_gid") === gid) localStorage.removeItem("pp_demo_gid"); } catch (e) {}
+  }, [leagues]);
+
   const isAdmin = !!(activeLeague && (activeLeague.role === "owner" || activeLeague.role === "admin"));
 
   // #7: ЛК теперь всплывающее окно (ProfileEditor сам портелится в body), а не
@@ -384,7 +393,7 @@ export default function App({ initialShowLogin = false }) {
           lang={lang} onLangChange={handleLangChange}
           leagues={leagues || []} activeLeague={activeLeague} isAdmin={isAdmin}
           onLeagueChange={handleLeagueChange} onLeagueCreated={handleLeagueDone}
-          onLeagueUpdated={handleLeagueUpdated} onOpenEvent={handleOpenEvent}
+          onLeagueUpdated={handleLeagueUpdated} onLeagueLeft={handleLeagueLeft} onOpenEvent={handleOpenEvent}
         />
         <LeagueSetup
           onDone={(league) => { setPendingJoin(null); handleLeagueDone(league); }}
@@ -416,6 +425,7 @@ export default function App({ initialShowLogin = false }) {
         onLeagueChange={handleLeagueChange}
         onLeagueCreated={handleLeagueDone}
         onLeagueUpdated={handleLeagueUpdated}
+        onLeagueLeft={handleLeagueLeft}
         onOpenEvent={handleOpenEvent}
       />
       {showInstall && (
@@ -469,7 +479,7 @@ export default function App({ initialShowLogin = false }) {
   );
 }
 
-function TopBar({ session, name, avatarUrl, avatarId, onLogin, onProfile, onSignOut, theme, onThemeToggle, lang = "ru", onLangChange, leagues = [], activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, onLeagueUpdated, onOpenEvent }) {
+function TopBar({ session, name, avatarUrl, avatarId, onLogin, onProfile, onSignOut, theme, onThemeToggle, lang = "ru", onLangChange, leagues = [], activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, onLeagueUpdated, onLeagueLeft, onOpenEvent }) {
   const base = { border: "1px solid var(--line)", borderRadius: 11, padding: "7px 12px", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif", transition: "transform .12s, filter .15s, background .15s" };
   return (
     <div style={{
@@ -484,7 +494,7 @@ function TopBar({ session, name, avatarUrl, avatarId, onLogin, onProfile, onSign
       {/* СЛЕВА: у залогиненного — переключатель лиги; у гостя — текстовый логотип. */}
       <div style={{ display: "flex", alignItems: "center", minWidth: 0, flex: 1 }}>
         {session
-          ? <LeagueSwitcher leagues={leagues} activeLeague={activeLeague} isAdmin={isAdmin} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onLeagueUpdated={onLeagueUpdated} />
+          ? <LeagueSwitcher leagues={leagues} activeLeague={activeLeague} isAdmin={isAdmin} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onLeagueUpdated={onLeagueUpdated} onLeagueLeft={onLeagueLeft} />
           : <span onClick={() => window.location.assign("/")} style={{ cursor: "pointer", display: "inline-flex" }} title={t("pub_to_app")}><Logo height={20} /></span>}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>

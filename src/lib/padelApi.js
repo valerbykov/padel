@@ -487,6 +487,21 @@ export async function joinLeague(code) {
   return data;
 }
 
+// Выход из лиги (не владелец): своё членство удаляется, история игр остаётся.
+export async function leaveLeague(groupId) {
+  const { error } = await supabase.rpc("leave_league", { p_group_id: groupId });
+  if (error) throw error;
+  bustCache();
+}
+
+// Удаление лиги (только владелец): каскад по всем данным лиги + чистка
+// осиротевших гостей на сервере. Необратимо.
+export async function deleteLeague(groupId) {
+  const { error } = await supabase.rpc("delete_league", { p_group_id: groupId });
+  if (error) throw error;
+  bustCache();
+}
+
 // Все лиги, в которых состоит профиль. Возвращает массив
 // { id, name, invite_code, logo_url, telegram_url, role }.
 async function _getMyLeagues(profileId) {

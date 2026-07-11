@@ -748,14 +748,16 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
           </button>
         </div>
       )}
-      {showCreateLeague && (
+      {/* Портал в body: fixed внутри .pl-pop (transform) считался бы от предка. */}
+      {showCreateLeague && createPortal(
         <div style={{ position: "fixed", inset: 0, zIndex: 250, background: "var(--bg)", overflowY: "auto" }}>
           <Suspense fallback={null}>
             <LeagueSetup initialMode="create"
               onDone={(lg) => { setShowCreateLeague(false); onLeagueCreated && onLeagueCreated(lg); }}
               onCancel={() => setShowCreateLeague(false)} />
           </Suspense>
-        </div>
+        </div>,
+        document.body
       )}
       {/* #3: Аналитика лиги — верхний блок-плитка над списком друзей (раньше был значок в шапке). */}
       {groupId && ranked.length > 0 && (
@@ -989,8 +991,10 @@ function DeletePlayerModal({ player, onConfirm, onCancel }) {
     catch (e) { alert(t("err_delete")); setBusy(false); }
   };
 
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }}>
+  // Портал в body: внутри .pl-pop (анимация transform) fixed-оверлей считается
+  // от предка, а не от вьюпорта — диалог «уезжал» вглубь длинной страницы.
+  return createPortal(
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px", fontFamily: "'Outfit',sans-serif" }}>
       <div className="pl-card" style={{ padding: 20, width: "100%", maxWidth: 360 }}>
         <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>{t("remove_from_league")}: {player.name}?</div>
         <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 16 }}>
@@ -1004,7 +1008,8 @@ function DeletePlayerModal({ player, onConfirm, onCancel }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

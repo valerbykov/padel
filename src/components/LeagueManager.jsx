@@ -4,8 +4,8 @@
 // Данные тянет через get_league_details (RPC), сохраняет в groups (RLS).
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Upload, Send, Check, Star, Users, ShieldCheck, ChevronDown, Loader, UserPlus, Swords } from "lucide-react";
-import { getLeagueDetails, updateLeague, uploadLeagueLogo } from "../lib/padelApi";
+import { X, Upload, Send, Check, Star, Users, ShieldCheck, ChevronDown, Loader, UserPlus, Swords, LogOut, Trash2 } from "lucide-react";
+import { getLeagueDetails, updateLeague, uploadLeagueLogo, leaveLeague, deleteLeague } from "../lib/padelApi";
 import Avatar from "./Avatar";
 import InviteCard from "./InviteCard";
 import { t } from "../lib/i18n";
@@ -24,7 +24,26 @@ function Section({ icon, title, count, open, onToggle, children }) {
   );
 }
 
-export default function LeagueManager({ groupId, canEdit = false, onClose, onUpdated }) {
+// Подтверждение опасного действия — поверх шторки (её корень уже в портале,
+// трансформов нет, так что fixed здесь честно центрируется во вьюпорте).
+function DangerConfirm({ title, sub, btn, busy, onConfirm, onCancel }) {
+  return (
+    <div onClick={busy ? undefined : onCancel} style={{ position: "fixed", inset: 0, zIndex: 320, background: "rgba(0,0,0,.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 360, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 18, padding: 20 }}>
+        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8, color: "var(--ink)" }}>{title}</div>
+        <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 16, lineHeight: 1.45 }}>{sub}</div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={onCancel} disabled={busy} style={{ flex: 1, padding: 11, background: "var(--surface2)", color: "var(--ink)", border: "1px solid var(--line)", borderRadius: 12, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontSize: 14 }}>{t("cancel")}</button>
+          <button onClick={onConfirm} disabled={busy} style={{ flex: 1, padding: 11, border: "none", borderRadius: 12, background: "var(--coral)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "'Outfit',sans-serif", opacity: busy ? .6 : 1 }}>
+            {busy ? t("deleting") : btn}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function LeagueManager({ groupId, role = "member", canEdit = false, onClose, onUpdated, onLeft }) {
   const [d, setD] = useState(null);          // детали из RPC
   const [name, setName] = useState("");
   const [tg, setTg] = useState("");
@@ -37,6 +56,24 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
   const [err, setErr] = useState("");
   const fileRef = useRef(null);
   const [openTeam, setOpenTeam] = useState(false);
+  const [danger, setDanger] = useState(false);       // подтверждение выхода/удаления
+  const [dangerBusy, setDangerBusy] = useState(false);
+  const isOwner = role === "owner";
+
+  // Владелец удаляет лигу целиком, остальные (организатор/участник) — выходят.
+  const doDanger = async () => {
+    if (dangerBusy) return;
+    setDangerBusy(true); setErr("");
+    try {
+      if (isOwner) await deleteLeague(groupId);
+      else await leaveLeague(groupId);
+      onLeft && onLeft(groupId);
+      onClose && onClose();
+    } catch (e) {
+      setErr(e.message || t("err_generic"));
+      setDanger(false); setDangerBusy(false);
+    }
+  };
 
   useEffect(() => {
     let alive = true;
@@ -223,7 +260,32 @@ export default function LeagueManager({ groupId, canEdit = false, onClose, onUpd
             {!canEdit && (
               <div style={{ textAlign: "center", fontSize: 12, color: "var(--mut)", padding: "2px 0 4px" }}>{t("league_view_only")}</div>
             )}
+
+            {/* Опасная зона: владелец удаляет лигу, остальные — выходят из неё */}
+            <div style={{ background: "var(--surface2)", border: "1px solid color-mix(in srgb, var(--coral) 35%, var(--line))", borderRadius: 14, marginTop: 6 }}>
+              <div onClick={() => setDanger(true)} role="button"
+                style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 12px", cursor: "pointer" }}>
+                <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--coral) 14%, transparent)", color: "var(--coral)" }}>
+                  {isOwner ? <Trash2 size={15} /> : <LogOut size={15} />}
+                </span>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--coral)" }}>{isOwner ? t("lg_delete") : t("lg_leave")}</div>
+                  <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 1, lineHeight: 1.35 }}>{isOwner ? t("lg_delete_hint") : t("lg_leave_hint")}</div>
+                </div>
+              </div>
+            </div>
           </>
+        )}
+
+        {danger && (
+          <DangerConfirm
+            title={`${isOwner ? t("lg_delete") : t("lg_leave")}: ${name || ""}?`}
+            sub={isOwner ? t("lg_delete_sub") : t("lg_leave_sub")}
+            btn={isOwner ? t("lg_delete_btn") : t("lg_leave_btn")}
+            busy={dangerBusy}
+            onConfirm={doDanger}
+            onCancel={() => setDanger(false)}
+          />
         )}
       </div>
     </div>,
