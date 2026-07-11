@@ -3056,9 +3056,14 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
     });
     return { w, l };
   })();
+  // Δ месяца — только по событиям, видимым в Истории: обычные матчи и матчи
+  // ЗАВЕРШЁННЫХ турниров. Раунды активного турнира уже двигают рейтинг, но его
+  // плитки в ленте ещё нет — без этого фильтра сводка «не бьётся» с карточками.
+  const finishedTrMatchIds = new Set(tours.flatMap((tr) => (tr.matches || []).map((m) => m.id)));
   const myMonthDelta = (deltaRows || []).reduce((s, r) => {
-    const d = new Date(r.created_at);
-    return inMonth(d) ? s + (r.delta || 0) : s;
+    if (!inMonth(new Date(r.created_at))) return s;
+    if (r.tournament_match_id && !finishedTrMatchIds.has(r.tournament_match_id)) return s;
+    return s + (r.delta || 0);
   }, 0);
 
   if (games === null) return <div className="pl-pop"><CardSkeleton count={4} /></div>;
