@@ -96,7 +96,7 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
         supabase.from("profiles").select("id, notifications_seen_at").eq("user_id", user.id).maybeSingle(),
         // Микс-раунды («Сыграть ещё») исключаем — внутренние пере-жеребьёвки, не новость.
         supabase.from("games")
-          .select("id, invite_code, title, place, starts_at, status, created_at, group_id, host_id, slots:game_slots(profile_id), matches(id)")
+          .select("id, invite_code, title, place, starts_at, started_at, status, created_at, group_id, host_id, slots:game_slots(profile_id), matches(id)")
           .in("group_id", ids).is("mix_group_id", null).gt("created_at", since)
           .order("created_at", { ascending: false }).limit(MAX_ITEMS),
         supabase.from("tournaments")
@@ -155,10 +155,17 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
       ]) : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: null }];
 
       const allGames = gQ.data || [];
-      // «Игра прошла — введи счёт»: время позади, счёта нет, я хост или в составе.
-      // Включаем и СВОИ игры — это напоминание о действии, а не новость.
+      // «Игра прошла — введи счёт»: счёта нет, я хост или в составе. «Прошла» —
+      // не момент НАЧАЛА, а начало + типичная сессия (2 часа): в starts_at
+      // хранится время старта, окончание нигде не фиксируется. У live-игр
+      // отсчитываем от фактического старта (started_at).
+      const GAME_LEN = 2 * 3600e3;
+      const gameOver = (g) => {
+        const base = g.status === "live" ? (g.started_at || g.starts_at) : g.starts_at;
+        return base && new Date(base).getTime() + GAME_LEN < now;
+      };
       const scoreItems = allGames
-        .filter((g) => g.status === "open" && g.starts_at && new Date(g.starts_at).getTime() < now
+        .filter((g) => (g.status === "open" || g.status === "live") && gameOver(g)
           && (g.matches || []).length === 0
           && (g.host_id === me || (g.slots || []).some((s) => s.profile_id === me)))
         .map((g) => ({
