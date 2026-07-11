@@ -56,6 +56,7 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
   const [err, setErr] = useState("");
   const fileRef = useRef(null);
   const [openTeam, setOpenTeam] = useState(false);
+  const [openRights, setOpenRights] = useState(false); // права — аккордеон, пунктов будет больше
   const [danger, setDanger] = useState(false);       // подтверждение выхода/удаления
   const [dangerBusy, setDangerBusy] = useState(false);
   const isOwner = role === "owner";
@@ -230,32 +231,36 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
               )}
             </div>
 
-            {/* Права участников — строки с иконками и тумблерами */}
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--mut)", letterSpacing: .3, textTransform: "uppercase", margin: "2px 2px 6px" }}>{t("league_rights_title")}</div>
-            <div style={{ background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 14, marginBottom: 12, opacity: canEdit ? 1 : 0.72 }}>
-              <div onClick={canEdit ? () => setMembersCanAdd((v) => !v) : undefined} role="switch" aria-checked={membersCanAdd} aria-disabled={!canEdit}
-                style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 12px", borderBottom: "1px solid var(--line)", cursor: canEdit ? "pointer" : "default" }}>
-                <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--lime) 13%, transparent)", color: "var(--lime)" }}><UserPlus size={15} /></span>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{t("members_can_add_label")}</div>
-                  <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 1, lineHeight: 1.35 }}>{t("members_can_add_hint")}</div>
+            {/* Права участников — сворачиваемая секция (как «Команда»): в шапке компактно,
+                внутри строки с тумблерами; сюда же будут добавляться новые права. */}
+            <Section icon={<ShieldCheck size={13} style={{ color: "var(--mut)" }} />} title={t("league_rights_title")}
+              count={[membersCanAdd, membersCanCreate].filter(Boolean).length || null}
+              open={openRights} onToggle={() => setOpenRights((v) => !v)}>
+              <div style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 14, opacity: canEdit ? 1 : 0.72 }}>
+                <div onClick={canEdit ? () => setMembersCanAdd((v) => !v) : undefined} role="switch" aria-checked={membersCanAdd} aria-disabled={!canEdit}
+                  style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 12px", borderBottom: "1px solid var(--line)", cursor: canEdit ? "pointer" : "default" }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--lime) 13%, transparent)", color: "var(--lime)" }}><UserPlus size={15} /></span>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{t("members_can_add_label")}</div>
+                    <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 1, lineHeight: 1.35 }}>{t("members_can_add_hint")}</div>
+                  </div>
+                  <div style={{ flexShrink: 0, width: 42, height: 24, borderRadius: 999, background: membersCanAdd ? "var(--lime)" : "var(--line)", position: "relative", transition: "background .15s" }}>
+                    <span style={{ position: "absolute", top: 3, left: membersCanAdd ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
+                  </div>
                 </div>
-                <div style={{ flexShrink: 0, width: 42, height: 24, borderRadius: 999, background: membersCanAdd ? "var(--lime)" : "var(--line)", position: "relative", transition: "background .15s" }}>
-                  <span style={{ position: "absolute", top: 3, left: membersCanAdd ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
+                <div onClick={canEdit ? () => setMembersCanCreate((v) => !v) : undefined} role="switch" aria-checked={membersCanCreate} aria-disabled={!canEdit}
+                  style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 12px", cursor: canEdit ? "pointer" : "default" }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--yellow) 13%, transparent)", color: "var(--yellow)" }}><Swords size={15} /></span>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{t("members_can_create_label")}</div>
+                    <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 1, lineHeight: 1.35 }}>{t("members_can_create_hint")}</div>
+                  </div>
+                  <div style={{ flexShrink: 0, width: 42, height: 24, borderRadius: 999, background: membersCanCreate ? "var(--lime)" : "var(--line)", position: "relative", transition: "background .15s" }}>
+                    <span style={{ position: "absolute", top: 3, left: membersCanCreate ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
+                  </div>
                 </div>
               </div>
-              <div onClick={canEdit ? () => setMembersCanCreate((v) => !v) : undefined} role="switch" aria-checked={membersCanCreate} aria-disabled={!canEdit}
-                style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 12px", cursor: canEdit ? "pointer" : "default" }}>
-                <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--yellow) 13%, transparent)", color: "var(--yellow)" }}><Swords size={15} /></span>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{t("members_can_create_label")}</div>
-                  <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 1, lineHeight: 1.35 }}>{t("members_can_create_hint")}</div>
-                </div>
-                <div style={{ flexShrink: 0, width: 42, height: 24, borderRadius: 999, background: membersCanCreate ? "var(--lime)" : "var(--line)", position: "relative", transition: "background .15s" }}>
-                  <span style={{ position: "absolute", top: 3, left: membersCanCreate ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
-                </div>
-              </div>
-            </div>
+            </Section>
 
             {!canEdit && (
               <div style={{ textAlign: "center", fontSize: 12, color: "var(--mut)", padding: "2px 0 4px" }}>{t("league_view_only")}</div>
