@@ -174,9 +174,30 @@ export async function renderTournamentCard({ name, dateStr, metaStr, top3 }) {
 }
 
 // PNG → системный шеринг; фолбэк — скачивание файла.
+// В нативных оболочках Web Share API нет (Android WebView) — там пишем PNG в
+// кэш и зовём системный шит через Capacitor Share (плагины берём с
+// window.Capacitor, без прямых импортов @capacitor/* — см. platform.js).
 export async function shareCanvas(canvas, filename) {
   const blob = await new Promise((res) => canvas.toBlob(res, "image/png"));
   if (!blob) return false;
+  const cap = typeof window !== "undefined" ? window.Capacitor : null;
+  const FS = cap?.Plugins?.Filesystem, SH = cap?.Plugins?.Share;
+  if (cap?.isNativePlatform?.() && FS && SH) {
+    try {
+      const b64 = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onloadend = () => res(String(r.result).split(",")[1]);
+        r.onerror = rej;
+        r.readAsDataURL(blob);
+      });
+      const w = await FS.writeFile({ path: filename, data: b64, directory: "CACHE" });
+      await SH.share({ files: [w.uri] });
+      return true;
+    } catch (e) {
+      // отмена шита — не ошибка; прочее — пробуем веб-путь ниже
+      if (/cancel/i.test(e?.message || "")) return true;
+    }
+  }
   const file = new File([blob], filename, { type: "image/png" });
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try { await navigator.share({ files: [file] }); return true; }
