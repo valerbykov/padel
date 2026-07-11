@@ -2086,7 +2086,7 @@ export function GameRow({ g, color, onOpen, flush, bare, label, me = null, onTak
 
 // Объединённая плашка микс-сессии: несколько под-игр одного выхода (тот же
 // состав, разные расстановки). Внутри — каждая под-игра со своим счётом.
-function MixGroupCard({ games, color, onOpenGame, me = null }) {
+function MixGroupCard({ games, color, onOpenGame, me = null, delta = null }) {
   const first = games[0];
   const mine = !!me && games.some((g) => meInGame(g, me));
   const when = first.starts_at || first.created_at;
@@ -2101,6 +2101,14 @@ function MixGroupCard({ games, color, onOpenGame, me = null }) {
           </div>
           {when && <div style={{ fontSize: 12, color: "var(--mut)" }}>{fmtDate(when)}</div>}
         </div>
+        {/* Суммарная дельта фокус-игрока по под-играм сессии */}
+        {delta != null && (
+          <span style={{ fontSize: 11, fontWeight: 800, padding: "3px 9px", borderRadius: 20, flexShrink: 0,
+            background: delta > 0 ? "color-mix(in srgb, var(--lime) 15%, transparent)" : delta < 0 ? "color-mix(in srgb, var(--coral) 14%, transparent)" : "rgba(255,255,255,.06)",
+            color: delta > 0 ? "var(--lime)" : delta < 0 ? "var(--coral)" : "var(--mut)" }}>
+            {delta > 0 ? `+${delta}` : String(delta)}
+          </span>
+        )}
         <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: "color-mix(in srgb, var(--lime) 14%, transparent)", color: "var(--lime)", flexShrink: 0 }}>
           {nGames(games.length)}
         </span>
@@ -2970,20 +2978,27 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
   const [swipeHint, setSwipeHint] = useState(() => { try { return !localStorage.getItem("pp_swipe_hint"); } catch (e) { return true; } });
   const dismissHint = () => { try { localStorage.setItem("pp_swipe_hint", "1"); } catch (e) {} setSwipeHint(false); };
   const [filter, setFilter] = useState("all"); // all | games | tours
-  const [mineOnly, setMineOnly] = useState(false); // «Мои» — аватар-тумблер справа от сегмента
   const [monthOff, setMonthOff] = useState(0);     // 0 = текущий месяц, -1 = прошлый…
-  const [pFilter, setPFilter] = useState(null);    // «чья история»: id игрока из карусели
-  const [deltaRows, setDeltaRows] = useState([]);  // мои rating_changes (бейджи ±N и Δ месяца)
+  const [pFilter, setPFilter] = useState(null);    // «чья история»: id игрока из карусели (я — первый)
+  const [deltaRows, setDeltaRows] = useState([]);  // rating_changes фокус-игрока (бейджи ±N и Δ месяца)
+  const focusId = pFilter || profileId;            // чьи дельты и В–П показываем
 
   const load = useCallback(async () => {
     try { const g = groupId ? await listGames(groupId) : await listMyGames(); setGames((g || []).filter((x) => x.status === "played")); }
     catch (e) { setGames([]); }
     try { const all = groupId ? await listTournaments(groupId) : await listMyTournaments(); setTours((all || []).filter((tr) => tr.status === "finished")); }
     catch (e) { setTours([]); }
-    try { setDeltaRows(groupId && profileId ? await getMyDeltas(groupId, profileId) : []); }
-    catch (e) { setDeltaRows([]); }
-  }, [groupId, profileId]);
+  }, [groupId]);
   useEffect(() => { if (!sel) load(); }, [load, sel, archiveNonce]);
+  // Дельты — отдельно: перезагружаются при смене фокус-игрока из карусели.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try { const rows = groupId && focusId ? await getMyDeltas(groupId, focusId) : []; if (alive) setDeltaRows(rows); }
+      catch (e) { if (alive) setDeltaRows([]); }
+    })();
+    return () => { alive = false; };
+  }, [groupId, focusId, archiveNonce]);
 
   // Проваливание в результаты — те же экраны, что на вкладках Игры/Турниры (там и удаление).
   if (sel?.type === "tour") return <TournamentView id={sel.data.id} players={players} back={() => setSel(null)} isGroupMember={isGroupMember} currentProfileId={profileId} onArchiveChange={bumpArchive} />;
@@ -2998,17 +3013,15 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
   const inMonth = (d) => d >= mStart && d < mEnd;
   const monthLabel = mStart.toLocaleDateString(undefined, { month: "long", ...(mStart.getFullYear() !== nowD.getFullYear() ? { year: "numeric" } : {}) });
 
-  const mineTour = (tr) => !profileId || (tr.players || []).some((pl) => pl.profile_id === profileId);
-  const mineGame = (g) => !profileId || meInGame(g, profileId);
   const pInTour = (tr) => !pFilter || (tr.players || []).some((pl) => pl.profile_id === pFilter);
   const pInGame = (g) => !pFilter || (g.slots || []).some((s) => s.profile_id === pFilter);
   const mGames = games === null ? [] : games.filter((g) => inMonth(gameDate(g)));
   const mTours = tours.filter((tr) => inMonth(tourDate(tr)));
-  const vTours = mTours.filter((tr) => (!mineOnly || mineTour(tr)) && pInTour(tr));
-  const vGames = mGames.filter((g) => (!mineOnly || mineGame(g)) && pInGame(g));
+  const vTours = mTours.filter(pInTour);
+  const vGames = mGames.filter(pInGame);
 
-  // Мои дельты: map id матча (обычного или турнирного) → ±N.
-  const deltaMap = new Map((deltaRows || []).map((r) => [r.match_id, r.delta]));
+  // Дельты фокус-игрока: у обычных матчей ключ match_id, у турнирных — tournament_match_id.
+  const deltaMap = new Map((deltaRows || []).map((r) => [r.match_id || r.tournament_match_id, r.delta]));
   const gDelta = (g) => { const id = g.matches?.[0]?.id; return id != null && deltaMap.has(id) ? deltaMap.get(id) : null; };
   const trDelta = (tr) => {
     let sum = 0, found = false;
@@ -3016,15 +3029,15 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
     return found ? sum : null;
   };
 
-  // Сводка месяца: игры/турниры лиги + мои В–П и Δ рейтинга за месяц.
+  // Сводка месяца: игры/турниры лиги + В–П и Δ рейтинга фокус-игрока.
   const myWL = (() => {
     let w = 0, l = 0;
     mGames.forEach((g) => {
-      if (!profileId || !meInGame(g, profileId)) return;
+      if (!focusId) return;
       const m = g.matches?.[0]; if (!m || m.sets_a === m.sets_b) return;
-      const myTeam = (g.slots || []).find((s) => s.profile_id === profileId)?.team;
-      if (!myTeam) return;
-      const won = myTeam === "A" ? m.sets_a > m.sets_b : m.sets_b > m.sets_a;
+      const fTeam = (g.slots || []).find((s) => s.profile_id === focusId)?.team;
+      if (!fTeam) return;
+      const won = fTeam === "A" ? m.sets_a > m.sets_b : m.sets_b > m.sets_a;
       won ? w++ : l++;
     });
     return { w, l };
@@ -3076,7 +3089,12 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
     if (ev.kind === "mix") {
       const ordered = ev.games;
       const mine = !profileId || ordered.some((gg) => meInGame(gg, profileId));
-      const card = <MixGroupCard games={ordered} color="#7d9488" me={profileId} onOpenGame={(g) => setSel({ type: "game", data: g })} />;
+      const mixDelta = (() => {
+        let sum = 0, found = false;
+        ordered.forEach((gg) => { const d0 = gDelta(gg); if (d0 != null) { sum += d0; found = true; } });
+        return found ? sum : null;
+      })();
+      const card = <MixGroupCard games={ordered} color="#7d9488" me={profileId} delta={mixDelta} onOpenGame={(g) => setSel({ type: "game", data: g })} />;
       const inner = isGroupMember
         ? <SwipeToDelete onDelete={async () => { if (!confirm(t("mix_delete_confirm").replace("{n}", ordered.length))) return; for (const gg of ordered) await deleteGame(gg.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
         : card;
@@ -3097,7 +3115,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
   return (
     <div className="pl-pop">
       <style>{trCss}</style>
-      {/* Фильтры одной строкой: сегмент + аватар-тумблер «Мои» справа. */}
+      {/* Фильтр видов: Все / Игры / Турниры. */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
         <div style={{ flex: 1, display: "flex", gap: 4, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, padding: 3 }}>
           {[["all", t("filter_all")], ["games", t("filter_games")], ["tours", t("filter_tours")]].map(([key, label]) => (
@@ -3110,18 +3128,6 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
             }}>{label}</button>
           ))}
         </div>
-        {profileId && (
-          <button onClick={() => { setMineOnly((v) => !v); setPFilter(null); }} aria-pressed={mineOnly} title={t("only_mine")} aria-label={t("only_mine")}
-            style={{ flexShrink: 0, width: 42, height: 42, borderRadius: "50%", padding: 0, cursor: "pointer", position: "relative", background: "var(--surface2)",
-              border: mineOnly ? "2px solid var(--lime)" : "2px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            {meRow
-              ? <img src={playerAvatar(meRow.avatar_url, meRow.id)} onError={avatarFallback(meRow.id)} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
-              : <UserCheck size={16} style={{ color: mineOnly ? "var(--lime)" : "var(--mut)" }} />}
-            {mineOnly && (
-              <span style={{ position: "absolute", right: -3, bottom: -3, width: 15, height: 15, borderRadius: "50%", background: "var(--lime)", color: "var(--lime-fg)", fontSize: 9, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}>✓</span>
-            )}
-          </button>
-        )}
       </div>
 
       {/* Сводка месяца с листалкой ‹ › — заодно фильтр периода для ленты. */}
@@ -3140,7 +3146,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
           {profileId && (
             <div style={{ flex: 1, minWidth: 0, borderLeft: "1px solid var(--line)" }}>
               <div style={{ fontWeight: 800, fontSize: 19, color: myWL.w >= myWL.l ? "var(--lime)" : "var(--coral)" }}>{myWL.w}–{myWL.l}</div>
-              <div style={{ fontSize: 10, color: "var(--mut)" }}>{t("hist_wl_lbl")}</div>
+              <div style={{ fontSize: 10, color: "var(--mut)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{focusId === profileId ? t("hist_wl_lbl") : t("hist_wl_of").replace("{name}", ((players || []).find((p) => p.id === focusId)?.name || "").split(" ")[0])}</div>
             </div>
           )}
           {profileId && (
@@ -3154,16 +3160,23 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
           style={{ flexShrink: 0, width: 26, height: 26, borderRadius: 8, border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--mut)", cursor: monthOff === 0 ? "default" : "pointer", fontSize: 13, lineHeight: 1, opacity: monthOff === 0 ? .35 : 1 }}>›</button>
       </div>
 
-      {/* «Чья история»: тап по игроку — только его матчи. */}
-      {rosterOthers.length > 1 && (
+      {/* «Чья история»: я — первым, тап по игроку — его матчи, его В–П и дельты. */}
+      {(players || []).length > 1 && (
         <div style={{ display: "flex", gap: 7, overflowX: "auto", padding: "2px 0 6px", marginBottom: 6, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
-          {rosterOthers.slice(0, 16).map((p) => (
-            <button key={p.id} onClick={() => { setPFilter((v) => v === p.id ? null : p.id); setMineOnly(false); }} title={p.name} aria-pressed={pFilter === p.id}
-              style={{ flexShrink: 0, width: 34, height: 34, borderRadius: "50%", padding: 0, cursor: "pointer", background: "var(--surface2)",
-                border: pFilter === p.id ? "2px solid var(--coral)" : "2px solid var(--line)", opacity: pFilter && pFilter !== p.id ? .5 : 1 }}>
-              <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
-            </button>
-          ))}
+          {[...(meRow ? [meRow] : []), ...rosterOthers].slice(0, 17).map((p) => {
+            const isMe = p.id === profileId;
+            const on = pFilter === p.id;
+            return (
+              <button key={p.id} onClick={() => setPFilter((v) => v === p.id ? null : p.id)} title={p.name} aria-pressed={on}
+                style={{ flexShrink: 0, width: 34, height: 34, borderRadius: "50%", padding: 0, cursor: "pointer", background: "var(--surface2)", position: "relative",
+                  border: on ? `2px solid ${isMe ? "var(--lime)" : "var(--coral)"}` : "2px solid var(--line)", opacity: pFilter && !on ? .5 : 1 }}>
+                <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+                {on && (
+                  <span style={{ position: "absolute", right: -3, bottom: -3, width: 14, height: 14, borderRadius: "50%", background: isMe ? "var(--lime)" : "var(--coral)", color: "var(--lime-fg)", fontSize: 8.5, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}>✓</span>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -3173,7 +3186,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
         </div>
       )}
 
-      {events.length === 0 && <EmptyState text={mineOnly || pFilter ? t("history_no_mine") : t("hist_month_empty")} />}
+      {events.length === 0 && <EmptyState text={pFilter ? t("history_no_mine") : t("hist_month_empty")} />}
       {(() => {
         const out = [];
         let lastDay = null;

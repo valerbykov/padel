@@ -488,13 +488,14 @@ export async function joinLeague(code) {
   return data;
 }
 
-// Мои дельты рейтинга по матчам лиги (обычные и турнирные): map строится на
-// клиенте. Для бейджей ±N в «Истории» и суммы за месяц в сводке.
+// Дельты рейтинга игрока по матчам лиги. У обычных матчей заполнен match_id,
+// у турнирных — tournament_match_id (recompute пишет их в разные колонки).
+// Для бейджей ±N в «Истории» и суммы за месяц в сводке.
 export function getMyDeltas(groupId, profileId) {
   if (!groupId || !profileId) return Promise.resolve([]);
   return swr(`mydeltas:${groupId}:${profileId}`, async () => {
     const { data, error } = await supabase.from("rating_changes")
-      .select("match_id, delta, created_at")
+      .select("match_id, tournament_match_id, delta, created_at")
       .eq("group_id", groupId).eq("profile_id", profileId)
       .order("created_at", { ascending: false }).limit(600);
     if (error) throw error;
