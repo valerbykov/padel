@@ -319,13 +319,11 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLand
     for (let i = nums.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [nums[i], nums[j]] = [nums[j], nums[i]]; }
     return nums.slice(0, 4).map((n) => `dog-${String(n).padStart(2, "0")}`);
   });
-  // Карточки = «что делать дальше» (онбординг), а не повтор витрины с лендинга.
+  // Три ёмкие карточки: демо теперь продаёт живой подиум ниже, а не текст.
   const features = [
-    { icon: "🐕", title: t("feat_demo_title"), sub: t("feat_demo_sub") },     // демо-стая сразу после входа
-    { icon: "🏆", title: t("feat_board_title"), sub: t("feat_board_sub") },   // создать/вступить в лигу
-    { icon: "🔗", title: t("feat_stats_title"), sub: t("feat_stats_sub") },   // игры по ссылке
-    { icon: "🎖️", title: t("feat_tour_title"), sub: t("feat_tour_sub") },     // уровни и ачивки
-    { icon: "🏅", title: t("feat_pwa_title"), sub: t("feat_pwa_sub") },       // турниры
+    { icon: "🏆", title: t("w_f1_t"), sub: t("w_f1_d") },   // создай/вступи
+    { icon: "🔗", title: t("w_f2_t"), sub: t("w_f2_d") },   // ссылки, LIVE, напоминания
+    { icon: "📸", title: t("w_f3_t"), sub: t("w_f3_d") },   // рейтинг, звания, карточки
   ];
   return (
     <div className="pl-pop">
@@ -352,6 +350,28 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLand
           {t("welcome_tagline")}
         </div>
       </div>
+
+      {/* Живой мини-подиум: продукт виден до входа; собаки — те же, что в демо-стае */}
+      <div className="pl-card" style={{ padding: "14px 12px 0", marginBottom: 8 }}>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 12 }}>
+          {[
+            { n: 2, img: "dog-02", nm: t("w_pn2"), size: 42, pad: 10, col: "#cfd8d0" },
+            { n: 1, img: "dog-01", nm: t("w_pn1"), size: 52, pad: 15, col: "var(--yellow)" },
+            { n: 3, img: "dog-03", nm: t("w_pn3"), size: 42, pad: 6, col: "#cd7f4d" },
+          ].map((c) => (
+            <div key={c.n} style={{ textAlign: "center", minWidth: 0 }}>
+              <img src={`/avatars/${c.img}.webp`} alt="" loading="lazy" decoding="async"
+                style={{ width: c.size, height: c.size, borderRadius: "50%", objectFit: "cover", border: `3px solid ${c.col}`, background: "var(--surface)" }} />
+              <div style={{ fontSize: c.n === 1 ? 12 : 11, fontWeight: c.n === 1 ? 700 : 600, marginTop: 3 }}>{c.nm}{c.n === 1 ? " · 1204" : ""}</div>
+              {c.n === 1 && (
+                <div style={{ fontSize: 9.5, fontWeight: 800, padding: "2px 7px", borderRadius: 20, background: "color-mix(in srgb, #ff9f2d 18%, transparent)", color: "#ff9f2d", display: "inline-block", marginTop: 2 }}>{t("tier_leader")}</div>
+              )}
+              <div style={{ background: c.n === 1 ? "color-mix(in srgb, var(--yellow) 18%, var(--surface2))" : "var(--surface2)", borderRadius: "8px 8px 0 0", padding: `${c.pad}px 16px`, fontWeight: 800, color: c.col, marginTop: 4 }}>{c.n}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{ textAlign: "center", fontSize: 11.5, color: "var(--mut)", marginBottom: 14 }}>{t("w_pod_hint")}</div>
 
       {/* Feature cards */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 22 }}>

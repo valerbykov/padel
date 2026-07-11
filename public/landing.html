@@ -176,6 +176,23 @@
     .havs img+img{margin-left:-8px;}
     .hsc{margin-left:auto; font-family:'Anton'; font-size:14px;}
 
+    /* hero podium (мокап нового борда) */
+    .pod{display:flex; align-items:flex-end; justify-content:center; gap:9px; margin:2px 0 8px;}
+    .podc{text-align:center; min-width:0;}
+    .podc .pnm{font-size:10.5px; font-weight:600; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+    .podc .pped{border-radius:8px 8px 0 0; padding:9px 15px; font-weight:800; font-size:13px; margin-top:4px; background:var(--surface2);}
+    .podav{border-radius:50%; object-fit:cover; display:block; margin:0 auto;}
+    .tierc{font-size:8.5px; font-weight:800; padding:2px 6px; border-radius:20px; background:color-mix(in srgb,#ff9f2d 18%,transparent); color:#ff9f2d; display:inline-block; margin-top:2px;}
+    .yourow{border-color:color-mix(in srgb,var(--lime) 50%,transparent)!important; background:color-mix(in srgb,var(--lime) 8%,var(--surface))!important;}
+
+    /* store badges (заглушка «скоро в сторах») */
+    .stores{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:18px;}
+    .sbadge{display:inline-flex; align-items:center; gap:9px; padding:7px 14px; border:1px solid var(--line); border-radius:12px; background:var(--surface); opacity:.8;}
+    .sbadge i{font-style:normal; font-size:19px; line-height:1;}
+    .sbadge small{display:block; font-size:9px; color:var(--mut); font-weight:600; letter-spacing:.4px;}
+    .sbadge b{font-size:13.5px; line-height:1.1;}
+    .stores-note{width:100%; font-size:11.5px; color:var(--mut);}
+
     /* league-management mockup */
     .mng-lbl{font-size:9px; color:var(--mut); font-weight:700; letter-spacing:.4px; margin:4px 2px -2px;}
     .mng-hd{display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:10px;}
@@ -303,6 +320,12 @@
             <span class="auths"><i style="background:#4285F4">G</i><i style="background:#229ED9"><svg viewBox="0 0 448 512" width="12" height="12" fill="#fff" aria-hidden="true"><path d="M446.7 98.6l-67.6 318.8c-5.1 22.5-18.4 28.1-37.3 17.5l-103-75.9-49.7 47.8c-5.5 5.5-10.1 10.1-20.7 10.1l7.4-104.9 190.9-172.5c8.3-7.4-1.8-11.5-12.9-4.1L117.8 284 16.2 252.2c-22.1-6.9-22.5-22.1 4.6-32.7L418.2 66.4c18.4-6.8 34.5 4.4 28.5 32.2z"/></svg></i><i style="background:#FC3F1D">Я</i></span>
           </span>
         </div>
+        <!-- Заглушка сторов: приложения на финальном ревью -->
+        <div class="stores">
+          <span class="sbadge"><i></i><span><small data-i18n="store_soon">Скоро в</small><b>App Store</b></span></span>
+          <span class="sbadge"><i>▶</i><span><small data-i18n="store_soon">Скоро в</small><b>Google Play</b></span></span>
+          <span class="stores-note" data-i18n="store_note">iOS и Android — на финальном ревью в сторах</span>
+        </div>
       </div>
 
       <!-- Hero phone: FRIENDS board -->
@@ -313,13 +336,15 @@
             <span class="ps-mini" data-i18n="m_lang_chip">RU</span>
           </div>
           <div class="ps-body">
-            <div class="lrow"><span class="rk" style="color:var(--yellow)">1</span><img class="dav" src="/avatars/dog-05.webp" alt="" /><div style="flex:1;min-width:0"><div class="nmline"><span class="nm" data-i18n="m_name1">Артём Соколов</span><span class="role own" data-i18n="m_role_owner">владелец</span></div><div class="meta"><span class="s">⚔ 12</span><span class="s">🏅 3</span><span class="bdg">🥇⚡</span></div></div></div>
-            <div class="lrow"><span class="rk" style="color:#cfd8d0">2</span><img class="dav" src="/avatars/dog-02.webp" alt="" /><div style="flex:1;min-width:0"><div class="nmline"><span class="nm" data-i18n="m_name2">Игорь Лебедев</span><span class="acc">✓</span></div><div class="meta"><span class="s">⚔ 9</span><span class="s">🏅 2</span><span class="bdg">🎯</span></div></div></div>
-            <div class="lrow"><span class="rk" style="color:#cd7f4d">3</span><img class="dav" src="/avatars/dog-11.webp" alt="" /><div style="flex:1;min-width:0"><div class="nmline"><span class="nm" data-i18n="m_name3">Павел Морозов</span><span class="role org" data-i18n="m_role_org">организатор</span></div><div class="meta"><span class="s">⚔ 8</span><span class="s">🏅 4</span><span class="bdg">🏆</span></div></div></div>
-            <div class="lrow"><span class="rk" style="color:var(--mut)">4</span><img class="dav" src="/avatars/dog-09.webp" alt="" /><div style="flex:1;min-width:0"><div class="nmline"><span class="nm" data-i18n="m_name4">Никита Орлов</span><span class="role guest" data-i18n="m_guest">гость</span></div><div class="meta"><span class="s">⚔ 5</span><span class="s">🏅 1</span></div></div></div>
-            <div class="lrow"><span class="rk" style="color:var(--mut)">5</span><img class="dav" src="/avatars/dog-14.webp" alt="" /><div style="flex:1;min-width:0"><div class="nmline"><span class="nm" data-i18n="m_name5">Дмитрий Зайцев</span><span class="acc">✓</span></div><div class="meta"><span class="s">⚔ 4</span><span class="s">🏅 2</span><span class="bdg">🔥3</span></div></div></div>
+            <!-- Подиум топ-3 — как в актуальной вкладке «Друзья» -->
+            <div class="pod">
+              <div class="podc"><img class="podav" src="/avatars/dog-02.webp" alt="" style="width:40px;height:40px;border:3px solid #cfd8d0"><div class="pnm" data-i18n="m_fn2">Игорь</div><div class="pped" style="color:#cfd8d0">2</div></div>
+              <div class="podc"><img class="podav" src="/avatars/dog-05.webp" alt="" style="width:50px;height:50px;border:3px solid var(--yellow)"><div class="pnm" style="font-weight:700"><span data-i18n="m_fn1">Артём</span> · 1204</div><span class="tierc" data-i18n="m_tier_alpha">Вожак стаи</span><div class="pped" style="color:var(--yellow);background:color-mix(in srgb,var(--yellow) 18%,var(--surface2));padding:14px 18px;font-size:14px">1</div></div>
+              <div class="podc"><img class="podav" src="/avatars/dog-11.webp" alt="" style="width:40px;height:40px;border:3px solid #cd7f4d"><div class="pnm" data-i18n="m_fn3">Павел</div><div class="pped" style="color:#cd7f4d;padding:5px 15px">3</div></div>
+            </div>
+            <div class="lrow"><span class="rk" style="color:var(--mut)">4</span><img class="dav" src="/avatars/dog-09.webp" alt="" /><div style="flex:1;min-width:0"><div class="nmline"><span class="nm" data-i18n="m_fn4">Никита</span><span class="tierc" style="background:color-mix(in srgb,var(--lime) 14%,transparent);color:var(--lime);margin-top:0" data-i18n="m_tier_hunter">Охотник</span></div><div class="meta"><span class="s">⚔ 5</span><span class="bdg">🔥3</span></div></div><span class="pts" style="color:var(--lime);font-weight:800">1088</span></div>
+            <div class="lrow yourow"><span class="rk" style="color:var(--mut)">5</span><img class="dav" src="/avatars/dog-14.webp" alt="" /><div style="flex:1;min-width:0"><div class="nmline"><span class="nm" style="color:var(--lime)" data-i18n="m_you">Ты сейчас</span></div><div class="meta"><span class="s" style="color:var(--lime);font-weight:700">▲ +12</span></div></div><span class="pts" style="color:var(--lime);font-weight:800">1041</span></div>
           </div>
-          <div class="fab">＋ <span data-i18n="m_fab_add">Добавить в лигу</span></div>
           <div class="ps-nav"><div class="on"><span class="ic">👥</span><span data-i18n="m_nav_b">Друзья</span></div><div><span class="ic">⚔️</span><span data-i18n="m_nav_g">Игры</span></div><div><span class="ic">🎖️</span><span data-i18n="m_nav_t">Турниры</span></div><div><span class="ic">🕘</span><span data-i18n="m_nav_h">История</span></div></div>
         </div></div>
       </div>
@@ -477,12 +502,13 @@
         <p data-i18n="feat_sub"></p>
       </div>
       <div class="feat">
-        <div class="card reveal"><div class="ic">🔗</div><h3 data-i18n="f1_t"></h3><p data-i18n="f1_d"></p></div>
-        <div class="card reveal"><div class="ic">🏟️</div><h3 data-i18n="f2_t"></h3><p data-i18n="f2_d"></p></div>
+        <div class="card reveal"><div class="ic">🐕</div><h3 data-i18n="f1_t"></h3><p data-i18n="f1_d"></p></div>
+        <div class="card reveal"><div class="ic">🔗</div><h3 data-i18n="f2_t"></h3><p data-i18n="f2_d"></p></div>
         <div class="card reveal"><div class="ic">🏆</div><h3 data-i18n="f3_t"></h3><p data-i18n="f3_d"></p></div>
         <div class="card reveal"><div class="ic">🎖️</div><h3 data-i18n="f4_t"></h3><p data-i18n="f4_d"></p></div>
-        <div class="card reveal"><div class="ic">🤝</div><h3 data-i18n="f5_t"></h3><p data-i18n="f5_d"></p></div>
-        <div class="card reveal"><div class="ic">📲</div><h3 data-i18n="f6_t"></h3><p data-i18n="f6_d"></p></div>
+        <div class="card reveal"><div class="ic">📊</div><h3 data-i18n="f5_t"></h3><p data-i18n="f5_d"></p></div>
+        <div class="card reveal"><div class="ic">🔔</div><h3 data-i18n="f6_t"></h3><p data-i18n="f6_d"></p></div>
+        <div class="card reveal"><div class="ic">📸</div><h3 data-i18n="f7_t"></h3><p data-i18n="f7_d"></p></div>
       </div>
     </div>
   </section>
@@ -573,12 +599,15 @@
         feat_eyebrow:"Возможности",
         feat_title:"Всё для твоей падел-компании",
         feat_sub:"Меньше рутины с организацией — больше игры на корте.",
-        f1_t:"Игры по ссылке", f1_d:"Создай игру и пришли ссылку — друзья занимают места в один тап, даже без регистрации.",
-        f2_t:"Лиги с организаторами", f2_d:"Владелец и организаторы, логотип клуба и телеграм-канал. Общая таблица и история встреч.",
-        f3_t:"Турниры", f3_d:"Американо, Мексикано и другие форматы с автоматическим расписанием раундов.",
-        f4_t:"Ачивки и серии", f4_d:"Серии побед, ачивки и достижения — прогресс всей стаи виден в таблице лиги.",
-        f5_t:"Лучший партнёр", f5_d:"С кем ты выигрываешь чаще: индекс по формуле, отдельно по играм и по турнирам.",
-        f6_t:"Работает как приложение", f6_d:"PWA: ставится на телефон, помнит твою лигу. Вход через Google, Telegram, Yandex или email.",
+        f1_t:"Демо-стая для старта", f1_d:"Войди — и сразу смотри живую лигу с собаками: таблица, игры и турнир уже наиграны.",
+        f2_t:"Игры по ссылке + LIVE", f2_d:"Друзья заходят в один тап. «Начать игру» фиксирует время старта, счёт вносится прямо с корта.",
+        f3_t:"Турниры четырёх форматов", f3_d:"Американо, Мексикано, King of the Court и Beat the Box. Счёт по PIN или свободный — на выбор.",
+        f4_t:"Звания стаи и ачивки", f4_d:"От Щенка до Вожака стаи: рейтинг ELO, серии побед и бейджи — прогресс виден в таблице.",
+        f5_t:"Статистика и аналитика", f5_d:"График рейтинга, лучший напарник, неудобный соперник и пульс всей лиги.",
+        f6_t:"Напоминания об играх", f6_d:"Пуш «сбор через 2 часа» — никто не забудет про корт.",
+        f7_t:"Карточки результатов", f7_d:"Итог игры или подиум турнира — красивой картинкой прямо в чат стаи.",
+        m_tier_alpha:"Вожак стаи", m_tier_hunter:"Охотник", m_you:"Ты сейчас",
+        store_soon:"Скоро в", store_note:"iOS и Android — на финальном ревью в сторах",
         m_league_name:"Падел по четвергам", m_lang_chip:"RU",
         m_name1:"Артём Соколов", m_name2:"Игорь Лебедев", m_name3:"Павел Морозов", m_name4:"Никита Орлов", m_name5:"Дмитрий Зайцев",
         m_fn1:"Артём", m_fn2:"Игорь", m_fn3:"Павел", m_fn4:"Никита", m_fn5:"Дмитрий",
@@ -641,12 +670,15 @@
         feat_eyebrow:"Features",
         feat_title:"Everything for your padel crew",
         feat_sub:"Less organizing, more padel on court.",
-        f1_t:"Games by link", f1_d:"Create a game and share a link — friends grab spots in one tap, even without signing up.",
-        f2_t:"Leagues with organizers", f2_d:"Owner and organizers, club logo and a Telegram channel. Shared table and full match history.",
-        f3_t:"Tournaments", f3_d:"Americano, Mexicano and more with automatic round scheduling.",
-        f4_t:"Achievements & streaks", f4_d:"Win streaks, achievements and badges — the whole pack's progress shows in the league table.",
-        f5_t:"Best partner", f5_d:"Who you win with most: a formula-based index, separately for games and tournaments.",
-        f6_t:"Works like an app", f6_d:"PWA: installs to your phone, remembers your league. Sign in with Google, Telegram, Yandex or email.",
+        f1_t:"A demo pack to start", f1_d:"Sign in and explore a live league of dogs: standings, games and a tournament already played.",
+        f2_t:"Games by link + LIVE", f2_d:"Friends join in one tap. \"Start the game\" locks the start time, scores are entered right on court.",
+        f3_t:"Four tournament formats", f3_d:"Americano, Mexicano, King of the Court and Beat the Box. PIN-protected or open scoring — your choice.",
+        f4_t:"Pack ranks & achievements", f4_d:"From Puppy to Pack Leader: ELO rating, win streaks and badges — progress shows in the table.",
+        f5_t:"Stats & analytics", f5_d:"Rating chart, best partner, toughest opponent and the pulse of the whole league.",
+        f6_t:"Game reminders", f6_d:"A push \"game in 2 hours\" — nobody forgets the court.",
+        f7_t:"Result cards", f7_d:"A game result or a tournament podium — as a beautiful image straight to your pack's chat.",
+        m_tier_alpha:"Pack Leader", m_tier_hunter:"Hunter", m_you:"You now",
+        store_soon:"Soon on", store_note:"iOS & Android are in final store review",
         m_league_name:"Thursday Padel", m_lang_chip:"EN",
         m_name1:"Liam Carter", m_name2:"Noah Bennett", m_name3:"Owen Hughes", m_name4:"Ethan Brooks", m_name5:"Lucas Reed",
         m_fn1:"Liam", m_fn2:"Noah", m_fn3:"Owen", m_fn4:"Ethan", m_fn5:"Lucas",
@@ -709,12 +741,15 @@
         feat_eyebrow:"Funciones",
         feat_title:"Todo para tu grupo de pádel",
         feat_sub:"Menos organización, más pádel en la pista.",
-        f1_t:"Partidas por enlace", f1_d:"Crea una partida y comparte el enlace — tus amigos ocupan plaza en un toque, incluso sin registrarse.",
-        f2_t:"Ligas con organizadores", f2_d:"Dueño y organizadores, logo del club y canal de Telegram. Tabla común e historial completo.",
-        f3_t:"Torneos", f3_d:"Americano, Mexicano y más con horario de rondas automático.",
-        f4_t:"Logros y rachas", f4_d:"Rachas, logros e insignias — el progreso de toda la jauría se ve en la tabla.",
-        f5_t:"Mejor compañero", f5_d:"Con quién ganas más: un índice por fórmula, por separado en partidas y torneos.",
-        f6_t:"Funciona como app", f6_d:"PWA: se instala en el móvil, recuerda tu liga. Entra con Google, Telegram, Yandex o email.",
+        f1_t:"Manada demo para empezar", f1_d:"Entra y mira una liga viva de perros: tabla, partidas y un torneo ya jugados.",
+        f2_t:"Partidas por enlace + LIVE", f2_d:"Tus amigos entran en un toque. «Empezar el partido» fija la hora, el marcador se anota en la pista.",
+        f3_t:"Cuatro formatos de torneo", f3_d:"Americano, Mexicano, King of the Court y Beat the Box. Marcador con PIN o libre — a elegir.",
+        f4_t:"Rangos de la manada y logros", f4_d:"De Cachorro a Líder de la manada: rating ELO, rachas e insignias — el progreso se ve en la tabla.",
+        f5_t:"Estadísticas y analítica", f5_d:"Gráfico de rating, mejor compañero, rival incómodo y el pulso de toda la liga.",
+        f6_t:"Recordatorios de partidas", f6_d:"Un push «partida en 2 horas» — nadie se olvida de la pista.",
+        f7_t:"Tarjetas de resultados", f7_d:"El resultado o el podio del torneo — como imagen directa al chat de tu manada.",
+        m_tier_alpha:"Líder de la manada", m_tier_hunter:"Cazador", m_you:"Tú ahora",
+        store_soon:"Pronto en", store_note:"iOS y Android — en revisión final en las tiendas",
         m_league_name:"Pádel de los jueves", m_lang_chip:"ES",
         m_name1:"Mateo García", m_name2:"Hugo Torres", m_name3:"Bruno Romero", m_name4:"Diego Navarro", m_name5:"Pablo Castro",
         m_fn1:"Mateo", m_fn2:"Hugo", m_fn3:"Bruno", m_fn4:"Diego", m_fn5:"Pablo",
