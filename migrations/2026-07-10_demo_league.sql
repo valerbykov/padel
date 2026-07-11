@@ -97,7 +97,81 @@ begin
     end loop;
   end loop;
 
-  -- Рейтинги, matches_played, wins и история rating_changes — штатным пересчётом.
+  -- Завершённый американо ~10 дней назад: 8 собак, 5 раундов × 2 корта,
+  -- rated → recompute учтёт турнирные матчи в рейтингах и истории.
+  declare
+    tid uuid;
+    tps uuid[] := '{}';
+    tcode text;
+    rounds int[] := array[
+      1,2,3,4,  5,6,7,8,
+      1,3,5,7,  2,4,6,8,
+      1,4,6,7,  2,3,5,8,
+      1,5,2,6,  3,7,4,8,
+      1,6,4,5,  2,7,3,8
+    ]; -- 5 раундов × 2 корта × (a1,a2,b1,b2)
+    r int; c int; base int;
+    ta uuid[]; tb uuid[];
+    pa int; pb int;
+    t_start timestamptz := date_trunc('day', now()) - interval '10 days' + interval '18 hours';
+    gcode text; gid2 uuid;
+  begin
+    loop
+      tcode := upper(substring(md5(gen_random_uuid()::text) from 1 for 6));
+      exit when not exists (select 1 from tournaments where invite_code = tcode);
+    end loop;
+    insert into tournaments (group_id, invite_code, name, format, points_per_game, target_size, status, created_by, rated, starts_at)
+      values (gid, tcode,
+        case when p_lang = 'en' then 'Demo Americano' when p_lang = 'es' then 'Americano demo' else 'Демо-американо' end,
+        'americano', 32, 8, 'finished', me, true, t_start)
+      returning id into tid;
+    for i in 1..8 loop
+      insert into tournament_players (tournament_id, profile_id, name, seat, added_by)
+        values (tid, dogs[i], names[i], i, me)
+        returning id into d;
+      tps := tps || d;
+    end loop;
+    for r in 1..5 loop
+      for c in 1..2 loop
+        base := (r - 1) * 8 + (c - 1) * 4;
+        ta := array[tps[rounds[base + 1]], tps[rounds[base + 2]]];
+        tb := array[tps[rounds[base + 3]], tps[rounds[base + 4]]];
+        -- счёт из «силы» пары: сумма очков всегда 32
+        pa := 16 + least(9, greatest(-9, ((s[rounds[base + 1]] + s[rounds[base + 2]]) - (s[rounds[base + 3]] + s[rounds[base + 4]])) / 6 + ((r * 5 + c * 3) % 5) - 2));
+        pb := 32 - pa;
+        insert into tournament_matches (tournament_id, round_number, court, team_a, team_b, score_a, score_b, played_at)
+          values (tid, r, c, ta, tb, pa, pb, t_start + make_interval(mins => r * 25));
+      end loop;
+    end loop;
+
+    -- Две предстоящие игры: завтра (3 собаки + свободный слот — новичку есть куда
+    -- вписаться) и послезавтра (полный состав).
+    loop
+      gcode := lower(substring(md5(gen_random_uuid()::text) from 1 for 8));
+      exit when not exists (select 1 from games where invite_code = gcode);
+    end loop;
+    insert into games (group_id, invite_code, starts_at, place, host_id, status)
+      values (gid, gcode, date_trunc('day', now()) + interval '1 day 19 hours',
+        case when p_lang = 'en' then 'Central Padel Club' when p_lang = 'es' then 'Club de Pádel Central' else 'Падел-клуб «Центральный»' end,
+        me, 'open')
+      returning id into gid2;
+    insert into game_slots (game_id, team, position, profile_id) values
+      (gid2, 'A', 1, dogs[1]), (gid2, 'A', 2, dogs[4]), (gid2, 'B', 1, dogs[6]), (gid2, 'B', 2, null);
+    loop
+      gcode := lower(substring(md5(gen_random_uuid()::text) from 1 for 8));
+      exit when not exists (select 1 from games where invite_code = gcode);
+    end loop;
+    insert into games (group_id, invite_code, starts_at, place, host_id, status)
+      values (gid, gcode, date_trunc('day', now()) + interval '3 days 19 hours',
+        case when p_lang = 'en' then 'Sunset Courts' when p_lang = 'es' then 'Pistas del Sol' else 'Корты в парке' end,
+        me, 'open')
+      returning id into gid2;
+    insert into game_slots (game_id, team, position, profile_id) values
+      (gid2, 'A', 1, dogs[2]), (gid2, 'A', 2, dogs[7]), (gid2, 'B', 1, dogs[3]), (gid2, 'B', 2, dogs[8]);
+  end;
+
+  -- Рейтинги, matches_played, wins и история rating_changes — штатным пересчётом
+  -- (включая турнирные матчи: t.rated = true).
   perform recompute_group_ratings(gid);
 
   return jsonb_build_object('id', gid, 'name', lg_name, 'invite_code', code,

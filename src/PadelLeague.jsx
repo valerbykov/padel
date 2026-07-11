@@ -4,7 +4,7 @@ const LeagueSetup = lazy(() => import("./components/LeagueSetup"));
 import { createPortal } from "react-dom";
 import { supabase } from "./lib/supabase";
 import BackButton from "./components/BackButton";
-import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, joinGameSlot, clearGameSlot, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames } from "./lib/padelApi";
+import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, joinGameSlot, joinSlot, clearGameSlot, startGame, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames } from "./lib/padelApi";
 import { WEB_BASE } from "./lib/platform";
 import { CardSkeleton } from "./components/Skeleton";
 import { bustCache, cachePeek } from "./lib/cache";
@@ -1963,8 +1963,8 @@ export function GameRow({ g, color, onOpen, flush, bare, label, me = null }) {
           </div>
           {g.starts_at && <div style={{ fontSize: 12, color: "var(--mut)" }}>{fmtDate(g.starts_at)}</div>}
         </div>
-        <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: "rgba(255,255,255,.06)", color: played ? "var(--mut)" : color, flexShrink: 0 }}>
-          {played ? "✓" : `${filled}/4`}
+        <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: g.status === "live" ? "color-mix(in srgb, var(--coral) 15%, transparent)" : "rgba(255,255,255,.06)", color: played ? "var(--mut)" : g.status === "live" ? "var(--coral)" : color, flexShrink: 0 }}>
+          {played ? "✓" : g.status === "live" ? "● LIVE" : `${filled}/4`}
         </span>
       </div>
       )}
@@ -2045,7 +2045,8 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
   }, [openReq, loading, games]);
 
   if (mode === "create")
-    return <CreateGame groupId={groupId} players={players} profileId={profileId} back={() => setMode("list")} done={() => { setMode("list"); loadGames(); }} />;
+    return <CreateGame groupId={groupId} players={players} profileId={profileId} back={() => setMode("list")}
+      done={async (g) => { await loadGames(); if (g?.id) { setSelId(g.id); setMode("view"); } else setMode("list"); }} />;
 
   if (mode === "view") {
     const g = games.find((x) => x.id === selId);
@@ -2068,6 +2069,7 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
       {!loading && (() => {
         const upcoming = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length < 4);
         const active   = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length === 4);
+        const liveNow  = games.filter(g => g.status === "live");
         const played   = games.filter(g => g.status === "played");
         const section = (label, color, items, del) => items.length === 0 ? null : (
           <div key={label}>
@@ -2081,7 +2083,8 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
           </div>
         );
         return [
-          (games.length > 0 && upcoming.length === 0 && active.length === 0) ? <EmptyState key="na" text={t("games_no_active")} /> : null,
+          (games.length > 0 && upcoming.length === 0 && active.length === 0 && liveNow.length === 0) ? <EmptyState key="na" text={t("games_no_active")} /> : null,
+          section(t("live_section"), "var(--coral)", liveNow, false),
           section(t("upcoming_section"), "var(--mut)", upcoming, canCreate),
           section(t("active_section"), "var(--lime)", active, canCreate),
           // Сыгранные игры показываем только во вкладке «История».
@@ -2274,7 +2277,7 @@ function CreateGame({ groupId, players, profileId, back, done }) {
     // ISO с таймзоной — чтобы введённое локальное время совпадало с показанным.
     let startsAtIso = null;
     try { if (date) startsAtIso = new Date(date).toISOString(); } catch (e) { startsAtIso = null; }
-    try { const g = await createGame(groupId, { title: title.trim() || null, startsAt: startsAtIso, place, slots, hostId: profileId || null }); notifyGameCreated(g?.id); creatingRef.current = false; done(); }
+    try { const g = await createGame(groupId, { title: title.trim() || null, startsAt: startsAtIso, place, slots, hostId: profileId || null }); notifyGameCreated(g?.id); creatingRef.current = false; done(g); }
     catch (e) { alert(t("err_create_game")); setBusy(false); creatingRef.current = false; }
   };
 
@@ -2282,12 +2285,12 @@ function CreateGame({ groupId, players, profileId, back, done }) {
     <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: "var(--lime)", marginBottom: 10 }}>{txt}</div>
   );
 
-  // ── Шаг 1: когда / где / название ─────────────────────────────────────────
-  if (step === "info") {
+  // ── Единственный шаг: когда / где / название. Состав добирается на экране
+  //    игры (карусель лиги / гость / «Занять» / ссылка) — один инструмент.
+  {
     return (
       <div className="pl-pop">
         <BackButton onClick={back} style={{ marginBottom: 12 }} />
-        {stepBadge(t("game_step1"))}
         <div className="pl-card" style={{ padding: 14, marginBottom: 12, display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 6 }}>{t("game_when_label")}</div>
@@ -2309,34 +2312,56 @@ function CreateGame({ groupId, players, profileId, back, done }) {
               onChange={(e) => { setTitle(e.target.value); setTitleEdited(true); }} />
           </div>
         </div>
-        <button className="pl-btn" style={{ width: "100%", padding: 14, fontSize: 16 }} disabled={!day} onClick={() => setStep("players")}>{t("game_next")}</button>
+        <button className="pl-btn" style={{ width: "100%", padding: 14, fontSize: 16 }} disabled={!day || busy} onClick={create}>{busy ? t("creating_game") : t("create_and_get_link")}</button>
       </div>
     );
   }
-
-  // ── Шаг 2: игроки ─────────────────────────────────────────────────────────
-  return (
-    <div className="pl-pop">
-      <BackButton onClick={() => setStep("info")} style={{ marginBottom: 12 }} />
-      {stepBadge(t("game_step2"))}
-      <div className="pl-card" style={{ padding: "12px 14px", marginBottom: 12 }}>
-        <div style={{ fontWeight: 600, fontSize: 15 }}>{title || t("game_default_name")}</div>
-        <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          {date && <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Calendar size={12} /> {fmtDate(date)}</span>}
-          {place.trim() && <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><MapPin size={12} /> {place.trim()}</span>}
+}
+// Шторка «Кто играет?»: карусель свободных игроков лиги + поиск + гость по имени.
+// Единый инструмент добора состава на экране игры (заменяет разделение
+// «пикер только при создании / ссылка только после»).
+function PickPlayerSheet({ slotLabel, players = [], takenIds = [], onPick, onClose }) {
+  const [q, setQ] = useState("");
+  const free = (players || []).filter((p) => !takenIds.includes(p.id));
+  const matches = q.trim()
+    ? free.filter((p) => p.name.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 8)
+    : [];
+  return createPortal(
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-end", justifyContent: "center", fontFamily: "'Outfit',sans-serif" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 460, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "20px 20px 0 0", padding: 16, paddingBottom: "max(16px, env(safe-area-inset-bottom))", maxHeight: "80vh", overflowY: "auto", overscrollBehavior: "contain" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <div style={{ fontWeight: 800, fontSize: 15, color: "var(--ink)" }}>{t("pick_title")}{slotLabel ? ` · ${slotLabel}` : ""}</div>
+          <button onClick={onClose} aria-label="✕" style={{ marginLeft: "auto", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 10, color: "var(--mut)", cursor: "pointer", padding: 6, display: "flex" }}><X size={15} /></button>
         </div>
+        {/* Карусель свободных игроков лиги — выбор глазами, без клавиатуры */}
+        {!q.trim() && free.length > 0 && (
+          <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 6, marginBottom: 10, scrollbarWidth: "none", WebkitOverflowScrolling: "touch", WebkitMaskImage: "linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)", maskImage: "linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)" }}>
+            {free.slice(0, 24).map((p) => (
+              <button key={p.id} className="pl-ghost" onClick={() => onPick({ profileId: p.id, name: p.name })}
+                style={{ flexShrink: 0, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 7, padding: "6px 12px 6px 6px", borderRadius: 999, fontSize: 13 }}>
+                <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: 22, height: 22, borderRadius: "50%", objectFit: "cover" }} /> {p.name}
+              </button>
+            ))}
+          </div>
+        )}
+        <input className="pl-input" style={{ padding: "10px 12px" }} placeholder={t("pick_ph")} value={q} onChange={(e) => setQ(e.target.value)} />
+        {q.trim() && (
+          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+            {matches.map((p) => (
+              <button key={p.id} className="pl-ghost" style={{ padding: "9px 10px", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }} onClick={() => onPick({ profileId: p.id, name: p.name })}>
+                <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} /> {p.name}
+              </button>
+            ))}
+            <button className="pl-btn" style={{ padding: "9px 10px", textAlign: "left" }} onClick={() => onPick({ guestName: q.trim() })}>{t("add_guest_prefix")}{q.trim()}</button>
+            <div style={{ fontSize: 11, color: "var(--mut)", lineHeight: 1.4, padding: "2px 2px" }}>{t("add_guest_league_hint")}</div>
+          </div>
+        )}
       </div>
-      <div className="pl-card" style={{ padding: 14, marginBottom: 12 }}>
-        <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 10, display: "flex", justifyContent: "space-between" }}>
-          <span>{t("slots_label")}</span><span>{filled}/4</span>
-        </div>
-        <GameSlots slots={slots} setSlots={setSlots} players={players} chosenIds={chosenIds} />
-        <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 6, lineHeight: 1.4 }}>{t("game_slots_hint")}</div>
-      </div>
-      <button className="pl-btn" style={{ width: "100%", padding: 14, fontSize: 16 }} disabled={busy} onClick={create}>{busy ? t("creating_game") : t("create_and_get_link")}</button>
-    </div>
+    </div>,
+    document.body
   );
 }
+
 // Микс команд для «сыграть ещё»: 4 игрока, drag & drop для обмена местами.
 function RematchMix({ players, onCreate, onCancel, busy }) {
   const [arr, setArr] = useState(players);
@@ -2493,7 +2518,7 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
     } finally { setJoinBusy(false); }
   };
   // Красный крестик: хост убирает любого из состава, игрок — себя.
-  const canClear = (s) => game.status === "open" && !!profileId &&
+  const canClear = (s) => (game.status === "open" || game.status === "live") && !!profileId &&
     (game.host_id === profileId || (s.profile_id && s.profile_id === profileId));
   const clearSlot = async (s) => {
     if (joinBusy) return;
@@ -2502,6 +2527,37 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
     catch (e) { setJoinErr(t("err_generic")); }
     finally { setJoinBusy(false); }
   };
+  // «Добавить» (друг из лиги или гость) — хосту игры; шторка PickPlayerSheet.
+  const canAddOthers = game.status === "open" && game.host_id === profileId;
+  const [pickSlot, setPickSlot] = useState(null); // слот, для которого открыта шторка
+  const addToSlot = async (entry) => {
+    const s = pickSlot;
+    setPickSlot(null);
+    if (!s || joinBusy) return;
+    setJoinBusy(true); setJoinErr("");
+    try {
+      await joinSlot(game.id, { team: s.team, position: s.position }, entry.profileId ? { profileId: entry.profileId } : { name: entry.guestName });
+      await reloadGames();
+    } catch (e) { setJoinErr(t("err_slot_taken")); }
+    finally { setJoinBusy(false); }
+  };
+  // «Начать игру» — любой из состава или хост, когда собралось ≥2.
+  const [startBusy, setStartBusy] = useState(false);
+  const canStart = game.status === "open" && filled >= 2 && !!profileId && (meInGameHere || game.host_id === profileId);
+  const doStart = async () => {
+    if (startBusy) return;
+    setStartBusy(true);
+    try { await startGame(game.id); await reloadGames(); } catch (e) { /* гонка — просто перечитаем */ await reloadGames(); }
+    finally { setStartBusy(false); }
+  };
+  // LIVE: минуты с старта, тикают раз в минуту.
+  const [, setLiveTick] = useState(0);
+  useEffect(() => {
+    if (game.status !== "live") return;
+    const id = setInterval(() => setLiveTick((n) => n + 1), 60000);
+    return () => clearInterval(id);
+  }, [game.status]);
+  const liveMin = game.started_at ? Math.max(0, Math.floor((Date.now() - new Date(game.started_at).getTime()) / 60000)) : 0;
   const slotsA = slots.filter((s) => s.team === "A");
   const slotsB = slots.filter((s) => s.team === "B");
   // #3: кто создал игру (host_id) — резолвим по составу лиги.
@@ -2584,7 +2640,17 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
       <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <div className="pl-display" style={{ fontSize: 18 }}>{game.title || "PadelPack"}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+            {game.status === "live" && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 999, background: "color-mix(in srgb, var(--coral) 15%, transparent)", border: "1px solid color-mix(in srgb, var(--coral) 40%, transparent)", color: "var(--coral)", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--coral)" }} /> LIVE
+              </span>
+            )}
+            <div className="pl-display" style={{ fontSize: 18 }}>{game.title || "PadelPack"}</div>
+          </div>
+          {game.status === "live" && game.started_at && (
+            <div style={{ fontSize: 12, color: "var(--coral)", fontWeight: 700, marginTop: 2 }}>{t("game_live_min").replace("{n}", String(liveMin))}</div>
+          )}
           {(game.starts_at || game.place) && (
             <div style={{ fontSize: 12, color: "var(--mut)", display: "flex", gap: 10, marginTop: 2, flexWrap: "wrap" }}>
               {game.starts_at && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={12} />{fmtDate(game.starts_at)}</span>}
@@ -2614,11 +2680,17 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
                   <X size={14} />
                 </button>
               )}
-              {/* Свободный слот — занять в один тап (участник, ещё не в игре) */}
+              {/* Свободный слот: «Добавить» — друг из лиги/гость (хост), «Занять» — себя */}
+              {free && canAddOthers && (
+                <button onClick={() => setPickSlot(s)} disabled={joinBusy}
+                  style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 999, border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", background: "color-mix(in srgb, var(--lime) 14%, transparent)", color: "var(--lime)", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Outfit',sans-serif", opacity: joinBusy ? .6 : 1 }}>
+                  <UserPlus size={12} /> {t("slot_add")}
+                </button>
+              )}
               {free && canTake && (
                 <button onClick={() => takeSlot(s)} disabled={joinBusy}
                   style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 999, border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", background: "color-mix(in srgb, var(--lime) 14%, transparent)", color: "var(--lime)", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Outfit',sans-serif", opacity: joinBusy ? .6 : 1 }}>
-                  <UserPlus size={12} /> {t("pub_take_slot")}
+                  {t("pub_take_slot")}
                 </button>
               )}
             </div>
@@ -2627,7 +2699,22 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
         {joinErr && <div style={{ fontSize: 12, color: "var(--coral)", textAlign: "center" }}>{joinErr}</div>}
       </div>
 
+      {/* Фиксация момента старта: любой из состава жмёт, когда все на корте */}
+      {canStart && (
+        <div style={{ marginTop: 12, padding: "14px 14px 12px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 14, textAlign: "center" }}>
+          <div style={{ fontSize: 12, color: "var(--mut)" }}>{t("slots_label")} {filled}/4 · {t("game_all_here")}</div>
+          <button onClick={doStart} disabled={startBusy}
+            style={{ marginTop: 9, display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 24px", borderRadius: 13, border: "none", background: "var(--lime)", color: "var(--lime-fg)", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "'Outfit',sans-serif", opacity: startBusy ? .6 : 1 }}>
+            ▶ {t("game_start")}
+          </button>
+          <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 7, opacity: .8 }}>{t("game_start_hint")}</div>
+        </div>
+      )}
+
       <div style={{ marginTop: 12 }}>
+        {game.status === "live" && filled === 4 && (
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", textAlign: "center", marginBottom: 8 }}>{t("game_finish")}</div>
+        )}
         {filled === 4 ? (
           <CourtView courtNumber={1} mode="sets" editable courtName={game.court_name} onRenameCourt={groupId ? (name) => updateGameCourtName(game.id, name).then(reloadGames).catch(() => {}) : undefined}
             teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
@@ -2646,6 +2733,12 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
         )}
       </div>
       </div>
+      {/* Шторка добора: карусель лиги + поиск + гость */}
+      {pickSlot && (
+        <PickPlayerSheet slotLabel={`${pickSlot.team}${pickSlot.position}`} players={players}
+          takenIds={slots.map((s) => s.profile_id).filter(Boolean)}
+          onPick={addToSlot} onClose={() => setPickSlot(null)} />
+      )}
     </div>
   );
 }

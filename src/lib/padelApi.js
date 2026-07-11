@@ -198,7 +198,7 @@ export async function getRatingHistory(groupId, profileId) {
    ===================================================================== */
 
 const GAME_SELECT =
-  "id, invite_code, title, starts_at, place, status, host_id, created_at, mix_group_id, court_name, " +
+  "id, invite_code, title, starts_at, started_at, place, status, host_id, created_at, mix_group_id, court_name, " +
   "slots:game_slots(id, team, position, profile_id, guest_name, profile:profiles(name, avatar_url))," +
   "matches(id, sets_a, sets_b, score_detail)";
 
@@ -447,6 +447,16 @@ export async function createDemoLeague(lang = "ru") {
   try { localStorage.setItem("pp_demo_gid", data.id); } catch (e) { /* приват-режим */ }
   bustCache();
   return data;
+}
+
+// «Начать игру»: фиксируем момент старта (started_at) и статус live.
+// Жать может любой из состава — кто первым вышел на корт.
+export async function startGame(gameId) {
+  const { error } = await supabase.from("games")
+    .update({ status: "live", started_at: new Date().toISOString() })
+    .eq("id", gameId).eq("status", "open");
+  if (error) throw error;
+  bustCache();
 }
 
 // Освободить слот игры (хост убирает игрока / игрок убирает себя).

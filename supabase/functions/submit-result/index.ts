@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
     // 2. Игра + слоты.
     const { data: game, error: gErr } = await admin
       .from("games")
-      .select("id, group_id, status, slots:game_slots(team, position, profile_id, guest_name)")
+      .select("id, group_id, status, started_at, slots:game_slots(team, position, profile_id, guest_name)")
       .eq("id", gameId).single();
     if (gErr || !game) return json({ error: "game_not_found" }, 404);
     if (game.status === "played") return json({ error: "already_played" }, 400);
@@ -126,6 +126,9 @@ Deno.serve(async (req) => {
       team_a: [a1.profileId, a2.profileId], team_b: [b1.profileId, b2.profileId],
       sets_a: setsA, sets_b: setsB,
       score_detail: scoreDetail || null,
+      // Фактическое время игры: если жали «Начать игру» — момент старта,
+      // иначе (счёт задним числом) остаётся default now().
+      ...(game.started_at ? { played_at: game.started_at } : {}),
     }).select("id").single();
 
     // 7. Обновляем рейтинги + история + закрываем игру.
