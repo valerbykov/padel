@@ -205,7 +205,9 @@ export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null, 
   const avaOf = (p) => p?.profile?.avatar_url || null;
   // Дата+время начала, если заданы; иначе — дата создания (без времени) как запасной вариант.
   const whenIso = trn.starts_at || trn.created_at;
-  const dateStr = whenIso ? (() => { try { return new Date(whenIso).toLocaleString(undefined, trn.starts_at ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" } : { day: "numeric", month: "short" }); } catch (e) { return null; } })() : null;
+  // У завершённых время старта уже не важно — короткая дата освобождает
+  // место победителю в строке итогов.
+  const dateStr = whenIso ? (() => { try { return new Date(whenIso).toLocaleString(undefined, trn.starts_at && trn.status !== "finished" ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" } : { day: "numeric", month: "short" }); } catch (e) { return null; } })() : null;
   return (
     <div className="tr-card" style={{ marginBottom: flush ? 0 : 8, cursor: "pointer", border: mine ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined, background: mine ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined }} onClick={onClick}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -229,15 +231,17 @@ export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null, 
           <div style={{ fontSize: 12, color: "var(--mut)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(trn.players || []).length}/{trn.target_size} {tr("trn_players_label").toLowerCase()} · {trn.points_per_game} {tr("trn_winner_points")} · {fmt.emoji} {fmt.name}</div>
           {(winner || dateStr || myPlace) && (
             <div style={{ fontSize: 12, marginTop: 3, display: "flex", gap: 10, alignItems: "center", overflow: "hidden" }}>
-              {winner && <span style={{ color: "var(--yellow)", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>🥇 {winner}</span>}
+              {/* Победитель — главный в строке: не сжимается в «Б…»; место
+                  фокус-игрока ужимается первым, дата всегда видна. */}
+              {winner && <span style={{ color: "var(--yellow)", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flexShrink: 0, maxWidth: (myPlace && myPlace > 1) || dateStr ? "52%" : "100%" }}>🥇 {winner}</span>}
               {myPlace && myPlace > 1 && (
-                <span style={{ color: "var(--mut)", flexShrink: 0 }}>
+                <span style={{ color: "var(--mut)", minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {pf === me
                     ? tr("hist_you_place").replace("{p}", String(myPlace))
                     : tr("hist_place_of").replace("{name}", (myTp?.name || "").split(" ")[0]).replace("{p}", String(myPlace))}
                 </span>
               )}
-              {dateStr && <span style={{ color: "var(--mut)", flexShrink: 0 }}>{dateStr}</span>}
+              {dateStr && <span style={{ color: "var(--mut)", flexShrink: 0, marginLeft: "auto" }}>{dateStr}</span>}
             </div>
           )}
         </div>
