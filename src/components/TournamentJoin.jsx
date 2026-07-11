@@ -9,6 +9,7 @@ import { TournamentView } from "./Tournaments";
 import LoginScreen from "./LoginScreen";
 import { Trophy, AlertCircle, Check, LogIn, UserCheck, Calendar, MapPin } from "lucide-react";
 import { t as tr } from "../lib/i18n";
+import { playerAvatar, avatarFallback } from "../lib/avatar";
 import { usePublicChrome, PublicToggles, plural } from "./publicChrome";
 import Logo from "./Logo";
 
@@ -143,11 +144,38 @@ export default function TournamentJoin({ code, botName }) {
             {/* Баннер: присоединиться (только при status=open и ещё не зарегистрирован) */}
             {t.status === "open" && !joined && (
               <div className="tj-card">
+                <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 6 }}>🏆 {tr("pub_invited_trn")}</div>
                 <div className="tj-d" style={{ fontSize: 20, marginBottom: 4 }}>{t.name || tr("pub_americano")}</div>
                 <TrnMeta trn={t} />
-                <div style={{ fontSize: 13, color: "var(--mut)", marginBottom: 14 }}>
-                  {(t.players || []).length}/{t.target_size} {plural(t.target_size, "players")} · {tr("pub_upto")} {t.points_per_game} {tr("pub_points")}
-                </div>
+                <div style={{ fontSize: 12.5, color: "var(--mut)", marginBottom: 10 }}>{tr("pub_upto")} {t.points_per_game} {tr("pub_points")}</div>
+
+                {/* Кто уже записан — чипы «аватар + имя»; свободные — пунктирные «＋ место» */}
+                {(() => {
+                  const players = t.players || [];
+                  const freeN = Math.max(0, (t.target_size || 0) - players.length);
+                  const pct = t.target_size ? Math.round((players.length / t.target_size) * 100) : 0;
+                  return (
+                    <>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 10 }}>
+                        {players.map((p) => (
+                          <span key={p.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 11px 4px 4px", borderRadius: 999, background: "var(--surface2)", border: "1px solid var(--line)", fontSize: 12.5, fontWeight: 600 }}>
+                            <img src={playerAvatar(p.profile?.avatar_url, p.profile_id || p.name)} onError={avatarFallback(p.profile_id || p.name)} alt=""
+                              style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover" }} /> {p.name}
+                          </span>
+                        ))}
+                        {Array.from({ length: Math.min(freeN, 8) }).map((_, i) => (
+                          <span key={"f" + i} style={{ display: "inline-flex", alignItems: "center", padding: "4px 11px", borderRadius: 999, border: "1.5px dashed var(--line)", color: "var(--mut)", fontSize: 12.5 }}>{tr("pub_spot_chip")}</span>
+                        ))}
+                      </div>
+                      <div style={{ height: 6, borderRadius: 4, background: "var(--surface2)", overflow: "hidden", marginBottom: 4 }}>
+                        <div style={{ width: `${pct}%`, height: "100%", background: "var(--lime)", transition: "width .3s" }} />
+                      </div>
+                      <div style={{ fontSize: 11.5, color: "var(--mut)", marginBottom: 14 }}>
+                        {players.length}/{t.target_size} · {tr("pub_spots_left").replace("{n}", String(freeN))}
+                      </div>
+                    </>
+                  );
+                })()}
 
                 {session ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--lime)", fontSize: 13, marginBottom: 12 }}>

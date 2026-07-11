@@ -110,14 +110,36 @@ export default function LeaguePublicPage({ code }) {
               {t("pub_members")}
             </div>
 
-            {/* Лидерборд */}
-            <div className="lp-card" style={{ marginBottom: 20, overflow: "hidden" }}>
+            {/* Подиум топ-3 — как на вкладке «Друзья» в приложении */}
+            {(league.members || []).length >= 3 && (() => {
+              const [p1, p2, p3] = league.members;
+              const medal = ["var(--yellow)", "#cfd8d0", "#cd7f4d"];
+              const col = (p, rank, size, pad) => (
+                <div style={{ textAlign: "center", minWidth: 0, flex: 1, maxWidth: 120 }}>
+                  <div style={{ display: "flex", justifyContent: "center" }}><Avatar name={p.name} url={p.avatar_url} size={size} /></div>
+                  <div style={{ fontSize: rank === 1 ? 13 : 12, fontWeight: rank === 1 ? 700 : 600, marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+                  {p.rating != null && <div style={{ fontSize: 10.5, color: rank === 1 ? "var(--yellow)" : "var(--mut)", fontWeight: 700 }}>{p.rating}</div>}
+                  <div style={{ background: rank === 1 ? "color-mix(in srgb, var(--yellow) 18%, var(--surface2))" : "var(--surface2)", borderRadius: "10px 10px 0 0", padding: `${pad}px 0`, fontWeight: 800, color: medal[rank - 1], marginTop: 6, fontFamily: "'Anton',sans-serif", fontSize: 17 }}>{rank}</div>
+                </div>
+              );
+              return (
+                <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 10, padding: "6px 6px 0", marginBottom: 0 }}>
+                  {col(p2, 2, 46, 12)}
+                  {col(p1, 1, 58, 20)}
+                  {col(p3, 3, 46, 7)}
+                </div>
+              );
+            })()}
+
+            {/* Лидерборд (при подиуме — с 4-го места) */}
+            <div className="lp-card" style={{ marginBottom: 20, overflow: "hidden", borderTopLeftRadius: (league.members || []).length >= 3 ? 0 : undefined, borderTopRightRadius: (league.members || []).length >= 3 ? 0 : undefined }}>
               {(league.members || []).length === 0 && (
                 <div style={{ padding: 20, textAlign: "center", color: "var(--mut)", fontSize: 13 }}>
                   {t("pub_no_players")}
                 </div>
               )}
-              {(league.members || []).map((p, i) => {
+              {((league.members || []).length >= 3 ? league.members.slice(3) : (league.members || [])).map((p, idx) => {
+                const i = (league.members || []).length >= 3 ? idx + 3 : idx;
                 const rankColor = ["var(--yellow)", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)";
                 return (
                   <div key={i} style={{
