@@ -172,7 +172,7 @@ function TournamentHero({ trn, onOpen }) {
 
 // ─── TournamentCard ────────────────────────────────────────────────────────────
 
-export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null, onTake = null, myDelta = null, placeFor = null, showMeBadge = true }) {
+export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null, onTake = null, takeBusy = false, myDelta = null, placeFor = null, showMeBadge = true }) {
   const fmt = fmtById(trn.format);
   const mine = !!me && (trn.players || []).some((pl) => pl.profile_id === me);
   // Завершённый турнир — победитель, топ-3 (мини-подиум), моё место и дата.
@@ -272,9 +272,9 @@ export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null, 
             )}
           </div>
           <span style={{ fontSize: 11.5, color: "var(--mut)", marginLeft: 8 }}>{(trn.players || []).length}/{trn.target_size}</span>
-          <button onClick={(e) => { e.stopPropagation(); onTake(); }}
-            style={{ marginLeft: "auto", flexShrink: 0, border: "none", borderRadius: 11, padding: "8px 14px", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 12.5, cursor: "pointer", background: "var(--lime)", color: "var(--lime-fg)" }}>
-            {tr("pub_take_slot")}
+          <button onClick={(e) => { e.stopPropagation(); if (!takeBusy) onTake(); }} disabled={takeBusy}
+            style={{ marginLeft: "auto", flexShrink: 0, border: "none", borderRadius: 11, padding: "8px 14px", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 12.5, cursor: "pointer", background: "var(--lime)", color: "var(--lime-fg)", opacity: takeBusy ? .55 : 1 }}>
+            {takeBusy ? "…" : tr("pub_take_slot")}
           </button>
         </div>
       )}
@@ -303,13 +303,13 @@ function List({ groupId, profileId, players = [], create, open, session, onLogin
   // «Занять» из карточки лобби: записываю себя тем же путём, что и «Я сам» внутри.
   const canTake = (trn) => !!profileId && (trn.players || []).length < trn.target_size &&
     !(trn.players || []).some((p) => p.profile_id === profileId);
-  const takingRef = useRef(false);
+  const [takingId, setTakingId] = useState(null);
   const takeSeat = async (trn) => {
-    if (takingRef.current) return;
-    takingRef.current = true;
+    if (takingId) return;
+    setTakingId(trn.id);
     const myName = (players || []).find((p) => p.id === profileId)?.name || tr("guest_default_name");
     try { await addTournamentPlayer(trn.id, { profileId, name: myName }); } catch (e) {}
-    try { await reload(); } finally { takingRef.current = false; }
+    try { await reload(); } finally { setTakingId(null); }
   };
 
   return (
@@ -344,7 +344,8 @@ function List({ groupId, profileId, players = [], create, open, session, onLogin
               const canDel = session && groupId && canCreate;
               const card = <TournamentCard trn={trn} color={sec.color} me={profileId} flush={canDel} onClick={() => open(trn.id)}
                 onCopy={groupId && trn.status === "finished" ? () => setCopySrc(trn) : null}
-                onTake={trn.status === "open" && canTake(trn) ? () => takeSeat(trn) : null} />;
+                onTake={trn.status === "open" && canTake(trn) ? () => takeSeat(trn) : null}
+                takeBusy={takingId === trn.id} />;
               return canDel
                 ? <div key={trn.id} style={{ marginBottom: 8 }}><SwipeRow onDelete={async () => { if (!confirm(tr("trn_delete_confirm"))) return; await deleteTournament(trn.id).catch(() => {}); reload(); }}>{card}</SwipeRow></div>
                 : <div key={trn.id}>{card}</div>;
@@ -759,7 +760,9 @@ function SwipeRow({ onDelete, children }) {
     const dX = e.clientX - startX.current, dY = e.clientY - startY.current;
     if (dx === 0 && Math.abs(dY) > Math.abs(dX)) { active.current = false; setDragging(false); return; }
     if (!captured.current && Math.abs(dX) > 6) { try { e.currentTarget.setPointerCapture(pid.current); } catch (_) {} captured.current = true; }
-    setDx(Math.max(-MAX, Math.min(0, dX)));
+    // До порога захвата карточку не двигаем: микросдвиг пальца при тапе
+    // дёргал transform, и iOS проглатывал click (кнопка «Занять» и т.п.).
+    if (captured.current) setDx(Math.max(-MAX, Math.min(0, dX)));
   };
   const up = async () => {
     if (!active.current) return; active.current = false; setDragging(false);

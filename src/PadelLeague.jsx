@@ -2910,7 +2910,8 @@ function SwipeToDelete({ onDelete, onCopy, children }) {
     if (dx === 0 && Math.abs(dY) > Math.abs(dX)) { active.current = false; setDragging(false); return; } // вертикальный скролл
     if (!captured.current && Math.abs(dX) > 6) { try { e.currentTarget.setPointerCapture(pid.current); } catch (_) {} captured.current = true; }
     const hi = onCopy ? MAX : 0;   // вправо (копировать) — только если есть onCopy
-    setDx(Math.max(-MAX, Math.min(hi, dX)));
+    // До порога захвата не двигаем: дёрганый transform при тапе глотает click на iOS.
+    if (captured.current) setDx(Math.max(-MAX, Math.min(hi, dX)));
   };
   const up = async () => {
     if (!active.current) return; active.current = false; setDragging(false);
