@@ -110,6 +110,12 @@ export default function CourtView({
   const bWin = dispA != null && dispB != null && dispB > dispA;
   const savedAlready = scoreA != null && scoreB != null;
   const scoringActive = editable && mode !== "sets" && !savedAlready && !pickFor;
+  // Счёта ещё нет и вводить его здесь нельзя (нет прав / состав не собран) —
+  // табло серое, чтобы «не могу ввести» не выглядело багом.
+  const hasScore = savedAlready || (mode === "sets"
+    ? setsDetail.some((s) => s.a != null || s.b != null)
+    : (dA != null || dB != null));
+  const dimmed = !editable && !hasScore;
 
   const openPick = (team) => { setRange(null); setPickFor(team); };
   const closePick = () => { setPickFor(null); setRange(null); };
@@ -265,6 +271,8 @@ export default function CourtView({
           border: "1px solid color-mix(in srgb, var(--line) 60%, transparent)",
           borderRadius: 20, padding: "clamp(6px,2.2vw,12px) clamp(14px,5vw,26px)",
           boxShadow: "0 10px 28px rgba(0,0,0,.5)", pointerEvents: "none",
+          opacity: dimmed ? .35 : 1, filter: dimmed ? "grayscale(1)" : "none",
+          transition: "opacity .2s, filter .2s",
         }}>
           <span style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: "clamp(30px,12vw,48px)", lineHeight: 1, color: aWin ? "var(--lime)" : "var(--ink)" }}>{dispA == null ? 0 : dispA}</span>
           <span style={{ color: "var(--mut)", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: "clamp(22px,8vw,34px)" }}>:</span>

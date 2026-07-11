@@ -377,6 +377,7 @@ function Create({ groupId, profileId, back, open }) {
   const [playerCount, setPlayerCount] = useState(8);
   const [kotHChampionRule, setKotHChampionRule] = useState("court_1"); // #4: правило чемпиона KotH
   const [points, setPoints] = useState(32);
+  const [openScoring, setOpenScoring] = useState(false); // счёт: по PIN (как раньше) или свободный
   const [day, setDay] = useState(() => nowLocalDT().slice(0, 10));
   const [time, setTime] = useState(() => nowLocalDT().slice(11, 16));
   const date = day ? `${day}T${time || "00:00"}` : "";
@@ -429,7 +430,7 @@ function Create({ groupId, profileId, back, open }) {
       // время совпадало с показанным при чтении (без сдвига часовых поясов).
       let startsAtIso = null;
       try { if (date) startsAtIso = new Date(date).toISOString(); } catch (e) { startsAtIso = null; }
-      const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format, createdBy: profileId, startsAt: startsAtIso, place, kotHChampionRule: isKoth ? kotHChampionRule : undefined });
+      const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format, createdBy: profileId, startsAt: startsAtIso, place, kotHChampionRule: isKoth ? kotHChampionRule : undefined, openScoring });
       open(trn.id);
     } catch (e) { alert(tr("err_create_tour")); setBusy(false); }
   };
@@ -517,6 +518,21 @@ function Create({ groupId, profileId, back, open }) {
             {POINTS_OPTS.map((p) => (
               <button key={p} style={chip(points === p)} onClick={() => setPoints(p)}>{p}</button>
             ))}
+          </div>
+        </div>
+
+        {/* Ввод счёта: по PIN от организатора или свободный для всех участников */}
+        <div>
+          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{tr("trn_scoring_label")}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <button style={chip(!openScoring)} onClick={() => setOpenScoring(false)}>
+              <div>{tr("trn_scoring_pin")}</div>
+              <div style={{ fontSize: 10, fontWeight: 400, opacity: .7 }}>{tr("trn_scoring_pin_sub")}</div>
+            </button>
+            <button style={chip(openScoring)} onClick={() => setOpenScoring(true)}>
+              <div>{tr("trn_scoring_open")}</div>
+              <div style={{ fontSize: 10, fontWeight: 400, opacity: .7 }}>{tr("trn_scoring_open_sub")}</div>
+            </button>
           </div>
         </div>
 
@@ -945,7 +961,13 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
         )}
       </div>
 
-      {trnData.status === "active" && !readOnly && (
+      {/* Турнир со свободным счётом: PIN-карточка не нужна — короткая пометка */}
+      {trnData.status === "active" && !readOnly && trnData.open_scoring && (
+        <div className="tr-card" style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 13, color: "var(--lime)", display: "flex", alignItems: "center", gap: 6 }}><Check size={14} /> {tr("trn_score_open")}</div>
+        </div>
+      )}
+      {trnData.status === "active" && !readOnly && !trnData.open_scoring && (
         <div className="tr-card" style={{ marginBottom: 12 }}>
           {isAdmin ? (
             <>
@@ -1087,7 +1109,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                       teamAvatarsA={[avatarOfTp(m.team_a[0]), avatarOfTp(m.team_a[1])]}
                       teamAvatarsB={[avatarOfTp(m.team_b[0]), avatarOfTp(m.team_b[1])]}
                       scoreA={m.score_a} scoreB={m.score_b}
-                      editable={!readOnly && (unlocked || isAdmin || (amCreator && membersCanCreate)) && trnData.status !== "finished" && priorComplete}
+                      editable={!readOnly && (unlocked || isAdmin || (amCreator && membersCanCreate) || !!trnData.open_scoring) && trnData.status !== "finished" && priorComplete}
                       onSave={(a, b) => saveScore(m.id, a, b)} />
                     {scored && (
                       <button className="tr-ghost" style={{ width: "100%", padding: "6px 0", marginTop: -6, marginBottom: 10, fontSize: 12, color: "var(--mut)", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}

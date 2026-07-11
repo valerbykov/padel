@@ -10,11 +10,11 @@ const genCode = () => Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math
 export const tournamentLink = (code) => `${WEB_BASE}/t/${code}`;
 
 const T_SELECT =
-  "id, invite_code, name, format, points_per_game, target_size, status, court_names, koth_champion_rule, created_by, created_at, starts_at, place, " +
+  "id, invite_code, name, format, points_per_game, target_size, status, court_names, koth_champion_rule, created_by, created_at, starts_at, place, open_scoring, " +
   "players:tournament_players(id, profile_id, name, created_at, profile:profiles(name, avatar_url)), " +
   "matches:tournament_matches(id, round_number, court, team_a, team_b, score_a, score_b)";
 
-export async function createTournament(groupId, { name, pointsPerGame = 32, targetSize = 8, createdBy, format = "americano", startsAt, place, kotHChampionRule } = {}) {
+export async function createTournament(groupId, { name, pointsPerGame = 32, targetSize = 8, createdBy, format = "americano", startsAt, place, kotHChampionRule, openScoring = false } = {}) {
   let t = null;
   for (let i = 0; i < 5; i++) {
     const res = await supabase.from("tournaments").insert({
@@ -23,6 +23,7 @@ export async function createTournament(groupId, { name, pointsPerGame = 32, targ
       status: "open", format,
       koth_champion_rule: format === "king_of_hill" ? (kotHChampionRule || "court_1") : null,
       starts_at: startsAt || null, place: place?.trim() || null,
+      open_scoring: !!openScoring,
     }).select().single();
     if (!res.error) { t = res.data; break; }
     if (res.error.code !== "23505") throw res.error;
@@ -45,6 +46,7 @@ export async function copyTournament(srcId, groupId, { name, withPlayers = true,
     createdBy: createdBy || null,
     startsAt: startsAt || null,
     place: place || null,
+    openScoring: !!src.open_scoring,
   });
   if (withPlayers) {
     const players = [...(src.players || [])].sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
