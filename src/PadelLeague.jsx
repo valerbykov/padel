@@ -2005,7 +2005,7 @@ function GameHero({ g, me, onOpen, onTake }) {
   );
 }
 
-export function GameRow({ g, color, onOpen, flush, bare, label, me = null, onTake = null, delta = null }) {
+export function GameRow({ g, color, onOpen, flush, bare, label, me = null, onTake = null, delta = null, showMeBadge = true }) {
   const mine = meInGame(g, me);
   const gslots = [...(g.slots || [])].sort((a, b) => ((a.team || "") + (a.position || "")).localeCompare((b.team || "") + (b.position || "")));
   const tA = gslots.filter(s => s.team === "A");
@@ -2041,7 +2041,7 @@ export function GameRow({ g, color, onOpen, flush, bare, label, me = null, onTak
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
             <span style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.title || "Padel"}</span>
-            {mine && <MeBadge />}
+            {mine && showMeBadge && <MeBadge />}
           </div>
           {g.starts_at && <div style={{ fontSize: 12, color: "var(--mut)" }}>{fmtDate(g.starts_at)}</div>}
         </div>
@@ -2093,7 +2093,7 @@ export function GameRow({ g, color, onOpen, flush, bare, label, me = null, onTak
 
 // Объединённая плашка микс-сессии: несколько под-игр одного выхода (тот же
 // состав, разные расстановки). Внутри — каждая под-игра со своим счётом.
-function MixGroupCard({ games, color, onOpenGame, me = null, delta = null }) {
+function MixGroupCard({ games, color, onOpenGame, me = null, delta = null, showMeBadge = true }) {
   const first = games[0];
   const mine = !!me && games.some((g) => meInGame(g, me));
   const when = first.starts_at || first.created_at;
@@ -2104,7 +2104,7 @@ function MixGroupCard({ games, color, onOpenGame, me = null, delta = null }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
             <span style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{first.title || t("mix_session_title")}</span>
-            {mine && <MeBadge />}
+            {mine && showMeBadge && <MeBadge />}
           </div>
           {when && <div style={{ fontSize: 12, color: "var(--mut)" }}>{fmtDate(when)}</div>}
         </div>
@@ -3092,7 +3092,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
     if (ev.kind === "tour") {
       const tour = ev.tour;
       const mine = !profileId || mineTour(tour);
-      const card = <TournamentCard trn={tour} color="var(--yellow)" me={profileId} placeFor={focusId} myDelta={trDelta(tour)} flush={isGroupMember} onClick={() => setSel({ type: "tour", data: tour })} />;
+      const card = <TournamentCard trn={tour} color="var(--yellow)" me={profileId} placeFor={focusId} showMeBadge={!pFilter || pFilter === profileId} myDelta={trDelta(tour)} flush={isGroupMember} onClick={() => setSel({ type: "tour", data: tour })} />;
       const inner = isGroupMember
         ? <SwipeToDelete onCopy={groupId ? () => setCopyTour(tour) : null} onDelete={async () => { if (!confirm(t("trn_delete_confirm"))) return; await deleteTournament(tour.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
         : card;
@@ -3106,7 +3106,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
         ordered.forEach((gg) => { const d0 = gDelta(gg); if (d0 != null) { sum += d0; found = true; } });
         return found ? sum : null;
       })();
-      const card = <MixGroupCard games={ordered} color="#7d9488" me={profileId} delta={mixDelta} onOpenGame={(g) => setSel({ type: "game", data: g })} />;
+      const card = <MixGroupCard games={ordered} color="#7d9488" me={profileId} showMeBadge={!pFilter || pFilter === profileId} delta={mixDelta} onOpenGame={(g) => setSel({ type: "game", data: g })} />;
       const inner = isGroupMember
         ? <SwipeToDelete onDelete={async () => { if (!confirm(t("mix_delete_confirm").replace("{n}", ordered.length))) return; for (const gg of ordered) await deleteGame(gg.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
         : card;
@@ -3114,7 +3114,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
     }
     const g = ev.game;
     const mine = !profileId || meInGame(g, profileId);
-    const card = <GameRow g={g} color="#7d9488" me={profileId} delta={gDelta(g)} flush={isGroupMember} onOpen={() => setSel({ type: "game", data: g })} />;
+    const card = <GameRow g={g} color="#7d9488" me={profileId} showMeBadge={!pFilter || pFilter === profileId} delta={gDelta(g)} flush={isGroupMember} onOpen={() => setSel({ type: "game", data: g })} />;
     const inner = isGroupMember
       ? <SwipeToDelete onCopy={groupId ? () => setCopyGame(g) : null} onDelete={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(g.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
       : card;

@@ -172,7 +172,7 @@ function TournamentHero({ trn, onOpen }) {
 
 // ─── TournamentCard ────────────────────────────────────────────────────────────
 
-export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null, onTake = null, myDelta = null, placeFor = null }) {
+export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null, onTake = null, myDelta = null, placeFor = null, showMeBadge = true }) {
   const fmt = fmtById(trn.format);
   const mine = !!me && (trn.players || []).some((pl) => pl.profile_id === me);
   // Завершённый турнир — победитель, топ-3 (мини-подиум), моё место и дата.
@@ -224,7 +224,7 @@ export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null, 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
             <span style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{trn.name || fmt.name}</span>
-            {mine && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.5, padding: "2px 7px", borderRadius: 20, background: "color-mix(in srgb, var(--lime) 18%, transparent)", color: "var(--lime)", flexShrink: 0, textTransform: "uppercase" }}>{tr("you_badge")}</span>}
+            {mine && showMeBadge && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.5, padding: "2px 7px", borderRadius: 20, background: "color-mix(in srgb, var(--lime) 18%, transparent)", color: "var(--lime)", flexShrink: 0, textTransform: "uppercase" }}>{tr("you_badge")}</span>}
           </div>
           <div style={{ fontSize: 12, color: "var(--mut)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(trn.players || []).length}/{trn.target_size} {tr("trn_players_label").toLowerCase()} · {trn.points_per_game} {tr("trn_winner_points")} · {fmt.emoji} {fmt.name}</div>
           {(winner || dateStr || myPlace) && (

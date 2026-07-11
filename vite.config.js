@@ -62,11 +62,14 @@ export default defineConfig({
             },
           },
           {
-            // Аватары из публичного бакета Supabase Storage. Имена файлов
-            // уникальны (avatar_<timestamp>), поэтому кэшируем агрессивно:
-            // первый раз тянем из (возможно холодного) origin, дальше — мгновенно
-            // из локального кэша, без 10-секундного ожидания.
-            urlPattern: ({ url }) => url.pathname.includes("/storage/v1/object/public/avatars/"),
+            // Аватары и логотипы лиг из публичных бакетов Supabase Storage.
+            // Имена файлов уникальны (avatar_<ts>, logo_<ts>), поэтому кэшируем
+            // агрессивно: первый раз тянем из (возможно холодного) origin,
+            // дальше — мгновенно из локального кэша. Без league-logos логотип
+            // лиги «пропадал» при каждом переключении.
+            urlPattern: ({ url }) =>
+              url.pathname.includes("/storage/v1/object/public/avatars/") ||
+              url.pathname.includes("/storage/v1/object/public/league-logos/"),
             handler: "CacheFirst",
             options: {
               cacheName: "supabase-avatars",
