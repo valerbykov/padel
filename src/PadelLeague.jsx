@@ -3096,7 +3096,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
       const inner = isGroupMember
         ? <SwipeToDelete onCopy={groupId ? () => setCopyTour(tour) : null} onDelete={async () => { if (!confirm(t("trn_delete_confirm"))) return; await deleteTournament(tour.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
         : card;
-      return <div key={ev.key} style={mine ? undefined : { opacity: 0.55 }}>{inner}</div>;
+      return <div key={ev.key} style={mine || pFilter ? undefined : { opacity: 0.55 }}>{inner}</div>;
     }
     if (ev.kind === "mix") {
       const ordered = ev.games;
@@ -3110,7 +3110,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
       const inner = isGroupMember
         ? <SwipeToDelete onDelete={async () => { if (!confirm(t("mix_delete_confirm").replace("{n}", ordered.length))) return; for (const gg of ordered) await deleteGame(gg.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
         : card;
-      return <div key={ev.key} style={mine ? undefined : { opacity: 0.55 }}>{inner}</div>;
+      return <div key={ev.key} style={mine || pFilter ? undefined : { opacity: 0.55 }}>{inner}</div>;
     }
     const g = ev.game;
     const mine = !profileId || meInGame(g, profileId);
@@ -3118,7 +3118,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
     const inner = isGroupMember
       ? <SwipeToDelete onCopy={groupId ? () => setCopyGame(g) : null} onDelete={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(g.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
       : card;
-    return <div key={ev.key} style={mine ? undefined : { opacity: 0.55 }}>{inner}</div>;
+    return <div key={ev.key} style={mine || pFilter ? undefined : { opacity: 0.55 }}>{inner}</div>;
   };
 
   const meRow = profileId ? (players || []).find((p) => p.id === profileId) : null;
