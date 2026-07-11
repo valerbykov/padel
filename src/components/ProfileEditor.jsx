@@ -163,8 +163,12 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
       const data = profQ.data;
       // Свежие данные не должны затирать правки, сделанные пока летел запрос.
       if (data && !dirtyRef.current) {
-        setFirstName(data.first_name || "");
-        setLastName(data.last_name || "");
+        // Яндекс (и старые входы) заполняют только profiles.name — раскладываем
+        // его в имя/фамилию, чтобы «Имя» в ЛК не пустовало при имени в лиге.
+        const nmParts = (!data.first_name && !data.last_name && (data.name || "").trim())
+          ? data.name.trim().split(/\s+/) : null;
+        setFirstName(data.first_name || (nmParts ? nmParts[0] : ""));
+        setLastName(data.last_name || (nmParts ? nmParts.slice(1).join(" ") : ""));
         setPhone(data.phone || "");
         setAvatarUrl(data.avatar_url || "");
         setWhatsapp(data.contacts?.whatsapp || "");

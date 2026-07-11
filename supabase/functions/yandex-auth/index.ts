@@ -62,6 +62,8 @@ Deno.serve(async (req) => {
       provider: "yandex",
       yandex_id: String(info.id),
       name: info.real_name || info.display_name || info.login || null,
+      first_name: info.first_name || null,
+      last_name: info.last_name || null,
       avatar_url: avatar,
     };
 
@@ -87,6 +89,18 @@ Deno.serve(async (req) => {
           .eq("user_id", link.user.id)
           .is("avatar_url", null);
       } catch (_) { /* аватар — украшение, вход не рушим */ }
+    }
+
+    // Имя/фамилия из Яндекса → в profiles (ЛК читает first/last_name, а не name).
+    // Только если пусто — правки пользователя не перетираем. Некритично.
+    if (link.user?.id && (info.first_name || info.last_name)) {
+      try {
+        await admin.from("profiles")
+          .update({ first_name: info.first_name || null, last_name: info.last_name || null })
+          .eq("user_id", link.user.id)
+          .is("first_name", null)
+          .is("last_name", null);
+      } catch (_) { /* вход не рушим */ }
     }
 
     return json({
