@@ -39,18 +39,18 @@ function Chip({ name, avatarUrl, x, y, team, id, onTap, noTap }) {
   );
 }
 
-function SetChip({ val, team, onClick, editable }) {
+function SetChip({ val, team, onClick, editable, next = false }) {
   const color = team === "A" ? "var(--lime)" : "var(--coral)";
   return (
-    <div onClick={editable ? onClick : undefined} style={{
-      minWidth: "clamp(40px,12vw,52px)", padding: "clamp(7px,2.6vw,10px) clamp(10px,3.5vw,14px)",
+    <div onClick={editable ? onClick : undefined} className={next ? "cv-nextchip" : undefined} style={{
+      minWidth: "clamp(44px,13vw,56px)", padding: "clamp(9px,3vw,12px) clamp(10px,3.5vw,14px)",
       textAlign: "center", fontFamily: "'Outfit',sans-serif", fontWeight: 800,
-      fontSize: "clamp(16px,6vw,22px)", lineHeight: 1,
+      fontSize: "clamp(17px,6.4vw,24px)", lineHeight: 1,
       background: "var(--surface2)",
-      border: `2px solid ${val != null ? color : "var(--line)"}`,
-      borderRadius: 10, color: val != null ? "var(--ink)" : "var(--mut)",
+      border: `2px solid ${next ? "var(--lime)" : val != null ? color : "var(--line)"}`,
+      borderRadius: 12, color: val != null ? "var(--ink)" : "var(--mut)",
       cursor: editable ? "pointer" : "default",
-      userSelect: "none",
+      userSelect: "none", boxSizing: "border-box",
     }}>
       {val ?? "–"}
     </div>
@@ -217,6 +217,9 @@ export default function CourtView({
         body.pl-light .cv-court{--court:#cfe6f7;--court-line:rgba(20,45,80,.5);--court-net:#a7c6e2;}
         .cv-cta-arrow{display:inline-block;animation:cvArrow 1s ease-in-out infinite;}
         @keyframes cvArrow{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}
+        .cv-nextchip{box-shadow:0 0 0 3px color-mix(in srgb,var(--lime) 22%,transparent);animation:cvChipPulse 1.6s ease-in-out infinite;}
+        @keyframes cvChipPulse{0%,100%{box-shadow:0 0 0 3px color-mix(in srgb,var(--lime) 22%,transparent)}50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--lime) 10%,transparent)}}
+        @media (prefers-reduced-motion:reduce){.cv-nextchip{animation:none;}}
       `}</style>
       {/* Корт */}
       <div style={{ position: "relative", width: "100%", overflow: "visible", minHeight: (pickFor && useKeypad) ? 408 : undefined }}>
@@ -362,9 +365,26 @@ export default function CourtView({
         )}
       </div>
 
-      {/* Детальный счёт по сетам */}
-      {mode === "sets" && (
-        <div style={{ marginTop: 8, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 12, padding: "8px 14px" }}>
+      {/* Детальный счёт по сетам — при активном вводе карточка акцентная,
+          следующая пустая ячейка пульсирует (вариант A, одобрен на макете) */}
+      {mode === "sets" && (() => {
+        const entering = editable && !locked;
+        let nextCell = null;
+        if (entering) {
+          for (let i = 0; i < setsDetail.length && !nextCell; i++) {
+            if (setsDetail[i].a == null) nextCell = { i, team: "A" };
+            else if (setsDetail[i].b == null) nextCell = { i, team: "B" };
+          }
+        }
+        return (
+        <div style={{ marginTop: 8, background: "var(--surface)",
+          border: entering ? "1.5px solid color-mix(in srgb, var(--lime) 45%, transparent)" : "1px solid var(--line)",
+          boxShadow: entering ? "0 8px 26px -16px color-mix(in srgb, var(--lime) 60%, transparent)" : "none",
+          borderRadius: 12, padding: "10px 14px 12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: entering ? "var(--lime)" : "var(--mut)", marginBottom: 4, fontFamily: "'Outfit',sans-serif" }}>
+            {entering && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--lime)", boxShadow: "0 0 8px var(--lime)", flexShrink: 0 }} />}
+            {t("court_sets_title")}
+          </div>
           {setsDetail.map((s, i) => (
             <div key={i} style={{
               display: "flex", alignItems: "center", gap: 8, padding: "7px 0",
@@ -372,30 +392,31 @@ export default function CourtView({
             }}>
               <span style={{ fontSize: 12, color: "var(--mut)", width: 50, flexShrink: 0 }}>{t("court_set")} {i + 1}</span>
               <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
-                <SetChip val={s.a} team="A" editable={editable && !locked} onClick={() => setPickSets({ setIdx: i, team: "A" })} />
+                <SetChip val={s.a} team="A" editable={entering} next={!!nextCell && nextCell.i === i && nextCell.team === "A"} onClick={() => setPickSets({ setIdx: i, team: "A" })} />
                 <span style={{ color: "var(--mut)", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 14 }}>:</span>
-                <SetChip val={s.b} team="B" editable={editable && !locked} onClick={() => setPickSets({ setIdx: i, team: "B" })} />
+                <SetChip val={s.b} team="B" editable={entering} next={!!nextCell && nextCell.i === i && nextCell.team === "B"} onClick={() => setPickSets({ setIdx: i, team: "B" })} />
               </div>
               <div style={{ width: 50, flexShrink: 0, display: "flex", justifyContent: "flex-end" }}>
-                {editable && !locked && setsDetail.length > 1 && i === setsDetail.length - 1 && (
+                {entering && setsDetail.length > 1 && i === setsDetail.length - 1 && (
                   <button onClick={() => removeSet(i)} aria-label={t("delete_btn")} style={{ width: 28, height: 28, borderRadius: "50%", border: "none", background: "color-mix(in srgb, var(--coral) 16%, transparent)", color: "var(--coral)", cursor: "pointer", fontSize: 14, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
                 )}
               </div>
             </div>
           ))}
-          {editable && !locked && !allSetsEntered && (
+          {entering && !allSetsEntered && (
             <div style={{ fontSize: 11, color: "var(--mut)", textAlign: "center", paddingTop: 6 }}>
               {t("court_tap_set")}
             </div>
           )}
-          {editable && !locked && setsDetail.length < 5 && (
+          {entering && setsDetail.length < 5 && (
             <button className="cv-setbtn" onClick={addSet} style={{
               width: "100%", marginTop: 10, padding: "10px 0", borderRadius: 10, border: "1px solid color-mix(in srgb, var(--lime) 45%, transparent)",
               background: "color-mix(in srgb, var(--lime) 12%, transparent)", color: "var(--lime)", cursor: "pointer", fontSize: 14, fontWeight: 700, fontFamily: "'Outfit',sans-serif",
             }}>{t("court_add_set")}</button>
           )}
         </div>
-      )}
+        );
+      })()}
 
       {/* Кнопка записи — sets */}
       {editable && mode === "sets" && !locked && (
