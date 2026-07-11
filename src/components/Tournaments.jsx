@@ -8,7 +8,6 @@ import {
   createTournament, listTournaments, getTournament, addTournamentPlayer, removeTournamentPlayer,
   startTournament, submitMatchScore, finishTournament, tournamentLink, deleteTournament, listMyTournaments, copyTournament,
   generateMexicanoRound, generateKotHRound, generateKotHLadderRound, setCourtName, setScorePin, checkScorePin,
-  joinTournamentByCode,
 } from "../lib/tournamentApi";
 import { standings, detailedStandings, allMatchesPlayed } from "../lib/americano";
 import { dogAvatar } from "../lib/avatar";
@@ -52,7 +51,7 @@ function Confetti({ burst }) {
 import StandingsTable from "./StandingsTable";
 import Avatar from "./Avatar";
 import EmptyState from "./EmptyState";
-import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Share2, Trash2, Plus, Check, Calendar, MapPin, UserPlus } from "lucide-react";
+import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Share2, Trash2, Plus, Check, Calendar, MapPin } from "lucide-react";
 import { t as tr } from "../lib/i18n";
 import BackButton from "./BackButton";
 const nowLocalDT = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
@@ -650,15 +649,17 @@ function SwipeRow({ onDelete, children }) {
   );
 }
 
-function AddPlayer({ players, existing, onAdd, disabled }) {
+function AddPlayer({ players, existing, onAdd, disabled, meId = null }) {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const existingIds = (existing || []).filter((p) => p.profile_id).map((p) => p.profile_id);
   const available = (players || []).filter((p) => !existingIds.includes(p.id));
+  // «Я сам» — первый чип карусели (пока не записан); остальные — без меня.
+  const me = (!!meId && !existingIds.includes(meId)) ? available.find((p) => p.id === meId) : null;
   const matches = q.trim()
     ? available.filter((p) => p.name.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 6)
     : [];
-  const suggestions = available.slice(0, 10);
+  const suggestions = available.filter((p) => p.id !== meId).slice(0, 10);
   const addingRef = useRef(false);
   const add = async (entry) => {
     if (addingRef.current) return;   // защита от двойного тапа → дубль игрока
@@ -682,10 +683,16 @@ function AddPlayer({ players, existing, onAdd, disabled }) {
           <div style={{ fontSize: 11, color: "var(--mut)", lineHeight: 1.4, padding: "2px 2px" }}>{tr("add_guest_league_hint")}</div>
         </div>
       ) : (
-        suggestions.length > 0 && (
+        (me || suggestions.length > 0) && (
           <div style={{ marginTop: 8 }}>
             <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 6 }}>{tr("trn_friends_hint")}</div>
             <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none", WebkitOverflowScrolling: "touch", WebkitMaskImage: "linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)", maskImage: "linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)" }}>
+              {me && (
+                <button className="tr-ghost" disabled={busy} onClick={() => add({ profileId: me.id, name: me.name })}
+                  style={{ flexShrink: 0, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 7, padding: "6px 12px 6px 6px", borderRadius: 999, fontSize: 13, fontWeight: 700, borderColor: "color-mix(in srgb, var(--lime) 45%, transparent)", color: "var(--lime)" }}>
+                  <Avatar name={me.name} url={undefined} id={me.id} size={22} /> {tr("pick_me")}
+                </button>
+              )}
               {suggestions.map((p) => (
                 <button key={p.id} className="tr-ghost" disabled={busy} onClick={() => add({ profileId: p.id, name: p.name })}
                   style={{ flexShrink: 0, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 7, padding: "6px 12px 6px 6px", borderRadius: 999, fontSize: 13 }}>
@@ -711,7 +718,6 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   const [pinShown, setPinShown] = useState(null);
   const [pinInput, setPinInput] = useState("");
   const [pinMsg, setPinMsg] = useState(""); // #1: сообщение о неверном PIN — отдельно от toast (кнопки «Ссылка»)
-  const [selfJoinBusy, setSelfJoinBusy] = useState(false); // «Записаться» в лобби
   const [unlocked, setUnlocked] = useState(() => { try { return !!localStorage.getItem("pp_scorepin_" + id); } catch (e) { return false; } });
   const [openCourts, setOpenCourts] = useState({}); // {matchId: true} — раскрытые сыгранные корты
   const initRef = useRef(false);
@@ -983,29 +989,11 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                 )}
               </div>
             ))}
-            {/* «Записаться самому» — один тап, для любого участника лиги (в т.ч. зрителя
-                лобби). Тот же RPC, что и гостевая страница /t/CODE. */}
-            {(() => {
-              const meIn = (trnData.players || []).some((p) => p.profile_id === currentProfileId);
-              const canSelfJoin = !!currentProfileId && !meIn && trnData.players.length < trnData.target_size && !!trnData.invite_code;
-              if (!canSelfJoin) return null;
-              const myName = (players || []).find((p) => p.id === currentProfileId)?.name || "";
-              return (
-                <button className="tr-btn" disabled={selfJoinBusy}
-                  style={{ width: "100%", padding: 11, marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, opacity: selfJoinBusy ? .6 : 1 }}
-                  onClick={async () => {
-                    if (selfJoinBusy) return;
-                    setSelfJoinBusy(true);
-                    try { await joinTournamentByCode(trnData.invite_code, myName || tr("guest_default_name")); await load(); }
-                    catch (e) { setToast(tr("err_generic")); setTimeout(() => setToast(""), 1800); }
-                    finally { setSelfJoinBusy(false); }
-                  }}>
-                  <UserPlus size={16} /> {tr("trn_join_self")}
-                </button>
-              );
-            })()}
+            {/* Добор состава: единый инструмент — «Я сам» первым чипом карусели
+                (заменил отдельную кнопку «Записаться»), дальше лига, поиск, гость. */}
             {!readOnly && (
-              <AddPlayer players={players} existing={trnData.players} disabled={trnData.players.length >= trnData.target_size}
+              <AddPlayer players={players} existing={trnData.players} meId={currentProfileId}
+                disabled={trnData.players.length >= trnData.target_size}
                 onAdd={async (entry) => { await addTournamentPlayer(trnData.id, entry); load(); }} />
             )}
           </div>
