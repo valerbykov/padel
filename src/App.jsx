@@ -11,7 +11,7 @@ import Logo from "./components/Logo"; // текстовый логотип в т
 import LeagueSwitcher from "./components/LeagueSwitcher"; // глобальный переключатель лиги в топбаре
 import NotificationBell from "./components/NotificationBell"; // колокольчик уведомлений (новые игры/турниры лиг)
 import { LogIn, Sun, Moon } from "lucide-react";
-import { getMyLeagues, bootstrapApp } from "./lib/padelApi";
+import { getMyLeagues, bootstrapApp, joinLeague } from "./lib/padelApi";
 import { t, setLang, applyLang, LANGS, LANG_LABELS, currentLang } from "./lib/i18n";
 import { detectCountry, langFromCountry } from "./lib/region";
 import { getNotifPrefs, registerPush } from "./lib/notifications";
@@ -363,6 +363,27 @@ export default function App({ initialShowLogin = false }) {
   }, [leagues, profile?.id]);
 
   // Смена активной лиги из dropdown.
+  // Автовступление по ?join=CODE: код уже пришёл по ссылке/QR — не заставляем
+  // подтверждать его формой. Форма (LeagueSetup) остаётся фолбэком при ошибке.
+  const [autoJoinErr, setAutoJoinErr] = useState("");
+  const autoJoinRef = useRef(false);
+  useEffect(() => {
+    if (!(pendingJoin && session && profile && leagues !== null)) return;
+    if (autoJoinRef.current || autoJoinErr) return;
+    const existing = (leagues || []).find((l) => l.invite_code === pendingJoin);
+    if (existing) { clearPendingJoin(); setActiveLeague(existing); return; }
+    autoJoinRef.current = true;
+    joinLeague(pendingJoin)
+      .then((lg) => { clearPendingJoin(); return handleLeagueDone(lg); })
+      .catch((e) => {
+        const msg = e?.message || "";
+        if (msg.includes("already_member")) { clearPendingJoin(); loadLeagues(profile.id); }
+        else setAutoJoinErr(msg.includes("league_not_found") ? t("err_league_not_found") : (msg || t("err_generic")));
+      })
+      .finally(() => { autoJoinRef.current = false; });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingJoin, session, profile, leagues]);
+
   const handleLeagueChange = useCallback((leagueId) => {
     setActiveLeague((prev) => leagues?.find((l) => l.id === leagueId) || prev);
   }, [leagues]);
@@ -414,7 +435,16 @@ export default function App({ initialShowLogin = false }) {
   if (showLogin && !session)
     return <LoginScreen botName={BOT_NAME} onSuccess={() => setShowLogin(false)} onBack={() => setShowLogin(false)} theme={theme} lang={lang} onThemeToggle={toggleTheme} onLangChange={handleLangChange} />;
 
-  // Переход по ?join=CODE — показываем экран вступления с предзаполненным кодом.
+  // Переход по ?join=CODE: автовступление крутит спиннер; форма — фолбэк при ошибке.
+  if (pendingJoin && session && profile && leagues !== null && !autoJoinErr) {
+    return (
+      <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
+        <div style={{ width: 34, height: 34, borderRadius: "50%", border: "3px solid rgba(255,255,255,.12)", borderTopColor: "var(--lime, #c8ff2d)", animation: "appspin .7s linear infinite" }} />
+        <style>{`@keyframes appspin{to{transform:rotate(360deg)}}`}</style>
+        <div style={{ color: "var(--mut)", fontSize: 14, fontFamily: "'Outfit',sans-serif" }}>{t("pj_joining")}</div>
+      </div>
+    );
+  }
   if (pendingJoin && session && profile && leagues !== null) {
     return (
       <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
@@ -430,8 +460,8 @@ export default function App({ initialShowLogin = false }) {
           onLeagueUpdated={handleLeagueUpdated} onLeagueLeft={handleLeagueLeft} onOpenEvent={handleOpenEvent}
         />
         <LeagueSetup
-          onDone={(league) => { clearPendingJoin(); handleLeagueDone(league); }}
-          onCancel={clearPendingJoin}
+          onDone={(league) => { clearPendingJoin(); setAutoJoinErr(""); handleLeagueDone(league); }}
+          onCancel={() => { clearPendingJoin(); setAutoJoinErr(""); }}
           initialMode="join"
           initialCode={pendingJoin}
         />
