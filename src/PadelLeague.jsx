@@ -447,12 +447,12 @@ function SwipeRow({ onRemove, onOrganize, organizerActive, onTap, leftLabel, lef
   const actBtn = { position: "absolute", top: 0, bottom: 0, width: 104, border: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontSize: 11, fontWeight: 700 };
   return (
     <div style={{ position: "relative", marginBottom: 8, borderRadius: 18, overflow: "hidden" }}>
-      {RIGHT > 0 && (
+      {RIGHT > 0 && dx > 0 && (
         <button type="button" onClick={() => { snapped.current = 0; setDx(0); onOrganize(); }} style={{ ...actBtn, left: 0, background: "var(--lime)", color: "var(--lime-fg)" }}>
           <ShieldCheck size={16} /> {organizerActive ? t("unset_organizer_short") : t("set_organizer_short")}
         </button>
       )}
-      {LEFT > 0 && (
+      {LEFT > 0 && dx < 0 && (
         <button type="button" onClick={() => { snapped.current = 0; setDx(0); onRemove(); }} style={{ ...actBtn, right: 0, background: "var(--coral)", color: "#fff" }}>
           {leftIcon || <Trash2 size={16} />} {leftLabel || t("remove_btn")}
         </button>
@@ -2923,7 +2923,7 @@ function SwipeToDelete({ onDelete, onCopy, children }) {
     } else setDx(0);
   };
   return (
-    <div style={{ position: "relative", marginBottom: 8, borderRadius: 18, overflow: "hidden", background: dx > 0 ? "var(--lime)" : "var(--coral)" }}>
+    <div style={{ position: "relative", marginBottom: 8, borderRadius: 18, overflow: "hidden", background: dx > 0 ? "var(--lime)" : dx < 0 ? "var(--coral)" : "transparent" }}>
       <div style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: MAX, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
         <Trash2 size={20} />
       </div>

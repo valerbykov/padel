@@ -764,7 +764,7 @@ function SwipeRow({ onDelete, children }) {
     else setDx(0);
   };
   return (
-    <div style={{ position: "relative", borderRadius: 16, overflow: "hidden", background: "var(--coral)" }}>
+    <div style={{ position: "relative", borderRadius: 16, overflow: "hidden", background: dx < 0 ? "var(--coral)" : "transparent" }}>
       <div style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: MAX, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
         <Trash2 size={16} />
       </div>
