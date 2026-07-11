@@ -3,8 +3,13 @@
 // Лёгкая анимация через SMIL (animateTransform): мяч подпрыгивает, у часов
 // идут стрелки, ракетка чуть покачивается. Шов мяча — var(--lime-fg), чтобы
 // контрастировал и в тёмной, и в светлой теме.
-// variant: "racket" (Игры, по умолчанию) | "podium" (Турниры) | "clock" (История).
-import React from "react";
+// variant: "racket" (по умолчанию) | "podium" (Турниры) | "clock" (История) |
+//          "run" (Игры: сцена с пробегающим псом и рикошетом мяча — победитель
+//          пяти консилиумов; тяжёлые кадры грузятся лениво отдельным чанком,
+//          пока грузятся — показывается статичная ракетка).
+import React, { Suspense, lazy } from "react";
+
+const DogRunArt = lazy(() => import("./DogRunArt"));
 
 function Ball({ cx, cy, r }) {
   const sx = cx - Math.round(r * 0.6);
@@ -95,7 +100,9 @@ export default function EmptyState({ text, children, className = "pl-card", vari
   const Art = ART[variant] || RacketBall;
   return (
     <div className={className} style={{ padding: "30px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
-      <Art />
+      {variant === "run"
+        ? <Suspense fallback={<RacketBall />}><DogRunArt /></Suspense>
+        : <Art />}
       <div style={{ color: "var(--mut)", fontSize: 14, maxWidth: 290, lineHeight: 1.5 }}>{text}</div>
       {children}
     </div>

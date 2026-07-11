@@ -2157,7 +2157,7 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
       )}
       {session && groupId && canCreate && <Fab label={t("create_game")} icon={<Swords size={24} />} onClick={() => setMode("create")} />}
       {loading && <CardSkeleton count={4} />}
-      {!loading && games.length === 0 && <EmptyState text={!session ? t("games_empty_guest") : (groupId ? t("games_empty_session") : t("solo_games_empty"))} />}
+      {!loading && games.length === 0 && <EmptyState variant="run" text={!session ? t("games_empty_guest") : (groupId ? t("games_empty_session") : t("solo_games_empty"))} />}
       {!loading && (() => {
         const upcoming = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length < 4);
         const active   = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length === 4);
@@ -2190,7 +2190,7 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
           </div>
         );
         return [
-          (games.length > 0 && upcoming.length === 0 && active.length === 0 && liveNow.length === 0) ? <EmptyState key="na" text={t("games_no_active")} /> : null,
+          (games.length > 0 && upcoming.length === 0 && active.length === 0 && liveNow.length === 0) ? <EmptyState key="na" variant="run" text={t("games_no_active")} /> : null,
           hero && <GameHero key="hero" g={hero} me={profileId} onOpen={() => { setSelId(hero.id); setMode("view"); }} onTake={() => takeFirstFree(hero)} />,
           section(t("live_section"), "var(--coral)", liveNow, false, false),
           section(t("upcoming_section"), "var(--mut)", upcoming.filter((g) => g !== hero), canCreate, true),
