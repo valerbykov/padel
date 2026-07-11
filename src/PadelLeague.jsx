@@ -697,6 +697,11 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
     finally { setLeagueBusy(false); }
   };
 
+  // Демо-лига: персональная песочница — инвайт-карту не показываем (вместо неё
+  // демо-плашка с CTA «создай свою лигу»). pp_demo_gid — подстраховка, если
+  // is_demo ещё не доехал из кэша лиг.
+  const isDemoLeague = !!groupId && (activeLeague?.is_demo || (() => { try { return localStorage.getItem("pp_demo_gid") === groupId; } catch (e) { return false; } })());
+
   const handleJoinLeague = async () => {
     if (joinCode.trim().length < 4 || leagueBusy) return;
     setLeagueBusy(true); setLeagueErr("");
@@ -731,7 +736,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
 
       {/* Единая инвайт-карта (код + копировать/поделиться/QR) — общий компонент
           с «Управлением лигой». #4: видна только тем, кто может приглашать. */}
-      {activeLeague?.invite_code && (isAdmin || activeLeague?.members_can_add) && (
+      {activeLeague?.invite_code && !isDemoLeague && (isAdmin || activeLeague?.members_can_add) && (
         <InviteCard compact code={activeLeague.invite_code} leagueName={activeLeague.name} logoUrl={activeLeague.logo_url} style={{ marginBottom: 14 }} />
       )}
 
@@ -754,7 +759,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
         </div>
       )}
       {/* Демо-плашка: пунктир = «песочница». CTA ведёт в создание настоящей лиги. */}
-      {groupId && (activeLeague?.is_demo || (() => { try { return localStorage.getItem("pp_demo_gid") === groupId; } catch (e) { return false; } })()) && (
+      {isDemoLeague && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 13px", marginBottom: 12, background: "color-mix(in srgb, var(--lime) 8%, transparent)", border: "1px dashed color-mix(in srgb, var(--lime) 45%, transparent)", borderRadius: 14 }}>
           <span style={{ fontSize: 18, flexShrink: 0 }}>🐕</span>
           <div style={{ flex: 1, minWidth: 0 }}>

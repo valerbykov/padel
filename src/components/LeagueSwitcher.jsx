@@ -83,7 +83,7 @@ export default function LeagueSwitcher({ leagues, activeLeague, isAdmin, onLeagu
                       </span>
                       {active && <Check size={16} style={{ color: "var(--lime)", flexShrink: 0 }} />}
                     </button>
-                    <button onClick={() => { setManage({ id: lg.id, role: lg.role }); setMenu(false); }} title={t("league_manage")} aria-label={t("league_manage")}
+                    <button onClick={() => { setManage({ id: lg.id, role: lg.role, demo: !!lg.is_demo }); setMenu(false); }} title={t("league_manage")} aria-label={t("league_manage")}
                       style={{ flexShrink: 0, padding: "0 12px", background: "none", border: "none", borderLeft: "1px solid var(--line)", color: "var(--mut)", cursor: "pointer", display: "flex", alignItems: "center" }}>
                       <Settings size={16} />
                     </button>
@@ -127,6 +127,7 @@ export default function LeagueSwitcher({ leagues, activeLeague, isAdmin, onLeagu
         <LeagueManager
           groupId={manage.id}
           role={manage.role}
+          isDemo={manage.demo}
           canEdit={manage.role === "owner" || manage.role === "admin"}
           onClose={() => setManage(null)}
           onUpdated={(lg) => onLeagueUpdated && onLeagueUpdated(lg)}

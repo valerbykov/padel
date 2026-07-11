@@ -43,7 +43,7 @@ function DangerConfirm({ title, sub, btn, busy, onConfirm, onCancel }) {
   );
 }
 
-export default function LeagueManager({ groupId, role = "member", canEdit = false, onClose, onUpdated, onLeft }) {
+export default function LeagueManager({ groupId, role = "member", canEdit = false, isDemo = false, onClose, onUpdated, onLeft }) {
   const [d, setD] = useState(null);          // детали из RPC
   const [name, setName] = useState("");
   const [tg, setTg] = useState("");
@@ -208,8 +208,8 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
             </Section>
 
             {/* Инвайт-карта — общий компонент с вкладкой «Друзья»: код + ссылка + QR.
-                #4: только тем, кто может приглашать. */}
-            {d.invite_code && (canEdit || membersCanAdd) && (
+                #4: только тем, кто может приглашать. В демо-песочницу не приглашают. */}
+            {d.invite_code && !isDemo && (canEdit || membersCanAdd) && (
               <InviteCard code={d.invite_code} leagueName={name} style={{ marginBottom: 12 }} />
             )}
 
