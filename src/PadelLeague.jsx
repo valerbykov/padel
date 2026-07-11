@@ -24,7 +24,7 @@ import Avatar from "./components/Avatar";
 import LeagueLogo from "./components/LeagueLogo";
 import InviteCard from "./components/InviteCard";
 import Analytics from "./components/Analytics";
-import { dogAvatar, playerAvatar, DOG_COUNT, avatarFallback } from "./lib/avatar";
+import { dogAvatar, playerAvatar, avatarFallback } from "./lib/avatar";
 
 // Текущая дата-время в формате datetime-local (YYYY-MM-DDTHH:MM) с учётом таймзоны.
 const nowLocalDT = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
@@ -311,14 +311,6 @@ function GateScreen() {
 
 /* ------------------------------ WelcomeScreen ----------------------------- */
 function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLanding, theme = "dark", lang = "ru", onThemeToggle, onLangChange }) {
-  // 4 случайные собаки из 15 (как игроки на корте). Считаем один раз на маунте —
-  // выбор стабилен между ререндерами (без мерцания). Картинки прекэшируются PWA,
-  // так что на быстродействие это не влияет — грузятся те же 4 файла из кэша.
-  const [heroDogs] = useState(() => {
-    const nums = Array.from({ length: DOG_COUNT }, (_, i) => i + 1);
-    for (let i = nums.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [nums[i], nums[j]] = [nums[j], nums[i]]; }
-    return nums.slice(0, 4).map((n) => `dog-${String(n).padStart(2, "0")}`);
-  });
   // Три ёмкие карточки: демо теперь продаёт живой подиум ниже, а не текст.
   const features = [
     { icon: "🏆", title: t("w_f1_t"), sub: t("w_f1_d") },   // создай/вступи
@@ -327,15 +319,8 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLand
   ];
   return (
     <div className="pl-pop">
-      {/* Hero — логотип теперь в топбаре; здесь крупный двухчастный слоган. */}
-      <div style={{ textAlign: "center", padding: "26px 0 22px" }}>
-        {/* «Стая» — брендовые собаки-игроки, чтобы было понятно, про какую стаю речь. */}
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-          {heroDogs.map((d, i) => (
-            <img key={d} src={`/avatars/${d}.webp`} alt="" loading="lazy" decoding="async"
-              style={{ width: 54, height: 54, borderRadius: "50%", objectFit: "cover", border: "2.5px solid var(--bg)", marginLeft: i ? -15 : 0, boxShadow: "0 4px 14px -6px rgba(0,0,0,.55)", background: "var(--surface)", position: "relative", zIndex: i }} />
-          ))}
-        </div>
+      {/* Hero — слоган сразу сверху; «стаю» показывает подиум ниже (вариант A). */}
+      <div style={{ textAlign: "center", padding: "24px 0 18px" }}>
         {(() => {
           const [a, b] = t("tagline").split(" · ");
           const cap = (s = "") => s.charAt(0).toUpperCase() + s.slice(1);
