@@ -24,7 +24,7 @@ import Avatar from "./components/Avatar";
 import LeagueLogo from "./components/LeagueLogo";
 import InviteCard from "./components/InviteCard";
 import Analytics from "./components/Analytics";
-import { dogAvatar, playerAvatar, avatarFallback } from "./lib/avatar";
+import { dogAvatar, playerAvatar, avatarFallback, DOG_COUNT } from "./lib/avatar";
 
 // Текущая дата-время в формате datetime-local (YYYY-MM-DDTHH:MM) с учётом таймзоны.
 const nowLocalDT = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
@@ -311,6 +311,13 @@ function GateScreen() {
 
 /* ------------------------------ WelcomeScreen ----------------------------- */
 function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLanding, theme = "dark", lang = "ru", onThemeToggle, onLangChange }) {
+  // Собаки подиума — случайные из 15 при каждом заходе (как раньше верхний ряд);
+  // выбор один раз на маунт, чтобы не мигали при ререндерах.
+  const [podDogs] = useState(() => {
+    const nums = Array.from({ length: DOG_COUNT }, (_, i) => i + 1);
+    for (let i = nums.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [nums[i], nums[j]] = [nums[j], nums[i]]; }
+    return nums.slice(0, 3).map((n) => `dog-${String(n).padStart(2, "0")}`);
+  });
   // Три ёмкие карточки: демо теперь продаёт живой подиум ниже, а не текст.
   const features = [
     { icon: "🏆", title: t("w_f1_t"), sub: t("w_f1_d") },   // создай/вступи
@@ -340,9 +347,9 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLand
       <div className="pl-card" style={{ padding: "14px 12px 0", marginBottom: 8 }}>
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 12 }}>
           {[
-            { n: 2, img: "dog-02", nm: t("w_pn2"), size: 42, pad: 10, col: "#cfd8d0" },
-            { n: 1, img: "dog-01", nm: t("w_pn1"), size: 52, pad: 15, col: "var(--yellow)" },
-            { n: 3, img: "dog-03", nm: t("w_pn3"), size: 42, pad: 6, col: "#cd7f4d" },
+            { n: 2, img: podDogs[1], nm: t("w_pn2"), size: 42, pad: 10, col: "#cfd8d0" },
+            { n: 1, img: podDogs[0], nm: t("w_pn1"), size: 52, pad: 15, col: "var(--yellow)" },
+            { n: 3, img: podDogs[2], nm: t("w_pn3"), size: 42, pad: 6, col: "#cd7f4d" },
           ].map((c) => (
             <div key={c.n} style={{ textAlign: "center", minWidth: 0 }}>
               <img src={`/avatars/${c.img}.webp`} alt="" loading="lazy" decoding="async"
