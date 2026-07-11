@@ -4,13 +4,13 @@ const LeagueSetup = lazy(() => import("./components/LeagueSetup"));
 import { createPortal } from "react-dom";
 import { supabase } from "./lib/supabase";
 import BackButton from "./components/BackButton";
-import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, joinGameSlot, joinSlot, clearGameSlot, startGame, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames } from "./lib/padelApi";
+import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, createDemoLeague, joinGameSlot, joinSlot, clearGameSlot, startGame, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames } from "./lib/padelApi";
 import { WEB_BASE } from "./lib/platform";
 import { CardSkeleton } from "./components/Skeleton";
 import { bustCache, cachePeek } from "./lib/cache";
 import { getRatingHistory, getWeekDeltas } from "./lib/statsApi";
 import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
-import { t, nGames } from "./lib/i18n";
+import { t, nGames, currentLang } from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
 import Fab from "./components/Fab";
@@ -685,6 +685,18 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
     finally { setLeagueBusy(false); }
   };
 
+  // Демо-стая из пустого состояния: раньше кнопка была только в LeagueSetup,
+  // до которого пользователь без лиги (в т.ч. давно зарегистрированный) не добирался.
+  const handleDemoLeague = async () => {
+    if (leagueBusy) return;
+    setLeagueBusy(true); setLeagueErr("");
+    try {
+      const lg = await createDemoLeague(currentLang);
+      onLeagueCreated && onLeagueCreated(lg);
+    } catch (e) { setLeagueErr(e.message || t("err_generic")); }
+    finally { setLeagueBusy(false); }
+  };
+
   const handleJoinLeague = async () => {
     if (joinCode.trim().length < 4 || leagueBusy) return;
     setLeagueBusy(true); setLeagueErr("");
@@ -702,11 +714,18 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
 
   return (
     <div className="pl-pop">
-      {/* Без лиги — короткая подсказка; выбор/создание лиги теперь в переключателе в шапке. */}
+      {/* Без лиги — подсказка + вход в демо-стаю (создание/вступление — в переключателе в шапке). */}
       {(!leagues || leagues.length === 0) && (
         <div className="pl-card pl-pop" style={{ padding: 16, marginBottom: 12, textAlign: "center" }}>
           <div style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.4 }}>{t("welcome_choose_sub")}</div>
           <div style={{ fontSize: 12, color: "var(--lime)", marginTop: 10 }}>{t("league_switch_hint")}</div>
+          <button disabled={leagueBusy} onClick={handleDemoLeague}
+            style={{ width: "100%", marginTop: 14, padding: "12px 0", borderRadius: 12, background: "none", cursor: "pointer", fontFamily: "'Outfit',sans-serif",
+              border: "1px dashed color-mix(in srgb, var(--lime) 45%, transparent)", color: "var(--lime)", fontSize: 15, fontWeight: 700 }}>
+            {leagueBusy ? t("creating") : t("ls_demo")}
+          </button>
+          <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 6 }}>{t("ls_demo_hint")}</div>
+          {leagueErr && <div style={{ fontSize: 12, color: "var(--coral)", marginTop: 8 }}>{leagueErr}</div>}
         </div>
       )}
 
