@@ -2570,9 +2570,11 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
     } catch (e) { setJoinErr(t("err_slot_taken")); }
     finally { setJoinBusy(false); }
   };
-  // «Начать игру» — любой из состава или хост, когда собралось ≥2.
+  // «Начать игру» — любой из состава или хост, только с полным кортом:
+  // после старта слоты уже не доукомплектовать (кнопки живут в open), а счёт
+  // требует все 4 — игра, начатая неполной, зависала бы без выхода.
   const [startBusy, setStartBusy] = useState(false);
-  const canStart = game.status === "open" && filled >= 2 && !!profileId && (meInGameHere || game.host_id === profileId);
+  const canStart = game.status === "open" && filled === 4 && !!profileId && (meInGameHere || game.host_id === profileId);
   const doStart = async () => {
     if (startBusy) return;
     setStartBusy(true);
