@@ -495,7 +495,8 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
                   </div>
                   {notif.enabled && (
                     <>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 10, marginLeft: 41 }}>
+                      <div className="pc-label" style={{ margin: "10px 0 0 41px", color: "var(--mut)" }}>{t("notif_desc")}</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 7, marginLeft: 41 }}>
                         {OFFSET_OPTIONS.map((o) => {
                           const on = notif.offsets.includes(o.min);
                           return (
