@@ -228,7 +228,7 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
       {/* Реквизиты владельца — публичный минимум для согласования имени отправителя SMS.
           Паспорт/адрес/ДР НЕ публикуем. */}
       <div style={{ padding: "14px 20px 22px", textAlign: "center", color: "var(--mut)", fontSize: 11.5, lineHeight: 1.6 }}>
-        SUPPORT · <a href="mailto:valerbykov@gmail.com" style={{ color: "inherit", textDecoration: "underline" }}>valerbykov@gmail.com</a>
+        SUPPORT · <a href="mailto:info@padelpack.app" style={{ color: "inherit", textDecoration: "underline" }}>info@padelpack.app</a>
       </div>
     </div>
   );
