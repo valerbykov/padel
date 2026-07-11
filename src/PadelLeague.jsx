@@ -3022,6 +3022,8 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
 
   const pInTour = (tr) => !pFilter || (tr.players || []).some((pl) => pl.profile_id === pFilter);
   const pInGame = (g) => !pFilter || (g.slots || []).some((s) => s.profile_id === pFilter);
+  // Подсветка участия: «не мои» события в ленте приглушаются.
+  const mineTour = (tr) => !profileId || (tr.players || []).some((pl) => pl.profile_id === profileId);
   const mGames = games === null ? [] : games.filter((g) => inMonth(gameDate(g)));
   const mTours = tours.filter((tr) => inMonth(tourDate(tr)));
   const vTours = mTours.filter(pInTour);
