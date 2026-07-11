@@ -57,6 +57,7 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
   const fileRef = useRef(null);
   const [openTeam, setOpenTeam] = useState(false);
   const [openRights, setOpenRights] = useState(false); // права — аккордеон, пунктов будет больше
+  const [openTg, setOpenTg] = useState(false);         // телеграм-канал — ввод по тапу
   const [danger, setDanger] = useState(false);       // подтверждение выхода/удаления
   const [dangerBusy, setDangerBusy] = useState(false);
   const isOwner = role === "owner";
@@ -214,23 +215,6 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
               <InviteCard code={d.invite_code} leagueName={name} style={{ marginBottom: 12 }} />
             )}
 
-            {/* Телеграм-канал — строка с иконкой-чипом, единый стиль с кабинетом */}
-            <div style={{ background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 14, padding: "11px 12px", marginBottom: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-                <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(34,158,217,.16)", color: "#4db8e8" }}><Send size={15} /></span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", flexShrink: 0 }}>{t("league_telegram")}</span>
-                {!canEdit && (tg
-                  ? <a href={tg} target="_blank" rel="noreferrer" style={{ marginLeft: "auto", color: "var(--lime)", fontSize: 12.5, textDecoration: "none", fontWeight: 600 }}>{t("league_open_channel")} →</a>
-                  : <span style={{ marginLeft: "auto", color: "var(--mut)", fontSize: 13 }}>—</span>)}
-              </div>
-              {canEdit && (
-                <>
-                  <input value={tg} onChange={(e) => setTg(e.target.value)} placeholder="https://t.me/..." inputMode="url" style={{ ...inp, fontSize: 14, padding: "9px 12px", marginTop: 9 }} />
-                  <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 5 }}>{t("league_telegram_hint")}</div>
-                </>
-              )}
-            </div>
-
             {/* Права участников — сворачиваемая секция (как «Команда»): в шапке компактно,
                 внутри строки с тумблерами; сюда же будут добавляться новые права. */}
             <Section icon={<ShieldCheck size={13} style={{ color: "var(--mut)" }} />} title={t("league_rights_title")}
@@ -261,6 +245,42 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
                 </div>
               </div>
             </Section>
+
+            {/* Телеграм-канал — компактная строка в стиле личного кабинета:
+                значение справа, поле ввода раскрывается по тапу. */}
+            <div style={{ background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 14, marginBottom: 12, overflow: "hidden" }}>
+              {(() => {
+                const tgShort = (tg || "").trim().replace(/^https?:\/\/(www\.)?t\.me\//i, "@").replace(/^@@/, "@");
+                const chip = <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(34,158,217,.16)", color: "#4db8e8" }}><Send size={15} /></span>;
+                const rowStyle = { width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "10px 12px", background: "none", border: "none", textAlign: "left", fontFamily: "'Outfit',sans-serif" };
+                if (!canEdit) {
+                  const row = (
+                    <div style={rowStyle}>
+                      {chip}
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", flexShrink: 0 }}>{t("league_telegram")}</span>
+                      <span style={{ marginLeft: "auto", fontSize: 12.5, color: tg ? "var(--lime)" : "var(--mut)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tg ? `${tgShort} →` : "—"}</span>
+                    </div>
+                  );
+                  return tg ? <a href={tg} target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "block" }}>{row}</a> : row;
+                }
+                return (
+                  <>
+                    <button onClick={() => setOpenTg((v) => !v)} aria-expanded={openTg} style={{ ...rowStyle, cursor: "pointer" }}>
+                      {chip}
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", flexShrink: 0 }}>{t("league_telegram")}</span>
+                      <span style={{ marginLeft: "auto", fontSize: 12.5, color: tg ? "var(--ink)" : "var(--mut)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{tgShort || "—"}</span>
+                      <ChevronDown size={15} style={{ color: "var(--mut)", flexShrink: 0, transform: openTg ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
+                    </button>
+                    {openTg && (
+                      <div style={{ padding: "0 12px 12px" }}>
+                        <input value={tg} onChange={(e) => setTg(e.target.value)} placeholder="https://t.me/..." inputMode="url" autoFocus style={{ ...inp, fontSize: 14, padding: "9px 12px" }} />
+                        <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 5 }}>{t("league_telegram_hint")}</div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
 
             {!canEdit && (
               <div style={{ textAlign: "center", fontSize: 12, color: "var(--mut)", padding: "2px 0 4px" }}>{t("league_view_only")}</div>
