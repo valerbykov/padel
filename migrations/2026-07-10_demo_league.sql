@@ -150,8 +150,10 @@ begin
       gcode := lower(substring(md5(gen_random_uuid()::text) from 1 for 8));
       exit when not exists (select 1 from games where invite_code = gcode);
     end loop;
+    -- Первая игра — через ~3 часа: новичок с включёнными уведомлениями получит
+    -- настоящий пуш «сбор через 2 часа» уже в первый час знакомства.
     insert into games (group_id, invite_code, starts_at, place, host_id, status)
-      values (gid, gcode, date_trunc('day', now()) + interval '1 day 19 hours',
+      values (gid, gcode, date_trunc('hour', now() + interval '3 hours'),
         case when p_lang = 'en' then 'Central Padel Club' when p_lang = 'es' then 'Club de Pádel Central' else 'Падел-клуб «Центральный»' end,
         me, 'open')
       returning id into gid2;
