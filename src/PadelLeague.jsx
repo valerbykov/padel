@@ -202,6 +202,15 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
   // открытую детализацию). Меняем navNonce → key вкладки → ремоунт → сброс.
   const [navNonce, setNavNonce] = useState(0);
   const goTab = useCallback((x) => { setNavNonce((n) => (x === tab ? n + 1 : n)); setTab(x); }, [tab]);
+  // Смена активной лиги (переключение/удаление в свитчере) возвращает на «Друзья»
+  // и ремоунтит вкладки (сброс открытых экранов). Тап по пушу из другой лиги
+  // не пострадает: эффект openEvent объявлен ниже и переопределит вкладку.
+  const prevGroupRef = useRef(groupId);
+  useEffect(() => {
+    if (prevGroupRef.current === groupId) return;
+    prevGroupRef.current = groupId;
+    if (session) { setTab("board"); setNavNonce((n) => n + 1); }
+  }, [groupId, session]);
   const [players, setPlayers] = useState([]);
   const [lbLoaded, setLbLoaded] = useState(false);
   const [archiveNonce, setArchiveNonce] = useState(0);
