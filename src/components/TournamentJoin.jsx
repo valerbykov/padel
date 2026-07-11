@@ -159,7 +159,7 @@ export default function TournamentJoin({ code, botName }) {
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 10 }}>
                         {players.map((p) => (
                           <span key={p.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 11px 4px 4px", borderRadius: 999, background: "var(--surface2)", border: "1px solid var(--line)", fontSize: 12.5, fontWeight: 600 }}>
-                            <img src={playerAvatar(p.profile?.avatar_url, p.profile_id || p.name)} onError={avatarFallback(p.profile_id || p.name)} alt=""
+                            <img src={playerAvatar(p.profile?.avatar_url || p.avatar_url, p.profile_id || p.name)} onError={avatarFallback(p.profile_id || p.name)} alt=""
                               style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover" }} /> {p.name}
                           </span>
                         ))}

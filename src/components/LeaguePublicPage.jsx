@@ -96,6 +96,8 @@ export default function LeaguePublicPage({ code }) {
                 </div>
                 <div style={{ fontSize: 13, color: "var(--mut)" }}>
                   {league.member_count} {plural(league.member_count, "players")}
+                  {league.games_count > 0 && <> · {nGames(league.games_count)}</>}
+                  {league.created_at && (() => { try { return <> · {t("pub_since")} {new Date(league.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" })}</>; } catch (e) { return null; } })()}
                 </div>
               </div>
             </div>

@@ -909,7 +909,9 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     const tp = trnData.players.find((p) => p.id === tpId);
     if (!tp) return null;
     const gp = (players || []).find((gp) => gp.id === tp.profile_id);
-    return gp?.avatar_url || (tp.profile_id ? _dogAv(tp.profile_id) : null);
+    // tp.avatar_url приходит из get_tournament_by_code (гостевая страница /t,
+    // где ростер лиги недоступен) — реальные фото вместо собак-заглушек.
+    return gp?.avatar_url || tp.avatar_url || tp.profile?.avatar_url || (tp.profile_id ? _dogAv(tp.profile_id) : null);
   };
 
   const table = detailedStandings(trnData.players.map((p) => ({ id: p.id, name: p.name })), trnData.matches.filter((m) => m.round_number > 0));
