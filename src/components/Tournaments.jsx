@@ -843,6 +843,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   const roundRef = useRef(false);
   const startingRef = useRef(false);
   const [burst, setBurst] = useState(0);
+  const [cardBusy, setCardBusy] = useState(false); // готовим карточку-подиум
   const firedRef = useRef(false);
   useEffect(() => {
     if (trnData && trnData.status === "finished" && !firedRef.current) { firedRef.current = true; setBurst((b) => b + 1); }
@@ -904,6 +905,28 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   };
 
   const table = detailedStandings(trnData.players.map((p) => ({ id: p.id, name: p.name })), trnData.matches.filter((m) => m.round_number > 0));
+
+  // Карточка-подиум для шаринга: топ-3 из standings, canvas → PNG → шеринг.
+  const sharePodium = async () => {
+    if (cardBusy || !table[0]) return;
+    setCardBusy(true);
+    try {
+      const rounds = (trnData.matches || []).reduce((mx, m) => Math.max(mx, m.round_number || 0), 0);
+      const metaStr = tr("sc_trn_meta")
+        .replace("{p}", String((trnData.players || []).length))
+        .replace("{r}", String(rounds))
+        .replace("{n}", String(trnData.points_per_game));
+      const dateStr = (() => { try { return new Date(trnData.starts_at || trnData.created_at).toLocaleDateString(undefined, { day: "numeric", month: "long" }); } catch (e) { return ""; } })();
+      const { renderTournamentCard, shareCanvas } = await import("../lib/shareCard");
+      const canvas = await renderTournamentCard({
+        name: trnData.name || fmt.name, dateStr, metaStr,
+        top3: table.slice(0, 3).map((row) => ({ name: row.name, avatar_url: avatarOfTp(row.id), id: row.id, points: row.points })),
+      });
+      await shareCanvas(canvas, "padelpack-podium.png");
+    } catch (e) { /* отменили шеринг — молча */ }
+    finally { setCardBusy(false); }
+  };
+
   // Победитель финального экрана: для KotH — пара по выбранному правилу, иначе — лидер таблицы.
   const kothPair = isKoth && trnData.status === "finished" ? kothChampionPair(trnData) : null;
   const champ = kothPair
@@ -1322,6 +1345,11 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                     })}
                   </div>
                 )}
+                {/* Карточка-подиум в чаты: тем же движком, что карточка игры */}
+                <button className="tr-btn" disabled={cardBusy} onClick={sharePodium}
+                  style={{ padding: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14 }}>
+                  📸 {cardBusy ? tr("sc_making") : tr("sc_share_podium")}
+                </button>
               </div>
             )}
             {trnData.status === "finished" && <Confetti burst={burst} />}

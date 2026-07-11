@@ -502,6 +502,14 @@ export function getMyDeltas(groupId, profileId) {
   });
 }
 
+// Дельты всех участников одного матча — для карточки-картинки результата.
+export async function getMatchDeltas(matchId) {
+  const { data, error } = await supabase.from("rating_changes")
+    .select("profile_id, delta").eq("match_id", matchId);
+  if (error) throw error;
+  return data || [];
+}
+
 // Выход из лиги (не владелец): своё членство удаляется, история игр остаётся.
 export async function leaveLeague(groupId) {
   const { error } = await supabase.rpc("leave_league", { p_group_id: groupId });
