@@ -4,7 +4,7 @@ const LeagueSetup = lazy(() => import("./components/LeagueSetup"));
 import { createPortal } from "react-dom";
 import { supabase } from "./lib/supabase";
 import BackButton from "./components/BackButton";
-import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, createDemoLeague, joinSlot, clearGameSlot, startGame, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames } from "./lib/padelApi";
+import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, createDemoLeague, joinSlot, clearGameSlot, startGame, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames, getMyDeltas } from "./lib/padelApi";
 import { WEB_BASE } from "./lib/platform";
 import { CardSkeleton } from "./components/Skeleton";
 import { bustCache, cachePeek } from "./lib/cache";
@@ -1952,7 +1952,47 @@ const meInGame = (g, me) => !!me && (g?.slots || []).some((s) => s.profile_id ==
 function MeBadge({ style }) {
   return <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.5, padding: "2px 7px", borderRadius: 20, background: "color-mix(in srgb, var(--lime) 18%, transparent)", color: "var(--lime)", flexShrink: 0, textTransform: "uppercase", ...style }}>{t("you_badge")}</span>;
 }
-export function GameRow({ g, color, onOpen, flush, bare, label, me = null }) {
+// Hero «Ближайшая игра»: обратный отсчёт, состав и действие в одной карточке
+// наверху вкладки — зеркало пуш-напоминаний, но всегда на виду.
+function GameHero({ g, me, onOpen, onTake }) {
+  const slots = [...(g.slots || [])].sort((a, b) => ((a.team || "") + (a.position || "")).localeCompare((b.team || "") + (b.position || "")));
+  const filled = slots.filter((s) => s.profile_id || s.guest_name).length;
+  const meIn = meInGame(g, me);
+  const hasFree = filled < 4;
+  const mins = g.starts_at ? Math.round((new Date(g.starts_at).getTime() - Date.now()) / 60000) : null;
+  const cd = mins != null && mins > 0
+    ? (mins >= 60
+        ? t("hero_in_hm").replace("{h}", String(Math.floor(mins / 60))).replace("{m}", String(mins % 60))
+        : t("hero_in_m").replace("{m}", String(mins)))
+    : null;
+  const canTake = !!me && hasFree && !meIn;
+  return (
+    <div onClick={onOpen} style={{ border: "1.5px solid color-mix(in srgb, var(--lime) 45%, transparent)", background: "linear-gradient(160deg, color-mix(in srgb, var(--lime) 10%, var(--surface)), var(--surface))", borderRadius: 18, padding: "14px 14px 13px", marginBottom: 10, cursor: "pointer" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.2, color: "var(--lime)", textTransform: "uppercase" }}>{t("hero_next_game")}</span>
+        {g.starts_at && <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--mut)" }}>{fmtDate(g.starts_at)}</span>}
+      </div>
+      <div style={{ fontWeight: 700, fontSize: 16, margin: "7px 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.title || g.place || "Padel"}</div>
+      <div style={{ fontSize: 12, color: "var(--mut)" }}>
+        {cd}{cd && g.place && g.place !== (g.title || g.place) ? " · " : ""}{g.place && g.place !== (g.title || g.place) ? g.place : ""}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", marginTop: 11 }}>
+        <div style={{ display: "flex", paddingLeft: 10 }}>
+          {slots.map((s, i) => (s.profile_id || s.guest_name)
+            ? <Avatar key={i} name={s.profile?.name || s.guest_name} url={s.profile?.avatar_url} id={s.profile_id || s.guest_name} size={34} style={{ marginLeft: -10 }} />
+            : <span key={i} style={{ width: 34, height: 34, borderRadius: "50%", border: "1.5px dashed var(--line)", background: "var(--surface2)", marginLeft: -10, boxSizing: "border-box", flexShrink: 0 }} />)}
+        </div>
+        <span style={{ fontSize: 11.5, color: "var(--mut)", marginLeft: 10 }}>{filled}/4</span>
+        <button onClick={(e) => { e.stopPropagation(); canTake ? onTake() : onOpen(); }}
+          style={{ marginLeft: "auto", flexShrink: 0, border: "none", borderRadius: 11, padding: "9px 14px", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 12.5, cursor: "pointer", background: "var(--lime)", color: "var(--lime-fg)" }}>
+          {canTake ? t("hero_take_slot") : t("hero_open")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function GameRow({ g, color, onOpen, flush, bare, label, me = null, onTake = null, delta = null }) {
   const mine = meInGame(g, me);
   const gslots = [...(g.slots || [])].sort((a, b) => ((a.team || "") + (a.position || "")).localeCompare((b.team || "") + (b.position || "")));
   const tA = gslots.filter(s => s.team === "A");
@@ -1992,9 +2032,26 @@ export function GameRow({ g, color, onOpen, flush, bare, label, me = null }) {
           </div>
           {g.starts_at && <div style={{ fontSize: 12, color: "var(--mut)" }}>{fmtDate(g.starts_at)}</div>}
         </div>
+        {/* У сыгранной с известной моей дельтой — бейдж ±N вместо галочки */}
+        {played && delta != null ? (
+          <span style={{ fontSize: 11, fontWeight: 800, padding: "3px 9px", borderRadius: 20, flexShrink: 0,
+            background: delta > 0 ? "color-mix(in srgb, var(--lime) 15%, transparent)" : delta < 0 ? "color-mix(in srgb, var(--coral) 14%, transparent)" : "rgba(255,255,255,.06)",
+            color: delta > 0 ? "var(--lime)" : delta < 0 ? "var(--coral)" : "var(--mut)" }}>
+            {delta > 0 ? `+${delta}` : String(delta)}
+          </span>
+        ) : (
         <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: g.status === "live" ? "color-mix(in srgb, var(--coral) 15%, transparent)" : "rgba(255,255,255,.06)", color: played ? "var(--mut)" : g.status === "live" ? "var(--coral)" : color, flexShrink: 0 }}>
-          {played ? "✓" : g.status === "live" ? "● LIVE" : `${filled}/4`}
+          {played ? "✓" : g.status === "live"
+            ? `● LIVE${g.started_at ? " · " + t("game_live_min").replace("{n}", String(Math.max(0, Math.floor((Date.now() - new Date(g.started_at).getTime()) / 60000)))) : ""}`
+            : `${filled}/4`}
         </span>
+        )}
+        {onTake && (
+          <button onClick={(e) => { e.stopPropagation(); onTake(); }}
+            style={{ flexShrink: 0, padding: "6px 12px", borderRadius: 999, border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", background: "color-mix(in srgb, var(--lime) 14%, transparent)", color: "var(--lime)", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Outfit',sans-serif" }}>
+            {t("pub_take_slot")}
+          </button>
+        )}
       </div>
       )}
       {bare && label && <div style={{ fontSize: 11, fontWeight: 700, color: "var(--mut)", letterSpacing: 0.5 }}>{label}</div>}
@@ -2100,11 +2157,26 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
         const active   = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length === 4);
         const liveNow  = games.filter(g => g.status === "live");
         const played   = games.filter(g => g.status === "played");
-        const section = (label, color, items, del) => items.length === 0 ? null : (
+        // «Занять» одним тапом из списка/hero: первый свободный слот — себе.
+        const takeFirstFree = async (g) => {
+          const free = (g.slots || []).find((s) => !s.profile_id && !s.guest_name);
+          if (!free || !profileId) return;
+          try { await joinSlot(g.id, { team: free.team, position: free.position }, { profileId }); } catch (e) {}
+          loadGames();
+        };
+        const canTakeRow = (g) => !!profileId && g.status === "open" && !meInGame(g, profileId) &&
+          (g.slots || []).some((s) => !s.profile_id && !s.guest_name);
+        // Hero — ближайшая по времени открытая игра (не старше 6 часов от старта).
+        const hero = [...upcoming, ...active]
+          .filter((g) => g.starts_at)
+          .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at))
+          .find((g) => new Date(g.starts_at).getTime() > Date.now() - 6 * 3600e3) || null;
+        const section = (label, color, items, del, take) => items.length === 0 ? null : (
           <div key={label}>
             <div style={{ fontSize: 12, color: "var(--mut)", fontFamily:"'Anton',sans-serif", textTransform:"uppercase", letterSpacing:1, margin:"12px 2px 6px" }}>{label}</div>
             {items.map(g => {
-              const row = <GameRow key={g.id} g={g} color={color} me={profileId} flush={!!del} onOpen={() => { setSelId(g.id); setMode("view"); }} />;
+              const row = <GameRow key={g.id} g={g} color={color} me={profileId} flush={!!del} onOpen={() => { setSelId(g.id); setMode("view"); }}
+                onTake={take && canTakeRow(g) ? () => takeFirstFree(g) : null} />;
               return del
                 ? <SwipeToDelete key={g.id} onDelete={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(g.id).catch(() => {}); loadGames(); bumpArchive?.(); }}>{row}</SwipeToDelete>
                 : row;
@@ -2113,9 +2185,10 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
         );
         return [
           (games.length > 0 && upcoming.length === 0 && active.length === 0 && liveNow.length === 0) ? <EmptyState key="na" text={t("games_no_active")} /> : null,
-          section(t("live_section"), "var(--coral)", liveNow, false),
-          section(t("upcoming_section"), "var(--mut)", upcoming, canCreate),
-          section(t("active_section"), "var(--lime)", active, canCreate),
+          hero && <GameHero key="hero" g={hero} me={profileId} onOpen={() => { setSelId(hero.id); setMode("view"); }} onTake={() => takeFirstFree(hero)} />,
+          section(t("live_section"), "var(--coral)", liveNow, false, false),
+          section(t("upcoming_section"), "var(--mut)", upcoming.filter((g) => g !== hero), canCreate, true),
+          section(t("active_section"), "var(--lime)", active.filter((g) => g !== hero), canCreate, false),
           // Сыгранные игры показываем только во вкладке «История».
           played.length > 0 && (
             <div key="hist-hint" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, padding: "10px 12px", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--line)", fontSize: 12.5, color: "var(--mut)" }}>
@@ -2856,100 +2929,223 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
   const [swipeHint, setSwipeHint] = useState(() => { try { return !localStorage.getItem("pp_swipe_hint"); } catch (e) { return true; } });
   const dismissHint = () => { try { localStorage.setItem("pp_swipe_hint", "1"); } catch (e) {} setSwipeHint(false); };
   const [filter, setFilter] = useState("all"); // all | games | tours
-  const [mineOnly, setMineOnly] = useState(false); // «Только мои» — фильтр по участию текущего игрока
+  const [mineOnly, setMineOnly] = useState(false); // «Мои» — аватар-тумблер справа от сегмента
+  const [monthOff, setMonthOff] = useState(0);     // 0 = текущий месяц, -1 = прошлый…
+  const [pFilter, setPFilter] = useState(null);    // «чья история»: id игрока из карусели
+  const [deltaRows, setDeltaRows] = useState([]);  // мои rating_changes (бейджи ±N и Δ месяца)
 
   const load = useCallback(async () => {
     try { const g = groupId ? await listGames(groupId) : await listMyGames(); setGames((g || []).filter((x) => x.status === "played")); }
     catch (e) { setGames([]); }
     try { const all = groupId ? await listTournaments(groupId) : await listMyTournaments(); setTours((all || []).filter((tr) => tr.status === "finished")); }
     catch (e) { setTours([]); }
-  }, [groupId]);
+    try { setDeltaRows(groupId && profileId ? await getMyDeltas(groupId, profileId) : []); }
+    catch (e) { setDeltaRows([]); }
+  }, [groupId, profileId]);
   useEffect(() => { if (!sel) load(); }, [load, sel, archiveNonce]);
 
   // Проваливание в результаты — те же экраны, что на вкладках Игры/Турниры (там и удаление).
   if (sel?.type === "tour") return <TournamentView id={sel.data.id} players={players} back={() => setSel(null)} isGroupMember={isGroupMember} currentProfileId={profileId} onArchiveChange={bumpArchive} />;
   if (sel?.type === "game") return <GameCard game={sel.data} groupId={groupId} profileId={profileId} back={() => setSel(null)} reloadGames={load} reloadLeaderboard={() => {}} bumpArchive={bumpArchive} players={players} />;
 
+  const gameDate = (g) => new Date(g.matches?.[0]?.played_at || g.starts_at || g.created_at || 0);
+  const tourDate = (tr) => new Date(tr.starts_at || tr.created_at || 0);
+  // Окно выбранного месяца (‹ › в сводке фильтрует и цифры, и ленту).
+  const nowD = new Date();
+  const mStart = new Date(nowD.getFullYear(), nowD.getMonth() + monthOff, 1);
+  const mEnd = new Date(nowD.getFullYear(), nowD.getMonth() + monthOff + 1, 1);
+  const inMonth = (d) => d >= mStart && d < mEnd;
+  const monthLabel = mStart.toLocaleDateString(undefined, { month: "long", ...(mStart.getFullYear() !== nowD.getFullYear() ? { year: "numeric" } : {}) });
+
   const mineTour = (tr) => !profileId || (tr.players || []).some((pl) => pl.profile_id === profileId);
   const mineGame = (g) => !profileId || meInGame(g, profileId);
-  const vTours = mineOnly ? tours.filter(mineTour) : tours;
-  const vGames = mineOnly ? games.filter(mineGame) : games;
-  const head = (txt, color = "var(--mut)") => <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color, textTransform: "uppercase", margin: "14px 2px 8px", paddingLeft: 4 }}>{txt}</div>;
+  const pInTour = (tr) => !pFilter || (tr.players || []).some((pl) => pl.profile_id === pFilter);
+  const pInGame = (g) => !pFilter || (g.slots || []).some((s) => s.profile_id === pFilter);
+  const mGames = games === null ? [] : games.filter((g) => inMonth(gameDate(g)));
+  const mTours = tours.filter((tr) => inMonth(tourDate(tr)));
+  const vTours = mTours.filter((tr) => (!mineOnly || mineTour(tr)) && pInTour(tr));
+  const vGames = mGames.filter((g) => (!mineOnly || mineGame(g)) && pInGame(g));
+
+  // Мои дельты: map id матча (обычного или турнирного) → ±N.
+  const deltaMap = new Map((deltaRows || []).map((r) => [r.match_id, r.delta]));
+  const gDelta = (g) => { const id = g.matches?.[0]?.id; return id != null && deltaMap.has(id) ? deltaMap.get(id) : null; };
+  const trDelta = (tr) => {
+    let sum = 0, found = false;
+    (tr.matches || []).forEach((m) => { if (deltaMap.has(m.id)) { sum += deltaMap.get(m.id); found = true; } });
+    return found ? sum : null;
+  };
+
+  // Сводка месяца: игры/турниры лиги + мои В–П и Δ рейтинга за месяц.
+  const myWL = (() => {
+    let w = 0, l = 0;
+    mGames.forEach((g) => {
+      if (!profileId || !meInGame(g, profileId)) return;
+      const m = g.matches?.[0]; if (!m || m.sets_a === m.sets_b) return;
+      const myTeam = (g.slots || []).find((s) => s.profile_id === profileId)?.team;
+      if (!myTeam) return;
+      const won = myTeam === "A" ? m.sets_a > m.sets_b : m.sets_b > m.sets_a;
+      won ? w++ : l++;
+    });
+    return { w, l };
+  })();
+  const myMonthDelta = (deltaRows || []).reduce((s, r) => {
+    const d = new Date(r.created_at);
+    return inMonth(d) ? s + (r.delta || 0) : s;
+  }, 0);
 
   if (games === null) return <div className="pl-pop"><CardSkeleton count={4} /></div>;
   if (games.length === 0 && tours.length === 0) return <EmptyState className="pl-card pl-pop" variant="clock" text={t("history_empty")} />;
 
+  // Лента: игры (с группировкой миксов) и турниры вперемешку, по датам.
+  const events = [];
+  if (filter !== "games") vTours.forEach((tour) => events.push({ key: "t" + tour.id, date: tourDate(tour), kind: "tour", tour }));
+  if (filter !== "tours") {
+    const byKey = new Map();
+    vGames.forEach((g) => { const k = g.mix_group_id || g.id; const a = byKey.get(k) || []; a.push(g); byKey.set(k, a); });
+    [...byKey.entries()].forEach(([k, grp]) => {
+      if (grp.length >= 2) {
+        const ordered = [...grp].sort((a, b) => new Date(a.created_at || a.starts_at || 0) - new Date(b.created_at || b.starts_at || 0));
+        events.push({ key: "mix-" + k, date: gameDate(ordered[ordered.length - 1]), kind: "mix", games: ordered });
+      } else {
+        events.push({ key: grp[0].id, date: gameDate(grp[0]), kind: "game", game: grp[0] });
+      }
+    });
+  }
+  events.sort((a, b) => b.date - a.date);
+
+  const dayLabel = (d) => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const day = new Date(d); day.setHours(0, 0, 0, 0);
+    const diff = Math.round((today - day) / 86400000);
+    if (diff === 0) return t("hist_today");
+    if (diff === 1) return t("hist_yesterday");
+    return day.toLocaleDateString(undefined, { day: "numeric", month: "long" });
+  };
+
+  const renderEvent = (ev) => {
+    if (ev.kind === "tour") {
+      const tour = ev.tour;
+      const mine = !profileId || mineTour(tour);
+      const card = <TournamentCard trn={tour} color="var(--yellow)" me={profileId} myDelta={trDelta(tour)} flush={isGroupMember} onClick={() => setSel({ type: "tour", data: tour })} />;
+      const inner = isGroupMember
+        ? <SwipeToDelete onCopy={groupId ? () => setCopyTour(tour) : null} onDelete={async () => { if (!confirm(t("trn_delete_confirm"))) return; await deleteTournament(tour.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+        : card;
+      return <div key={ev.key} style={mine ? undefined : { opacity: 0.55 }}>{inner}</div>;
+    }
+    if (ev.kind === "mix") {
+      const ordered = ev.games;
+      const mine = !profileId || ordered.some((gg) => meInGame(gg, profileId));
+      const card = <MixGroupCard games={ordered} color="#7d9488" me={profileId} onOpenGame={(g) => setSel({ type: "game", data: g })} />;
+      const inner = isGroupMember
+        ? <SwipeToDelete onDelete={async () => { if (!confirm(t("mix_delete_confirm").replace("{n}", ordered.length))) return; for (const gg of ordered) await deleteGame(gg.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+        : card;
+      return <div key={ev.key} style={mine ? undefined : { opacity: 0.55 }}>{inner}</div>;
+    }
+    const g = ev.game;
+    const mine = !profileId || meInGame(g, profileId);
+    const card = <GameRow g={g} color="#7d9488" me={profileId} delta={gDelta(g)} flush={isGroupMember} onOpen={() => setSel({ type: "game", data: g })} />;
+    const inner = isGroupMember
+      ? <SwipeToDelete onCopy={groupId ? () => setCopyGame(g) : null} onDelete={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(g.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+      : card;
+    return <div key={ev.key} style={mine ? undefined : { opacity: 0.55 }}>{inner}</div>;
+  };
+
+  const meRow = profileId ? (players || []).find((p) => p.id === profileId) : null;
+  const rosterOthers = (players || []).filter((p) => p.id !== profileId);
+
   return (
     <div className="pl-pop">
       <style>{trCss}</style>
-      {/* Фильтр: Все / Игры / Турниры — всегда виден сверху. */}
-      <div style={{ display: "flex", gap: 4, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, padding: 3, marginBottom: 12 }}>
-        {[["all", t("filter_all")], ["games", t("filter_games")], ["tours", t("filter_tours")]].map(([key, label]) => (
-          <button key={key} onClick={() => setFilter(key)} style={{
-            flex: 1, border: "none", borderRadius: 9, padding: "8px 0", cursor: "pointer",
-            fontFamily: "'Outfit',sans-serif", fontSize: 13, fontWeight: 700,
-            background: filter === key ? "var(--lime)" : "transparent",
-            color: filter === key ? "var(--lime-fg)" : "var(--mut)",
-            transition: "background .12s, color .12s",
-          }}>{label}</button>
-        ))}
+      {/* Фильтры одной строкой: сегмент + аватар-тумблер «Мои» справа. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        <div style={{ flex: 1, display: "flex", gap: 4, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, padding: 3 }}>
+          {[["all", t("filter_all")], ["games", t("filter_games")], ["tours", t("filter_tours")]].map(([key, label]) => (
+            <button key={key} onClick={() => setFilter(key)} style={{
+              flex: 1, border: "none", borderRadius: 9, padding: "8px 0", cursor: "pointer",
+              fontFamily: "'Outfit',sans-serif", fontSize: 13, fontWeight: 700,
+              background: filter === key ? "var(--lime)" : "transparent",
+              color: filter === key ? "var(--lime-fg)" : "var(--mut)",
+              transition: "background .12s, color .12s",
+            }}>{label}</button>
+          ))}
+        </div>
+        {profileId && (
+          <button onClick={() => { setMineOnly((v) => !v); setPFilter(null); }} aria-pressed={mineOnly} title={t("only_mine")} aria-label={t("only_mine")}
+            style={{ flexShrink: 0, width: 42, height: 42, borderRadius: "50%", padding: 0, cursor: "pointer", position: "relative", background: "var(--surface2)",
+              border: mineOnly ? "2px solid var(--lime)" : "2px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {meRow
+              ? <img src={playerAvatar(meRow.avatar_url, meRow.id)} onError={avatarFallback(meRow.id)} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+              : <UserCheck size={16} style={{ color: mineOnly ? "var(--lime)" : "var(--mut)" }} />}
+            {mineOnly && (
+              <span style={{ position: "absolute", right: -3, bottom: -3, width: 15, height: 15, borderRadius: "50%", background: "var(--lime)", color: "var(--lime-fg)", fontSize: 9, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}>✓</span>
+            )}
+          </button>
+        )}
       </div>
-      {profileId && (
-        <button onClick={() => setMineOnly((v) => !v)} aria-pressed={mineOnly} style={{
-          display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 12, padding: "7px 12px", borderRadius: 999, cursor: "pointer",
-          fontFamily: "'Outfit',sans-serif", fontSize: 12.5, fontWeight: 700,
-          border: mineOnly ? "1px solid color-mix(in srgb, var(--lime) 55%, transparent)" : "1px solid var(--line)",
-          background: mineOnly ? "color-mix(in srgb, var(--lime) 14%, transparent)" : "var(--surface2)",
-          color: mineOnly ? "var(--lime)" : "var(--mut)",
-        }}>
-          <UserCheck size={14} /> {t("only_mine")}
-        </button>
+
+      {/* Сводка месяца с листалкой ‹ › — заодно фильтр периода для ленты. */}
+      <div className="pl-card" style={{ display: "flex", alignItems: "center", padding: "11px 8px", marginBottom: 10 }}>
+        <button onClick={() => setMonthOff((v) => v - 1)} aria-label="‹"
+          style={{ flexShrink: 0, width: 26, height: 26, borderRadius: 8, border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--mut)", cursor: "pointer", fontSize: 13, lineHeight: 1 }}>‹</button>
+        <div style={{ flex: 1, display: "flex", textAlign: "center" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 800, fontSize: 19 }}>{mGames.length}</div>
+            <div style={{ fontSize: 10, color: "var(--mut)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t("hist_games_lbl")} · {monthLabel}</div>
+          </div>
+          <div style={{ flex: 1, minWidth: 0, borderLeft: "1px solid var(--line)" }}>
+            <div style={{ fontWeight: 800, fontSize: 19 }}>{mTours.length}</div>
+            <div style={{ fontSize: 10, color: "var(--mut)" }}>{t("hist_tours_lbl")}</div>
+          </div>
+          {profileId && (
+            <div style={{ flex: 1, minWidth: 0, borderLeft: "1px solid var(--line)" }}>
+              <div style={{ fontWeight: 800, fontSize: 19, color: myWL.w >= myWL.l ? "var(--lime)" : "var(--coral)" }}>{myWL.w}–{myWL.l}</div>
+              <div style={{ fontSize: 10, color: "var(--mut)" }}>{t("hist_wl_lbl")}</div>
+            </div>
+          )}
+          {profileId && (
+            <div style={{ flex: 1, minWidth: 0, borderLeft: "1px solid var(--line)" }}>
+              <div style={{ fontWeight: 800, fontSize: 19, color: myMonthDelta > 0 ? "var(--lime)" : myMonthDelta < 0 ? "var(--coral)" : "var(--ink)" }}>{myMonthDelta > 0 ? `+${myMonthDelta}` : myMonthDelta}</div>
+              <div style={{ fontSize: 10, color: "var(--mut)" }}>{t("hist_rating_lbl")}</div>
+            </div>
+          )}
+        </div>
+        <button onClick={() => setMonthOff((v) => Math.min(0, v + 1))} disabled={monthOff === 0} aria-label="›"
+          style={{ flexShrink: 0, width: 26, height: 26, borderRadius: 8, border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--mut)", cursor: monthOff === 0 ? "default" : "pointer", fontSize: 13, lineHeight: 1, opacity: monthOff === 0 ? .35 : 1 }}>›</button>
+      </div>
+
+      {/* «Чья история»: тап по игроку — только его матчи. */}
+      {rosterOthers.length > 1 && (
+        <div style={{ display: "flex", gap: 7, overflowX: "auto", padding: "2px 0 6px", marginBottom: 6, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+          {rosterOthers.slice(0, 16).map((p) => (
+            <button key={p.id} onClick={() => { setPFilter((v) => v === p.id ? null : p.id); setMineOnly(false); }} title={p.name} aria-pressed={pFilter === p.id}
+              style={{ flexShrink: 0, width: 34, height: 34, borderRadius: "50%", padding: 0, cursor: "pointer", background: "var(--surface2)",
+                border: pFilter === p.id ? "2px solid var(--coral)" : "2px solid var(--line)", opacity: pFilter && pFilter !== p.id ? .5 : 1 }}>
+              <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+            </button>
+          ))}
+        </div>
       )}
+
       {isGroupMember && swipeHint && (games.length > 0 || tours.length > 0) && (
         <div onClick={dismissHint} style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 2px 12px", padding: "9px 12px", borderRadius: 12, background: "color-mix(in srgb, var(--coral) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--coral) 30%, transparent)", fontSize: 12.5, color: "var(--mut)", cursor: "pointer" }}>
           <span style={{ fontSize: 15, fontWeight: 800, lineHeight: 1, flexShrink: 0 }}><span style={{ color: "var(--coral)" }}>←</span><span style={{ color: "var(--lime)" }}>→</span></span> {t("swipe_hint")} <X size={14} style={{ marginLeft: "auto", color: "var(--mut)", flexShrink: 0 }} />
         </div>
       )}
-      {filter === "games" && vGames.length === 0 && !mineOnly && <EmptyState text={t("history_no_games")} />}
-      {filter === "tours" && vTours.length === 0 && !mineOnly && <EmptyState text={t("history_no_tours")} />}
-      {mineOnly && vTours.length === 0 && vGames.length === 0 && <EmptyState text={t("history_no_mine")} />}
-      {filter !== "games" && vTours.length > 0 && head(t("tours_history_heading"), "var(--yellow)")}
-      {filter !== "games" && vTours.map((tour) => {
-        const mine = !profileId || (tour.players || []).some((pl) => pl.profile_id === profileId);
-        const card = <TournamentCard trn={tour} color="var(--yellow)" me={profileId} flush={isGroupMember} onClick={() => setSel({ type: "tour", data: tour })} />;
-        const inner = isGroupMember
-          ? <SwipeToDelete onCopy={groupId ? () => setCopyTour(tour) : null} onDelete={async () => { if (!confirm(t("trn_delete_confirm"))) return; await deleteTournament(tour.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
-          : card;
-        return <div key={tour.id} style={mine ? undefined : { opacity: 0.55 }}>{inner}</div>;
-      })}
 
-      {filter !== "tours" && vGames.length > 0 && head(t("games_history_heading"))}
-      {filter !== "tours" && (() => {
-        // Группируем по миксу: ключ = mix_group_id || id. Группа ≥2 → объединённая плашка.
-        const byKey = new Map();
-        vGames.forEach((g) => { const k = g.mix_group_id || g.id; const a = byKey.get(k) || []; a.push(g); byKey.set(k, a); });
-        const seen = new Set();
-        const order = [];
-        vGames.forEach((g) => { const k = g.mix_group_id || g.id; if (!seen.has(k)) { seen.add(k); order.push(k); } });
-        return order.map((k) => {
-          const grp = byKey.get(k);
-          if (grp.length >= 2) {
-            const ordered = [...grp].sort((a, b) => new Date(a.created_at || a.starts_at || 0) - new Date(b.created_at || b.starts_at || 0));
-            const mine = !profileId || ordered.some((gg) => meInGame(gg, profileId));
-            const card = <MixGroupCard games={ordered} color="#7d9488" me={profileId} onOpenGame={(g) => setSel({ type: "game", data: g })} />;
-            const inner = isGroupMember
-              ? <SwipeToDelete onDelete={async () => { if (!confirm(t("mix_delete_confirm").replace("{n}", ordered.length))) return; for (const gg of ordered) await deleteGame(gg.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
-              : card;
-            return <div key={"mix-" + k} style={mine ? undefined : { opacity: 0.55 }}>{inner}</div>;
+      {events.length === 0 && <EmptyState text={mineOnly || pFilter ? t("history_no_mine") : t("hist_month_empty")} />}
+      {(() => {
+        const out = [];
+        let lastDay = null;
+        events.forEach((ev) => {
+          const dk = new Date(ev.date); dk.setHours(0, 0, 0, 0);
+          const key = dk.getTime();
+          if (key !== lastDay) {
+            lastDay = key;
+            out.push(<div key={"d" + key} style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: "var(--mut)", textTransform: "uppercase", margin: "14px 2px 8px", paddingLeft: 4 }}>{dayLabel(ev.date)}</div>);
           }
-          const g = grp[0];
-          const mine = !profileId || meInGame(g, profileId);
-          const card = <GameRow g={g} color="#7d9488" me={profileId} flush={isGroupMember} onOpen={() => setSel({ type: "game", data: g })} />;
-          const inner = isGroupMember
-            ? <SwipeToDelete onCopy={groupId ? () => setCopyGame(g) : null} onDelete={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(g.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
-            : card;
-          return <div key={g.id} style={mine ? undefined : { opacity: 0.55 }}>{inner}</div>;
+          out.push(renderEvent(ev));
         });
+        return out;
       })()}
       {copyTour && <CopyDialog src={copyTour} groupId={groupId} profileId={profileId} onClose={() => setCopyTour(null)} onCopied={() => { setCopyTour(null); bumpArchive?.(); }} />}
       {copyGame && <GameCopyDialog src={copyGame} groupId={groupId} profileId={profileId} onClose={() => setCopyGame(null)} onCopied={() => { setCopyGame(null); bumpArchive?.(); }} />}

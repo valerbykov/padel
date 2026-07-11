@@ -200,7 +200,7 @@ export async function getRatingHistory(groupId, profileId) {
 const GAME_SELECT =
   "id, invite_code, title, starts_at, started_at, place, status, host_id, created_at, mix_group_id, court_name, " +
   "slots:game_slots(id, team, position, profile_id, guest_name, profile:profiles(name, avatar_url))," +
-  "matches(id, sets_a, sets_b, score_detail)";
+  "matches(id, sets_a, sets_b, score_detail, played_at)";
 
 // Переименовать корт игры (court_name). name="" — сброс к «Корт N».
 export async function updateGameCourtName(gameId, name) {
@@ -486,6 +486,20 @@ export async function joinLeague(code) {
   if (error) throw error;
   bustCache();
   return data;
+}
+
+// Мои дельты рейтинга по матчам лиги (обычные и турнирные): map строится на
+// клиенте. Для бейджей ±N в «Истории» и суммы за месяц в сводке.
+export function getMyDeltas(groupId, profileId) {
+  if (!groupId || !profileId) return Promise.resolve([]);
+  return swr(`mydeltas:${groupId}:${profileId}`, async () => {
+    const { data, error } = await supabase.from("rating_changes")
+      .select("match_id, delta, created_at")
+      .eq("group_id", groupId).eq("profile_id", profileId)
+      .order("created_at", { ascending: false }).limit(600);
+    if (error) throw error;
+    return data || [];
+  });
 }
 
 // Выход из лиги (не владелец): своё членство удаляется, история игр остаётся.

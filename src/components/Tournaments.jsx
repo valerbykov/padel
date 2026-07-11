@@ -130,16 +130,56 @@ export default function Tournaments({ groupId, players, profileId, bumpArchive, 
   }, [openReq]);
   if (mode === "create") return <Create groupId={groupId} profileId={profileId} back={() => setMode("list")} open={(id) => { setActiveId(id); setMode("view"); }} />;
   if (mode === "view") return <TournamentView id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} onArchiveChange={bumpArchive} isAdmin={isAdmin} membersCanCreate={membersCanCreate} />;
-  return <List groupId={groupId} profileId={profileId} session={session} onLogin={onLogin} canCreate={canCreate} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
+  return <List groupId={groupId} profileId={profileId} players={players} session={session} onLogin={onLogin} canCreate={canCreate} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
+}
+
+// ─── TournamentHero ────────────────────────────────────────────────────────────
+// Активный турнир наверху списка: прогресс раундов, текущий лидер, CTA к счёту.
+function TournamentHero({ trn, onOpen }) {
+  const ms = (trn.matches || []).filter((m) => m.round_number > 0);
+  const total = ms.length;
+  const done = ms.filter((m) => m.score_a != null && m.score_b != null).length;
+  const rounds = ms.reduce((mx, m) => Math.max(mx, m.round_number || 0), 0);
+  let cur = rounds;
+  for (let r = 1; r <= rounds; r++) {
+    if (ms.some((m) => m.round_number === r && m.score_a == null)) { cur = r; break; }
+  }
+  let leader = null;
+  try {
+    const tbl = detailedStandings((trn.players || []).map((p) => ({ id: p.id, name: p.name })), ms);
+    if (tbl[0] && tbl[0].played > 0) leader = tbl[0];
+  } catch (e) {}
+  return (
+    <div onClick={onOpen} style={{ border: "1.5px solid color-mix(in srgb, var(--yellow) 45%, transparent)", background: "linear-gradient(160deg, color-mix(in srgb, var(--yellow) 9%, var(--surface)), var(--surface))", borderRadius: 18, padding: "14px 14px 13px", marginBottom: 10, cursor: "pointer" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.2, color: "var(--yellow)", textTransform: "uppercase" }}>🏆 {tr("trn_hero_now")}</span>
+        {rounds > 0 && <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--mut)" }}>{tr("trn_hero_round").replace("{a}", String(cur)).replace("{b}", String(rounds))}</span>}
+      </div>
+      <div style={{ fontWeight: 700, fontSize: 16, margin: "7px 0 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{trn.name || fmtById(trn.format).name}</div>
+      <div style={{ height: 6, borderRadius: 4, background: "var(--surface2)", overflow: "hidden", marginBottom: 8 }}>
+        <div style={{ width: `${total ? Math.round((done / total) * 100) : 0}%`, height: "100%", background: "var(--yellow)", transition: "width .3s" }} />
+      </div>
+      <div style={{ display: "flex", alignItems: "center", fontSize: 12, color: "var(--mut)", gap: 8 }}>
+        {leader && <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tr("trn_hero_leader")}: <b style={{ color: "var(--ink)" }}>{leader.name}</b> · {leader.points} {tr("trn_hero_pts")}</span>}
+        <button onClick={(e) => { e.stopPropagation(); onOpen(); }}
+          style={{ marginLeft: "auto", flexShrink: 0, border: "none", borderRadius: 11, padding: "9px 14px", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 12.5, cursor: "pointer", background: "var(--yellow)", color: "#1c1503" }}>
+          {tr("trn_hero_score")}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 // ─── TournamentCard ────────────────────────────────────────────────────────────
 
-export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null }) {
+export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null, onTake = null, myDelta = null }) {
   const fmt = fmtById(trn.format);
   const mine = !!me && (trn.players || []).some((pl) => pl.profile_id === me);
-  // Завершённый турнир — считаем победителя и дату прямо на карточке (matches есть в выборке).
+  // Завершённый турнир — победитель, топ-3 (мини-подиум), моё место и дата.
   let winner = null;
+  let top3 = [];
+  let myPlace = null;
+  const myTp = me ? (trn.players || []).find((pl) => pl.profile_id === me) : null;
   if (trn.status === "finished") {
     try {
       if (trn.format === "king_of_hill") {
@@ -147,38 +187,88 @@ export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null }
         if (pair) {
           const nm = (pid) => (trn.players || []).find((p) => p.id === pid)?.name || "?";
           winner = `${nm(pair[0])} & ${nm(pair[1])}`;
+          top3 = pair.map((pid) => (trn.players || []).find((p) => p.id === pid)).filter(Boolean);
         }
       } else {
         const tbl = detailedStandings((trn.players || []).map((p) => ({ id: p.id, name: p.name })), (trn.matches || []).filter((m) => m.round_number > 0));
         winner = tbl[0]?.name || null;
+        top3 = tbl.slice(0, 3).map((row) => (trn.players || []).find((p) => p.id === row.id)).filter(Boolean);
+        if (myTp) {
+          const idx = tbl.findIndex((row) => row.id === myTp.id);
+          if (idx >= 0) myPlace = idx + 1;
+        }
       }
     } catch (e) {}
   }
+  const avaOf = (p) => p?.profile?.avatar_url || null;
   // Дата+время начала, если заданы; иначе — дата создания (без времени) как запасной вариант.
   const whenIso = trn.starts_at || trn.created_at;
   const dateStr = whenIso ? (() => { try { return new Date(whenIso).toLocaleString(undefined, trn.starts_at ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" } : { day: "numeric", month: "short" }); } catch (e) { return null; } })() : null;
   return (
-    <div className="tr-card" style={{ marginBottom: flush ? 0 : 8, display: "flex", alignItems: "center", gap: 10, cursor: "pointer", border: mine ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined, background: mine ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined }} onClick={onClick}>
-      <Trophy size={24} color={color} style={{ flexShrink: 0 }} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-          <span style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{trn.name || fmt.name}</span>
-          {mine && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.5, padding: "2px 7px", borderRadius: 20, background: "color-mix(in srgb, var(--lime) 18%, transparent)", color: "var(--lime)", flexShrink: 0, textTransform: "uppercase" }}>{tr("you_badge")}</span>}
-        </div>
-        <div style={{ fontSize: 12, color: "var(--mut)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(trn.players || []).length}/{trn.target_size} {tr("trn_players_label").toLowerCase()} · {trn.points_per_game} {tr("trn_winner_points")} · {fmt.emoji} {fmt.name}</div>
-        {(winner || dateStr) && (
-          <div style={{ fontSize: 12, marginTop: 3, display: "flex", gap: 10, alignItems: "center", overflow: "hidden" }}>
-            {winner && <span style={{ color: "var(--yellow)", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>🥇 {winner}</span>}
-            {dateStr && <span style={{ color: "var(--mut)", flexShrink: 0 }}>{dateStr}</span>}
+    <div className="tr-card" style={{ marginBottom: flush ? 0 : 8, cursor: "pointer", border: mine ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined, background: mine ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined }} onClick={onClick}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {/* Завершённый: мини-подиум из аватарок (чемпион с золотой рамкой) вместо кубка */}
+        {trn.status === "finished" && top3.length > 0 ? (
+          <div style={{ display: "flex", paddingLeft: 10, flexShrink: 0 }}>
+            {top3.map((p, i) => (
+              <span key={p.id} style={{ marginLeft: -10, borderRadius: "50%", border: `2px solid ${i === 0 ? "var(--yellow)" : "var(--line)"}`, display: "inline-flex", position: "relative", zIndex: 3 - i }}>
+                <Avatar name={p.name} url={avaOf(p)} id={p.id} size={30} />
+              </span>
+            ))}
           </div>
+        ) : (
+          <Trophy size={24} color={color} style={{ flexShrink: 0 }} />
+        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+            <span style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{trn.name || fmt.name}</span>
+            {mine && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.5, padding: "2px 7px", borderRadius: 20, background: "color-mix(in srgb, var(--lime) 18%, transparent)", color: "var(--lime)", flexShrink: 0, textTransform: "uppercase" }}>{tr("you_badge")}</span>}
+          </div>
+          <div style={{ fontSize: 12, color: "var(--mut)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(trn.players || []).length}/{trn.target_size} {tr("trn_players_label").toLowerCase()} · {trn.points_per_game} {tr("trn_winner_points")} · {fmt.emoji} {fmt.name}</div>
+          {(winner || dateStr || myPlace) && (
+            <div style={{ fontSize: 12, marginTop: 3, display: "flex", gap: 10, alignItems: "center", overflow: "hidden" }}>
+              {winner && <span style={{ color: "var(--yellow)", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>🥇 {winner}</span>}
+              {myPlace && myPlace > 1 && <span style={{ color: "var(--mut)", flexShrink: 0 }}>{tr("hist_you_place").replace("{p}", String(myPlace))}</span>}
+              {dateStr && <span style={{ color: "var(--mut)", flexShrink: 0 }}>{dateStr}</span>}
+            </div>
+          )}
+        </div>
+        {/* Моя суммарная дельта за турнир — вместо статус-бейджа у завершённых */}
+        {trn.status === "finished" && myDelta != null ? (
+          <span className="tr-badge" style={{ flexShrink: 0, fontWeight: 800,
+            background: myDelta > 0 ? "color-mix(in srgb, var(--lime) 15%, transparent)" : myDelta < 0 ? "color-mix(in srgb, var(--coral) 14%, transparent)" : "rgba(255,255,255,.06)",
+            color: myDelta > 0 ? "var(--lime)" : myDelta < 0 ? "var(--coral)" : "var(--mut)" }}>
+            {myDelta > 0 ? `+${myDelta}` : String(myDelta)}
+          </span>
+        ) : (
+          <span className="tr-badge" style={{ background: "rgba(255,255,255,.06)", color: trn.status === "finished" ? "var(--mut)" : color, flexShrink: 0 }}>{statusLabel(trn.status)}</span>
+        )}
+        {onCopy && (
+          <button onClick={(e) => { e.stopPropagation(); onCopy(); }} title={tr("trn_copy")}
+            style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 5, padding: "7px 10px", borderRadius: 10, border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--mut)", cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontSize: 11.5, fontWeight: 700 }}>
+            <Copy size={13} /> {tr("trn_again")}
+          </button>
         )}
       </div>
-      <span className="tr-badge" style={{ background: "rgba(255,255,255,.06)", color: trn.status === "finished" ? "var(--mut)" : color, flexShrink: 0 }}>{statusLabel(trn.status)}</span>
-      {onCopy && (
-        <button onClick={(e) => { e.stopPropagation(); onCopy(); }} title={tr("trn_copy")}
-          style={{ flexShrink: 0, padding: "7px 9px", borderRadius: 10, border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--mut)", cursor: "pointer", display: "flex", alignItems: "center" }}>
-          <Copy size={14} />
-        </button>
+      {/* Лобби: аватары записавшихся + «Занять» одним тапом из списка */}
+      {trn.status === "open" && onTake && (
+        <div style={{ display: "flex", alignItems: "center", marginTop: 10 }}>
+          <div style={{ display: "flex", paddingLeft: 10 }}>
+            {(trn.players || []).slice(0, 6).map((p) => (
+              <span key={p.id} style={{ marginLeft: -10, borderRadius: "50%", border: "2px solid var(--line)", display: "inline-flex" }}>
+                <Avatar name={p.name} url={avaOf(p)} id={p.id} size={28} />
+              </span>
+            ))}
+            {(trn.players || []).length < trn.target_size && (
+              <span style={{ width: 28, height: 28, borderRadius: "50%", border: "1.5px dashed var(--line)", background: "var(--surface2)", marginLeft: -10, boxSizing: "border-box", flexShrink: 0 }} />
+            )}
+          </div>
+          <span style={{ fontSize: 11.5, color: "var(--mut)", marginLeft: 8 }}>{(trn.players || []).length}/{trn.target_size}</span>
+          <button onClick={(e) => { e.stopPropagation(); onTake(); }}
+            style={{ marginLeft: "auto", flexShrink: 0, border: "none", borderRadius: 11, padding: "8px 14px", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 12.5, cursor: "pointer", background: "var(--lime)", color: "var(--lime-fg)" }}>
+            {tr("pub_take_slot")}
+          </button>
+        </div>
       )}
     </div>
   );
@@ -186,19 +276,29 @@ export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null }
 
 // ─── List ──────────────────────────────────────────────────────────────────────
 
-function List({ groupId, profileId, create, open, session, onLogin, canCreate = false }) {
+function List({ groupId, profileId, players = [], create, open, session, onLogin, canCreate = false }) {
   const [items, setItems] = useState(null);
   const [showAll, setShowAll] = useState(false);
   const [copySrc, setCopySrc] = useState(null);
-  useEffect(() => {
-    setShowAll(false);
+  const reload = useCallback(() => {
     (groupId ? listTournaments(groupId) : listMyTournaments()).then(setItems).catch(() => setItems([]));
   }, [groupId]);
+  useEffect(() => { setShowAll(false); reload(); }, [reload]);
 
   const byStatus = {
     active:   (items || []).filter((trn) => trn.status === "active"),
     open:     (items || []).filter((trn) => trn.status === "open"),
     finished: (items || []).filter((trn) => trn.status === "finished"),
+  };
+  // Активный турнир — hero наверху; остальные активные остаются в секции.
+  const heroTrn = byStatus.active[0] || null;
+  // «Занять» из карточки лобби: записываю себя тем же путём, что и «Я сам» внутри.
+  const canTake = (trn) => !!profileId && (trn.players || []).length < trn.target_size &&
+    !(trn.players || []).some((p) => p.profile_id === profileId);
+  const takeSeat = async (trn) => {
+    const myName = (players || []).find((p) => p.id === profileId)?.name || tr("guest_default_name");
+    try { await addTournamentPlayer(trn.id, { profileId, name: myName }); } catch (e) {}
+    reload();
   };
 
   return (
@@ -218,8 +318,9 @@ function List({ groupId, profileId, create, open, session, onLogin, canCreate = 
         <EmptyState className="tr-card" variant="podium"
           text={!session ? tr("trn_empty_guest") : groupId ? tr("trn_empty_session") : tr("solo_tours_empty")} />
       )}
+      {items !== null && heroTrn && <TournamentHero trn={heroTrn} onOpen={() => open(heroTrn.id)} />}
       {items !== null && getSections().filter((sec) => sec.status !== "finished").map((sec) => {
-        const list = byStatus[sec.status];
+        const list = sec.status === "active" ? byStatus.active.filter((trn) => trn !== heroTrn) : byStatus[sec.status];
         if (!list.length) return null;
         const hidden = sec.limit && !showAll ? list.length - sec.limit : 0;
         const visible = sec.limit && !showAll ? list.slice(0, sec.limit) : list;
@@ -230,9 +331,11 @@ function List({ groupId, profileId, create, open, session, onLogin, canCreate = 
             </div>
             {visible.map((trn) => {
               const canDel = session && groupId && canCreate;
-              const card = <TournamentCard trn={trn} color={sec.color} me={profileId} flush={canDel} onClick={() => open(trn.id)} onCopy={groupId && trn.status === "finished" ? () => setCopySrc(trn) : null} />;
+              const card = <TournamentCard trn={trn} color={sec.color} me={profileId} flush={canDel} onClick={() => open(trn.id)}
+                onCopy={groupId && trn.status === "finished" ? () => setCopySrc(trn) : null}
+                onTake={trn.status === "open" && canTake(trn) ? () => takeSeat(trn) : null} />;
               return canDel
-                ? <div key={trn.id} style={{ marginBottom: 8 }}><SwipeRow onDelete={async () => { if (!confirm(tr("trn_delete_confirm"))) return; await deleteTournament(trn.id).catch(() => {}); (groupId ? listTournaments(groupId) : listMyTournaments()).then(setItems).catch(() => {}); }}>{card}</SwipeRow></div>
+                ? <div key={trn.id} style={{ marginBottom: 8 }}><SwipeRow onDelete={async () => { if (!confirm(tr("trn_delete_confirm"))) return; await deleteTournament(trn.id).catch(() => {}); reload(); }}>{card}</SwipeRow></div>
                 : <div key={trn.id}>{card}</div>;
             })}
             {hidden > 0 && (
