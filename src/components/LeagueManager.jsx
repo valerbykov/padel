@@ -185,6 +185,12 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
               </div>
             </div>
 
+            {/* Инвайт-карта — общий компонент с вкладкой «Друзья»: код + ссылка + QR.
+                #4: только тем, кто может приглашать. В демо-песочницу не приглашают. */}
+            {d.invite_code && !isDemo && (canEdit || membersCanAdd) && (
+              <InviteCard code={d.invite_code} leagueName={name} style={{ marginBottom: 12 }} />
+            )}
+
             {/* Команда: владелец + организаторы (сворачивается) */}
             <Section icon={<Users size={13} style={{ color: "var(--mut)" }} />} title={t("league_team")}
               count={Array.isArray(d.organizers) && d.organizers.length ? 1 + d.organizers.length : null}
@@ -208,12 +214,6 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
                 </div>
               ))}
             </Section>
-
-            {/* Инвайт-карта — общий компонент с вкладкой «Друзья»: код + ссылка + QR.
-                #4: только тем, кто может приглашать. В демо-песочницу не приглашают. */}
-            {d.invite_code && !isDemo && (canEdit || membersCanAdd) && (
-              <InviteCard code={d.invite_code} leagueName={name} style={{ marginBottom: 12 }} />
-            )}
 
             {/* Права участников — сворачиваемая секция (как «Команда»): в шапке компактно,
                 внутри строки с тумблерами; сюда же будут добавляться новые права. */}
@@ -273,7 +273,7 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
                     </button>
                     {openTg && (
                       <div style={{ padding: "0 12px 12px" }}>
-                        <input value={tg} onChange={(e) => setTg(e.target.value)} placeholder="https://t.me/..." inputMode="url" autoFocus style={{ ...inp, fontSize: 14, padding: "9px 12px" }} />
+                        <input value={tg} onChange={(e) => setTg(e.target.value)} placeholder="https://t.me/..." inputMode="url" autoFocus style={{ ...inp, fontSize: 16, padding: "9px 12px" }} />
                         <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 5 }}>{t("league_telegram_hint")}</div>
                       </div>
                     )}

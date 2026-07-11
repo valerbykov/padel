@@ -2,7 +2,7 @@
 // Гостевой вход на турнир по ссылке /t/CODE.
 // Все статусы (набор / идёт / завершён) показывают полный TournamentView только для чтения.
 // Кнопка «Присоединиться» видна только при status=open и ещё не зарегистрировался.
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { getTournamentByCode, getTournament, joinTournamentByCode } from "../lib/tournamentApi";
 import { TournamentView } from "./Tournaments";
@@ -83,6 +83,12 @@ export default function TournamentJoin({ code, botName }) {
       setProfileId(data?.id || null);
     })();
   }, [session]);
+
+  const reloadBoth = useCallback(async () => {
+    const d = await getTournament(t?.id).catch(() => getTournamentByCode(code));
+    if (d) setT(d);
+    return d;
+  }, [t?.id, code]);
 
   if (showLogin && !session) return <LoginScreen botName={botName} onSuccess={() => setShowLogin(false)} onBack={() => setShowLogin(false)} theme={theme} lang={lang} onThemeToggle={toggleTheme} onLangChange={cycleLang} />;
 
@@ -214,7 +220,7 @@ export default function TournamentJoin({ code, botName }) {
 
             {/* Полный TournamentView: read-only для гостей, полный для залогиненных */}
             <TournamentView id={t.id} players={[]} back={null} readOnly={!canEdit} initialT={t}
-              reloadFn={() => getTournament(t.id).catch(() => getTournamentByCode(code))}
+              reloadFn={reloadBoth}
               isGroupMember={false}
               currentProfileId={profileId}
               spectatorMode={!canEdit} />
