@@ -3,13 +3,18 @@
 // Лёгкая анимация через SMIL (animateTransform): мяч подпрыгивает, у часов
 // идут стрелки, ракетка чуть покачивается. Шов мяча — var(--lime-fg), чтобы
 // контрастировал и в тёмной, и в светлой теме.
-// variant: "racket" (по умолчанию) | "podium" (Турниры) | "clock" (История) |
-//          "run" (Игры: сцена с пробегающим псом и рикошетом мяча — победитель
-//          пяти консилиумов; тяжёлые кадры грузятся лениво отдельным чанком,
-//          пока грузятся — показывается статичная ракетка).
+// variant: "run" (Игры) | "podium" (Турниры) | "clock" (История) | "racket".
+// Все три вкладки — анимированные сцены из DogRunArt (формула-победитель
+// консилиумов: композиция сразу + мини-пёс понизу + непрерывная физика мяча);
+// тяжёлые кадры пса грузятся лениво одним чанком, на время загрузки — статичный
+// line-art (ракетка/подиум/часы ниже).
 import React, { Suspense, lazy } from "react";
 
 const DogRunArt = lazy(() => import("./DogRunArt"));
+// variant → сцена в DogRunArt; статичный Art того же вида — fallback на время
+// загрузки. Дефолтный "racket" (мелкие пустые состояния фильтров и т.п.)
+// остаётся статичным — сцену с псом там играть незачем.
+const SCENE_KIND = { run: "racket", podium: "podium", clock: "clock" };
 
 function Ball({ cx, cy, r }) {
   const sx = cx - Math.round(r * 0.6);
@@ -100,8 +105,8 @@ export default function EmptyState({ text, children, className = "pl-card", vari
   const Art = ART[variant] || RacketBall;
   return (
     <div className={className} style={{ padding: "30px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
-      {variant === "run"
-        ? <Suspense fallback={<RacketBall />}><DogRunArt /></Suspense>
+      {SCENE_KIND[variant]
+        ? <Suspense fallback={<Art />}><DogRunArt kind={SCENE_KIND[variant]} /></Suspense>
         : <Art />}
       <div style={{ color: "var(--mut)", fontSize: 14, maxWidth: 290, lineHeight: 1.5 }}>{text}</div>
       {children}
