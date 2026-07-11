@@ -4,7 +4,7 @@ const LeagueSetup = lazy(() => import("./components/LeagueSetup"));
 import { createPortal } from "react-dom";
 import { supabase } from "./lib/supabase";
 import BackButton from "./components/BackButton";
-import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, createDemoLeague, joinGameSlot, joinSlot, clearGameSlot, startGame, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames } from "./lib/padelApi";
+import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, createDemoLeague, joinSlot, clearGameSlot, startGame, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames } from "./lib/padelApi";
 import { WEB_BASE } from "./lib/platform";
 import { CardSkeleton } from "./components/Skeleton";
 import { bustCache, cachePeek } from "./lib/cache";
@@ -2346,48 +2346,52 @@ function CreateGame({ groupId, players, profileId, back, done }) {
     );
   }
 }
-// Шторка «Кто играет?»: карусель свободных игроков лиги + поиск + гость по имени.
-// Единый инструмент добора состава на экране игры (заменяет разделение
-// «пикер только при создании / ссылка только после»).
-function PickPlayerSheet({ slotLabel, players = [], takenIds = [], onPick, onClose }) {
+// Панель «Кто играет?»: раскрывается прямо под слотом (без шторки) — корт и
+// остальные слоты остаются на экране. «Я сам» — первый чип карусели; поиск
+// находит игрока лиги или добавляет гостя по имени.
+function PickPlayerPanel({ slotLabel, players = [], takenIds = [], meId = null, onPick, onClose }) {
   const [q, setQ] = useState("");
-  const free = (players || []).filter((p) => !takenIds.includes(p.id));
+  const free = (players || []).filter((p) => !takenIds.includes(p.id) && p.id !== meId);
+  const me = (!!meId && !takenIds.includes(meId)) ? (players || []).find((p) => p.id === meId) : null;
   const matches = q.trim()
     ? free.filter((p) => p.name.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 8)
     : [];
-  return createPortal(
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-end", justifyContent: "center", fontFamily: "'Outfit',sans-serif" }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 460, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "20px 20px 0 0", padding: 16, paddingBottom: "max(16px, env(safe-area-inset-bottom))", maxHeight: "80vh", overflowY: "auto", overscrollBehavior: "contain" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-          <div style={{ fontWeight: 800, fontSize: 15, color: "var(--ink)" }}>{t("pick_title")}{slotLabel ? ` · ${slotLabel}` : ""}</div>
-          <button onClick={onClose} aria-label="✕" style={{ marginLeft: "auto", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 10, color: "var(--mut)", cursor: "pointer", padding: 6, display: "flex" }}><X size={15} /></button>
-        </div>
-        {/* Карусель свободных игроков лиги — выбор глазами, без клавиатуры */}
-        {!q.trim() && free.length > 0 && (
-          <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 6, marginBottom: 10, scrollbarWidth: "none", WebkitOverflowScrolling: "touch", WebkitMaskImage: "linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)", maskImage: "linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)" }}>
-            {free.slice(0, 24).map((p) => (
-              <button key={p.id} className="pl-ghost" onClick={() => onPick({ profileId: p.id, name: p.name })}
-                style={{ flexShrink: 0, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 7, padding: "6px 12px 6px 6px", borderRadius: 999, fontSize: 13 }}>
-                <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: 22, height: 22, borderRadius: "50%", objectFit: "cover" }} /> {p.name}
-              </button>
-            ))}
-          </div>
-        )}
-        <input className="pl-input" style={{ padding: "10px 12px" }} placeholder={t("pick_ph")} value={q} onChange={(e) => setQ(e.target.value)} />
-        {q.trim() && (
-          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
-            {matches.map((p) => (
-              <button key={p.id} className="pl-ghost" style={{ padding: "9px 10px", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }} onClick={() => onPick({ profileId: p.id, name: p.name })}>
-                <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} /> {p.name}
-              </button>
-            ))}
-            <button className="pl-btn" style={{ padding: "9px 10px", textAlign: "left" }} onClick={() => onPick({ guestName: q.trim() })}>{t("add_guest_prefix")}{q.trim()}</button>
-            <div style={{ fontSize: 11, color: "var(--mut)", lineHeight: 1.4, padding: "2px 2px" }}>{t("add_guest_league_hint")}</div>
-          </div>
-        )}
+  return (
+    <div className="pl-pop" style={{ border: "1px solid color-mix(in srgb, var(--lime) 35%, var(--line))", borderRadius: 12, background: "var(--surface2)", padding: "10px 10px 11px", boxShadow: "0 8px 24px -14px rgba(0,0,0,.6)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <div style={{ fontWeight: 700, fontSize: 12.5, color: "var(--ink)" }}>{t("pick_title")}{slotLabel ? <span style={{ color: "var(--mut)", fontWeight: 600 }}> · {slotLabel}</span> : null}</div>
+        <button onClick={onClose} aria-label="✕" style={{ marginLeft: "auto", background: "none", border: "none", color: "var(--mut)", cursor: "pointer", padding: "2px 4px", display: "flex" }}><X size={14} /></button>
       </div>
-    </div>,
-    document.body
+      {/* Карусель: «Я сам» первым (если ещё не в игре), дальше свободные игроки лиги */}
+      {!q.trim() && (me || free.length > 0) && (
+        <div style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none", WebkitOverflowScrolling: "touch", WebkitMaskImage: "linear-gradient(90deg,#000 94%,transparent)", maskImage: "linear-gradient(90deg,#000 94%,transparent)" }}>
+          {me && (
+            <button className="pl-ghost" onClick={() => onPick({ profileId: me.id, name: me.name })}
+              style={{ flexShrink: 0, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 7, padding: "5px 12px 5px 5px", borderRadius: 999, fontSize: 12.5, fontWeight: 700, borderColor: "color-mix(in srgb, var(--lime) 45%, transparent)", color: "var(--lime)" }}>
+              <img src={playerAvatar(me.avatar_url, me.id)} onError={avatarFallback(me.id)} alt="" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} /> {t("pick_me")}
+            </button>
+          )}
+          {free.slice(0, 24).map((p) => (
+            <button key={p.id} className="pl-ghost" onClick={() => onPick({ profileId: p.id, name: p.name })}
+              style={{ flexShrink: 0, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 7, padding: "5px 12px 5px 5px", borderRadius: 999, fontSize: 12.5 }}>
+              <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} /> {p.name}
+            </button>
+          ))}
+        </div>
+      )}
+      <input className="pl-input" style={{ padding: "10px 12px", marginTop: 8 }} placeholder={t("pick_ph")} value={q} onChange={(e) => setQ(e.target.value)} />
+      {q.trim() && (
+        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+          {matches.map((p) => (
+            <button key={p.id} className="pl-ghost" style={{ padding: "9px 10px", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }} onClick={() => onPick({ profileId: p.id, name: p.name })}>
+              <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} /> {p.name}
+            </button>
+          ))}
+          <button className="pl-btn" style={{ padding: "9px 10px", textAlign: "left" }} onClick={() => onPick({ guestName: q.trim() })}>{t("add_guest_prefix")}{q.trim()}</button>
+          <div style={{ fontSize: 11, color: "var(--mut)", lineHeight: 1.4, padding: "2px 2px" }}>{t("add_guest_league_hint")}</div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -2529,23 +2533,9 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
   const nameOf = (s) => s.profile?.name || s.guest_name;
   const avatarOf = (s) => s.profile_id ? playerAvatar(s.profile?.avatar_url, s.profile_id) : null;
   const filled = slots.filter((s) => s.profile_id || s.guest_name).length;
-  // «Вписаться самому»: свободный слот занимается в один тап (тот же RPC, что /j/CODE).
   const [joinBusy, setJoinBusy] = useState(false);
   const [joinErr, setJoinErr] = useState("");
   const meInGameHere = !!profileId && slots.some((s) => s.profile_id === profileId);
-  const canTake = game.status === "open" && !!profileId && !meInGameHere && !!game.invite_code;
-  const takeSlot = async (s) => {
-    if (joinBusy) return;
-    setJoinBusy(true); setJoinErr("");
-    try {
-      const myName = players.find((p) => p.id === profileId)?.name || "";
-      await joinGameSlot(game.invite_code, s.team, s.position, myName);
-      await reloadGames();
-    } catch (e) {
-      const map = { slot_taken: t("err_slot_taken"), game_closed: t("err_game_closed"), game_not_found: t("err_game_not_found") };
-      setJoinErr(map[e.message] || t("err_join_slot"));
-    } finally { setJoinBusy(false); }
-  };
   // Красный крестик: хост убирает любого из состава, игрок — себя.
   const canClear = (s) => (game.status === "open" || game.status === "live") && !!profileId &&
     (game.host_id === profileId || (s.profile_id && s.profile_id === profileId));
@@ -2556,9 +2546,10 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
     catch (e) { setJoinErr(t("err_generic")); }
     finally { setJoinBusy(false); }
   };
-  // «Добавить» (друг из лиги или гость) — хосту игры; шторка PickPlayerSheet.
-  const canAddOthers = game.status === "open" && game.host_id === profileId;
-  const [pickSlot, setPickSlot] = useState(null); // слот, для которого открыта шторка
+  // «Добавить» (друг из лиги, гость или «Я сам») — любой участник лиги,
+  // как в лобби турнира. Панель выбора раскрывается прямо под слотом.
+  const canAddOthers = game.status === "open" && !!profileId;
+  const [pickSlot, setPickSlot] = useState(null); // слот, под которым раскрыта панель
   const addToSlot = async (entry) => {
     const s = pickSlot;
     setPickSlot(null);
@@ -2700,31 +2691,34 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
       <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
         {slots.map((s, i) => {
           const free = !nameOf(s);
+          const picking = pickSlot && (pickSlot.id ? pickSlot.id === s.id : pickSlot === s);
           return (
-            <div key={i} className="pl-slot">
-              <span className="pl-display" style={{ fontSize: 11, color: s.team === "A" ? "var(--lime)" : "var(--coral)", width: 30 }}>{s.team}</span>
-              <span style={{ flex: 1, color: free ? "var(--mut)" : "var(--ink)" }}>{free ? t("slot_free") : nameOf(s)}</span>
-              {/* Убрать из состава: хост — любого, игрок — себя */}
-              {!free && canClear(s) && (
-                <button onClick={() => clearSlot(s)} disabled={joinBusy} aria-label={t("delete_btn")} title={t("delete_btn")}
-                  style={{ flexShrink: 0, width: 26, height: 26, borderRadius: "50%", border: "none", background: "color-mix(in srgb, var(--coral) 16%, transparent)", color: "var(--coral)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: joinBusy ? .6 : 1 }}>
-                  <X size={14} />
-                </button>
+            <React.Fragment key={s.id || i}>
+              <div className="pl-slot" style={picking ? { borderColor: "color-mix(in srgb, var(--lime) 45%, transparent)" } : undefined}>
+                <span className="pl-display" style={{ fontSize: 11, color: s.team === "A" ? "var(--lime)" : "var(--coral)", width: 30 }}>{s.team}</span>
+                <span style={{ flex: 1, color: free ? "var(--mut)" : "var(--ink)" }}>{free ? t("slot_free") : nameOf(s)}</span>
+                {/* Убрать из состава: хост — любого, игрок — себя */}
+                {!free && canClear(s) && (
+                  <button onClick={() => clearSlot(s)} disabled={joinBusy} aria-label={t("delete_btn")} title={t("delete_btn")}
+                    style={{ flexShrink: 0, width: 26, height: 26, borderRadius: "50%", border: "none", background: "color-mix(in srgb, var(--coral) 16%, transparent)", color: "var(--coral)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: joinBusy ? .6 : 1 }}>
+                    <X size={14} />
+                  </button>
+                )}
+                {/* Свободный слот: одна кнопка «Добавить» — панель с «Я сам», лигой и гостем */}
+                {free && canAddOthers && !picking && (
+                  <button onClick={() => setPickSlot(s)} disabled={joinBusy}
+                    style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 999, border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", background: "color-mix(in srgb, var(--lime) 14%, transparent)", color: "var(--lime)", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Outfit',sans-serif", opacity: joinBusy ? .6 : 1 }}>
+                    <UserPlus size={12} /> {t("slot_add")}
+                  </button>
+                )}
+              </div>
+              {/* Панель добора — прямо под своим слотом, открыта максимум одна */}
+              {picking && (
+                <PickPlayerPanel slotLabel={`${s.team}${s.position}`} players={players}
+                  takenIds={slots.map((x) => x.profile_id).filter(Boolean)} meId={profileId}
+                  onPick={addToSlot} onClose={() => setPickSlot(null)} />
               )}
-              {/* Свободный слот: «Добавить» — друг из лиги/гость (хост), «Занять» — себя */}
-              {free && canAddOthers && (
-                <button onClick={() => setPickSlot(s)} disabled={joinBusy}
-                  style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 999, border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", background: "color-mix(in srgb, var(--lime) 14%, transparent)", color: "var(--lime)", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Outfit',sans-serif", opacity: joinBusy ? .6 : 1 }}>
-                  <UserPlus size={12} /> {t("slot_add")}
-                </button>
-              )}
-              {free && canTake && (
-                <button onClick={() => takeSlot(s)} disabled={joinBusy}
-                  style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 999, border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", background: "color-mix(in srgb, var(--lime) 14%, transparent)", color: "var(--lime)", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Outfit',sans-serif", opacity: joinBusy ? .6 : 1 }}>
-                  {t("pub_take_slot")}
-                </button>
-              )}
-            </div>
+            </React.Fragment>
           );
         })}
         {joinErr && <div style={{ fontSize: 12, color: "var(--coral)", textAlign: "center" }}>{joinErr}</div>}
@@ -2764,12 +2758,6 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
         )}
       </div>
       </div>
-      {/* Шторка добора: карусель лиги + поиск + гость */}
-      {pickSlot && (
-        <PickPlayerSheet slotLabel={`${pickSlot.team}${pickSlot.position}`} players={players}
-          takenIds={slots.map((s) => s.profile_id).filter(Boolean)}
-          onPick={addToSlot} onClose={() => setPickSlot(null)} />
-      )}
     </div>
   );
 }
