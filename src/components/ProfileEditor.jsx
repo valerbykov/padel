@@ -216,7 +216,9 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
       const { error } = await supabase.from("profiles").update({
         first_name: firstName || null, last_name: lastName || null,
         name: safeName, phone: phone || null, avatar_url: avatarUrl || null,
-        contacts: { whatsapp: whatsapp.trim() || undefined, telegram: telegram.trim() || undefined },
+        // Телефон дублируем в contacts: чипы связи в статистике игрока (ContactLinks)
+        // читают contacts, и без этого номер из кабинета никому не был виден.
+        contacts: { whatsapp: whatsapp.trim() || undefined, telegram: telegram.trim() || undefined, phone: phone.trim() || undefined },
       }).eq("user_id", userId);
       if (error) throw error;
       dirtyRef.current = false;
