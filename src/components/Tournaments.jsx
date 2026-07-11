@@ -303,10 +303,13 @@ function List({ groupId, profileId, players = [], create, open, session, onLogin
   // «Занять» из карточки лобби: записываю себя тем же путём, что и «Я сам» внутри.
   const canTake = (trn) => !!profileId && (trn.players || []).length < trn.target_size &&
     !(trn.players || []).some((p) => p.profile_id === profileId);
+  const takingRef = useRef(false);
   const takeSeat = async (trn) => {
+    if (takingRef.current) return;
+    takingRef.current = true;
     const myName = (players || []).find((p) => p.id === profileId)?.name || tr("guest_default_name");
     try { await addTournamentPlayer(trn.id, { profileId, name: myName }); } catch (e) {}
-    reload();
+    try { await reload(); } finally { takingRef.current = false; }
   };
 
   return (

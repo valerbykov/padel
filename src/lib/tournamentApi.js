@@ -94,6 +94,13 @@ export async function getTournament(id) {
 }
 
 export async function addTournamentPlayer(tournamentId, { profileId = null, name }) {
+  // Идемпотентность для зарегистрированных: двойной тап «Занять» не должен
+  // добавлять игрока дважды (дубль ломает жеребьёвку).
+  if (profileId) {
+    const { data: dup } = await supabase.from("tournament_players")
+      .select("id").eq("tournament_id", tournamentId).eq("profile_id", profileId).limit(1);
+    if (dup && dup.length > 0) return;
+  }
   const { error } = await supabase.from("tournament_players")
     .insert({ tournament_id: tournamentId, profile_id: profileId, name: name.trim() });
   if (error) throw error;
