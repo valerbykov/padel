@@ -1315,15 +1315,23 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                 </button>
               )}
 
-              {/* Finish tournament */}
+              {/* Finish tournament: у форматов с фиксированными раундами (американо)
+                  после последнего счёта это ЕДИНСТВЕННОЕ действие — кнопка первичная;
+                  у мексикано/BtB рядом есть «Следующий раунд» — остаётся вторичной,
+                  но заметной (лаймовый контур вместо серого призрака). */}
               {!readOnly && trnData.status !== "finished" && (
                 ((isMexicano || isKothBtB) && curComplete && isLastRound) || (!isMexicano && !isKothBtB && done)
-              ) && (
-                <button className="tr-ghost" style={{ width: "100%", padding: 12, marginBottom: 12, color: "var(--mut)" }}
-                  onClick={async () => { await finishTournament(trnData.id); load(); }}>
-                  {tr("trn_finish_tournament")}
-                </button>
-              )}
+              ) && (() => {
+                const primary = !isMexicano && !isKothBtB;
+                return (
+                  <button className={primary ? "tr-btn" : "tr-ghost"}
+                    style={{ width: "100%", padding: 12, marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                      ...(primary ? { fontSize: 15 } : { color: "var(--lime)", border: "1px solid color-mix(in srgb, var(--lime) 45%, transparent)", background: "color-mix(in srgb, var(--lime) 10%, transparent)", fontWeight: 700 }) }}
+                    onClick={async () => { await finishTournament(trnData.id); load(); }}>
+                    <Trophy size={16} /> {tr("trn_finish_tournament")}
+                  </button>
+                );
+              })()}
             </>
           )}
 
