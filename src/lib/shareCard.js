@@ -3,7 +3,7 @@
 // портретный формат под Telegram/WhatsApp. Аватары грузим с crossOrigin, при
 // ошибке падаем на собаку-заглушку (как в UI).
 import { dogAvatar } from "./avatar";
-import { t } from "./i18n";
+import { t, nGames } from "./i18n";
 
 const W = 1080, H = 1350;
 const C = {
@@ -124,6 +124,84 @@ export async function renderGameCard({ title, dateStr, teamA, teamB, setsA, sets
       ctx.fillText(p, x, 800);
       x += widths[i] + gap;
     });
+  }
+
+  return canvas;
+}
+
+// ── Карточка микс-сессии ────────────────────────────────────────────────────
+// games: [{ teamA, teamB, setsA, setsB, scoreDetail }] (команды как в renderGameCard).
+// Хроника: до 5 игр строками — пары, счёт, победители цветом (макет «вариант A»).
+export async function renderMixCard({ dateStr, games = [] }) {
+  const canvas = document.createElement("canvas");
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  try { await document.fonts?.load?.("800 52px Outfit"); } catch (e) {}
+  frame(ctx, { glow: "rgba(200,255,45,.15)", rightText: dateStr || "" });
+
+  ctx.font = F(800, 36); ctx.textAlign = "center"; ctx.fillStyle = C.mut;
+  ctx.fillText(`🔀 ${t("mix_session_title").toUpperCase()} · ${nGames(games.length)}`, W / 2, 240);
+
+  const shown = games.slice(0, 5);
+  const imgs = await Promise.all(shown.map((g) =>
+    Promise.all([...g.teamA, ...g.teamB].map((p) => avatarImg(p.avatar_url, p.id || p.name)))));
+
+  const firstName = (n) => String(n || "?").trim().split(/\s+/)[0];
+  const fit = (tx, max) => {
+    if (ctx.measureText(tx).width <= max) return tx;
+    let out = tx;
+    while (out.length > 1 && ctx.measureText(out + "…").width > max) out = out.slice(0, -1);
+    return out + "…";
+  };
+
+  const rowH = 150, gap = 26;
+  const totalH = shown.length * rowH + (shown.length - 1) * gap;
+  let y = 300 + Math.max(0, (900 - totalH) / 2);
+  const d = 88, ov = 26;
+
+  shown.forEach((g, gi) => {
+    const [a1, a2, b1, b2] = imgs[gi];
+    const cy = y + rowH / 2;
+    rr(ctx, 56, y, W - 112, rowH, 26);
+    ctx.fillStyle = "rgba(255,255,255,.035)"; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = C.line; ctx.stroke();
+
+    const aWin = g.setsA > g.setsB, bWin = g.setsB > g.setsA;
+    // пары аватаров по краям
+    circleAvatar(ctx, a1, 56 + 34 + d / 2, cy, d, aWin ? C.lime : C.line);
+    circleAvatar(ctx, a2, 56 + 34 + d / 2 + (d - ov), cy, d, aWin ? C.lime : C.line);
+    circleAvatar(ctx, b2, W - 56 - 34 - d / 2 - (d - ov), cy, d, bWin ? C.coral : C.line);
+    circleAvatar(ctx, b1, W - 56 - 34 - d / 2, cy, d, bWin ? C.coral : C.line);
+
+    // крупный счёт по центру + сеты мелко под ним
+    ctx.font = F(800, 56);
+    ctx.textAlign = "right"; ctx.fillStyle = aWin ? C.lime : C.ink; ctx.fillText(String(g.setsA), W / 2 - 22, cy + 8);
+    ctx.textAlign = "center"; ctx.fillStyle = C.mut; ctx.fillText(":", W / 2, cy + 6);
+    ctx.textAlign = "left"; ctx.fillStyle = bWin ? C.coral : C.ink; ctx.fillText(String(g.setsB), W / 2 + 22, cy + 8);
+    if (Array.isArray(g.scoreDetail) && g.scoreDetail.length > 0) {
+      ctx.font = F(600, 24); ctx.textAlign = "center"; ctx.fillStyle = C.mut;
+      ctx.fillText(g.scoreDetail.map((x) => `${x.a}:${x.b}`).join(" · "), W / 2, cy + 48);
+    }
+
+    // имена пар — колонкой, каждое на своей строке
+    ctx.font = F(700, 30);
+    const nmMax = 180;
+    const leftX = W / 2 - 118, rightX = W / 2 + 118;
+    ctx.textAlign = "right";
+    ctx.fillStyle = aWin ? C.lime : "rgba(238,243,238,.85)";
+    ctx.fillText(fit(firstName(g.teamA[0]?.name), nmMax), leftX, cy - 8);
+    ctx.fillText(fit(firstName(g.teamA[1]?.name), nmMax), leftX, cy + 30);
+    ctx.textAlign = "left";
+    ctx.fillStyle = bWin ? C.coral : "rgba(238,243,238,.85)";
+    ctx.fillText(fit(firstName(g.teamB[0]?.name), nmMax), rightX, cy - 8);
+    ctx.fillText(fit(firstName(g.teamB[1]?.name), nmMax), rightX, cy + 30);
+
+    y += rowH + gap;
+  });
+
+  if (games.length > shown.length) {
+    ctx.font = F(600, 30); ctx.textAlign = "center"; ctx.fillStyle = C.mut;
+    ctx.fillText(`+ ${nGames(games.length - shown.length)}`, W / 2, y + 14);
   }
 
   return canvas;

@@ -2716,19 +2716,42 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
 
   // Карточка-картинка результата: canvas → PNG → системный шеринг.
   const [cardBusy, setCardBusy] = useState(false);
+  const slotTeams = (g) => {
+    const gslots = [...(g.slots || [])].sort((a, b) => (a.team + a.position).localeCompare(b.team + b.position));
+    const team = (tm) => gslots.filter((s) => s.team === tm)
+      .map((s) => ({ name: s.profile?.name || s.guest_name || "?", avatar_url: s.profile?.avatar_url, id: s.profile_id || s.guest_name }));
+    return { teamA: team("A"), teamB: team("B") };
+  };
+  // Карточка всей микс-сессии: хроника игр (пары, счёт, победители цветом).
+  const shareMixCard = async (list) => {
+    if (cardBusy) return;
+    setCardBusy(true);
+    try {
+      const playedList = list.filter((g) => g.status === "played" && (g.matches || [])[0]);
+      if (!playedList.length) return;
+      const gamesData = playedList.map((g) => {
+        const m = g.matches[0];
+        return { ...slotTeams(g), setsA: m.sets_a, setsB: m.sets_b, scoreDetail: m.score_detail };
+      });
+      const lastM = playedList[playedList.length - 1].matches[0];
+      const dateStr = (() => { try { return new Date(lastM.played_at || playedList[0].starts_at || Date.now()).toLocaleDateString(undefined, { day: "numeric", month: "long" }); } catch (e) { return ""; } })();
+      const { renderMixCard, shareCanvas } = await import("./lib/shareCard");
+      const canvas = await renderMixCard({ dateStr, games: gamesData });
+      await shareCanvas(canvas, "padelpack-mix.png");
+    } catch (e) { /* шеринг отменён/не поддержан — молча */ }
+    finally { setCardBusy(false); }
+  };
   const shareResultCard = async (g) => {
     const m = (g.matches || [])[0];
     if (!m || cardBusy) return;
     setCardBusy(true);
     try {
-      const gslots = [...(g.slots || [])].sort((a, b) => (a.team + a.position).localeCompare(b.team + b.position));
-      const team = (tm) => gslots.filter((s) => s.team === tm)
-        .map((s) => ({ name: s.profile?.name || s.guest_name || "?", avatar_url: s.profile?.avatar_url, id: s.profile_id || s.guest_name }));
+      const { teamA, teamB } = slotTeams(g);
       const dateStr = (() => { try { return new Date(m.played_at || g.starts_at || g.created_at).toLocaleDateString(undefined, { day: "numeric", month: "long" }); } catch (e) { return ""; } })();
       const { renderGameCard, shareCanvas } = await import("./lib/shareCard");
       const canvas = await renderGameCard({
         title: g.title || g.place || "", dateStr,
-        teamA: team("A"), teamB: team("B"),
+        teamA, teamB,
         setsA: m.sets_a, setsB: m.sets_b, scoreDetail: m.score_detail,
       });
       await shareCanvas(canvas, "padelpack-result.png");
@@ -2761,9 +2784,9 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
             reloadSession={reloadSession} reloadLeaderboard={reloadLeaderboard} bumpArchive={bumpArchive} onOpenPlayer={onOpenPlayer} />
         ))}
         {last.status === "played" && lastFilled === 4 && (last.matches || [])[0] && (
-          <button className="pl-btn" disabled={cardBusy} onClick={() => shareResultCard(last)}
+          <button className="pl-btn" disabled={cardBusy} onClick={() => list.length > 1 ? shareMixCard(list) : shareResultCard(last)}
             style={{ width: "100%", padding: 13, fontSize: 14.5, marginTop: 4, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            📸 {cardBusy ? t("sc_making") : t("sc_share_game")}
+            📸 {cardBusy ? t("sc_making") : list.length > 1 ? t("sc_share_mix") : t("sc_share_game")}
           </button>
         )}
         {canMix && (
