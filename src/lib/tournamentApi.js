@@ -104,11 +104,13 @@ export async function addTournamentPlayer(tournamentId, { profileId = null, name
   const { error } = await supabase.from("tournament_players")
     .insert({ tournament_id: tournamentId, profile_id: profileId, name: name.trim() });
   if (error) throw error;
+  bustCache();
 }
 
 export async function removeTournamentPlayer(playerId) {
   const { error } = await supabase.from("tournament_players").delete().eq("id", playerId);
   if (error) throw error;
+  bustCache();
 }
 
 export async function joinTournamentByCode(code, name) {
@@ -122,6 +124,7 @@ export async function joinTournamentByCode(code, name) {
     p_code: code, p_name: name.trim(), p_profile_id: profileId,
   });
   if (error) throw error;
+  bustCache();
   return data; // { ok, already?, linked? }
 }
 
@@ -175,6 +178,7 @@ export async function startTournament(tournamentId, players, format = "americano
     await supabase.from("tournaments").update({ status: "open" }).eq("id", tournamentId);
     throw mErr;
   }
+  bustCache();
 }
 
 /** Мексикано: следующий раунд по текущим очкам. */
@@ -185,6 +189,7 @@ export async function generateMexicanoRound(tournamentId, players, matches) {
     .map((m) => ({ ...m, tournament_id: tournamentId }));
   const { error } = await supabase.from("tournament_matches").insert(newMatches);
   if (error) throw error;
+  bustCache();
 }
 
 /** Beat the Box: следующий матч — победитель vs. следующий из очереди (одна коробка). */
@@ -194,6 +199,7 @@ export async function generateKotHRound(tournamentId, matches) {
   const { error } = await supabase.from("tournament_matches")
     .insert({ ...nextMatch, tournament_id: tournamentId });
   if (error) throw error;
+  bustCache();
 }
 
 /** King of the Court: следующий раунд по «лесенке» (все корты сразу). */
@@ -202,6 +208,7 @@ export async function generateKotHLadderRound(tournamentId, matches) {
   if (!newMatches.length) throw new Error("Нет завершённых матчей для генерации следующего раунда");
   const { error } = await supabase.from("tournament_matches").insert(newMatches);
   if (error) throw error;
+  bustCache();
 }
 
 export async function submitMatchScore(matchId, scoreA, scoreB, pin = null) {
@@ -209,6 +216,7 @@ export async function submitMatchScore(matchId, scoreA, scoreB, pin = null) {
     p_match_id: matchId, p_score_a: scoreA, p_score_b: scoreB, p_pin: pin || "",
   });
   if (error) throw error;
+  bustCache();
 }
 
 // PIN доступа к вводу счёта (см. supabase/sql/score_pin.sql).
@@ -226,6 +234,7 @@ export async function finishTournament(tournamentId) {
   // Завершает турнир И начисляет рейтинг за его матчи (server-side, finish_tournament).
   const { error } = await supabase.rpc("finish_tournament", { p_tournament_id: tournamentId });
   if (error) throw error;
+  bustCache();
 }
 
 export async function deleteTournament(id) {
