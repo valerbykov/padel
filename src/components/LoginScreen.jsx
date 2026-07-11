@@ -51,6 +51,7 @@ const mkCss = (isLight) => `
 `;
 
 const emailOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+const phoneLike = (v) => /^\+?[\d\s()-]{7,}$/.test(v.trim());
 
 export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark", lang = "ru", onThemeToggle, onLangChange }) {
   const [method, setMethod] = useState("email"); // telegram | email | sms — по умолчанию email
@@ -86,8 +87,18 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
   };
 
   // ----- Email magic-link -----
+  // Кнопка всегда активна и всегда отвечает (ревью Apple 2.1(a): их тестер ввёл
+  // телефон во вкладке Email — кнопка была молча задизейблена, и это выглядело
+  // как зависание). Телефон уводим на вкладку SMS, невалидный email объясняем.
   const sendEmail = async () => {
-    if (!emailOk(email) || busy) return;
+    if (busy) return;
+    const v = email.trim();
+    if (phoneLike(v)) {
+      setPhone(v); setMethod("sms"); setSmsSent(false);
+      setMsg({ kind: "ok", text: t("login_phone_in_email") });
+      return;
+    }
+    if (!emailOk(v)) { setMsg({ kind: "err", text: t("login_email_invalid") }); return; }
     setBusy(true); reset();
     try {
       const { error } = await supabase.auth.signInWithOtp({
@@ -102,7 +113,14 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
 
   // ----- SMS: шаг 1 — отправить код -----
   const sendSms = async () => {
-    if (!phone.trim() || busy) return;
+    if (busy) return;
+    const v = phone.trim();
+    if (emailOk(v)) {
+      setEmail(v); setMethod("email");
+      setMsg({ kind: "ok", text: t("login_email_in_phone") });
+      return;
+    }
+    if (!phoneLike(v)) { setMsg({ kind: "err", text: t("login_phone_invalid") }); return; }
     setBusy(true); reset();
     try {
       const { error } = await supabase.auth.signInWithOtp({ phone: phone.trim() });
@@ -115,7 +133,8 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
 
   // ----- SMS: шаг 2 — проверить код -----
   const verifySms = async () => {
-    if (!code.trim() || busy) return;
+    if (busy) return;
+    if (!code.trim()) { setMsg({ kind: "err", text: t("login_code_empty") }); return; }
     setBusy(true); reset();
     try {
       const { error } = await supabase.auth.verifyOtp({ phone: phone.trim(), token: code.trim(), type: "sms" });
@@ -202,7 +221,7 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
           {method === "email" && (
             <div>
               <input className="lg-input" type="email" placeholder="you@mail.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-              <button className="lg-btn" disabled={!emailOk(email) || busy} onClick={sendEmail}>
+              <button className="lg-btn" disabled={busy} onClick={sendEmail}>
                 <Mail size={16} /> {busy ? t("login_sending") : t("login_get_link")}
               </button>
               <Msg />
@@ -214,14 +233,14 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
               {!smsSent ? (
                 <>
                   <input className="lg-input" type="tel" placeholder="+7 900 000-00-00" value={phone} onChange={(e) => setPhone(e.target.value)} />
-                  <button className="lg-btn" disabled={!phone.trim() || busy} onClick={sendSms}>
+                  <button className="lg-btn" disabled={busy} onClick={sendSms}>
                     <Phone size={16} /> {busy ? t("login_sending") : t("login_get_code")}
                   </button>
                 </>
               ) : (
                 <>
                   <input className="lg-input" inputMode="numeric" placeholder={t("login_sms_ph")} value={code} onChange={(e) => setCode(e.target.value)} />
-                  <button className="lg-btn" disabled={!code.trim() || busy} onClick={verifySms}>
+                  <button className="lg-btn" disabled={busy} onClick={verifySms}>
                     <Check size={16} /> {busy ? t("login_checking") : t("login_verify_code")}
                   </button>
                   <button className="lg-btn lg-btn-sec" onClick={() => { setSmsSent(false); setCode(""); reset(); }}>
