@@ -45,7 +45,7 @@ const GuestJoin        = lazy(() => import("./components/GuestJoin"));
 const TournamentJoin   = lazy(() => import("./components/TournamentJoin"));
 const ClaimProfile     = lazy(() => import("./components/ClaimProfile"));
 
-const BOT_NAME = "padel_league_bot"; // имя твоего Telegram-бота без @
+const BOT_NAME = "padelacc_bot"; // имя твоего Telegram-бота без @
 
 function getInviteCode() {
   const m = window.location.pathname.match(/^\/j\/([A-Za-z0-9]{4})$/);
