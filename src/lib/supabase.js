@@ -127,6 +127,24 @@ async function customFetch(input, init = {}) {
   return dedupFetch(applyMode(input), init);
 }
 
+// Ключ хранения сессии ФИКСИРОВАННЫЙ: по умолчанию supabase-js выводит его из
+// хоста URL (sb-<ref>-auth-token), и при переключении direct↔proxy (разные хосты)
+// клиент после перезагрузки страницы не находил сессию → внезапный разлогин
+// (например, «Вступить в лигу» с публичной страницы = полная навигация).
+const STORAGE_KEY = "pp-auth";
+try {
+  // Миграция: подхватить сессию, сохранённую под старыми host-ключами.
+  if (!localStorage.getItem(STORAGE_KEY)) {
+    for (const u of [DIRECT, PROXY]) {
+      const h = hostOf(u);
+      if (!h) continue;
+      const legacy = "sb-" + h.split(".")[0] + "-auth-token";
+      const v = localStorage.getItem(legacy);
+      if (v) { localStorage.setItem(STORAGE_KEY, v); break; }
+    }
+  }
+} catch { /* localStorage недоступен */ }
+
 export const supabase = createClient(baseUrl, anon, {
   global: { fetch: customFetch },
   auth: {
@@ -135,6 +153,7 @@ export const supabase = createClient(baseUrl, anon, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+    storageKey: STORAGE_KEY,
   },
 });
 
