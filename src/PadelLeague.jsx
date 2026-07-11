@@ -2561,11 +2561,12 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
     } catch (e) { setJoinErr(t("err_slot_taken")); }
     finally { setJoinBusy(false); }
   };
-  // «Начать игру» — любой из состава или хост, только с полным кортом:
-  // после старта слоты уже не доукомплектовать (кнопки живут в open), а счёт
-  // требует все 4 — игра, начатая неполной, зависала бы без выхода.
+  // «Начать игру» — любой из состава или хост. Кнопка видна всегда (open),
+  // но активна только с полным кортом: после старта слоты не доукомплектовать,
+  // а счёт требует все 4 — неполная игра зависала бы без выхода.
   const [startBusy, setStartBusy] = useState(false);
-  const canStart = game.status === "open" && filled === 4 && !!profileId && (meInGameHere || game.host_id === profileId);
+  const mayStart = game.status === "open" && !!profileId && (meInGameHere || game.host_id === profileId);
+  const canStart = mayStart && filled === 4;
   const doStart = async () => {
     if (startBusy) return;
     setStartBusy(true);
@@ -2724,12 +2725,12 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
         {joinErr && <div style={{ fontSize: 12, color: "var(--coral)", textAlign: "center" }}>{joinErr}</div>}
       </div>
 
-      {/* Фиксация момента старта: любой из состава жмёт, когда все на корте */}
-      {canStart && (
+      {/* Фиксация момента старта: кнопка видна всегда, активируется при 4/4 */}
+      {mayStart && (
         <div style={{ marginTop: 12, padding: "14px 14px 12px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 14, textAlign: "center" }}>
-          <div style={{ fontSize: 12, color: "var(--mut)" }}>{t("slots_label")} {filled}/4 · {t("game_all_here")}</div>
-          <button onClick={doStart} disabled={startBusy}
-            style={{ marginTop: 9, display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 24px", borderRadius: 13, border: "none", background: "var(--lime)", color: "var(--lime-fg)", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "'Outfit',sans-serif", opacity: startBusy ? .6 : 1 }}>
+          <div style={{ fontSize: 12, color: "var(--mut)" }}>{t("slots_label")} {filled}/4 · {canStart ? t("game_all_here") : t("game_start_wait")}</div>
+          <button onClick={doStart} disabled={startBusy || !canStart}
+            style={{ marginTop: 9, display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 24px", borderRadius: 13, border: "none", background: "var(--lime)", color: "var(--lime-fg)", fontSize: 15, fontWeight: 800, cursor: canStart ? "pointer" : "not-allowed", fontFamily: "'Outfit',sans-serif", opacity: startBusy ? .6 : 1, filter: canStart ? "none" : "grayscale(.6) brightness(.7)" }}>
             ▶ {t("game_start")}
           </button>
           <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 7, opacity: .8 }}>{t("game_start_hint")}</div>

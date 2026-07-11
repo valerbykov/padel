@@ -349,6 +349,7 @@ export async function joinSlot(gameId, { team, position }, { profileId, name } =
     .select();
   if (error) throw error;
   if (!data || data.length === 0) throw new Error("Слот уже занят");
+  bustCache(); // иначе reloadGames после добавления вернёт стейл из swr-кэша
   return data[0];
 }
 
