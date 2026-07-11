@@ -160,13 +160,28 @@ export default function App({ initialShowLogin = false }) {
   // ?join=CODE — автозаполнение формы вступления в лигу. В нативной обёртке
   // полная навигация webview теряет query, поэтому публичная страница лиги
   // дублирует код в localStorage (pp_pending_join) — читаем оба источника.
+  // ВАЖНО: инициализатор ЧИСТЫЙ — конкурентный рендер (Suspense-ретраи) может
+  // выполнить его несколько раз, и побочный consume здесь терял код (форма
+  // вступления молча не открывалась). Эффекты — ниже, после коммита.
   const [pendingJoin, setPendingJoin] = useState(() => {
     const p = new URLSearchParams(window.location.search).get("join")?.toUpperCase();
-    if (p) window.history.replaceState({}, "", window.location.pathname);
     let ls = null;
-    try { ls = localStorage.getItem("pp_pending_join"); if (ls) localStorage.removeItem("pp_pending_join"); } catch (e) {}
+    try { ls = localStorage.getItem("pp_pending_join"); } catch (e) {}
     return p || (ls ? ls.toUpperCase() : null);
   });
+  useEffect(() => {
+    // Код держим в localStorage до успешного вступления/отказа (onDone/onCancel):
+    // так он переживает и OAuth-редирект логина, и перезагрузку webview.
+    if (pendingJoin) { try { localStorage.setItem("pp_pending_join", pendingJoin); } catch (e) {} }
+    if (new URLSearchParams(window.location.search).get("join")) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const clearPendingJoin = useCallback(() => {
+    setPendingJoin(null);
+    try { localStorage.removeItem("pp_pending_join"); } catch (e) {}
+  }, []);
 
   // Universal/App Links: https://padelpack.app/{l|j|t|r}/CODE, открытые в нативной обёртке,
   // прилетают как событие appUrlOpen (webview грузит свой bundle, а не внешний URL),
@@ -415,8 +430,8 @@ export default function App({ initialShowLogin = false }) {
           onLeagueUpdated={handleLeagueUpdated} onLeagueLeft={handleLeagueLeft} onOpenEvent={handleOpenEvent}
         />
         <LeagueSetup
-          onDone={(league) => { setPendingJoin(null); handleLeagueDone(league); }}
-          onCancel={() => setPendingJoin(null)}
+          onDone={(league) => { clearPendingJoin(); handleLeagueDone(league); }}
+          onCancel={clearPendingJoin}
           initialMode="join"
           initialCode={pendingJoin}
         />
