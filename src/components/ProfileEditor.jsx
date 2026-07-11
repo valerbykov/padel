@@ -141,7 +141,9 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
       const user = session?.user;
       if (!user) { setLoading(false); return; }
       setUserId(user.id);
-      setEmail(user.email || "");
+      // tg<id>@telegram.local — синтетический адрес входа через Telegram, не почта:
+      // не показываем его и не даём утечь в фолбэк имени.
+      setEmail(/@telegram\.local$/i.test(user.email || "") ? "" : (user.email || ""));
       setSince(user.created_at || null);
       const um = user.user_metadata || {}, am = user.app_metadata || {};
       const idents = Array.isArray(user.identities) ? user.identities.map((i) => i.provider) : [];
@@ -166,7 +168,9 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
         setPhone(data.phone || "");
         setAvatarUrl(data.avatar_url || "");
         setWhatsapp(data.contacts?.whatsapp || "");
-        setTelegram(data.contacts?.telegram || "");
+        // Вход через Telegram: @ник из метаданных подставляем, пока свой не задан
+        // (сервер telegram-auth тоже пишет его в contacts при каждом входе).
+        setTelegram(data.contacts?.telegram || (um.username ? "@" + um.username : ""));
       }
       if (data) setProfileId(data.id);
       const p = prefQ.data;

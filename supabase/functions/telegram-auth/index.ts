@@ -72,6 +72,18 @@ Deno.serve(async (req) => {
     // Освежаем метаданные (аватар/username могли поменяться).
     if (link.user?.id) await admin.auth.admin.updateUserById(link.user.id, { user_metadata: meta });
 
+    // @ник — сразу в контакты профиля (если пользователь не задал свой):
+    // чип Telegram в статистике игрока виден лиге без визита в личный кабинет.
+    if (tg.username && link.user?.id) {
+      const { data: prof } = await admin.from("profiles")
+        .select("id, contacts").eq("user_id", link.user.id).maybeSingle();
+      if (prof && !(prof.contacts && prof.contacts.telegram)) {
+        await admin.from("profiles")
+          .update({ contacts: { ...(prof.contacts ?? {}), telegram: "@" + tg.username } })
+          .eq("id", prof.id);
+      }
+    }
+
     // Отдаём клиенту email и одноразовый код — он меняет их на сессию.
     return json({
       email,
