@@ -321,6 +321,7 @@ function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLand
   });
   // Карточки = «что делать дальше» (онбординг), а не повтор витрины с лендинга.
   const features = [
+    { icon: "🐕", title: t("feat_demo_title"), sub: t("feat_demo_sub") },     // демо-стая сразу после входа
     { icon: "🏆", title: t("feat_board_title"), sub: t("feat_board_sub") },   // создать/вступить в лигу
     { icon: "🔗", title: t("feat_stats_title"), sub: t("feat_stats_sub") },   // игры по ссылке
     { icon: "🎖️", title: t("feat_tour_title"), sub: t("feat_tour_sub") },     // уровни и ачивки
