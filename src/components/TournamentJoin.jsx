@@ -232,6 +232,7 @@ export default function TournamentJoin({ code, botName }) {
         <a href="/" style={{ color: "var(--lime)", fontWeight: 700, textDecoration: "none" }}>
           {tr("pub_footer_cta")}
         </a>
+        <div style={{ marginTop: 6, opacity: .8 }}>{tr("pub_demo_note")}</div>
       </div>
       {/* Отсылка на маркетинговый лендинг (как «Подробнее о PadelPack» в приложении). */}
       <div style={{ textAlign: "center", padding: "0 16px 14px" }}>

@@ -208,6 +208,7 @@ export default function GuestJoin({ code, botName }) {
         <a href="/" style={{ color: "var(--lime)", fontWeight: 700, textDecoration: "none" }}>
           {t("pub_footer_cta")}
         </a>
+        <div style={{ marginTop: 6, opacity: .8 }}>{t("pub_demo_note")}</div>
       </div>
     </div>
   );
