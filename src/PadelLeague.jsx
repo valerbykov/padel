@@ -2873,7 +2873,9 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", textAlign: "center", marginBottom: 8 }}>{t("game_finish")}</div>
         )}
         {filled === 4 ? (
-          <CourtView courtNumber={1} mode="sets" editable courtName={game.court_name} onRenameCourt={groupId ? (name) => updateGameCourtName(game.id, name).then(reloadGames).catch(() => {}) : undefined}
+          /* Счёт открывается только после «Начать игру»: до старта табло серое,
+             сеты не тыкаются — иначе результат записывали в несыгранную игру. */
+          <CourtView courtNumber={1} mode="sets" editable={game.status === "live"} courtName={game.court_name} onRenameCourt={groupId ? (name) => updateGameCourtName(game.id, name).then(reloadGames).catch(() => {}) : undefined}
             teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
             teamAvatarsA={slotsA.map(avatarOf)} teamAvatarsB={slotsB.map(avatarOf)}
           teamIdsA={slotsA.map((s) => s.profile_id)} teamIdsB={slotsB.map((s) => s.profile_id)} onOpenPlayer={onOpenPlayer}
