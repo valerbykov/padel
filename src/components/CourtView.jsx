@@ -81,7 +81,7 @@ export default function CourtView({
   const [busy, setBusy] = useState(false);
   const [dA, setDA] = useState(scoreA);
   const [dB, setDB] = useState(scoreB);
-  useEffect(() => { setDA(scoreA); setDB(scoreB); }, [scoreA, scoreB]);
+  useEffect(() => { setDA(scoreA); setDB(scoreB); setReEdit(false); }, [scoreA, scoreB]);
 
   // sets state
   const initSets = (detail) =>
@@ -109,7 +109,11 @@ export default function CourtView({
   const aWin = dispA != null && dispB != null && dispA > dispB;
   const bWin = dispA != null && dispB != null && dispB > dispA;
   const savedAlready = scoreA != null && scoreB != null;
-  const scoringActive = editable && mode !== "sets" && !savedAlready && !pickFor;
+  // Сохранённый счёт по умолчанию заперт, но его можно перевести в режим
+  // правки кнопкой «Изменить счёт» — пока матч вообще редактируем (editable).
+  const [reEdit, setReEdit] = useState(false);
+  const locked = savedAlready && !reEdit;
+  const scoringActive = editable && mode !== "sets" && !locked && !pickFor;
   // Счёта ещё нет и вводить его здесь нельзя (нет прав / состав не собран) —
   // табло серое, чтобы «не могу ввести» не выглядело багом.
   const hasScore = savedAlready || (mode === "sets"
@@ -231,7 +235,7 @@ export default function CourtView({
         </svg>
         </div>
         </div>
-        {editable && mode !== "sets" && !savedAlready && !pickFor && (
+        {editable && mode !== "sets" && !locked && !pickFor && (
           <>
             <div onClick={() => openPick("A")} style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "50%", cursor: "pointer" }} aria-label={`${t("court_score")} A`} />
             <div onClick={() => openPick("B")} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "50%", cursor: "pointer" }} aria-label={`${t("court_score")} B`} />
@@ -279,7 +283,12 @@ export default function CourtView({
           <span style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: "clamp(30px,12vw,48px)", lineHeight: 1, color: bWin ? "var(--coral)" : "var(--ink)" }}>{dispB == null ? 0 : dispB}</span>
         </div>
 
-        {editable && mode !== "sets" && !savedAlready && !pickFor && (
+        {editable && locked && (
+          <button onClick={() => setReEdit(true)} style={{ position: "absolute", left: "50%", bottom: "7%", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: 6, fontFamily: "'Outfit',sans-serif", fontSize: "clamp(12px,3.4vw,14px)", fontWeight: 700, color: "var(--ink)", background: "color-mix(in srgb, var(--surface) 86%, transparent)", border: "1px solid var(--line)", padding: "6px 14px", borderRadius: 999, whiteSpace: "nowrap", boxShadow: "0 4px 14px rgba(0,0,0,.35)", cursor: "pointer" }}>
+            ✎ {t("court_edit_score")}
+          </button>
+        )}
+        {editable && mode !== "sets" && !locked && !pickFor && (
           <div style={{ position: "absolute", left: "50%", bottom: "7%", transform: "translateX(-50%)", pointerEvents: "none", display: "flex", alignItems: "center", gap: 6, fontFamily: "'Outfit',sans-serif", fontSize: "clamp(12px,3.4vw,14px)", fontWeight: 700, color: "var(--lime)", background: "color-mix(in srgb, var(--surface) 86%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 55%, transparent)", padding: "6px 14px", borderRadius: 999, whiteSpace: "nowrap", boxShadow: "0 4px 14px rgba(0,0,0,.35)" }}>
             {t("court_tap_cta")} <span className="cv-cta-arrow">›</span>
           </div>
@@ -363,23 +372,23 @@ export default function CourtView({
             }}>
               <span style={{ fontSize: 12, color: "var(--mut)", width: 50, flexShrink: 0 }}>{t("court_set")} {i + 1}</span>
               <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
-                <SetChip val={s.a} team="A" editable={editable && !savedAlready} onClick={() => setPickSets({ setIdx: i, team: "A" })} />
+                <SetChip val={s.a} team="A" editable={editable && !locked} onClick={() => setPickSets({ setIdx: i, team: "A" })} />
                 <span style={{ color: "var(--mut)", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 14 }}>:</span>
-                <SetChip val={s.b} team="B" editable={editable && !savedAlready} onClick={() => setPickSets({ setIdx: i, team: "B" })} />
+                <SetChip val={s.b} team="B" editable={editable && !locked} onClick={() => setPickSets({ setIdx: i, team: "B" })} />
               </div>
               <div style={{ width: 50, flexShrink: 0, display: "flex", justifyContent: "flex-end" }}>
-                {editable && !savedAlready && setsDetail.length > 1 && i === setsDetail.length - 1 && (
+                {editable && !locked && setsDetail.length > 1 && i === setsDetail.length - 1 && (
                   <button onClick={() => removeSet(i)} aria-label={t("delete_btn")} style={{ width: 28, height: 28, borderRadius: "50%", border: "none", background: "color-mix(in srgb, var(--coral) 16%, transparent)", color: "var(--coral)", cursor: "pointer", fontSize: 14, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
                 )}
               </div>
             </div>
           ))}
-          {editable && !savedAlready && !allSetsEntered && (
+          {editable && !locked && !allSetsEntered && (
             <div style={{ fontSize: 11, color: "var(--mut)", textAlign: "center", paddingTop: 6 }}>
               {t("court_tap_set")}
             </div>
           )}
-          {editable && !savedAlready && setsDetail.length < 5 && (
+          {editable && !locked && setsDetail.length < 5 && (
             <button className="cv-setbtn" onClick={addSet} style={{
               width: "100%", marginTop: 10, padding: "10px 0", borderRadius: 10, border: "1px solid color-mix(in srgb, var(--lime) 45%, transparent)",
               background: "color-mix(in srgb, var(--lime) 12%, transparent)", color: "var(--lime)", cursor: "pointer", fontSize: 14, fontWeight: 700, fontFamily: "'Outfit',sans-serif",
@@ -389,7 +398,7 @@ export default function CourtView({
       )}
 
       {/* Кнопка записи — sets */}
-      {editable && mode === "sets" && !savedAlready && (
+      {editable && mode === "sets" && !locked && (
         <button className="cv-save" onClick={saveSets} disabled={!setsValid || busy} style={{
           width: "100%", marginTop: 8, padding: 11, borderRadius: 12, border: "none",
           cursor: setsValid ? "pointer" : "not-allowed", fontWeight: 700,

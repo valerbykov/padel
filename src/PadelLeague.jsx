@@ -4,7 +4,7 @@ const LeagueSetup = lazy(() => import("./components/LeagueSetup"));
 import { createPortal } from "react-dom";
 import { supabase } from "./lib/supabase";
 import BackButton from "./components/BackButton";
-import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, createDemoLeague, joinSlot, clearGameSlot, startGame, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames, getMyDeltas, getMatchDeltas } from "./lib/padelApi";
+import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, createDemoLeague, joinSlot, clearGameSlot, startGame, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames, getMyDeltas } from "./lib/padelApi";
 import { WEB_BASE } from "./lib/platform";
 import { CardSkeleton } from "./components/Skeleton";
 import { bustCache, cachePeek } from "./lib/cache";
@@ -2715,19 +2715,12 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
       const gslots = [...(g.slots || [])].sort((a, b) => (a.team + a.position).localeCompare(b.team + b.position));
       const team = (tm) => gslots.filter((s) => s.team === tm)
         .map((s) => ({ name: s.profile?.name || s.guest_name || "?", avatar_url: s.profile?.avatar_url, id: s.profile_id || s.guest_name }));
-      let deltas = [];
-      try {
-        const rows = await getMatchDeltas(m.id);
-        deltas = rows
-          .map((r) => ({ name: gslots.find((s) => s.profile_id === r.profile_id)?.profile?.name || "", delta: r.delta }))
-          .filter((x) => x.name);
-      } catch (e) {}
       const dateStr = (() => { try { return new Date(m.played_at || g.starts_at || g.created_at).toLocaleDateString(undefined, { day: "numeric", month: "long" }); } catch (e) { return ""; } })();
       const { renderGameCard, shareCanvas } = await import("./lib/shareCard");
       const canvas = await renderGameCard({
         title: g.title || g.place || "", dateStr,
         teamA: team("A"), teamB: team("B"),
-        setsA: m.sets_a, setsB: m.sets_b, scoreDetail: m.score_detail, deltas,
+        setsA: m.sets_a, setsB: m.sets_b, scoreDetail: m.score_detail,
       });
       await shareCanvas(canvas, "padelpack-result.png");
     } catch (e) { /* шеринг отменён/не поддержан — молча */ }

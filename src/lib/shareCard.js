@@ -74,9 +74,8 @@ function frame(ctx, { glow, rightText }) {
 }
 
 // ── Карточка результата игры ────────────────────────────────────────────────
-// teamA/teamB: [{ name, avatar_url, id }], setsA/setsB, scoreDetail?, deltas?:
-// [{ name, delta }] — только зарегистрированные участники.
-export async function renderGameCard({ title, dateStr, teamA, teamB, setsA, setsB, scoreDetail, deltas = [] }) {
+// teamA/teamB: [{ name, avatar_url, id }], setsA/setsB, scoreDetail?.
+export async function renderGameCard({ title, dateStr, teamA, teamB, setsA, setsB, scoreDetail }) {
   const canvas = document.createElement("canvas");
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext("2d");
@@ -91,9 +90,10 @@ export async function renderGameCard({ title, dateStr, teamA, teamB, setsA, sets
   const imgs = await Promise.all([...teamA, ...teamB].map((p) => avatarImg(p.avatar_url, p.id || p.name)));
   const [a1, a2, b1, b2] = imgs;
   const d = 190, overlap = 60, cy = 480;
+  // Аватары пары перекрываются: пара компактнее и не налезает на крупный счёт.
   const pair = (im1, im2, cx, border) => {
-    circleAvatar(ctx, im1, cx - overlap / 2 - d / 2 + overlap / 2, cy, d, border);
-    circleAvatar(ctx, im2, cx + overlap / 2 + d / 2 - overlap / 2, cy, d, border);
+    circleAvatar(ctx, im1, cx - (d - overlap) / 2, cy, d, border);
+    circleAvatar(ctx, im2, cx + (d - overlap) / 2, cy, d, border);
   };
   pair(a1, a2, 250, C.lime);
   pair(b1, b2, W - 250, C.coral);
@@ -123,26 +123,6 @@ export async function renderGameCard({ title, dateStr, teamA, teamB, setsA, sets
       ctx.fillStyle = s.a > s.b ? C.lime : s.b > s.a ? C.coral : C.mut;
       ctx.fillText(p, x, 800);
       x += widths[i] + gap;
-    });
-  }
-
-  // Дельты рейтинга — бейджи-пилюли по центру
-  if (deltas.length > 0) {
-    const items = deltas.slice(0, 4).map((r) => `${r.name.split(" ")[0]} ${r.delta > 0 ? "+" : ""}${r.delta}`);
-    ctx.font = F(800, 30);
-    const ws = items.map((tx) => ctx.measureText(tx).width + 48);
-    const gap = 20;
-    const total = ws.reduce((a, b) => a + b, 0) + gap * (items.length - 1);
-    let x = W / 2 - total / 2;
-    items.forEach((tx, i) => {
-      const pos = deltas[i].delta > 0;
-      rr(ctx, x, 880, ws[i], 56, 28);
-      ctx.fillStyle = pos ? "rgba(200,255,45,.16)" : "rgba(255,106,82,.15)"; ctx.fill();
-      ctx.fillStyle = pos ? C.lime : C.coral;
-      ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(tx, x + ws[i] / 2, 880 + 30);
-      ctx.textBaseline = "alphabetic";
-      x += ws[i] + gap;
     });
   }
 
