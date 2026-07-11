@@ -327,10 +327,25 @@ export default function App({ initialShowLogin = false }) {
   }, [activeLeague?.id]);
 
   // Когда пользователь создал/вступил в лигу из LeagueSetup.
-  const handleLeagueDone = useCallback((league) => {
-    setLeagues((prev) => [...(prev || []), league]);
-    setActiveLeague(league);
-  }, []);
+  // Оптимистично добавляем возврат RPC, но список перечитываем с сервера:
+  // join_league может вернуть не полную строку лиги (без id) — тогда локальное
+  // состояние ломалось («вступил, а лиги нет»), хотя вступление записано.
+  const handleLeagueDone = useCallback(async (league) => {
+    const prevIds = new Set((leagues || []).map((l) => l.id));
+    if (league?.id) {
+      setLeagues((p) => [...(p || []), league]);
+      setActiveLeague(league);
+    }
+    if (!profile?.id) return;
+    try {
+      const list = await getMyLeagues(profile.id); // кэш сброшен bustCache() в joinLeague
+      setLeagues(list);
+      setActiveLeague((cur) => {
+        if (league?.id) return list.find((l) => l.id === league.id) || cur;
+        return list.find((l) => !prevIds.has(l.id)) || cur;
+      });
+    } catch (e) { /* останемся на оптимистичном состоянии */ }
+  }, [leagues, profile?.id]);
 
   // Смена активной лиги из dropdown.
   const handleLeagueChange = useCallback((leagueId) => {
