@@ -2892,9 +2892,6 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
       )}
 
       <div style={{ marginTop: 12 }}>
-        {game.status === "live" && filled === 4 && (
-          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", textAlign: "center", marginBottom: 8 }}>{t("game_finish")}</div>
-        )}
         {filled === 4 ? (
           /* Счёт открывается только после «Начать игру»: до старта табло серое,
              сеты не тыкаются — иначе результат записывали в несыгранную игру. */
