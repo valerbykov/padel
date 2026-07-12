@@ -286,9 +286,9 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
 
         {tab === "welcome" && !session && <WelcomeScreen onLogin={onLogin} onBrowseGames={() => goTab("games")} onBrowseTournaments={() => goTab("tournaments")} onOpenLanding={onOpenLanding} theme={theme} lang={lang} onThemeToggle={onThemeToggle} onLangChange={onLangChange} />}
         {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} loading={!lbLoaded} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsNonce={openSelfStatsNonce} analyticsNonce={openAnalyticsNonce} /> : <GateScreen />)}
-        {tab === "games" && <Games key={navNonce} groupId={groupId} players={players} profileId={profileId} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} canCreate={isAdmin || !!activeLeague?.members_can_create} openReq={openEvent?.kind === "game" ? openEvent : null} />}
+        {tab === "games" && <Games key={navNonce} groupId={groupId} players={players} profileId={profileId} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} openReq={openEvent?.kind === "game" ? openEvent : null} />}
         {tab === "tournaments" && <Tournaments key={navNonce} groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} membersCanCreate={!!activeLeague?.members_can_create} openReq={openEvent?.kind === "tour" ? openEvent : null} />}
-        {tab === "history" && (session ? <HistoryView key={navNonce} groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} archiveNonce={archiveNonce} bumpArchive={bumpArchive} /> : <GateScreen />)}
+        {tab === "history" && (session ? <HistoryView key={navNonce} groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} isAdmin={isAdmin} archiveNonce={archiveNonce} bumpArchive={bumpArchive} /> : <GateScreen />)}
       </div>
 
       <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--topbar-bg)", borderTop: "1px solid var(--line)", backdropFilter: "blur(8px)", paddingBottom: "env(safe-area-inset-bottom)" }}>
@@ -2140,7 +2140,7 @@ function MixGroupCard({ games, color, onOpenGame, me = null, delta = null, showM
   );
 }
 
-function Games({ groupId, players, profileId, reloadLeaderboard, session, archiveNonce, bumpArchive, onLogin, canCreate = false, openReq = null }) {
+function Games({ groupId, players, profileId, reloadLeaderboard, session, archiveNonce, bumpArchive, onLogin, isAdmin = false, canCreate = false, openReq = null }) {
   const [games, setGames] = useState([]);
   const [mode, setMode] = useState("list");
   const [selId, setSelId] = useState(null);
@@ -2167,7 +2167,7 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
   if (mode === "view") {
     const g = games.find((x) => x.id === selId);
     if (!g) { setMode("list"); return null; }
-    return <GameCard game={g} groupId={groupId} profileId={profileId} back={() => setMode("list")} reloadGames={loadGames} reloadLeaderboard={reloadLeaderboard} bumpArchive={bumpArchive} players={players} />;
+    return <GameCard game={g} groupId={groupId} profileId={profileId} isAdmin={isAdmin} back={() => setMode("list")} reloadGames={loadGames} reloadLeaderboard={reloadLeaderboard} bumpArchive={bumpArchive} players={players} />;
   }
 
   return (
@@ -2612,7 +2612,7 @@ function GameCourtBlock({ game, index, total, groupId, reloadSession, reloadLead
   );
 }
 
-function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLeaderboard, bumpArchive, players = [] }) {
+function GameCard({ game, groupId, profileId = null, isAdmin = false, back, reloadGames, reloadLeaderboard, bumpArchive, players = [] }) {
   const [mix, setMix] = useState(false);
   const [prof, setProf] = useState(null);  // карточка игрока из состава (только просмотр)
   const onOpenPlayer = (id) => { const f = players.find((p) => p.id === id); if (f) setProf(f); };
@@ -2664,11 +2664,11 @@ function GameCard({ game, groupId, profileId = null, back, reloadGames, reloadLe
     } catch (e) { setJoinErr(t("err_slot_taken")); }
     finally { setJoinBusy(false); }
   };
-  // «Начать игру» — любой из состава или хост. Кнопка видна всегда (open),
-  // но активна только с полным кортом: после старта слоты не доукомплектовать,
-  // а счёт требует все 4 — неполная игра зависала бы без выхода.
+  // «Начать игру» — любой из состава, хост игры или организатор лиги (иначе
+  // игра, где организатора нет в составе, зависала бы: счёт заперт до старта).
+  // Кнопка видна всегда (open), активна только с полным кортом.
   const [startBusy, setStartBusy] = useState(false);
-  const mayStart = game.status === "open" && !!profileId && (meInGameHere || game.host_id === profileId);
+  const mayStart = game.status === "open" && !!profileId && (meInGameHere || game.host_id === profileId || isAdmin);
   const canStart = mayStart && filled === 4;
   const doStart = async () => {
     if (startBusy) return;
@@ -3004,7 +3004,7 @@ function GameCopyDialog({ src, groupId, profileId = null, onClose, onCopied }) {
   );
 }
 
-function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce, bumpArchive }) {
+function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = false, archiveNonce, bumpArchive }) {
   const [games, setGames] = useState(null);  // сыгранные игры
   const [tours, setTours] = useState([]);     // завершённые турниры
   const [copyTour, setCopyTour] = useState(null);
@@ -3037,7 +3037,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, archiveNonce,
 
   // Проваливание в результаты — те же экраны, что на вкладках Игры/Турниры (там и удаление).
   if (sel?.type === "tour") return <TournamentView id={sel.data.id} players={players} back={() => setSel(null)} isGroupMember={isGroupMember} currentProfileId={profileId} onArchiveChange={bumpArchive} />;
-  if (sel?.type === "game") return <GameCard game={sel.data} groupId={groupId} profileId={profileId} back={() => setSel(null)} reloadGames={load} reloadLeaderboard={() => {}} bumpArchive={bumpArchive} players={players} />;
+  if (sel?.type === "game") return <GameCard game={sel.data} groupId={groupId} profileId={profileId} isAdmin={isAdmin} back={() => setSel(null)} reloadGames={load} reloadLeaderboard={() => {}} bumpArchive={bumpArchive} players={players} />;
 
   const gameDate = (g) => new Date(g.matches?.[0]?.played_at || g.starts_at || g.created_at || 0);
   const tourDate = (tr) => new Date(tr.starts_at || tr.created_at || 0);
