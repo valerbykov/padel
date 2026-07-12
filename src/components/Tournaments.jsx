@@ -1036,6 +1036,10 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   };
   const start = async () => {
     if (startingRef.current) return;
+    // Старт с неполным набором разрешён (кратность соблюдена), но не молча:
+    // «собирали 8, стартуем с 4» должно быть осознанным решением организатора.
+    if (trnData.players.length < trnData.target_size &&
+        !confirm(tr("trn_start_short").replace("{n}", String(trnData.players.length)).replace("{t}", String(trnData.target_size)))) return;
     startingRef.current = true;
     try { await startTournament(trnData.id, trnData.players, trnData.format); await load(); }
     catch (e) { alert(e.message || tr("err_start_tour")); }
