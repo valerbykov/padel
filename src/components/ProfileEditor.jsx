@@ -381,7 +381,14 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
                 {/* Стат-плитки активной лиги (из кэша лидерборда) + мостик в статистику */}
                 {lbRow && (
                   <>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 14 }}>
+                    {activeLeague?.name && (
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 14, fontSize: 11.5, color: "var(--mut)" }}>
+                        <BarChart3 size={12} style={{ color: "var(--lime)", flexShrink: 0 }} />
+                        <span>{t("pc_stats_in_league")}</span>
+                        <b style={{ color: "var(--ink)", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "55%" }}>{activeLeague.name}</b>
+                      </div>
+                    )}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 10 }}>
                       <div className="pc-tile">
                         <b style={{ color: "var(--lime)" }}>{lbRow.rating}</b>
                         <span>{t("pc_stat_rating")}</span>
