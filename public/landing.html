@@ -409,10 +409,14 @@
                   </div>
                 </div>
               </div>
-              <div class="sets">
-                <div class="setb"><span data-i18n="m_set1">Сет 1</span><br><b class="win">6</b>:<b class="los">4</b></div>
-                <div class="setb"><span data-i18n="m_set2">Сет 2</span><br><b class="los">3</b>:<b class="win">6</b></div>
-                <div class="setb"><span data-i18n="m_set3">Сет 3</span><br><b class="win">7</b>:<b class="los">5</b></div>
+              <div style="background:var(--surface);border:1.2px solid color-mix(in srgb,var(--lime) 45%,transparent);border-radius:11px;padding:7px 9px 8px;box-shadow:0 6px 18px -12px color-mix(in srgb,var(--lime) 60%,transparent)">
+                <div style="display:flex;align-items:center;gap:5px;font-size:8px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--lime);margin-bottom:5px"><span style="width:5px;height:5px;border-radius:50%;background:var(--lime);box-shadow:0 0 6px var(--lime)"></span><span data-i18n="m_sets_title">Счёт по сетам</span></div>
+                <div class="sets" style="margin:0">
+                  <div class="setb"><span data-i18n="m_set1">Сет 1</span><br><b class="win">6</b>:<b class="los">4</b></div>
+                  <div class="setb"><span data-i18n="m_set2">Сет 2</span><br><b class="los">3</b>:<b class="win">6</b></div>
+                  <div class="setb"><span data-i18n="m_set3">Сет 3</span><br><b class="win">7</b>:<b class="los">5</b></div>
+                </div>
+                <div style="margin-top:7px;background:var(--lime);color:#0a1612;border-radius:8px;text-align:center;font-size:9.5px;font-weight:800;padding:6px 0" data-i18n="m_save_result">Записать результат</div>
               </div>
               <div class="linkbar">🔗 <span data-i18n="m_share">Ссылка</span> <span class="u">padelpack.app/j/KORT42</span></div>
             </div>
@@ -426,6 +430,14 @@
           <div class="phone-frame"><div class="phone-screen">
             <div class="ps-top"><div class="lchip"><img class="llogo" src="/avatars/dog-07.webp" alt="" /><b data-i18n="m_league_name">Падел по четвергам</b> ▾</div><span class="ps-mini" data-i18n="m_lang_chip">RU</span></div>
             <div class="ps-body">
+              <div style="display:flex;gap:4px;justify-content:center">
+                <span style="font-size:8.5px;font-weight:800;padding:3px 8px;border-radius:8px;background:color-mix(in srgb,var(--lime) 14%,transparent);color:var(--lime)">1 ✓</span>
+                <span style="font-size:8.5px;font-weight:800;padding:3px 8px;border-radius:8px;background:color-mix(in srgb,var(--lime) 14%,transparent);color:var(--lime)">2 ✓</span>
+                <span style="font-size:8.5px;font-weight:800;padding:3px 8px;border-radius:8px;background:color-mix(in srgb,var(--lime) 14%,transparent);color:var(--lime)">3 ✓</span>
+                <span style="font-size:8.5px;font-weight:800;padding:3px 8px;border-radius:8px;background:var(--lime);color:#0a1612">4</span>
+                <span style="font-size:8.5px;font-weight:800;padding:3px 8px;border-radius:8px;background:var(--surface);border:1px solid var(--line);color:var(--mut)">5</span>
+                <span style="font-size:8.5px;font-weight:800;padding:3px 8px;border-radius:8px;background:var(--surface);border:1px solid var(--line);color:var(--mut)">6</span>
+              </div>
               <div style="display:flex;align-items:center;justify-content:space-between"><div style="font-size:15px;font-weight:800" data-i18n="fmt_amer_t">Американо</div><span class="chip" style="padding:3px 9px;font-size:9px" data-i18n="m_round">Раунд 4/6</span></div>
               <div style="height:4px;border-radius:3px;background:var(--surface);overflow:hidden;margin:2px 0"><div style="width:62%;height:100%;background:var(--yellow)"></div></div>
               <div style="font-size:10px;color:var(--mut);margin:-1px 0 1px" data-i18n="m_amer_tag">Идеально для дебюта</div>
@@ -634,7 +646,7 @@
         m_round:"Раунд 4/6", m_amer_tag:"Идеально для дебюта",
         m_filter_all:"Все",
         m_hist_tour:"Американо · 12 июня", m_hist_tour_sub:"2 место · 8 игроков",
-        m_swipe:"← смахни влево, чтобы удалить", m_sum_games:"игр · июль", m_sum_tours:"турнира", m_sum_wl:"твои В–П", m_sum_rating:"рейтинг", m_day_today:"СЕГОДНЯ", m_day_yesterday:"ВЧЕРА", m_min:" мин", m_team:"Команда", m_rights:"Права участников",
+        m_swipe:"← смахни влево, чтобы удалить", m_sum_games:"игр · июль", m_sets_title:"Счёт по сетам", m_save_result:"Записать результат", m_sum_tours:"турнира", m_sum_wl:"твои В–П", m_sum_rating:"рейтинг", m_day_today:"СЕГОДНЯ", m_day_yesterday:"ВЧЕРА", m_min:" мин", m_team:"Команда", m_rights:"Права участников",
         m_manage_title:"Управление лигой", m_members_sub:"12 игроков · с апреля",
         m_owner:"Владелец", m_organizers:"Организаторы", m_league_tg:"Телеграм-канал",
         fmt_eyebrow:"Форматы турниров",
@@ -706,7 +718,7 @@
         m_round:"Round 4/6", m_amer_tag:"Perfect for beginners",
         m_filter_all:"All",
         m_hist_tour:"Americano · Jun 12", m_hist_tour_sub:"2nd place · 8 players",
-        m_swipe:"← swipe left to delete", m_sum_games:"games · Jul", m_sum_tours:"tournaments", m_sum_wl:"your W–L", m_sum_rating:"rating", m_day_today:"TODAY", m_day_yesterday:"YESTERDAY", m_min:" min", m_team:"Team", m_rights:"Member permissions",
+        m_swipe:"← swipe left to delete", m_sum_games:"games · Jul", m_sets_title:"Set score", m_save_result:"Save result", m_sum_tours:"tournaments", m_sum_wl:"your W–L", m_sum_rating:"rating", m_day_today:"TODAY", m_day_yesterday:"YESTERDAY", m_min:" min", m_team:"Team", m_rights:"Member permissions",
         m_manage_title:"League settings", m_members_sub:"12 players · since April",
         m_owner:"Owner", m_organizers:"Organizers", m_league_tg:"Telegram channel",
         fmt_eyebrow:"Tournament formats",
@@ -778,7 +790,7 @@
         m_round:"Ronda 4/6", m_amer_tag:"Perfecto para debutar",
         m_filter_all:"Todos",
         m_hist_tour:"Americano · 12 jun", m_hist_tour_sub:"2.º puesto · 8 jugadores",
-        m_swipe:"← desliza para borrar", m_sum_games:"partidas · jul", m_sum_tours:"torneos", m_sum_wl:"tus V–D", m_sum_rating:"rating", m_day_today:"HOY", m_day_yesterday:"AYER", m_min:" min", m_team:"Equipo", m_rights:"Permisos",
+        m_swipe:"← desliza para borrar", m_sum_games:"partidas · jul", m_sets_title:"Marcador por sets", m_save_result:"Guardar resultado", m_sum_tours:"torneos", m_sum_wl:"tus V–D", m_sum_rating:"rating", m_day_today:"HOY", m_day_yesterday:"AYER", m_min:" min", m_team:"Equipo", m_rights:"Permisos",
         m_manage_title:"Gestión de liga", m_members_sub:"12 jugadores · desde abril",
         m_owner:"Dueño", m_organizers:"Organizadores", m_league_tg:"Canal de Telegram",
         fmt_eyebrow:"Formatos de torneo",
