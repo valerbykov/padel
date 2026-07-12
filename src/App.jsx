@@ -108,20 +108,22 @@ export default function App({ initialShowLogin = false }) {
   // «Подробнее о PadelPack» → полноэкранный лендинг (статическая маркетинговая страница).
   const openLanding = useCallback(() => { window.location.href = "/landing.html"; }, []);
 
-  // Нативный статус-бар (Android/iOS). На Android env(safe-area-inset-top) для
-  // строки состояния = 0, поэтому CSS-отступ не помогает — говорим системе НЕ
-  // накладывать статус-бар на webview (контент встаёт под ним) и задаём цвет/стиль
-  // иконок под тему. Доступ рантаймом — на вебе плагина нет, эффект тихо ничего не делает.
+  // Нативный статус-бар (Android/iOS) — EDGE-TO-EDGE. Android 15 (targetSdk 35+)
+  // принудительно включает отображение от края до края и объявил устаревшими
+  // Window.setStatusBarColor / setNavigationBarColor (Play помечает их
+  // предупреждением). Поэтому цвет бара НЕ красим — вместо этого пускаем webview
+  // под статус-бар (overlay:true), а его фон закрывает шапка/навбар, у которых
+  // есть отступы env(safe-area-inset-*). Оставляем только setStyle — он меняет
+  // контраст иконок через WindowInsetsController и не устарел.
   useEffect(() => {
     const Cap = window.Capacitor;
     const SB = Cap?.Plugins?.StatusBar;
     if (!SB) return;
     const dark = theme !== "light";
     if (Cap.getPlatform && Cap.getPlatform() === "android") {
-      SB.setOverlaysWebView({ overlay: false }).catch(() => {});
+      SB.setOverlaysWebView({ overlay: true }).catch(() => {});
     }
     SB.setStyle({ style: dark ? "DARK" : "LIGHT" }).catch(() => {}); // DARK = светлые иконки (для тёмного фона)
-    SB.setBackgroundColor({ color: dark ? "#0a1612" : "#ffffff" }).catch(() => {});
   }, [theme]);
 
   // PWA install prompt (Android/Desktop Chrome)

@@ -32,7 +32,7 @@ const css = `
 .tj-root{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;
  font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;color-scheme:dark;
  background-image:radial-gradient(circle at 80% -10%,rgba(200,255,45,.10),transparent 45%);}
-.tj-wrap{max-width:460px;margin:0 auto;padding:20px 16px 40px;}
+.tj-wrap{max-width:460px;margin:0 auto;padding:max(20px,env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom));}
 .tj-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:12px;}
 .tj-d{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;}
 .tj-input{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Outfit';padding:12px;outline:none;box-sizing:border-box;margin-bottom:10px;}
