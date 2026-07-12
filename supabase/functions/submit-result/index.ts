@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
     // 2. Игра + слоты.
     const { data: game, error: gErr } = await admin
       .from("games")
-      .select("id, group_id, status, started_at, slots:game_slots(team, position, profile_id, guest_name)")
+      .select("id, group_id, status, started_at, starts_at, slots:game_slots(team, position, profile_id, guest_name)")
       .eq("id", gameId).single();
     if (gErr || !game) return json({ error: "game_not_found" }, 404);
     if (game.status === "played") return json({ error: "already_played" }, 400);
@@ -121,14 +121,19 @@ Deno.serve(async (req) => {
     }
 
     // 6. Пишем матч.
+    // Фактическое время игры: обычный поток — момент «Начать игру». Но если игра
+    // заведена задним числом (дата игры сильно в прошлом, старт нажали только
+    // чтобы открыть ввод счёта) — правда именно в starts_at: иначе игрок от
+    // 31 мая «играл сегодня» и не попадает в «Спящих», а Δ месяца едет.
+    const startsMs = game.starts_at ? new Date(game.starts_at).getTime() : null;
+    const backdated = startsMs !== null && Date.now() - startsMs > 12 * 3600e3;
+    const playedAt = backdated ? game.starts_at : (game.started_at || null);
     const { data: match } = await admin.from("matches").insert({
       game_id: game.id, group_id: game.group_id,
       team_a: [a1.profileId, a2.profileId], team_b: [b1.profileId, b2.profileId],
       sets_a: setsA, sets_b: setsB,
       score_detail: scoreDetail || null,
-      // Фактическое время игры: если жали «Начать игру» — момент старта,
-      // иначе (счёт задним числом) остаётся default now().
-      ...(game.started_at ? { played_at: game.started_at } : {}),
+      ...(playedAt ? { played_at: playedAt } : {}),
     }).select("id").single();
 
     // 7. Обновляем рейтинги + история + закрываем игру.
@@ -147,6 +152,9 @@ Deno.serve(async (req) => {
         admin.from("rating_changes").insert({
           match_id: match!.id, group_id: game.group_id, profile_id: p.profileId,
           delta: deltas[p.profileId], rating_after: after[p.profileId],
+          // Дельта датируется временем игры: сводка «Δ за месяц» в Истории
+          // считает по created_at и иначе расходится с карточкой матча.
+          ...(playedAt ? { created_at: playedAt } : {}),
         }),
       ]);
     }));
