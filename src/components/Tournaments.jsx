@@ -272,7 +272,8 @@ export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null, 
               </span>
             ))}
             {(trn.players || []).length < trn.target_size && (
-              <span style={{ width: 28, height: 28, borderRadius: "50%", border: "1.5px dashed var(--line)", background: "var(--surface2)", marginLeft: -10, boxSizing: "border-box", flexShrink: 0 }} />
+              /* Свободное место: лаймовый «+» вместо тёмной дыры — рифмуется с «Занять» */
+              <span style={{ width: 28, height: 28, borderRadius: "50%", border: "1.5px dashed color-mix(in srgb, var(--lime) 45%, var(--line))", background: "color-mix(in srgb, var(--lime) 8%, var(--surface2))", marginLeft: -10, boxSizing: "border-box", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, color: "var(--lime)", lineHeight: 1 }}>+</span>
             )}
           </div>
           <span style={{ fontSize: 11.5, color: "var(--mut)", marginLeft: 8 }}>{(trn.players || []).length}/{trn.target_size}</span>
