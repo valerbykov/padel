@@ -20,7 +20,7 @@ import { createPortal } from "react-dom";
 import { Bell, Trophy, Swords, Send, X, Megaphone, AlertTriangle, UserPlus, LineChart, Link2, Users, AlarmClock } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { setAppBadgeCount } from "../lib/badge";
-import { t } from "../lib/i18n";
+import { t , dateLocale} from "../lib/i18n";
 import { postLeagueAnnouncement, listLeaguePosts, deleteLeaguePost } from "../lib/padelApi";
 
 const WINDOW_DAYS = 14;  // окно событий
@@ -37,7 +37,7 @@ const ago = (iso) => {
 };
 
 const fmtWhen = (iso) => {
-  try { return new Date(iso).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
+  try { return new Date(iso).toLocaleString(dateLocale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
   catch (e) { return ""; }
 };
 
@@ -429,7 +429,7 @@ export default function NotificationBell({ leagues = [], activeLeague = null, on
                         <div key={p.id} style={{ position: "relative", padding: "8px 12px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 11, marginBottom: 6 }}>
                           <div style={{ fontSize: 12.5, color: "var(--ink)", lineHeight: 1.4, whiteSpace: "pre-wrap", wordBreak: "break-word", paddingRight: 20 }}>{p.text}</div>
                           <div style={{ fontSize: 10, color: "var(--mut)", marginTop: 3 }}>
-                            {p.author_name ? p.author_name + " · " : ""}{(() => { try { return new Date(p.created_at).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } })()}
+                            {p.author_name ? p.author_name + " · " : ""}{(() => { try { return new Date(p.created_at).toLocaleString(dateLocale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } })()}
                           </div>
                           <button onClick={() => removePost(p.id)} aria-label={t("delete_btn")} title={t("delete_btn")}
                             style={{ position: "absolute", top: 6, right: 6, background: "none", border: "none", color: "var(--mut)", cursor: "pointer", padding: 2, display: "flex" }}>

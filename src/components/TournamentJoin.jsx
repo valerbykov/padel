@@ -8,14 +8,14 @@ import { getTournamentByCode, getTournament, joinTournamentByCode } from "../lib
 import { TournamentView } from "./Tournaments";
 import LoginScreen from "./LoginScreen";
 import { Trophy, AlertCircle, Check, LogIn, UserCheck, Calendar, MapPin } from "lucide-react";
-import { t as tr } from "../lib/i18n";
+import { t as tr , dateLocale} from "../lib/i18n";
 import { playerAvatar, avatarFallback } from "../lib/avatar";
 import { usePublicChrome, PublicToggles, plural } from "./publicChrome";
 import Logo from "./Logo";
 
 const fmtDate = (iso) => {
   if (!iso) return "";
-  try { return new Date(iso).toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
+  try { return new Date(iso).toLocaleString(dateLocale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
   catch (e) { return ""; }
 };
 // Показываем только реальное время начала (starts_at). created_at как «время начала»

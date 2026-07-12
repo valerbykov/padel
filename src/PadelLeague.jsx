@@ -10,7 +10,7 @@ import { CardSkeleton } from "./components/Skeleton";
 import { bustCache, cachePeek } from "./lib/cache";
 import { getRatingHistory, getWeekDeltas } from "./lib/statsApi";
 import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
-import { t, nGames, currentLang } from "./lib/i18n";
+import { t, nGames, currentLang , dateLocale} from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
 import Fab from "./components/Fab";
@@ -31,7 +31,7 @@ const nowLocalDT = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d
 
 const fmtDate = (iso) => {
   if (!iso) return "";
-  try { return new Date(iso).toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
+  try { return new Date(iso).toLocaleString(dateLocale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
   catch (e) { return ""; }
 };
 
@@ -110,7 +110,7 @@ function RatingChart({ rows }) {
   const lastI = values.length - 1;
   // Сетка: 3 «красивых» уровня.
   const grid = [max, (max + min) / 2, min].map((v) => Math.round(v));
-  const fd = (iso) => { try { return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" }); } catch (e) { return ""; } };
+  const fd = (iso) => { try { return new Date(iso).toLocaleDateString(dateLocale(), { day: "numeric", month: "short" }); } catch (e) { return ""; } };
   const firstAt = pts0.find((p) => p.at)?.at;
   return (
     <>
@@ -1513,7 +1513,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
     const rows = months.map((m, i) => ({ key: m.key, delta: m.last - (i === 0 ? 1000 : months[i - 1].last) }));
     const best = [...rows].sort((a, b) => b.delta - a.delta)[0];
     const worst = [...rows].sort((a, b) => a.delta - b.delta)[0];
-    const label = (k) => { try { return new Date(k + "-01").toLocaleDateString(undefined, { month: "long", year: "numeric" }); } catch (e) { return k; } };
+    const label = (k) => { try { return new Date(k + "-01").toLocaleDateString(dateLocale(), { month: "long", year: "numeric" }); } catch (e) { return k; } };
     return {
       best: { ...best, label: label(best.key) },
       worst: rows.length > 1 && worst.key !== best.key ? { ...worst, label: label(worst.key) } : null,
@@ -2736,7 +2736,7 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
         return { ...slotTeams(g), setsA: m.sets_a, setsB: m.sets_b, scoreDetail: m.score_detail };
       });
       const lastM = playedList[playedList.length - 1].matches[0];
-      const dateStr = (() => { try { return new Date(lastM.played_at || playedList[0].starts_at || Date.now()).toLocaleDateString(undefined, { day: "numeric", month: "long" }); } catch (e) { return ""; } })();
+      const dateStr = (() => { try { return new Date(lastM.played_at || playedList[0].starts_at || Date.now()).toLocaleDateString(dateLocale(), { day: "numeric", month: "long" }); } catch (e) { return ""; } })();
       const { renderMixCard, shareCanvas } = await import("./lib/shareCard");
       const canvas = await renderMixCard({ dateStr, games: gamesData });
       await shareCanvas(canvas, "padelpack-mix.png");
@@ -2749,7 +2749,7 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
     setCardBusy(true);
     try {
       const { teamA, teamB } = slotTeams(g);
-      const dateStr = (() => { try { return new Date(m.played_at || g.starts_at || g.created_at).toLocaleDateString(undefined, { day: "numeric", month: "long" }); } catch (e) { return ""; } })();
+      const dateStr = (() => { try { return new Date(m.played_at || g.starts_at || g.created_at).toLocaleDateString(dateLocale(), { day: "numeric", month: "long" }); } catch (e) { return ""; } })();
       const { renderGameCard, shareCanvas } = await import("./lib/shareCard");
       const canvas = await renderGameCard({
         title: g.title || g.place || "", dateStr,
@@ -3045,7 +3045,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
   const mStart = new Date(nowD.getFullYear(), nowD.getMonth() + monthOff, 1);
   const mEnd = new Date(nowD.getFullYear(), nowD.getMonth() + monthOff + 1, 1);
   const inMonth = (d) => d >= mStart && d < mEnd;
-  const monthLabel = mStart.toLocaleDateString(undefined, { month: "long", ...(mStart.getFullYear() !== nowD.getFullYear() ? { year: "numeric" } : {}) });
+  const monthLabel = mStart.toLocaleDateString(dateLocale(), { month: "long", ...(mStart.getFullYear() !== nowD.getFullYear() ? { year: "numeric" } : {}) });
 
   const pInTour = (tr) => !pFilter || (tr.players || []).some((pl) => pl.profile_id === pFilter);
   const pInGame = (g) => !pFilter || (g.slots || []).some((s) => s.profile_id === pFilter);
@@ -3117,7 +3117,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
     const diff = Math.round((today - day) / 86400000);
     if (diff === 0) return t("hist_today");
     if (diff === 1) return t("hist_yesterday");
-    return day.toLocaleDateString(undefined, { day: "numeric", month: "long" });
+    return day.toLocaleDateString(dateLocale(), { day: "numeric", month: "long" });
   };
 
   const renderEvent = (ev) => {

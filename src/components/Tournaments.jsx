@@ -52,7 +52,7 @@ import StandingsTable from "./StandingsTable";
 import Avatar from "./Avatar";
 import EmptyState from "./EmptyState";
 import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Share2, Trash2, Plus, Check, Calendar, MapPin } from "lucide-react";
-import { t as tr } from "../lib/i18n";
+import { t as tr , dateLocale} from "../lib/i18n";
 import BackButton from "./BackButton";
 const nowLocalDT = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
 
@@ -207,7 +207,7 @@ export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null, 
   const whenIso = trn.starts_at || trn.created_at;
   // У завершённых время старта уже не важно — короткая дата освобождает
   // место победителю в строке итогов.
-  const dateStr = whenIso ? (() => { try { return new Date(whenIso).toLocaleString(undefined, trn.starts_at && trn.status !== "finished" ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" } : { day: "numeric", month: "short" }); } catch (e) { return null; } })() : null;
+  const dateStr = whenIso ? (() => { try { return new Date(whenIso).toLocaleString(dateLocale(), trn.starts_at && trn.status !== "finished" ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" } : { day: "numeric", month: "short" }); } catch (e) { return null; } })() : null;
   return (
     <div className="tr-card" style={{ marginBottom: flush ? 0 : 8, cursor: "pointer", border: mine ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined, background: mine ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined }} onClick={onClick}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -941,7 +941,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
         .replace("{p}", String((trnData.players || []).length))
         .replace("{r}", String(rounds))
         .replace("{n}", String(trnData.points_per_game));
-      const dateStr = (() => { try { return new Date(trnData.starts_at || trnData.created_at).toLocaleDateString(undefined, { day: "numeric", month: "long" }); } catch (e) { return ""; } })();
+      const dateStr = (() => { try { return new Date(trnData.starts_at || trnData.created_at).toLocaleDateString(dateLocale(), { day: "numeric", month: "long" }); } catch (e) { return ""; } })();
       const { renderTournamentCard, shareCanvas } = await import("../lib/shareCard");
       const canvas = await renderTournamentCard({
         name: trnData.name || fmt.name, dateStr, metaStr,
@@ -1106,7 +1106,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
         )}
         {(trnData.starts_at || trnData.place) && (
           <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 4, display: "flex", gap: 12, flexWrap: "wrap" }}>
-            {trnData.starts_at && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={12} />{(() => { try { return new Date(trnData.starts_at).toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } })()}</span>}
+            {trnData.starts_at && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={12} />{(() => { try { return new Date(trnData.starts_at).toLocaleString(dateLocale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } })()}</span>}
             {trnData.place && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><MapPin size={12} />{trnData.place}</span>}
           </div>
         )}

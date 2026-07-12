@@ -7,13 +7,13 @@ import { supabase } from "../lib/supabase";
 import LoginScreen from "./LoginScreen";
 import Logo from "./Logo";
 import { Calendar, MapPin, Check, AlertCircle, LogIn, UserCheck } from "lucide-react";
-import { t } from "../lib/i18n";
+import { t , dateLocale} from "../lib/i18n";
 import { playerAvatar, avatarFallback } from "../lib/avatar";
 import { usePublicChrome, PublicToggles } from "./publicChrome";
 
 const fmtDate = (iso) => {
   if (!iso) return "";
-  try { return new Date(iso).toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
+  try { return new Date(iso).toLocaleString(dateLocale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
   catch (e) { return ""; }
 };
 

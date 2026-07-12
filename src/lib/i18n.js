@@ -1230,6 +1230,12 @@ export function t(key) {
   return T[currentLang]?.[key] ?? T.ru[key] ?? key;
 }
 
+// Локаль для дат: следует ЯЗЫКУ ПРИЛОЖЕНИЯ, а не локали устройства — иначе
+// на русском телефоне с приложением на EN даты оставались бы «3 июля».
+export function dateLocale() {
+  return currentLang === 'en' ? 'en-US' : currentLang === 'es' ? 'es-ES' : 'ru-RU';
+}
+
 // «N игр» с правильным склонением (RU); EN/ES — простое множественное число.
 export function nGames(n) {
   if (currentLang === 'en') return `${n} games`;

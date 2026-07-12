@@ -15,7 +15,7 @@ import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
 import { Camera, Check, Loader, LogOut, BarChart3, Sun, Moon, X, Bell, Trash2, User, Phone, Mail, Globe, ChevronRight, ChevronDown, Lock, ArrowUp, ArrowDown, MessageCircle } from "lucide-react";
 import Avatar from "./Avatar";
-import { t, setLang } from "../lib/i18n";
+import { t, setLang , dateLocale} from "../lib/i18n";
 import { saveNotifPrefs, registerPush, OFFSET_OPTIONS } from "../lib/notifications";
 import { cachePeek } from "../lib/cache";
 
@@ -309,7 +309,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
   // День включаем ради грамматики: в ru «с 8 июля 2026» (родительный падеж),
   // тогда как {month:'long'} дал бы «с июль 2026».
   const sinceLabel = since ? (() => {
-    try { return t("pc_since").replace("{d}", new Date(since).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })); }
+    try { return t("pc_since").replace("{d}", new Date(since).toLocaleDateString(dateLocale(), { day: "numeric", month: "long", year: "numeric" })); }
     catch (e) { return null; }
   })() : null;
   const toggleRow = (r) => setEditRow((cur) => (cur === r ? null : r));
