@@ -130,12 +130,12 @@ export default function Tournaments({ groupId, players, profileId, bumpArchive, 
   }, [openReq]);
   if (mode === "create") return <Create groupId={groupId} profileId={profileId} back={() => setMode("list")} open={(id) => { setActiveId(id); setMode("view"); }} />;
   if (mode === "view") return <TournamentView id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} onArchiveChange={bumpArchive} isAdmin={isAdmin} membersCanCreate={membersCanCreate} />;
-  return <List groupId={groupId} profileId={profileId} players={players} session={session} onLogin={onLogin} canCreate={canCreate} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
+  return <List groupId={groupId} profileId={profileId} players={players} session={session} onLogin={onLogin} canCreate={canCreate} isAdmin={isAdmin} membersCanCreate={membersCanCreate} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
 }
 
 // ─── TournamentHero ────────────────────────────────────────────────────────────
 // Активный турнир наверху списка: прогресс раундов, текущий лидер, CTA к счёту.
-function TournamentHero({ trn, onOpen }) {
+function TournamentHero({ trn, onOpen, scoreCta = true }) {
   const ms = (trn.matches || []).filter((m) => m.round_number > 0);
   const total = ms.length;
   const done = ms.filter((m) => m.score_a != null && m.score_b != null).length;
@@ -163,7 +163,7 @@ function TournamentHero({ trn, onOpen }) {
         {leader && <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tr("trn_hero_leader")}: <b style={{ color: "var(--ink)" }}>{leader.name}</b> · {leader.points} {tr("trn_hero_pts")}</span>}
         <button onClick={(e) => { e.stopPropagation(); onOpen(); }}
           style={{ marginLeft: "auto", flexShrink: 0, border: "none", borderRadius: 11, padding: "9px 14px", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 12.5, cursor: "pointer", background: "var(--yellow)", color: "#1c1503" }}>
-          {tr("trn_hero_score")}
+          {scoreCta ? tr("trn_hero_score") : tr("hero_open")}
         </button>
       </div>
     </div>
@@ -288,7 +288,7 @@ export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null, 
 
 // ─── List ──────────────────────────────────────────────────────────────────────
 
-function List({ groupId, profileId, players = [], create, open, session, onLogin, canCreate = false }) {
+function List({ groupId, profileId, players = [], create, open, session, onLogin, canCreate = false, isAdmin = false, membersCanCreate = false }) {
   const [items, setItems] = useState(null);
   const [showAll, setShowAll] = useState(false);
   const [copySrc, setCopySrc] = useState(null);
@@ -333,7 +333,12 @@ function List({ groupId, profileId, players = [], create, open, session, onLogin
         <EmptyState className="tr-card" variant="podium"
           text={!session ? tr("trn_empty_guest") : groupId ? tr("trn_empty_session") : tr("solo_tours_empty")} />
       )}
-      {items !== null && heroTrn && <TournamentHero trn={heroTrn} onOpen={() => open(heroTrn.id)} />}
+      {items !== null && heroTrn && (
+        /* CTA «Ввести счёт» — только у тех, кто реально может вводить (свободный
+           ввод / админ / создатель при праве участников); остальным — «Открыть». */
+        <TournamentHero trn={heroTrn} onOpen={() => open(heroTrn.id)}
+          scoreCta={!!heroTrn.open_scoring || isAdmin || (membersCanCreate && heroTrn.created_by === profileId)} />
+      )}
       {items !== null && getSections().filter((sec) => sec.status !== "finished").map((sec) => {
         const list = sec.status === "active" ? byStatus.active.filter((trn) => trn !== heroTrn) : byStatus[sec.status];
         if (!list.length) return null;
