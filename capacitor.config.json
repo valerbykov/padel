@@ -1,5 +1,9 @@
 {
   "appId": "app.padelpack",
   "appName": "PadelPack",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "hostname": "padelpack.app",
+    "androidScheme": "https"
+  }
 }
