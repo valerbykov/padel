@@ -2640,7 +2640,9 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
   const [joinErr, setJoinErr] = useState("");
   const meInGameHere = !!profileId && slots.some((s) => s.profile_id === profileId);
   // Красный крестик: хост убирает любого из состава, игрок — себя.
-  const canClear = (s) => (game.status === "open" || game.status === "live") && !!profileId &&
+  // Только до старта: после «Начать игру» состав зафиксирован (слоты не
+  // доукомплектовать, а счёт требует всех четверых).
+  const canClear = (s) => game.status === "open" && !!profileId &&
     (game.host_id === profileId || (s.profile_id && s.profile_id === profileId));
   const clearSlot = async (s) => {
     if (joinBusy) return;
