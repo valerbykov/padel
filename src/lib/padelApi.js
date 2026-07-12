@@ -551,6 +551,13 @@ export function getMyLeagues(profileId) {
   if (!profileId) return Promise.resolve([]);
   return swr("myleagues:" + profileId, () => _getMyLeagues(profileId));
 }
+// Принудительно свежий список (мимо кэша): ревалидация ролей при возврате
+// фокуса — снятые права организатора должны пропадать без жёсткого F5.
+export function refreshMyLeagues(profileId) {
+  if (!profileId) return Promise.resolve([]);
+  bustKey("myleagues:" + profileId);
+  return swr("myleagues:" + profileId, () => _getMyLeagues(profileId));
+}
 
 // Детали лиги для окна управления: + организатор (владелец) и роль вызывающего.
 export async function getLeagueDetails(groupId) {

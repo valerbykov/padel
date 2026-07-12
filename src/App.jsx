@@ -11,7 +11,7 @@ import Logo from "./components/Logo"; // текстовый логотип в т
 import LeagueSwitcher from "./components/LeagueSwitcher"; // глобальный переключатель лиги в топбаре
 import NotificationBell from "./components/NotificationBell"; // колокольчик уведомлений (новые игры/турниры лиг)
 import { LogIn, Sun, Moon } from "lucide-react";
-import { getMyLeagues, bootstrapApp, joinLeague } from "./lib/padelApi";
+import { getMyLeagues, refreshMyLeagues, bootstrapApp, joinLeague } from "./lib/padelApi";
 import { t, setLang, applyLang, LANGS, LANG_LABELS, currentLang } from "./lib/i18n";
 import { detectCountry, langFromCountry } from "./lib/region";
 import { getNotifPrefs, registerPush } from "./lib/notifications";
@@ -335,6 +335,31 @@ export default function App({ initialShowLogin = false }) {
     if (bootBusyRef.current) return;
     loadLeagues(profile.id);
   }, [profile, loadLeagues]);
+
+  // Роли (owner/admin/member) живут в leagues и грузятся при старте; если права
+  // сняли, пока приложение открыто, UI продолжал их показывать до жёсткого F5
+  // (сервер при этом уже всё запрещал). Ревалидируем список при возврате фокуса,
+  // не чаще раза в минуту.
+  const lastRolesRef = useRef(0);
+  useEffect(() => {
+    if (!profile?.id) return;
+    const pid = profile.id;
+    const onVis = () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+      if (Date.now() - lastRolesRef.current < 60e3) return;
+      lastRolesRef.current = Date.now();
+      refreshMyLeagues(pid).then((list) => {
+        setLeagues(list);
+        setActiveLeague((prev) => list.find((l) => l.id === prev?.id) || list[0] || null);
+      }).catch(() => {});
+    };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("focus", onVis);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("focus", onVis);
+    };
+  }, [profile?.id]);
 
   // Запоминаем последнюю активную лигу, чтобы она не слетала после обновления страницы.
   useEffect(() => {
