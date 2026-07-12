@@ -97,7 +97,7 @@ const css = `
 @media (prefers-reduced-motion:reduce){.pc-skel{animation:none;opacity:.6}}
 `;
 
-export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpenStats, lang = "ru", onThemeToggle, onLangChange, profile = null, activeLeague = null }) {
+export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpenStats, lang = "ru", onThemeToggle, onLangChange, profile = null, activeLeague = null, leagueCount = 0 }) {
   const pickLang = (l) => { setLang(l); onLangChange?.(l); };
   // Мгновенная гидратация из props.profile (кэш бутстрапа): первый кадр — без сети.
   const [userId, setUserId] = useState(null);
@@ -381,7 +381,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
                 {/* Стат-плитки активной лиги (из кэша лидерборда) + мостик в статистику */}
                 {lbRow && (
                   <>
-                    {activeLeague?.name && (
+                    {leagueCount > 1 && activeLeague?.name && (
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 14, fontSize: 11.5, color: "var(--mut)" }}>
                         <BarChart3 size={12} style={{ color: "var(--lime)", flexShrink: 0 }} />
                         <span>{t("pc_stats_in_league")}</span>

@@ -444,7 +444,7 @@ export default function App({ initialShowLogin = false }) {
   const profileModal = (showProfile && session) ? (
     <ProfileEditor onClose={() => setShowProfile(false)} onSaved={() => setPNonce((n) => n + 1)} theme={theme}
       lang={lang} onThemeToggle={toggleTheme} onLangChange={handleLangChange}
-      profile={profile} activeLeague={activeLeague}
+      profile={profile} activeLeague={activeLeague} leagueCount={(leagues || []).length}
       onOpenStats={() => { setShowProfile(false); setStatsNonce((n) => n + 1); }} />
   ) : null;
 
