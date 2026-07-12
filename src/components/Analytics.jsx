@@ -179,20 +179,19 @@ export default function Analytics({ groupId, onBack, players = [], onOpenPlayer,
     });
   })();
 
-  // «Спящие»: участники без матчей 30+ дней (или вовсе без матчей).
+  // «Спящие»: РЕАЛЬНО играли, но 30+ дней назад. Новенькие без единой игры —
+  // отдельный блок (это не «уснувшие», их надо звать, а не будить).
   const sleeping = (() => {
     if (!data?.members) return [];
     const today = new Date(); today.setHours(0, 0, 0, 0);
     return data.members
-      .map((m) => {
-        if (!m.last_played) return { ...m, days: null };
-        const days = Math.floor((today - new Date(m.last_played)) / 864e5);
-        return { ...m, days };
-      })
-      .filter((m) => m.days === null || m.days > 30)
-      .sort((a, b) => (b.days ?? 1e9) - (a.days ?? 1e9))
+      .filter((m) => m.last_played)
+      .map((m) => ({ ...m, days: Math.floor((today - new Date(m.last_played)) / 864e5) }))
+      .filter((m) => m.days > 30)
+      .sort((a, b) => b.days - a.days)
       .slice(0, 8);
   })();
+  const newbies = (data?.members || []).filter((m) => !m.last_played).slice(0, 8);
 
   // «Веха стаи»: следующее круглое число матчей лиги + прогноз по темпу 4 недель.
   const milestone = (() => {
@@ -348,7 +347,29 @@ export default function Analytics({ groupId, onBack, players = [], onOpenPlayer,
             </div>
           </div>
 
-          {/* Спящие: 30+ дней без игр */}
+          {/* Новенькие: ещё ни одной игры — позитивный блок, не «спящие» */}
+          {newbies.length > 0 && (
+            <div className="an-card" style={{ marginBottom: 12, border: "1px solid color-mix(in srgb, var(--lime) 30%, transparent)" }}>
+              <div style={{ display: "flex", alignItems: "baseline" }}>
+                <CT style={{ color: "var(--lime)" }}>{t("an_newbies")}</CT>
+                <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--mut)", opacity: .8 }}>{t("an_newbies_hint")}</span>
+              </div>
+              <div style={{ display: "flex", gap: 7, marginTop: 10, flexWrap: "wrap" }}>
+                {newbies.map((m) => {
+                  const full = findPlayer(m.id);
+                  const tap = full && onOpenPlayer ? () => onOpenPlayer(full) : undefined;
+                  return (
+                    <span key={m.id} onClick={tap} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 999, padding: "4px 11px 4px 4px", cursor: tap ? "pointer" : "default" }}>
+                      <img src={playerAvatar(full?.avatar_url, m.id)} onError={avatarFallback(m.id)} alt="" style={{ width: 22, height: 22, borderRadius: "50%", objectFit: "cover" }} />
+                      <span style={{ fontSize: 11.5, fontWeight: 600 }}>{m.name}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Спящие: играли, но 30+ дней назад */}
           {sleeping.length > 0 && (
             <div className="an-card" style={{ marginBottom: 12, border: "1px solid color-mix(in srgb, var(--coral) 30%, transparent)" }}>
               <div style={{ display: "flex", alignItems: "baseline" }}>
@@ -363,7 +384,7 @@ export default function Analytics({ groupId, onBack, players = [], onOpenPlayer,
                     <span key={m.id} onClick={tap} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 999, padding: "4px 11px 4px 4px", cursor: tap ? "pointer" : "default" }}>
                       <img src={playerAvatar(full?.avatar_url, m.id)} onError={avatarFallback(m.id)} alt="" style={{ width: 22, height: 22, borderRadius: "50%", objectFit: "cover" }} />
                       <span style={{ fontSize: 11.5, fontWeight: 600 }}>{m.name}</span>
-                      <span style={{ fontSize: 9.5, color: "var(--mut)" }}>{m.days === null ? t("an_never_played") : t("an_days_short").replace("{n}", String(m.days))}</span>
+                      <span style={{ fontSize: 9.5, color: "var(--mut)" }}>{t("an_days_short").replace("{n}", String(m.days))}</span>
                     </span>
                   );
                 })}
