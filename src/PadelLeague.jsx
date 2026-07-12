@@ -285,7 +285,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
         )}
 
         {tab === "welcome" && !session && <WelcomeScreen onLogin={onLogin} onBrowseGames={() => goTab("games")} onBrowseTournaments={() => goTab("tournaments")} onOpenLanding={onOpenLanding} theme={theme} lang={lang} onThemeToggle={onThemeToggle} onLangChange={onLangChange} />}
-        {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} loading={!lbLoaded} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsNonce={openSelfStatsNonce} analyticsNonce={openAnalyticsNonce} /> : <GateScreen />)}
+        {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} loading={!lbLoaded} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} leaguesReady={leaguesReady} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsNonce={openSelfStatsNonce} analyticsNonce={openAnalyticsNonce} /> : <GateScreen />)}
         {tab === "games" && <Games key={navNonce} groupId={groupId} players={players} profileId={profileId} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} openReq={openEvent?.kind === "game" ? openEvent : null} />}
         {tab === "tournaments" && <Tournaments key={navNonce} groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} membersCanCreate={!!activeLeague?.members_can_create} openReq={openEvent?.kind === "tour" ? openEvent : null} />}
         {tab === "history" && (session ? <HistoryView key={navNonce} groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} isAdmin={isAdmin} archiveNonce={archiveNonce} bumpArchive={bumpArchive} /> : <GateScreen />)}
@@ -492,7 +492,7 @@ function PlayerRowSkeleton({ count = 5 }) {
   );
 }
 
-function Board({ groupId, players, loading = false, reload, profileId, bumpArchive, isAdmin, leagues, activeLeague, onLeagueChange, onLeagueCreated, onEditProfile, selfStatsNonce = 0, analyticsNonce = 0 }) {
+function Board({ groupId, players, loading = false, reload, profileId, bumpArchive, isAdmin, leagues, leaguesReady = true, activeLeague, onLeagueChange, onLeagueCreated, onEditProfile, selfStatsNonce = 0, analyticsNonce = 0 }) {
   const [open, setOpen] = useState(false);
   const [showStats, setShowStats] = useState(false);  // дашборд аналитики лиги
   const [query, setQuery] = useState("");
@@ -741,8 +741,9 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
 
   return (
     <div className="pl-pop">
-      {/* Без лиги — подсказка + вход в демо-стаю (создание/вступление — в переключателе в шапке). */}
-      {(!leagues || leagues.length === 0) && (
+      {/* Без лиги — подсказка + вход в демо-стаю (создание/вступление — в переключателе в шапке).
+          Только когда список лиг ДОГРУЖЕН: иначе карточка мигает при каждом логине. */}
+      {leaguesReady && (!leagues || leagues.length === 0) && (
         <div className="pl-card pl-pop" style={{ padding: 16, marginBottom: 12, textAlign: "center" }}>
           <div style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.4 }}>{t("welcome_choose_sub")}</div>
           <div style={{ fontSize: 12, color: "var(--lime)", marginTop: 10 }}>{t("league_switch_hint")}</div>
@@ -762,7 +763,9 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
         <InviteCard compact code={activeLeague.invite_code} leagueName={activeLeague.name} logoUrl={activeLeague.logo_url} style={{ marginBottom: 14 }} />
       )}
 
-      {groupId && ranked.length === 0 && (
+      {/* Онбординг «Начни свою лигу» — только когда лидерборд догружен и пуст,
+          а не в момент загрузки (заглушка мигала на старте у всех). */}
+      {groupId && !loading && ranked.length === 0 && (
         <div className="pl-card" style={{ padding: 20, marginBottom: 12 }}>
           <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}>{t("onboarding_title")}</div>
           {[
