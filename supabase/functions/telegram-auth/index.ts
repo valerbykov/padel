@@ -72,6 +72,19 @@ Deno.serve(async (req) => {
     // Освежаем метаданные (аватар/username могли поменяться).
     if (link.user?.id) await admin.auth.admin.updateUserById(link.user.id, { user_metadata: meta });
 
+    // Аватар из Telegram → в profiles.avatar_url (приложение читает его оттуда,
+    // а не из user_metadata — без этого показывалась собака-заглушка). Ставим
+    // только если своё фото ещё не задано, чтобы не перетереть загруженное.
+    // Некритично: ошибку глотаем, вход не рушим.
+    if (tg.photo_url && link.user?.id) {
+      try {
+        await admin.from("profiles")
+          .update({ avatar_url: tg.photo_url })
+          .eq("user_id", link.user.id)
+          .is("avatar_url", null);
+      } catch (_) { /* аватар — украшение */ }
+    }
+
     // @ник — сразу в контакты профиля (если пользователь не задал свой):
     // чип Telegram в статистике игрока виден лиге без визита в личный кабинет.
     if (tg.username && link.user?.id) {
