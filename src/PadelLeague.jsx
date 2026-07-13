@@ -17,6 +17,7 @@ import Fab from "./components/Fab";
 import { Trophy, Swords, History, Users, UserPlus, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, UserCheck, ShieldCheck, EyeOff, Star, User, Search, Pencil, Send, MessageCircle } from "lucide-react";
 import Tournaments, { TournamentView, TournamentCard, CopyDialog, css as trCss } from "./components/Tournaments";
 import DateTimePicker from "./components/DateTimePicker";
+import { confirmDialog, showToast } from "./components/ui-dialogs";
 import { copyTournament } from "./lib/tournamentApi";
 import { deleteTournament } from "./lib/tournamentApi";
 import CourtView from "./components/CourtView";
@@ -656,7 +657,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
     if (busy) return;
     setBusy(true);
     try { await addExistingMember(groupId, p.id); setNetPlayers((prev) => prev.filter((x) => x.id !== p.id)); setQuery(""); reload(); }
-    catch (e) { alert(t("err_add_player")); }
+    catch (e) { showToast(t("err_add_player")); }
     finally { setBusy(false); }
   };
 
@@ -666,7 +667,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
     if (!n || busy) return;
     setBusy(true);
     try { await addMember(groupId, n, {}); setQuery(""); reload(); }
-    catch (e) { alert(t("err_add_player")); }
+    catch (e) { showToast(t("err_add_player")); }
     finally { setBusy(false); }
   };
 
@@ -1038,7 +1039,7 @@ function DeletePlayerModal({ player, onConfirm, onCancel }) {
   const go = async () => {
     setBusy(true);
     try { await onConfirm(); }
-    catch (e) { alert(t("err_delete")); setBusy(false); }
+    catch (e) { showToast(t("err_delete")); setBusy(false); }
   };
 
   // Портал в body: внутри .pl-pop (анимация transform) fixed-оверлей считается
@@ -2212,7 +2213,7 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
               const row = <GameRow key={g.id} g={g} color={color} me={profileId} flush={!!del} onOpen={() => { setSelId(g.id); setMode("view"); }}
                 onTake={take && canTakeRow(g) ? () => takeFirstFree(g) : null} />;
               return del
-                ? <SwipeToDelete key={g.id} onDelete={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(g.id).catch(() => {}); loadGames(); bumpArchive?.(); }}>{row}</SwipeToDelete>
+                ? <SwipeToDelete key={g.id} onDelete={async () => { if (!(await confirmDialog({ title: t("delete_game_confirm") }))) return; await deleteGame(g.id).catch(() => {}); loadGames(); bumpArchive?.(); }}>{row}</SwipeToDelete>
                 : row;
             })}
           </div>
@@ -2414,7 +2415,7 @@ function CreateGame({ groupId, players, profileId, back, done }) {
     let startsAtIso = null;
     try { if (date) startsAtIso = new Date(date).toISOString(); } catch (e) { startsAtIso = null; }
     try { const g = await createGame(groupId, { title: title.trim() || null, startsAt: startsAtIso, place, slots, hostId: profileId || null }); notifyGameCreated(g?.id); creatingRef.current = false; done(g); }
-    catch (e) { alert(t("err_create_game")); setBusy(false); creatingRef.current = false; }
+    catch (e) { showToast(t("err_create_game")); setBusy(false); creatingRef.current = false; }
   };
 
   const stepBadge = (txt) => (
@@ -2571,7 +2572,7 @@ function GameCourtBlock({ game, index, total, groupId, reloadSession, reloadLead
   // Переименование корта — только в лиге (court_name возвращается в выборке лиги).
   const renameCourt = groupId ? (name) => updateGameCourtName(game.id, name).then(reloadSession).catch(() => {}) : undefined;
   const del = async () => {
-    if (!confirm(t("delete_game_confirm"))) return;
+    if (!(await confirmDialog({ title: t("delete_game_confirm") }))) return;
     await deleteGame(game.id).catch(() => {});
     bumpArchive && bumpArchive();
     await reloadSession();
@@ -2711,7 +2712,7 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
       bumpArchive && bumpArchive();
       reloadGames && reloadGames();
       await loadSession(); // новая игра появляется ниже на той же странице (ввод счёта inline)
-    } catch (e) { alert(t("err_create_game")); setMixBusy(false); mixRef.current = false; }
+    } catch (e) { showToast(t("err_create_game")); setMixBusy(false); mixRef.current = false; }
   };
 
   // Карточка-картинка результата: canvas → PNG → системный шеринг.
@@ -2812,7 +2813,7 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
     <div className="pl-pop">
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         {back && <BackButton onClick={back} label={t("to_list")} />}
-        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(game.id); bumpArchive && bumpArchive(); reloadGames && reloadGames(); back && back(); }} title={t("delete_btn")}><Trash2 size={14} /></button>
+        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!(await confirmDialog({ title: t("delete_game_confirm") }))) return; await deleteGame(game.id); bumpArchive && bumpArchive(); reloadGames && reloadGames(); back && back(); }} title={t("delete_btn")}><Trash2 size={14} /></button>
       </div>
       <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -2979,7 +2980,7 @@ function GameCopyDialog({ src, groupId, profileId = null, onClose, onCopied }) {
     const layout = [["A", 1], ["A", 2], ["B", 1], ["B", 2]];
     const slots = layout.map(([tm, pos]) => { const sl = (src.slots || []).find((x) => x.team === tm && x.position === pos); return sl?.profile_id ? { profileId: sl.profile_id } : (sl?.guest_name ? { guestName: sl.guest_name } : null); });
     try { const gm = await createGame(groupId, { title: name.trim() || null, startsAt: startsAtIso, place, slots, hostId: profileId || null }); onCopied(gm?.id); }
-    catch (e) { alert(t("err_create_game")); setBusy(false); }
+    catch (e) { showToast(t("err_create_game")); setBusy(false); }
   };
   const lab = { fontSize: 10.5, fontWeight: 800, color: "var(--mut)", textTransform: "uppercase", letterSpacing: .7, margin: "16px 2px 7px" };
   const roster = [["A", 1], ["A", 2], ["B", 1], ["B", 2]]
@@ -3145,7 +3146,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
       const mine = !profileId || mineTour(tour);
       const card = <TournamentCard trn={tour} color="var(--yellow)" me={profileId} placeFor={focusId} showMeBadge={!pFilter || pFilter === profileId} myDelta={trDelta(tour)} flush={isGroupMember} onClick={() => setSel({ type: "tour", data: tour })} />;
       const inner = isGroupMember
-        ? <SwipeToDelete onCopy={groupId ? () => setCopyTour(tour) : null} onDelete={async () => { if (!confirm(t("trn_delete_confirm"))) return; await deleteTournament(tour.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+        ? <SwipeToDelete onCopy={groupId ? () => setCopyTour(tour) : null} onDelete={async () => { if (!(await confirmDialog({ title: t("trn_delete_confirm") }))) return; await deleteTournament(tour.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
         : card;
       return <div key={ev.key} style={mine || pFilter ? undefined : { opacity: 0.55 }}>{inner}</div>;
     }
@@ -3159,7 +3160,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
       })();
       const card = <MixGroupCard games={ordered} color="#7d9488" me={profileId} showMeBadge={!pFilter || pFilter === profileId} delta={mixDelta} onOpenGame={(g) => setSel({ type: "game", data: g })} />;
       const inner = isGroupMember
-        ? <SwipeToDelete onDelete={async () => { if (!confirm(t("mix_delete_confirm").replace("{n}", ordered.length))) return; for (const gg of ordered) await deleteGame(gg.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+        ? <SwipeToDelete onDelete={async () => { if (!(await confirmDialog({ title: t("mix_delete_confirm").replace("{n}", ordered.length) }))) return; for (const gg of ordered) await deleteGame(gg.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
         : card;
       return <div key={ev.key} style={mine || pFilter ? undefined : { opacity: 0.55 }}>{inner}</div>;
     }
@@ -3167,7 +3168,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
     const mine = !profileId || meInGame(g, profileId);
     const card = <GameRow g={g} color="#7d9488" me={profileId} showMeBadge={!pFilter || pFilter === profileId} delta={gDelta(g)} flush={isGroupMember} onOpen={() => setSel({ type: "game", data: g })} />;
     const inner = isGroupMember
-      ? <SwipeToDelete onCopy={groupId ? () => setCopyGame(g) : null} onDelete={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(g.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+      ? <SwipeToDelete onCopy={groupId ? () => setCopyGame(g) : null} onDelete={async () => { if (!(await confirmDialog({ title: t("delete_game_confirm") }))) return; await deleteGame(g.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
       : card;
     return <div key={ev.key} style={mine || pFilter ? undefined : { opacity: 0.55 }}>{inner}</div>;
   };

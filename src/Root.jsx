@@ -2,6 +2,7 @@
 // Отдельный «мобильный лендинг» убран — гость сразу попадает в приложение
 // (вкладка «Начало» → WelcomeScreen). Полноэкранный лендинг — /landing.html.
 import React, { lazy, Suspense } from "react";
+import { DialogHost } from "./components/ui-dialogs";
 
 const App = lazy(() => import("./App"));
 
@@ -17,8 +18,11 @@ function Splash() {
 
 export default function Root() {
   return (
-    <Suspense fallback={<Splash />}>
-      <App />
-    </Suspense>
+    <>
+      <Suspense fallback={<Splash />}>
+        <App />
+      </Suspense>
+      <DialogHost />
+    </>
   );
 }

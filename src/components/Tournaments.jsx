@@ -54,6 +54,7 @@ import EmptyState from "./EmptyState";
 import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Share2, Trash2, Plus, Check, Calendar, MapPin } from "lucide-react";
 import { t as tr , dateLocale} from "../lib/i18n";
 import DateTimePicker from "./DateTimePicker";
+import { confirmDialog, showToast } from "./ui-dialogs";
 import BackButton from "./BackButton";
 const nowLocalDT = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
 
@@ -358,7 +359,7 @@ function List({ groupId, profileId, players = [], create, open, session, onLogin
                 onTake={trn.status === "open" && canTake(trn) ? () => takeSeat(trn) : null}
                 takeBusy={takingId === trn.id} />;
               return canDel
-                ? <div key={trn.id} style={{ marginBottom: 8 }}><SwipeRow onDelete={async () => { if (!confirm(tr("trn_delete_confirm"))) return; await deleteTournament(trn.id).catch(() => {}); reload(); }}>{card}</SwipeRow></div>
+                ? <div key={trn.id} style={{ marginBottom: 8 }}><SwipeRow onDelete={async () => { if (!(await confirmDialog({ title: tr("trn_delete_confirm") }))) return; await deleteTournament(trn.id).catch(() => {}); reload(); }}>{card}</SwipeRow></div>
                 : <div key={trn.id}>{card}</div>;
             })}
             {hidden > 0 && (
@@ -402,7 +403,7 @@ export function CopyDialog({ src, groupId, profileId, onClose, onCopied }) {
     let startsAtIso = null;
     try { const d = day ? `${day}T${time || "00:00"}` : ""; if (d) startsAtIso = new Date(d).toISOString(); } catch (e) { startsAtIso = null; }
     try { const t = await copyTournament(src.id, groupId, { name, withPlayers, createdBy: profileId, startsAt: startsAtIso, place }); onCopied(t.id); }
-    catch (e) { alert(tr("err_copy_tour")); setBusy(false); }
+    catch (e) { showToast(tr("err_copy_tour")); setBusy(false); }
   };
   // Портал в body: fixed-оверлей внутри анимируемого предка «уезжает» от вьюпорта.
   return createPortal(
@@ -566,7 +567,7 @@ function Create({ groupId, profileId, back, open }) {
       try { if (date) startsAtIso = new Date(date).toISOString(); } catch (e) { startsAtIso = null; }
       const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format, createdBy: profileId, startsAt: startsAtIso, place, kotHChampionRule: isKoth ? kotHChampionRule : undefined, openScoring });
       open(trn.id);
-    } catch (e) { alert(tr("err_create_tour")); setBusy(false); }
+    } catch (e) { showToast(tr("err_create_tour")); setBusy(false); }
   };
 
   const chip = (active) => ({
@@ -1011,7 +1012,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     if (roundRef.current) return; roundRef.current = true;
     setAddingRound(true);
     try { await generateMexicanoRound(trnData.id, trnData.players, trnData.matches); await load(); setCur(N + 1); }
-    catch (e) { alert(e.message || tr("err_create_round")); }
+    catch (e) { showToast(e.message || tr("err_create_round")); }
     finally { setAddingRound(false); roundRef.current = false; }
   };
 
@@ -1019,7 +1020,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     if (roundRef.current) return; roundRef.current = true;
     setAddingRound(true);
     try { await generateKotHRound(trnData.id, trnData.matches); await load(); setCur(N + 1); }
-    catch (e) { alert(e.message || tr("err_create_match")); }
+    catch (e) { showToast(e.message || tr("err_create_match")); }
     finally { setAddingRound(false); roundRef.current = false; }
   };
 
@@ -1027,7 +1028,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     if (roundRef.current) return; roundRef.current = true;
     setAddingRound(true);
     try { await generateKotHLadderRound(trnData.id, trnData.matches); await load(); setCur(N + 1); }
-    catch (e) { alert(e.message || tr("err_create_round")); }
+    catch (e) { showToast(e.message || tr("err_create_round")); }
     finally { setAddingRound(false); roundRef.current = false; }
   };
 
@@ -1042,10 +1043,10 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     // Старт с неполным набором разрешён (кратность соблюдена), но не молча:
     // «собирали 8, стартуем с 4» должно быть осознанным решением организатора.
     if (trnData.players.length < trnData.target_size &&
-        !confirm(tr("trn_start_short").replace("{n}", String(trnData.players.length)).replace("{t}", String(trnData.target_size)))) return;
+        !(await confirmDialog({ title: tr("trn_start_short").replace("{n}", String(trnData.players.length)).replace("{t}", String(trnData.target_size)) }))) return;
     startingRef.current = true;
     try { await startTournament(trnData.id, trnData.players, trnData.format); await load(); }
-    catch (e) { alert(e.message || tr("err_start_tour")); }
+    catch (e) { showToast(e.message || tr("err_start_tour")); }
     finally { startingRef.current = false; }
   };
   const saveScore = async (matchId, a, b) => {
@@ -1054,7 +1055,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   };
   const genPin = async () => {
     const pin = String(Math.floor(1000 + Math.random() * 9000));
-    try { await setScorePin(trnData.id, pin); setPinShown(pin); } catch (e) { alert(e.message || tr("err_generic")); }
+    try { await setScorePin(trnData.id, pin); setPinShown(pin); } catch (e) { showToast(e.message || tr("err_generic")); }
   };
   const unlockPin = async () => {
     const v = pinInput.trim();
@@ -1096,8 +1097,8 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
             {isGroupMember && (
               <button className="tr-ghost" style={{ padding: 8, color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)" }} title={tr("delete_btn")}
                 onClick={async () => {
-                  if (!confirm(tr("trn_delete_confirm"))) return;
-                  try { await deleteTournament(id); onArchiveChange?.(); back?.(); } catch (e) { alert(tr("err_delete")); }
+                  if (!(await confirmDialog({ title: tr("trn_delete_confirm") }))) return;
+                  try { await deleteTournament(id); onArchiveChange?.(); back?.(); } catch (e) { showToast(tr("err_delete")); }
                 }}>
                 <Trash2 size={15} />
               </button>
