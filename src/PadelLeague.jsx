@@ -16,6 +16,8 @@ import StandingsTable from "./components/StandingsTable";
 import Fab from "./components/Fab";
 import { Trophy, Swords, History, Users, UserPlus, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, UserCheck, ShieldCheck, EyeOff, Star, User, Search, Pencil, Send, MessageCircle } from "lucide-react";
 import Tournaments, { TournamentView, TournamentCard, CopyDialog, css as trCss } from "./components/Tournaments";
+import DateTimePicker from "./components/DateTimePicker";
+import { confirmDialog, showToast } from "./components/ui-dialogs";
 import { copyTournament } from "./lib/tournamentApi";
 import { deleteTournament } from "./lib/tournamentApi";
 import CourtView from "./components/CourtView";
@@ -24,7 +26,7 @@ import Avatar from "./components/Avatar";
 import LeagueLogo from "./components/LeagueLogo";
 import InviteCard from "./components/InviteCard";
 import Analytics from "./components/Analytics";
-import { dogAvatar, playerAvatar, avatarFallback, DOG_COUNT } from "./lib/avatar";
+import { dogAvatar, playerAvatar, avatarFallback, DOG_COUNT , avatarBg, avatarOnLoad} from "./lib/avatar";
 
 // Текущая дата-время в формате datetime-local (YYYY-MM-DDTHH:MM) с учётом таймзоны.
 const nowLocalDT = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
@@ -196,11 +198,14 @@ function ContactLinks({ contacts = {} }) {
 
 /* --------------------------------- root ----------------------------------- */
 
-export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin, onOpenLanding, onEditProfile, openSelfStatsNonce = 0, openAnalyticsNonce = 0, openEvent = null }) {
+export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin, onOpenLanding, onEditProfile, openSelfStatsNonce = 0, openAnalyticsNonce = 0, openEvent = null, profileNonce = 0 }) {
   const [tab, setTab] = useState(session ? "board" : "welcome");
   // Повторный тап по активной вкладке должен возвращать к её корню (закрыть
   // открытую детализацию). Меняем navNonce → key вкладки → ремоунт → сброс.
   const [navNonce, setNavNonce] = useState(0);
+  // Карточка игрока, открытая из экрана турнира (там нет своего оверлея PlayerDetail —
+  // TournamentView в Tournaments.jsx, откуда PadelLeague недоступен из-за цикла).
+  const [tourPlayer, setTourPlayer] = useState(null);
   const goTab = useCallback((x) => { setNavNonce((n) => (x === tab ? n + 1 : n)); setTab(x); }, [tab]);
   // Смена активной лиги (переключение/удаление в свитчере) возвращает на «Друзья»
   // и ремоунтит вкладки (сброс открытых экранов). Тап по пушу из другой лиги
@@ -212,6 +217,9 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
     if (session) { setTab("board"); setNavNonce((n) => n + 1); }
   }, [groupId, session]);
   const [players, setPlayers] = useState([]);
+  // Карточка игрока, открытая из экрана турнира (объявляем ПОСЛЕ players —
+  // useCallback читает players в зависимостях, иначе TDZ и белый экран).
+  const openTourPlayer = useCallback((id) => { const f = (players || []).find((p) => p.id === id); if (f) setTourPlayer(f); }, [players]);
   const [lbLoaded, setLbLoaded] = useState(false);
   const [archiveNonce, setArchiveNonce] = useState(0);
   const bumpArchive = useCallback(() => setArchiveNonce((n) => n + 1), []);
@@ -235,7 +243,9 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
     finally { if (seq === lbSeq.current) setLbLoaded(true); }
   }, [groupId, leaguesReady, leagues]);
 
-  useEffect(() => { loadLeaderboard(); }, [loadLeaderboard]);
+  // profileNonce меняется при сохранении профиля (смена аватара/имени) — перечитываем
+  // лидерборд, чтобы новое фото попало в карточки игроков и таблицу.
+  useEffect(() => { loadLeaderboard(); }, [loadLeaderboard, profileNonce]);
   // при смене лиги — снова показать скелетон, пока грузятся её друзья
   useEffect(() => { setLbLoaded(false); }, [groupId]);
 
@@ -287,8 +297,8 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
         {tab === "welcome" && !session && <WelcomeScreen onLogin={onLogin} onBrowseGames={() => goTab("games")} onBrowseTournaments={() => goTab("tournaments")} onOpenLanding={onOpenLanding} theme={theme} lang={lang} onThemeToggle={onThemeToggle} onLangChange={onLangChange} />}
         {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} loading={!lbLoaded} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} leaguesReady={leaguesReady} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsNonce={openSelfStatsNonce} analyticsNonce={openAnalyticsNonce} /> : <GateScreen />)}
         {tab === "games" && <Games key={navNonce} groupId={groupId} players={players} profileId={profileId} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} openReq={openEvent?.kind === "game" ? openEvent : null} />}
-        {tab === "tournaments" && <Tournaments key={navNonce} groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} membersCanCreate={!!activeLeague?.members_can_create} openReq={openEvent?.kind === "tour" ? openEvent : null} />}
-        {tab === "history" && (session ? <HistoryView key={navNonce} groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} isAdmin={isAdmin} archiveNonce={archiveNonce} bumpArchive={bumpArchive} /> : <GateScreen />)}
+        {tab === "tournaments" && <Tournaments key={navNonce} groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} membersCanCreate={!!activeLeague?.members_can_create} openReq={openEvent?.kind === "tour" ? openEvent : null} onOpenPlayer={openTourPlayer} />}
+        {tab === "history" && (session ? <HistoryView key={navNonce} groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} isAdmin={isAdmin} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onOpenPlayer={openTourPlayer} /> : <GateScreen />)}
       </div>
 
       <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--topbar-bg)", borderTop: "1px solid var(--line)", backdropFilter: "blur(8px)", paddingBottom: "env(safe-area-inset-bottom)" }}>
@@ -300,6 +310,12 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
           {session && <button className={`pl-tab ${tab === "history" ? "on" : ""}`} onClick={() => goTab("history")}><History size={20} strokeWidth={tab === "history" ? 2.6 : 2} />{t("tab_history")}</button>}
         </div>
       </nav>
+      {tourPlayer && createPortal(
+        <div style={{ position: "fixed", inset: 0, zIndex: 250, background: "var(--bg)", overflowY: "auto" }}>
+          <div style={{ maxWidth: 460, margin: "0 auto", padding: "14px 16px calc(20px + env(safe-area-inset-bottom))" }}>
+            <PlayerDetail key={tourPlayer.id} groupId={groupId} player={tourPlayer} players={players} close={() => setTourPlayer(null)} onOpenPlayer={(id) => { const f = (players || []).find((p) => p.id === id); setTourPlayer(f || null); }} />
+          </div>
+        </div>, document.body)}
     </div>
   );
 }
@@ -655,7 +671,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
     if (busy) return;
     setBusy(true);
     try { await addExistingMember(groupId, p.id); setNetPlayers((prev) => prev.filter((x) => x.id !== p.id)); setQuery(""); reload(); }
-    catch (e) { alert(t("err_add_player")); }
+    catch (e) { showToast(t("err_add_player")); }
     finally { setBusy(false); }
   };
 
@@ -665,7 +681,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
     if (!n || busy) return;
     setBusy(true);
     try { await addMember(groupId, n, {}); setQuery(""); reload(); }
-    catch (e) { alert(t("err_add_player")); }
+    catch (e) { showToast(t("err_add_player")); }
     finally { setBusy(false); }
   };
 
@@ -838,8 +854,8 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
                     : isFirst ? "1px solid color-mix(in srgb, var(--yellow) 35%, transparent)" : undefined,
                   background: p.id === profileId ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined }}>
                 {isFirst && <div style={{ fontSize: 15, lineHeight: 1, marginBottom: 4 }}>👑</div>}
-                <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt=""
-                  style={{ width: isFirst ? 58 : 48, height: isFirst ? 58 : 48, borderRadius: "50%", objectFit: "cover", border: `${isFirst ? 3 : 2.5}px solid ${ring}`, margin: "0 auto", display: "block" }} />
+                <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} onLoad={avatarOnLoad} alt=""
+                  style={{ ...avatarBg(p.id), width: isFirst ? 58 : 48, height: isFirst ? 58 : 48, borderRadius: "50%", objectFit: "cover", border: `${isFirst ? 3 : 2.5}px solid ${ring}`, margin: "0 auto", display: "block" }} />
                 {/* Статус тем же языком, что в строках: ⭐/🛡/✓/гость. Имя — до двух строк. */}
                 <div style={{ fontSize: isFirst ? 12.5 : 11.5, fontWeight: isFirst ? 800 : 700, marginTop: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, minWidth: 0 }}>
                   <span style={{ overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: 1.25, wordBreak: "break-word" }}>{p.name}</span>
@@ -887,7 +903,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
             organizerActive={p.role === "admin"} onTap={() => setSelected(p)}>
           <div className="pl-card" style={{ display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", cursor: "pointer", border: p.id === profileId ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined, background: p.id === profileId ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined }}>
             <div className="pl-display" style={{ width: 22, fontSize: 16, color: ["var(--yellow)", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)", textAlign: "center", flexShrink: 0 }}>{i + 1}</div>
-            <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
+            <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(p.id), width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 600, fontSize: 15, display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
@@ -965,9 +981,9 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
             <SwipeRow key={p.id} onRemove={() => hidePlayer(p)} onTap={() => setSelected(p)}
               leftLabel={t("hide_btn")} leftIcon={<EyeOff size={16} />}>
             <div className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", cursor: "pointer" }}>
-              <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
+              <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(p.id), width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
+                <div style={{ fontWeight: 600, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
                 <div style={{ fontSize: 12, color: "var(--mut)", display: "inline-flex", alignItems: "center", gap: 4 }}><Swords size={13} /> {p.matches}</div>
               </div>
               <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />
@@ -995,7 +1011,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
                 {netPlayers.filter((p) => (p.name || "").toLowerCase().includes(query.trim().toLowerCase())).slice(0, 6).map((p) => (
                   <button key={p.id} disabled={busy} onClick={() => addExisting(p)}
                     style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, cursor: "pointer", color: "var(--ink)", fontFamily: "'Outfit'", textAlign: "left" }}>
-                    <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                    <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(p.id), width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                     <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
                     {p.registered && <span style={{ fontSize: 10, color: "var(--lime)", flexShrink: 0 }}>{t("account_badge")}</span>}
                   </button>
@@ -1016,9 +1032,9 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
           <div className="pl-display" style={{ fontSize: 12, color: "var(--mut)", margin: "14px 2px 8px", letterSpacing: 1 }}>{t("played_together_label")}</div>
           {extraPlayers.map((p) => (
             <div key={p.id} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", marginBottom: 8, cursor: "pointer" }} onClick={() => setSelected(p)}>
-              <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
+              <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(p.id), width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
+                <div style={{ fontWeight: 600, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
                 <div style={{ fontSize: 12, color: "var(--mut)" }}>{t("not_in_league")}</div>
               </div>
               <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />
@@ -1037,7 +1053,7 @@ function DeletePlayerModal({ player, onConfirm, onCancel }) {
   const go = async () => {
     setBusy(true);
     try { await onConfirm(); }
-    catch (e) { alert(t("err_delete")); setBusy(false); }
+    catch (e) { showToast(t("err_delete")); setBusy(false); }
   };
 
   // Портал в body: внутри .pl-pop (анимация transform) fixed-оверлей считается
@@ -1132,9 +1148,9 @@ function PartnerCard({ label, bp, name, avatarUrl, help, onOpen }) {
         <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "var(--mut)", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 10, padding: "8px 10px", marginBottom: 10 }}>{help}</div>
       )}
       <div onClick={onOpen} style={{ display: "flex", alignItems: "center", gap: 10, cursor: onOpen ? "pointer" : "default" }}>
-        <img src={avatarUrl} onError={avatarFallback(bp?.id || name)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
+        <img src={avatarUrl} onError={avatarFallback(bp?.id || name)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(bp?.id || name), width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: 14 }}>{name || "?"}</div>
+          <div style={{ fontWeight: 600, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{name || "?"}</div>
           <div style={{ fontSize: 12, color: "var(--mut)" }}>{bp.w} {t("wins_short")} · {bp.l} {t("losses_short")} · {bp.total} {t("matches")}</div>
         </div>
         <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -1430,7 +1446,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
         </div>
         <div style={{ flex: 2, height: 6, borderRadius: 3, overflow: "hidden", background: "var(--surface2)", display: "flex" }}>
           {w > 0 && <div style={{ flex: w, background: "#3ddc84" }} />}
-          {d > 0 && <div style={{ flex: d, background: "#7d9488" }} />}
+          {d > 0 && <div style={{ flex: d, background: "var(--mut)" }} />}
           {l > 0 && <div style={{ flex: l, background: "var(--coral)" }} />}
         </div>
       </div>
@@ -1582,8 +1598,8 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
             const self = !!onEditProfile && !!myId && myId === player.id;
             const av = (
               <span style={{ position: "relative", display: "inline-block", flexShrink: 0 }}>
-                <img src={playerAvatar(player.avatar_url, player.id)} onError={avatarFallback(player.id)} alt=""
-                  style={{ width: 54, height: 54, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--lime)", display: "block" }} />
+                <img src={playerAvatar(player.avatar_url, player.id)} onError={avatarFallback(player.id)} onLoad={avatarOnLoad} alt=""
+                  style={{ ...avatarBg(player.id), width: 54, height: 54, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--lime)", display: "block" }} />
                 {self && (
                   <span style={{ position: "absolute", right: -3, bottom: -3, width: 19, height: 19, borderRadius: "50%", background: "var(--lime)", color: "var(--lime-fg)", border: "2px solid var(--surface)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <Pencil size={9} strokeWidth={2.5} />
@@ -1763,7 +1779,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
             {/* Заголовок в шапке плитки — как у «лучшего напарника», имя не обрезается */}
             <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{t("nemesis_label")}</div>
             <div onClick={p ? () => onOpenPlayer(p) : undefined} style={{ display: "flex", alignItems: "center", gap: 10, cursor: p ? "pointer" : "default" }}>
-              <img src={playerAvatar(p?.avatar_url, nm.id || nm.name)} onError={avatarFallback(nm.id || nm.name)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
+              <img src={playerAvatar(p?.avatar_url, nm.id || nm.name)} onError={avatarFallback(nm.id || nm.name)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(nm.id || nm.name), width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontWeight: 600, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p?.name || nm.name || "?"}</div>
                 <div style={{ fontSize: 12, color: "var(--mut)" }}>{t("nemesis_against").replace("{w}", String(nm.w)).replace("{n}", String(total))}</div>
@@ -2211,7 +2227,7 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
               const row = <GameRow key={g.id} g={g} color={color} me={profileId} flush={!!del} onOpen={() => { setSelId(g.id); setMode("view"); }}
                 onTake={take && canTakeRow(g) ? () => takeFirstFree(g) : null} />;
               return del
-                ? <SwipeToDelete key={g.id} onDelete={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(g.id).catch(() => {}); loadGames(); bumpArchive?.(); }}>{row}</SwipeToDelete>
+                ? <SwipeToDelete key={g.id} onDelete={async () => { if (!(await confirmDialog({ title: t("delete_game_confirm"), message: t("delete_game_msg"), confirmLabel: t("delete_btn") }))) return; await deleteGame(g.id).catch(() => {}); loadGames(); bumpArchive?.(); }}>{row}</SwipeToDelete>
                 : row;
             })}
           </div>
@@ -2413,7 +2429,7 @@ function CreateGame({ groupId, players, profileId, back, done }) {
     let startsAtIso = null;
     try { if (date) startsAtIso = new Date(date).toISOString(); } catch (e) { startsAtIso = null; }
     try { const g = await createGame(groupId, { title: title.trim() || null, startsAt: startsAtIso, place, slots, hostId: profileId || null }); notifyGameCreated(g?.id); creatingRef.current = false; done(g); }
-    catch (e) { alert(t("err_create_game")); setBusy(false); creatingRef.current = false; }
+    catch (e) { showToast(t("err_create_game")); setBusy(false); creatingRef.current = false; }
   };
 
   const stepBadge = (txt) => (
@@ -2427,13 +2443,7 @@ function CreateGame({ groupId, players, profileId, back, done }) {
       <div className="pl-pop">
         <BackButton onClick={back} style={{ marginBottom: 12 }} />
         <div className="pl-card" style={{ padding: 14, marginBottom: 12, display: "flex", flexDirection: "column", gap: 12 }}>
-          <div>
-            <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 6 }}>{t("game_when_label")}</div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <input type="date" className="pl-input" style={{ padding: "10px 12px", flex: 3 }} value={day} onChange={(e) => setDay(e.target.value)} />
-              <input type="time" className="pl-input" style={{ padding: "10px 12px", flex: 2 }} value={time} onChange={(e) => setTime(e.target.value)} />
-            </div>
-          </div>
+          <DateTimePicker day={day} time={time} onDay={setDay} onTime={setTime} />
           <div>
             <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 6 }}>{t("game_where_label")}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -2474,13 +2484,13 @@ function PickPlayerPanel({ slotLabel, players = [], takenIds = [], meId = null, 
           {me && (
             <button className="pl-ghost" onClick={() => onPick({ profileId: me.id, name: me.name })}
               style={{ flexShrink: 0, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 7, padding: "5px 12px 5px 5px", borderRadius: 999, fontSize: 12.5, fontWeight: 700, borderColor: "color-mix(in srgb, var(--lime) 45%, transparent)", color: "var(--lime)" }}>
-              <img src={playerAvatar(me.avatar_url, me.id)} onError={avatarFallback(me.id)} alt="" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} /> {t("pick_me")}
+              <img src={playerAvatar(me.avatar_url, me.id)} onError={avatarFallback(me.id)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(me.id), width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} /> {t("pick_me")}
             </button>
           )}
           {free.slice(0, 24).map((p) => (
             <button key={p.id} className="pl-ghost" onClick={() => onPick({ profileId: p.id, name: p.name })}
               style={{ flexShrink: 0, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 7, padding: "5px 12px 5px 5px", borderRadius: 999, fontSize: 12.5 }}>
-              <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} /> {p.name}
+              <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(p.id), width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} /> {p.name}
             </button>
           ))}
         </div>
@@ -2490,7 +2500,7 @@ function PickPlayerPanel({ slotLabel, players = [], takenIds = [], meId = null, 
         <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
           {matches.map((p) => (
             <button key={p.id} className="pl-ghost" style={{ padding: "9px 10px", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }} onClick={() => onPick({ profileId: p.id, name: p.name })}>
-              <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} /> {p.name}
+              <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(p.id), width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} /> {p.name}
             </button>
           ))}
           <button className="pl-btn" style={{ padding: "9px 10px", textAlign: "left" }} onClick={() => onPick({ guestName: q.trim() })}>{t("add_guest_prefix")}{q.trim()}</button>
@@ -2552,11 +2562,14 @@ function RematchMix({ players, onCreate, onCancel, busy }) {
         <button className="pl-ghost" style={{ padding: "10px 14px" }} onClick={onCancel}>{t("cancel")}</button>
         <button className="pl-btn" style={{ flex: 1, padding: 10 }} disabled={busy} onClick={() => onCreate(arr)}>{busy ? t("creating_game") : t("mix_create")}</button>
       </div>
-      {drag && (
+      {drag && createPortal(
+        // Портал в body: иначе position:fixed считается от трансформированного
+        // предка (анимация карточки) и призрак улетает в угол.
         <div style={{ position: "fixed", left: drag.x, top: drag.y, transform: "translate(-50%,-50%)", pointerEvents: "none", zIndex: 300, padding: "8px 10px", borderRadius: 12, background: "var(--surface)", border: "1.5px solid var(--lime)", display: "flex", alignItems: "center", gap: 8, boxShadow: "0 8px 24px rgba(0,0,0,.4)" }}>
           <Avatar url={arr[drag.idx].avatar_url} id={arr[drag.idx].profile_id || arr[drag.idx].guest_name} name={arr[drag.idx].name} size={28} />
           <span style={{ fontSize: 13, fontWeight: 600 }}>{arr[drag.idx].name}</span>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -2576,7 +2589,7 @@ function GameCourtBlock({ game, index, total, groupId, reloadSession, reloadLead
   // Переименование корта — только в лиге (court_name возвращается в выборке лиги).
   const renameCourt = groupId ? (name) => updateGameCourtName(game.id, name).then(reloadSession).catch(() => {}) : undefined;
   const del = async () => {
-    if (!confirm(t("delete_game_confirm"))) return;
+    if (!(await confirmDialog({ title: t("delete_game_confirm"), message: t("delete_game_msg"), confirmLabel: t("delete_btn") }))) return;
     await deleteGame(game.id).catch(() => {});
     bumpArchive && bumpArchive();
     await reloadSession();
@@ -2584,9 +2597,9 @@ function GameCourtBlock({ game, index, total, groupId, reloadSession, reloadLead
   return (
     <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <span className="pl-display" style={{ fontSize: 15 }}>{total > 1 ? `${t("mix_game_label")} ${index + 1}` : (game.title || "Padel")}</span>
-        {game.starts_at && <span style={{ fontSize: 12, color: "var(--mut)", display: "inline-flex", alignItems: "center", gap: 4 }}><Calendar size={12} />{fmtDate(game.starts_at)}</span>}
-        <button className="pl-ghost" style={{ marginLeft: "auto", padding: "5px 8px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)" }} onClick={del} title={t("delete_btn")}><Trash2 size={13} /></button>
+        <span className="pl-display" style={{ fontSize: 15, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{total > 1 ? `${t("mix_game_label")} ${index + 1}` : (game.title || "Padel")}</span>
+        {game.starts_at && <span style={{ fontSize: 12, color: "var(--mut)", display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0 }}><Calendar size={12} />{fmtDate(game.starts_at)}</span>}
+        <button className="pl-ghost" style={{ marginLeft: "auto", padding: "5px 8px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", flexShrink: 0 }} onClick={del} title={t("delete_btn")}><Trash2 size={13} /></button>
       </div>
       {played ? (
         <CourtView courtNumber={index + 1} mode="sets" courtName={game.court_name} onRenameCourt={renameCourt}
@@ -2698,7 +2711,7 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
     const url = linkFor(game.invite_code);
     const text = `${t("game_share_text")}${game.title ? ` «${game.title}»` : ""}! ${t("game_share_join")}: ${url} (${t("code_label")} ${game.invite_code})`;
     try { if (navigator.share) { await navigator.share({ title: "PadelPack", text, url }); return; } } catch (e) {}
-    try { await navigator.clipboard.writeText(text); setToast(t("copied")); setTimeout(() => setToast(""), 1600); } catch (e) { setToast("Скопируй вручную"); }
+    try { await navigator.clipboard.writeText(text); setToast(t("copied")); setTimeout(() => setToast(""), 1600); } catch (e) { setToast(t("copy_manual")); }
   };
 
   // «Сыграть ещё»: создаём новую игру с теми же игроками в выбранной расстановке.
@@ -2716,7 +2729,7 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
       bumpArchive && bumpArchive();
       reloadGames && reloadGames();
       await loadSession(); // новая игра появляется ниже на той же странице (ввод счёта inline)
-    } catch (e) { alert(t("err_create_game")); setMixBusy(false); mixRef.current = false; }
+    } catch (e) { showToast(t("err_create_game")); setMixBusy(false); mixRef.current = false; }
   };
 
   // Карточка-картинка результата: canvas → PNG → системный шеринг.
@@ -2817,18 +2830,18 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
     <div className="pl-pop">
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         {back && <BackButton onClick={back} label={t("to_list")} />}
-        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(game.id); bumpArchive && bumpArchive(); reloadGames && reloadGames(); back && back(); }} title={t("delete_btn")}><Trash2 size={14} /></button>
+        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!(await confirmDialog({ title: t("delete_game_confirm"), message: t("delete_game_msg"), confirmLabel: t("delete_btn") }))) return; await deleteGame(game.id); bumpArchive && bumpArchive(); reloadGames && reloadGames(); back && back(); }} title={t("delete_btn")}><Trash2 size={14} /></button>
       </div>
       <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+        <div style={{ minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
             {game.status === "live" && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 999, background: "color-mix(in srgb, var(--coral) 15%, transparent)", border: "1px solid color-mix(in srgb, var(--coral) 40%, transparent)", color: "var(--coral)", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--coral)" }} /> LIVE
               </span>
             )}
-            <div className="pl-display" style={{ fontSize: 18 }}>{game.title || "PadelPack"}</div>
+            <div className="pl-display" style={{ fontSize: 18, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{game.title || "PadelPack"}</div>
           </div>
           {game.status === "live" && game.started_at && (
             <div style={{ fontSize: 12, color: "var(--coral)", fontWeight: 700, marginTop: 2 }}>{t("game_live_min").replace("{n}", String(liveMin))}</div>
@@ -2845,7 +2858,7 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
             </div>
           )}
         </div>
-        <button className="pl-btn" style={{ padding: "8px 12px", display: "flex", gap: 6, alignItems: "center" }} onClick={share}><Share2 size={15} /> {toast || t("share_btn")}</button>
+        <button className="pl-btn" style={{ padding: "8px 12px", display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }} onClick={share}><Share2 size={15} /> {toast || t("share_btn")}</button>
       </div>
 
       <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
@@ -2984,21 +2997,42 @@ function GameCopyDialog({ src, groupId, profileId = null, onClose, onCopied }) {
     const layout = [["A", 1], ["A", 2], ["B", 1], ["B", 2]];
     const slots = layout.map(([tm, pos]) => { const sl = (src.slots || []).find((x) => x.team === tm && x.position === pos); return sl?.profile_id ? { profileId: sl.profile_id } : (sl?.guest_name ? { guestName: sl.guest_name } : null); });
     try { const gm = await createGame(groupId, { title: name.trim() || null, startsAt: startsAtIso, place, slots, hostId: profileId || null }); onCopied(gm?.id); }
-    catch (e) { alert(t("err_create_game")); setBusy(false); }
+    catch (e) { showToast(t("err_create_game")); setBusy(false); }
   };
+  const lab = { fontSize: 10.5, fontWeight: 800, color: "var(--mut)", textTransform: "uppercase", letterSpacing: .7, margin: "16px 2px 7px" };
+  const roster = [["A", 1], ["A", 2], ["B", 1], ["B", 2]]
+    .map(([tm, pos]) => (src.slots || []).find((x) => x.team === tm && x.position === pos))
+    .filter((sl) => sl && (sl.profile_id || sl.guest_name));
   return createPortal(
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }} onClick={onClose}>
-      <div className="pl-card" style={{ width: "100%", maxWidth: 360 }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 12 }}>{t("copy_game_title")}</div>
-        <input className="pl-input" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-        <div style={{ display: "flex", gap: 8, margin: "10px 0" }}>
-          <input className="pl-input" type="date" value={day} onChange={(e) => setDay(e.target.value)} style={{ flex: 1 }} />
-          <input className="pl-input" type="time" value={time} onChange={(e) => setTime(e.target.value)} style={{ width: 120 }} />
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px", overflowY: "auto" }} onClick={onClose}>
+      <div className="pl-card" style={{ width: "100%", maxWidth: 344, padding: "20px 18px 18px", margin: "20px 0" }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+          <span style={{ width: 38, height: 38, borderRadius: 13, background: "color-mix(in srgb, var(--lime) 15%, transparent)", color: "var(--lime)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: "1px solid color-mix(in srgb, var(--lime) 30%, transparent)" }}><Copy size={18} /></span>
+          <div><div style={{ fontWeight: 800, fontSize: 17, color: "var(--ink)" }}>{t("copy_game_title")}</div><div style={{ fontSize: 11.5, color: "var(--mut)" }}>{t("copy_game_sub")}</div></div>
         </div>
-        <input className="pl-input" placeholder={t("court_club_placeholder")} value={place} onChange={(e) => setPlace(e.target.value)} style={{ marginBottom: 12 }} />
-        <div style={{ display: "flex", gap: 8 }}>
-          <button className="pl-ghost" style={{ flex: 1, padding: 11 }} onClick={onClose} disabled={busy}>{t("cancel")}</button>
-          <button className="pl-btn" style={{ flex: 1, padding: 11 }} onClick={go} disabled={busy}>{busy ? t("creating") : t("trn_copy_btn")}</button>
+        {roster.length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 15, padding: "9px 12px", background: "var(--surface2)", borderRadius: 14 }}>
+            <div style={{ display: "flex" }}>
+              {roster.map((sl, i) => (
+                <span key={i} style={{ width: 28, height: 28, borderRadius: "50%", marginLeft: i ? -8 : 0, border: "2px solid var(--surface)", overflow: "hidden", flexShrink: 0, background: "#243b2e" }}>
+                  <img src={playerAvatar(sl.profile?.avatar_url, sl.profile_id || sl.guest_name)} onError={avatarFallback(sl.profile_id || sl.guest_name)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(sl.profile_id || sl.guest_name), width: "100%", height: "100%", objectFit: "cover" }} />
+                </span>
+              ))}
+            </div>
+            <div style={{ fontSize: 11.5, color: "var(--mut)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{roster.map((sl) => (sl.profile?.name || sl.guest_name || "").split(" ")[0]).join(", ")}</div>
+          </div>
+        )}
+        <div style={lab}>{t("trn_copy_name_label")}</div>
+        <input className="pl-input" style={{ padding: "13px 14px", fontWeight: 600 }} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        <DateTimePicker day={day} time={time} onDay={setDay} onTime={setTime} />
+        <div style={lab}>{t("court_club_placeholder")}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 13, padding: "0 14px" }}>
+          <MapPin size={15} style={{ color: "var(--lime)", flexShrink: 0 }} />
+          <input value={place} onChange={(e) => setPlace(e.target.value)} placeholder={t("court_club_placeholder")} style={{ flex: 1, background: "none", border: "none", outline: "none", color: "var(--ink)", fontFamily: "'Outfit',sans-serif", fontSize: 15, fontWeight: 600, padding: "13px 0" }} />
+        </div>
+        <div style={{ display: "flex", gap: 9, marginTop: 20 }}>
+          <button className="pl-ghost" style={{ flex: "0 0 34%", padding: 13 }} onClick={onClose} disabled={busy}>{t("cancel")}</button>
+          <button className="pl-btn" style={{ flex: 1, padding: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }} onClick={go} disabled={busy}><Copy size={15} /> {busy ? t("creating") : t("trn_copy_btn")}</button>
         </div>
       </div>
     </div>,
@@ -3006,7 +3040,7 @@ function GameCopyDialog({ src, groupId, profileId = null, onClose, onCopied }) {
   );
 }
 
-function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = false, archiveNonce, bumpArchive }) {
+function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = false, archiveNonce, bumpArchive, onOpenPlayer }) {
   const [games, setGames] = useState(null);  // сыгранные игры
   const [tours, setTours] = useState([]);     // завершённые турниры
   const [copyTour, setCopyTour] = useState(null);
@@ -3038,7 +3072,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
   }, [groupId, focusId, archiveNonce]);
 
   // Проваливание в результаты — те же экраны, что на вкладках Игры/Турниры (там и удаление).
-  if (sel?.type === "tour") return <TournamentView id={sel.data.id} players={players} back={() => setSel(null)} isGroupMember={isGroupMember} currentProfileId={profileId} onArchiveChange={bumpArchive} />;
+  if (sel?.type === "tour") return <TournamentView id={sel.data.id} players={players} back={() => setSel(null)} isGroupMember={isGroupMember} currentProfileId={profileId} onArchiveChange={bumpArchive} onOpenPlayer={onOpenPlayer} />;
   if (sel?.type === "game") return <GameCard game={sel.data} groupId={groupId} profileId={profileId} isAdmin={isAdmin} back={() => setSel(null)} reloadGames={load} reloadLeaderboard={() => {}} bumpArchive={bumpArchive} players={players} />;
 
   const gameDate = (g) => new Date(g.matches?.[0]?.played_at || g.starts_at || g.created_at || 0);
@@ -3129,7 +3163,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
       const mine = !profileId || mineTour(tour);
       const card = <TournamentCard trn={tour} color="var(--yellow)" me={profileId} placeFor={focusId} showMeBadge={!pFilter || pFilter === profileId} myDelta={trDelta(tour)} flush={isGroupMember} onClick={() => setSel({ type: "tour", data: tour })} />;
       const inner = isGroupMember
-        ? <SwipeToDelete onCopy={groupId ? () => setCopyTour(tour) : null} onDelete={async () => { if (!confirm(t("trn_delete_confirm"))) return; await deleteTournament(tour.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+        ? <SwipeToDelete onCopy={groupId ? () => setCopyTour(tour) : null} onDelete={async () => { if (!(await confirmDialog({ title: t("trn_delete_confirm"), message: t("trn_delete_msg"), confirmLabel: t("delete_btn") }))) return; await deleteTournament(tour.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
         : card;
       return <div key={ev.key} style={mine || pFilter ? undefined : { opacity: 0.55 }}>{inner}</div>;
     }
@@ -3141,17 +3175,17 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
         ordered.forEach((gg) => { const d0 = gDelta(gg); if (d0 != null) { sum += d0; found = true; } });
         return found ? sum : null;
       })();
-      const card = <MixGroupCard games={ordered} color="#7d9488" me={profileId} showMeBadge={!pFilter || pFilter === profileId} delta={mixDelta} onOpenGame={(g) => setSel({ type: "game", data: g })} />;
+      const card = <MixGroupCard games={ordered} color="var(--mut)" me={profileId} showMeBadge={!pFilter || pFilter === profileId} delta={mixDelta} onOpenGame={(g) => setSel({ type: "game", data: g })} />;
       const inner = isGroupMember
-        ? <SwipeToDelete onDelete={async () => { if (!confirm(t("mix_delete_confirm").replace("{n}", ordered.length))) return; for (const gg of ordered) await deleteGame(gg.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+        ? <SwipeToDelete onDelete={async () => { if (!(await confirmDialog({ title: t("mix_delete_confirm").replace("{n}", ordered.length), message: t("mix_delete_msg"), confirmLabel: t("delete_btn") }))) return; for (const gg of ordered) await deleteGame(gg.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
         : card;
       return <div key={ev.key} style={mine || pFilter ? undefined : { opacity: 0.55 }}>{inner}</div>;
     }
     const g = ev.game;
     const mine = !profileId || meInGame(g, profileId);
-    const card = <GameRow g={g} color="#7d9488" me={profileId} showMeBadge={!pFilter || pFilter === profileId} delta={gDelta(g)} flush={isGroupMember} onOpen={() => setSel({ type: "game", data: g })} />;
+    const card = <GameRow g={g} color="var(--mut)" me={profileId} showMeBadge={!pFilter || pFilter === profileId} delta={gDelta(g)} flush={isGroupMember} onOpen={() => setSel({ type: "game", data: g })} />;
     const inner = isGroupMember
-      ? <SwipeToDelete onCopy={groupId ? () => setCopyGame(g) : null} onDelete={async () => { if (!confirm(t("delete_game_confirm"))) return; await deleteGame(g.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+      ? <SwipeToDelete onCopy={groupId ? () => setCopyGame(g) : null} onDelete={async () => { if (!(await confirmDialog({ title: t("delete_game_confirm"), message: t("delete_game_msg"), confirmLabel: t("delete_btn") }))) return; await deleteGame(g.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
       : card;
     return <div key={ev.key} style={mine || pFilter ? undefined : { opacity: 0.55 }}>{inner}</div>;
   };
@@ -3217,7 +3251,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
               <button key={p.id} onClick={() => setPFilter((v) => v === p.id ? null : p.id)} title={p.name} aria-pressed={on}
                 style={{ flexShrink: 0, width: 34, height: 34, borderRadius: "50%", padding: 0, cursor: "pointer", background: "var(--surface2)", position: "relative",
                   border: on ? `2px solid ${isMe ? "var(--lime)" : "var(--coral)"}` : "2px solid var(--line)", opacity: pFilter && !on ? .5 : 1 }}>
-                <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+                <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(p.id), width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
                 {on && (
                   <span style={{ position: "absolute", right: -3, bottom: -3, width: 14, height: 14, borderRadius: "50%", background: isMe ? "var(--lime)" : "var(--coral)", color: "var(--lime-fg)", fontSize: 8.5, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}>✓</span>
                 )}
@@ -3248,8 +3282,8 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
         });
         return out;
       })()}
-      {copyTour && <CopyDialog src={copyTour} groupId={groupId} profileId={profileId} onClose={() => setCopyTour(null)} onCopied={() => { setCopyTour(null); bumpArchive?.(); }} />}
-      {copyGame && <GameCopyDialog src={copyGame} groupId={groupId} profileId={profileId} onClose={() => setCopyGame(null)} onCopied={() => { setCopyGame(null); bumpArchive?.(); }} />}
+      {copyTour && <CopyDialog src={copyTour} groupId={groupId} profileId={profileId} onClose={() => setCopyTour(null)} onCopied={() => { setCopyTour(null); bumpArchive?.(); showToast(t("copy_tour_done")); }} />}
+      {copyGame && <GameCopyDialog src={copyGame} groupId={groupId} profileId={profileId} onClose={() => setCopyGame(null)} onCopied={() => { setCopyGame(null); bumpArchive?.(); showToast(t("copy_game_done")); }} />}
     </div>
   );
 }

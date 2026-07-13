@@ -27,3 +27,16 @@ export function avatarFallback(idOrName) {
     img.src = dogAvatar(idOrName);
   };
 }
+
+// Стиль-фон: собака-заглушка ПОД <img>. Пока настоящее фото грузится (или висит
+// на медленной внешней ссылке — Telegram/битый Storage), сквозь прозрачный img
+// видна собака, а не пустой круг. Загрузилось фото — оно перекрывает фон;
+// не загрузилось — остаётся собака (плюс onError-подмена как страховка).
+export function avatarBg(idOrName) {
+  return { backgroundImage: `url(${dogAvatar(idOrName)})`, backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat" };
+}
+
+// Когда настоящее фото загрузилось — убираем фон-собаку, иначе она просвечивает
+// сквозь прозрачные места фото (вырезанные портреты на прозрачном фоне).
+// Собака-фон нужна только как плейсхолдер на время загрузки/зависания.
+export const avatarOnLoad = (e) => { try { e.currentTarget.dataset.avatarLoaded = "1"; } catch (_) {} };

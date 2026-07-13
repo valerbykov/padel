@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 import { Send } from "lucide-react";
 import { getPublicLeague } from "../lib/padelApi";
 import { t, nGames , dateLocale} from "../lib/i18n";
-import { avatarFallback } from "../lib/avatar";
+import { avatarFallback , avatarBg, avatarOnLoad} from "../lib/avatar";
 import { usePublicChrome, PublicToggles, plural } from "./publicChrome";
 import Logo from "./Logo";
 import LeagueLogo from "./LeagueLogo";
@@ -37,7 +37,7 @@ function Avatar({ name = "", url, size = 38 }) {
   const initials = name.trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
   const hue = [...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
   return url ? (
-    <img src={url} onError={avatarFallback(name)} alt="" loading="lazy" decoding="async" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", border: "1.5px solid var(--line)", flexShrink: 0 }} />
+    <img src={url} onError={avatarFallback(name)} onLoad={avatarOnLoad} alt="" loading="lazy" decoding="async" style={{ ...avatarBg(name), width: size, height: size, borderRadius: "50%", objectFit: "cover", border: "1.5px solid var(--line)", flexShrink: 0 }} />
   ) : (
     <div style={{ width: size, height: size, borderRadius: "50%", background: `hsl(${hue}deg 55% 30%)`, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: Math.round(size * 0.36), flexShrink: 0, border: "1.5px solid var(--line)" }}>
       {initials}
@@ -91,7 +91,7 @@ export default function LeaguePublicPage({ code }) {
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: league.telegram_url ? 12 : 28 }}>
               {league.logo_url && <LeagueLogo url={league.logo_url} name={league.name} size={60} radius={16} />}
               <div style={{ minWidth: 0 }}>
-                <div className="lp-d" style={{ fontSize: 34, lineHeight: 1.05, marginBottom: 6, color: "var(--ink)" }}>
+                <div className="lp-d" style={{ fontSize: 34, lineHeight: 1.05, marginBottom: 6, color: "var(--ink)", overflowWrap: "anywhere" }}>
                   {league.name}
                 </div>
                 <div style={{ fontSize: 13, color: "var(--mut)" }}>

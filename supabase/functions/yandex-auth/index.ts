@@ -79,15 +79,28 @@ Deno.serve(async (req) => {
     if (error) throw error;
     if (link.user?.id) await admin.auth.admin.updateUserById(link.user.id, { user_metadata: meta });
 
-    // Аватар из Яндекса → прямо в profiles.avatar_url (handle_new_user его не копирует,
-    // и для уже существующих юзеров триггер не срабатывает). Ставим только если своё
-    // фото ещё не задано (не перетираем загруженное пользователем). Некритично: ошибку глотаем.
+    // Аватар из Яндекса → СКАЧИВАЕМ в наш Storage (как в telegram-auth): внешняя
+    // ссылка грузится медленнее и не кешируется service worker'ом. Ставим только
+    // если своё фото ещё не задано. Некритично: ошибку глотаем, вход не рушим.
     if (avatar && link.user?.id) {
       try {
-        await admin.from("profiles")
-          .update({ avatar_url: avatar })
-          .eq("user_id", link.user.id)
-          .is("avatar_url", null);
+        const { data: prof0 } = await admin.from("profiles").select("id, avatar_url").eq("user_id", link.user.id).maybeSingle();
+        const cur = prof0?.avatar_url || "";
+        // Мигрируем, если пусто ИЛИ стоит внешняя ссылка Яндекса; своё фото не трогаем.
+        if (prof0 && (!cur || cur.includes("avatars.yandex") || cur.includes("yandex.net"))) {
+          const img = await fetch(avatar);
+          if (img.ok) {
+            const bytes = new Uint8Array(await img.arrayBuffer());
+            const ct = img.headers.get("content-type") || "image/jpeg";
+            const ext = ct.includes("png") ? "png" : "jpg";
+            const path = `ya/${link.user.id}.${ext}`;
+            const up = await admin.storage.from("avatars").upload(path, bytes, { contentType: ct, upsert: true });
+            const publicUrl = !up.error
+              ? `${admin.storage.from("avatars").getPublicUrl(path).data.publicUrl}?v=${Date.now()}`
+              : avatar;
+            await admin.from("profiles").update({ avatar_url: publicUrl }).eq("id", prof0.id);
+          }
+        }
       } catch (_) { /* аватар — украшение, вход не рушим */ }
     }
 

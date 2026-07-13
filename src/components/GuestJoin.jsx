@@ -8,7 +8,7 @@ import LoginScreen from "./LoginScreen";
 import Logo from "./Logo";
 import { Calendar, MapPin, Check, AlertCircle, LogIn, UserCheck } from "lucide-react";
 import { t , dateLocale} from "../lib/i18n";
-import { playerAvatar, avatarFallback } from "../lib/avatar";
+import { playerAvatar, avatarFallback , avatarBg, avatarOnLoad} from "../lib/avatar";
 import { usePublicChrome, PublicToggles } from "./publicChrome";
 
 const fmtDate = (iso) => {
@@ -47,8 +47,8 @@ function CourtSpot({ s, side, busy, onTake }) {
   if (s.taken) {
     return (
       <div style={pos}>
-        <img src={playerAvatar(s.avatar_url, s.name)} onError={avatarFallback(s.name)} alt=""
-          style={{ width: 46, height: 46, borderRadius: "50%", objectFit: "cover", border: `3px solid ${color}`, background: "var(--surface)" }} />
+        <img src={playerAvatar(s.avatar_url, s.name)} onError={avatarFallback(s.name)} onLoad={avatarOnLoad} alt=""
+          style={{ ...avatarBg(s.name), width: 46, height: 46, borderRadius: "50%", objectFit: "cover", border: `3px solid ${color}`, background: "var(--surface)" }} />
         <span style={plate}>{s.name}</span>
       </div>
     );
@@ -176,7 +176,7 @@ export default function GuestJoin({ code, botName }) {
                   {open && freeSlots.length > 0 && (
                     session ? (
                       <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--lime)", fontSize: 13, marginBottom: 12 }}>
-                        <UserCheck size={16} /> {t("pub_logged_rating").replace("{name}", profileName || "игрок")}
+                        <UserCheck size={16} /> {t("pub_logged_rating").replace("{name}", profileName || t("guest_default_name"))}
                       </div>
                     ) : (
                       <input ref={nameRef} className="gj-input" placeholder={t("pub_guest_name_ph")} value={name} onChange={(e) => setName(e.target.value)} />

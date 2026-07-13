@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@capacitor-community/apple-sign-in": "^7.1.0",
@@ -33,6 +34,7 @@
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.61.1",
     "@vitejs/plugin-react": "^4.3.1",
     "eslint": "^10.7.0",
     "eslint-plugin-react-hooks": "^7.1.1",

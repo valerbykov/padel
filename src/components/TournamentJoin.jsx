@@ -9,7 +9,7 @@ import { TournamentView } from "./Tournaments";
 import LoginScreen from "./LoginScreen";
 import { Trophy, AlertCircle, Check, LogIn, UserCheck, Calendar, MapPin } from "lucide-react";
 import { t as tr , dateLocale} from "../lib/i18n";
-import { playerAvatar, avatarFallback } from "../lib/avatar";
+import { playerAvatar, avatarFallback, avatarBg , avatarOnLoad} from "../lib/avatar";
 import { usePublicChrome, PublicToggles, plural } from "./publicChrome";
 import Logo from "./Logo";
 
@@ -164,9 +164,10 @@ export default function TournamentJoin({ code, botName }) {
                     <>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 10 }}>
                         {players.map((p) => (
-                          <span key={p.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 11px 4px 4px", borderRadius: 999, background: "var(--surface2)", border: "1px solid var(--line)", fontSize: 12.5, fontWeight: 600 }}>
-                            <img src={playerAvatar(p.profile?.avatar_url || p.avatar_url, p.profile_id || p.name)} onError={avatarFallback(p.profile_id || p.name)} alt=""
-                              style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover" }} /> {p.name}
+                          <span key={p.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 11px 4px 4px", borderRadius: 999, background: "var(--surface2)", border: "1px solid var(--line)", fontSize: 12.5, fontWeight: 600, maxWidth: "100%", minWidth: 0 }}>
+                            <img src={playerAvatar(p.profile?.avatar_url || p.avatar_url, p.profile_id || p.name)} onError={avatarFallback(p.profile_id || p.name)} onLoad={avatarOnLoad} alt=""
+                              style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover", flexShrink: 0, ...avatarBg(p.profile_id || p.name) }} />
+                            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{p.name}</span>
                           </span>
                         ))}
                         {Array.from({ length: Math.min(freeN, 8) }).map((_, i) => (
@@ -185,7 +186,7 @@ export default function TournamentJoin({ code, botName }) {
 
                 {session ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--lime)", fontSize: 13, marginBottom: 12 }}>
-                    <UserCheck size={16} /> {tr("pub_logged_rating").replace("{name}", profileName || "игрок")}
+                    <UserCheck size={16} /> {tr("pub_logged_rating").replace("{name}", profileName || tr("guest_default_name"))}
                   </div>
                 ) : (
                   <>

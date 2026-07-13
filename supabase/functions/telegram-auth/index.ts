@@ -72,6 +72,35 @@ Deno.serve(async (req) => {
     // Освежаем метаданные (аватар/username могли поменяться).
     if (link.user?.id) await admin.auth.admin.updateUserById(link.user.id, { user_metadata: meta });
 
+    // Аватар из Telegram → СКАЧИВАЕМ и кладём в наш Storage (bucket avatars),
+    // а не храним внешнюю ссылку t.me: она грузится медленно/висит, и в UI был
+    // пустой круг. Из Storage раздаётся быстро и кешируется service worker'ом.
+    // Ставим только если своё фото ещё не задано. Всё некритично — вход не рушим.
+    if (tg.photo_url && link.user?.id) {
+      try {
+        const { data: prof0 } = await admin.from("profiles").select("id, avatar_url").eq("user_id", link.user.id).maybeSingle();
+        // Мигрируем, если фото ещё нет ИЛИ стоит внешняя ссылка t.me (в РФ она
+        // блокируется/троттлится и падает в собаку). Загруженное своё фото
+        // (наш Storage) и прочие ссылки не трогаем.
+        const cur = prof0?.avatar_url || "";
+        const needsMigrate = prof0 && (!cur || cur.includes("t.me") || cur.includes("telegram.org"));
+        if (needsMigrate) {
+          const img = await fetch(tg.photo_url);
+          if (img.ok) {
+            const bytes = new Uint8Array(await img.arrayBuffer());
+            const ct = img.headers.get("content-type") || "image/jpeg";
+            const ext = ct.includes("png") ? "png" : "jpg";
+            const path = `tg/${link.user.id}.${ext}`;
+            const up = await admin.storage.from("avatars").upload(path, bytes, { contentType: ct, upsert: true });
+            const publicUrl = !up.error
+              ? `${admin.storage.from("avatars").getPublicUrl(path).data.publicUrl}?v=${Date.now()}`
+              : tg.photo_url;
+            await admin.from("profiles").update({ avatar_url: publicUrl }).eq("id", prof0.id);
+          }
+        }
+      } catch (_) { /* аватар — украшение */ }
+    }
+
     // @ник — сразу в контакты профиля (если пользователь не задал свой):
     // чип Telegram в статистике игрока виден лиге без визита в личный кабинет.
     if (tg.username && link.user?.id) {

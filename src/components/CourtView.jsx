@@ -5,7 +5,7 @@
 //   mode="sets" — обычная игра с детальным счётом: 3 сета (A:B каждый), без скролла.
 // Props: teamAvatarsA/B=[] — массивы URL аватарок; scoreDetail=[{a,b},...] — для отображения.
 import React, { useState, useEffect } from "react";
-import { dogAvatar, avatarFallback } from "../lib/avatar";
+import { dogAvatar, avatarFallback , avatarBg, avatarOnLoad} from "../lib/avatar";
 import { t } from "../lib/i18n";
 
 const COURT_IMG = "/padel-court.png";
@@ -21,8 +21,8 @@ function Chip({ name, avatarUrl, x, y, team, id, onTap, noTap }) {
       maxWidth: "26%", cursor: tappable ? "pointer" : "default",
       pointerEvents: noTap ? "none" : "auto",
     }}>
-      <img src={avatarUrl || dogAvatar(name)} onError={avatarFallback(name)} alt="" loading="lazy" decoding="async" style={{
-        width: "clamp(44px,13vw,60px)", height: "clamp(44px,13vw,60px)",
+      <img src={avatarUrl || dogAvatar(name)} onError={avatarFallback(name)} onLoad={avatarOnLoad} alt="" loading="lazy" decoding="async" style={{
+        ...avatarBg(name), width: "clamp(44px,13vw,60px)", height: "clamp(44px,13vw,60px)",
         borderRadius: "50%", objectFit: "cover",
         border: `3px solid ${color}`, background: "var(--surface)", flexShrink: 0,
       }} />
@@ -81,6 +81,7 @@ export default function CourtView({
   const [busy, setBusy] = useState(false);
   const [dA, setDA] = useState(scoreA);
   const [dB, setDB] = useState(scoreB);
+  const [reEdit, setReEdit] = useState(false);  // до эффекта ниже (TDZ-гейт)
   useEffect(() => { setDA(scoreA); setDB(scoreB); setReEdit(false); }, [scoreA, scoreB]);
 
   // sets state
@@ -111,7 +112,6 @@ export default function CourtView({
   const savedAlready = scoreA != null && scoreB != null;
   // Сохранённый счёт по умолчанию заперт, но его можно перевести в режим
   // правки кнопкой «Изменить счёт» — пока матч вообще редактируем (editable).
-  const [reEdit, setReEdit] = useState(false);
   const locked = savedAlready && !reEdit;
   const scoringActive = editable && mode !== "sets" && !locked && !pickFor;
   // Счёта ещё нет и вводить его здесь нельзя (нет прав / состав не собран) —

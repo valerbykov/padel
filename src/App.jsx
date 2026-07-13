@@ -281,6 +281,7 @@ export default function App({ initialShowLogin = false }) {
       if (active && data) { setProfile(data); cacheSet(key, data); }
       // Сеть не отдала профиль, но есть кэш — хотя бы запускаем каскад лиг по нему
       // (setProfile(cached) выше эффект лиг пропустил из-за bootBusyRef).
+      // eslint-disable-next-line no-use-before-define -- вызов асинхронный (после монтирования), loadLeagues к тому моменту определён
       else if (active && cached) loadLeagues(cached.id);
     })();
     return () => { active = false; };
@@ -446,7 +447,7 @@ export default function App({ initialShowLogin = false }) {
   const profileModal = (showProfile && session) ? (
     <ProfileEditor onClose={() => setShowProfile(false)} onSaved={() => setPNonce((n) => n + 1)} theme={theme}
       lang={lang} onThemeToggle={toggleTheme} onLangChange={handleLangChange}
-      profile={profile} activeLeague={activeLeague}
+      profile={profile} activeLeague={activeLeague} leagueCount={(leagues || []).length}
       onOpenStats={() => { setShowProfile(false); setStatsNonce((n) => n + 1); }} />
   ) : null;
 
@@ -564,6 +565,7 @@ export default function App({ initialShowLogin = false }) {
         openSelfStatsNonce={statsNonce}
         openAnalyticsNonce={analyticsNonce}
         openEvent={openEvent}
+        profileNonce={pNonce}
       />
       {profileModal}
     </div>
@@ -599,7 +601,7 @@ function TopBar({ session, name, avatarUrl, avatarId, onLogin, onProfile, onSign
               {lang.toUpperCase()} <span style={{ color: "var(--mut)", fontWeight: 400, fontSize: 13 }}>↻</span>
             </button>
           )}
-          <button className="tb-btn" onClick={onThemeToggle} aria-label={t("aria_theme")} title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
+          <button className="tb-btn" onClick={onThemeToggle} aria-label={t("aria_theme")} title={t(theme === "dark" ? "theme_to_light" : "theme_to_dark")}
             style={{ border: "none", background: "none", color: "var(--mut)", display: "flex", alignItems: "center", padding: "5px 8px", borderRadius: 9, cursor: "pointer" }}>
             {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
           </button>
@@ -608,7 +610,7 @@ function TopBar({ session, name, avatarUrl, avatarId, onLogin, onProfile, onSign
         {session && <NotificationBell leagues={leagues} activeLeague={activeLeague} onOpen={onOpenEvent} />}
         {/* СПРАВА: профиль (только иконка) для залогиненного, иначе «Войти» */}
         {session ? (
-          <button onClick={onProfile} className="tb-profile" aria-label={name || "Профиль"} title={name || "Профиль"}
+          <button onClick={onProfile} className="tb-profile" aria-label={name || t("pc_title")} title={name || t("pc_title")}
             style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "1px solid transparent", borderRadius: 999, cursor: "pointer", padding: 2, transition: "background .15s" }}>
             <Avatar url={avatarUrl} id={avatarId} name={name} size={32} />
           </button>

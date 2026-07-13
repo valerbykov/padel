@@ -53,6 +53,8 @@ import Avatar from "./Avatar";
 import EmptyState from "./EmptyState";
 import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Share2, Trash2, Plus, Check, Calendar, MapPin } from "lucide-react";
 import { t as tr , dateLocale} from "../lib/i18n";
+import DateTimePicker from "./DateTimePicker";
+import { confirmDialog, showToast } from "./ui-dialogs";
 import BackButton from "./BackButton";
 const nowLocalDT = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
 
@@ -117,7 +119,7 @@ const statusLabel = (s) => ({ open: tr("trn_sec_open"), active: tr("trn_sec_acti
 
 // ─── Root ──────────────────────────────────────────────────────────────────────
 
-export default function Tournaments({ groupId, players, profileId, bumpArchive, session, onLogin, isAdmin = false, canCreate = false, membersCanCreate = false, openReq = null }) {
+export default function Tournaments({ groupId, players, profileId, bumpArchive, session, onLogin, isAdmin = false, canCreate = false, membersCanCreate = false, openReq = null, onOpenPlayer = null }) {
   const [mode, setMode] = useState("list");
   const [activeId, setActiveId] = useState(null);
   // Открытие конкретного турнира из уведомления (TournamentView сам грузит по id).
@@ -129,7 +131,7 @@ export default function Tournaments({ groupId, players, profileId, bumpArchive, 
     setActiveId(openReq.id); setMode("view");
   }, [openReq]);
   if (mode === "create") return <Create groupId={groupId} profileId={profileId} back={() => setMode("list")} open={(id) => { setActiveId(id); setMode("view"); }} />;
-  if (mode === "view") return <TournamentView id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} onArchiveChange={bumpArchive} isAdmin={isAdmin} membersCanCreate={membersCanCreate} />;
+  if (mode === "view") return <TournamentView id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} onArchiveChange={bumpArchive} isAdmin={isAdmin} membersCanCreate={membersCanCreate} onOpenPlayer={onOpenPlayer} />;
   return <List groupId={groupId} profileId={profileId} players={players} session={session} onLogin={onLogin} canCreate={canCreate} isAdmin={isAdmin} membersCanCreate={membersCanCreate} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
 }
 
@@ -357,7 +359,7 @@ function List({ groupId, profileId, players = [], create, open, session, onLogin
                 onTake={trn.status === "open" && canTake(trn) ? () => takeSeat(trn) : null}
                 takeBusy={takingId === trn.id} />;
               return canDel
-                ? <div key={trn.id} style={{ marginBottom: 8 }}><SwipeRow onDelete={async () => { if (!confirm(tr("trn_delete_confirm"))) return; await deleteTournament(trn.id).catch(() => {}); reload(); }}>{card}</SwipeRow></div>
+                ? <div key={trn.id} style={{ marginBottom: 8 }}><SwipeRow onDelete={async () => { if (!(await confirmDialog({ title: tr("trn_delete_confirm"), message: tr("trn_delete_msg"), confirmLabel: tr("delete_btn") }))) return; await deleteTournament(trn.id).catch(() => {}); reload(); }}>{card}</SwipeRow></div>
                 : <div key={trn.id}>{card}</div>;
             })}
             {hidden > 0 && (
@@ -394,34 +396,42 @@ export function CopyDialog({ src, groupId, profileId, onClose, onCopied }) {
   const [place, setPlace] = useState(src.place || "");
   const [busy, setBusy] = useState(false);
   const count = (src.players || []).length;
+  const lab = { fontSize: 10.5, fontWeight: 800, color: "var(--mut)", textTransform: "uppercase", letterSpacing: .7, margin: "16px 2px 7px" };
   const go = async () => {
     if (busy) return;
     setBusy(true);
     let startsAtIso = null;
     try { const d = day ? `${day}T${time || "00:00"}` : ""; if (d) startsAtIso = new Date(d).toISOString(); } catch (e) { startsAtIso = null; }
     try { const t = await copyTournament(src.id, groupId, { name, withPlayers, createdBy: profileId, startsAt: startsAtIso, place }); onCopied(t.id); }
-    catch (e) { alert(tr("err_copy_tour")); setBusy(false); }
+    catch (e) { showToast(tr("err_copy_tour")); setBusy(false); }
   };
   // Портал в body: fixed-оверлей внутри анимируемого предка «уезжает» от вьюпорта.
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px", fontFamily: "'Outfit',sans-serif" }} onClick={onClose}>
-      <div className="tr-card" style={{ width: "100%", maxWidth: 360 }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 12 }}>{tr("trn_copy_title")}</div>
-        <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_copy_name_label")}</div>
-        <input className="tr-input" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-        <div style={{ display: "flex", gap: 8, margin: "10px 0" }}>
-          <input className="tr-input" type="date" value={day} onChange={(e) => setDay(e.target.value)} style={{ flex: 1 }} />
-          <input className="tr-input" type="time" value={time} onChange={(e) => setTime(e.target.value)} style={{ width: 120 }} />
+      <div className="tr-card" style={{ width: "100%", maxWidth: 344, padding: "20px 18px 18px", margin: "20px 0" }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+          <span style={{ width: 38, height: 38, borderRadius: 13, background: "color-mix(in srgb, var(--lime) 15%, transparent)", color: "var(--lime)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: "1px solid color-mix(in srgb, var(--lime) 30%, transparent)" }}><Copy size={18} /></span>
+          <div><div style={{ fontWeight: 800, fontSize: 17, color: "var(--ink)" }}>{tr("trn_copy_title")}</div><div style={{ fontSize: 11.5, color: "var(--mut)" }}>{tr("trn_copy_sub")}</div></div>
         </div>
-        <input className="tr-input" placeholder={tr("court_club_placeholder")} value={place} onChange={(e) => setPlace(e.target.value)} style={{ marginBottom: 4 }} />
-        <label style={{ display: "flex", alignItems: "center", gap: 10, margin: "6px 0 16px", cursor: count ? "pointer" : "not-allowed", opacity: count ? 1 : 0.5 }}>
-          <input type="checkbox" checked={withPlayers && count > 0} disabled={!count} onChange={(e) => setWithPlayers(e.target.checked)}
-            style={{ width: 16, height: 16, accentColor: "var(--lime)" }} />
-          <span style={{ fontSize: 14 }}>{tr("trn_copy_with_players")} ({count})</span>
-        </label>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button className="tr-ghost" style={{ flex: 1, padding: 11 }} onClick={onClose} disabled={busy}>{tr("cancel")}</button>
-          <button className="tr-btn" style={{ flex: 1, padding: 11 }} onClick={go} disabled={busy}>{busy ? tr("creating") : tr("trn_copy_btn")}</button>
+        <div style={lab}>{tr("trn_copy_name_label")}</div>
+        <input className="tr-input" style={{ padding: "13px 14px", fontWeight: 600 }} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        <DateTimePicker day={day} time={time} onDay={setDay} onTime={setTime} />
+        <div style={lab}>{tr("court_club_placeholder")}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 13, padding: "0 14px" }}>
+          <MapPin size={15} style={{ color: "var(--lime)", flexShrink: 0 }} />
+          <input value={place} onChange={(e) => setPlace(e.target.value)} placeholder={tr("court_club_placeholder")} style={{ flex: 1, background: "none", border: "none", outline: "none", color: "var(--ink)", fontFamily: "'Outfit',sans-serif", fontSize: 15, fontWeight: 600, padding: "13px 0" }} />
+        </div>
+        <div onClick={() => count && setWithPlayers((v) => !v)}
+          style={{ display: "flex", alignItems: "center", gap: 11, margin: "14px 2px 0", cursor: count ? "pointer" : "not-allowed", opacity: count ? 1 : 0.5 }}>
+          <span style={{ width: 44, height: 26, borderRadius: 13, flexShrink: 0, position: "relative", transition: "background .15s",
+            background: withPlayers && count > 0 ? "var(--lime)" : "var(--surface2)", border: withPlayers && count > 0 ? "none" : "1px solid var(--line)" }}>
+            <span style={{ position: "absolute", top: 3, left: withPlayers && count > 0 ? 21 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
+          </span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{tr("trn_copy_with_players")} ({count})</span>
+        </div>
+        <div style={{ display: "flex", gap: 9, marginTop: 20 }}>
+          <button className="tr-ghost" style={{ flex: "0 0 34%", padding: 13 }} onClick={onClose} disabled={busy}>{tr("cancel")}</button>
+          <button className="tr-btn" style={{ flex: 1, padding: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }} onClick={go} disabled={busy}><Copy size={15} /> {busy ? tr("creating") : tr("trn_copy_btn")}</button>
         </div>
       </div>
     </div>,
@@ -557,7 +567,7 @@ function Create({ groupId, profileId, back, open }) {
       try { if (date) startsAtIso = new Date(date).toISOString(); } catch (e) { startsAtIso = null; }
       const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format, createdBy: profileId, startsAt: startsAtIso, place, kotHChampionRule: isKoth ? kotHChampionRule : undefined, openScoring });
       open(trn.id);
-    } catch (e) { alert(tr("err_create_tour")); setBusy(false); }
+    } catch (e) { showToast(tr("err_create_tour")); setBusy(false); }
   };
 
   const chip = (active) => ({
@@ -679,14 +689,8 @@ function Create({ groupId, profileId, back, open }) {
           </div>
         )}
 
-        {/* Date */}
-        <div>
-          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_date_label")}</div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input type="date" className="tr-input" style={{ flex: 3 }} value={day} onChange={(e) => setDay(e.target.value)} />
-            <input type="time" className="tr-input" style={{ flex: 2 }} value={time} onChange={(e) => setTime(e.target.value)} />
-          </div>
-        </div>
+        {/* Date & time */}
+        <DateTimePicker day={day} time={time} onDay={setDay} onTime={setTime} />
 
         {/* Place */}
         <div>
@@ -852,7 +856,7 @@ function AddPlayer({ players, existing, onAdd, disabled, meId = null }) {
 
 // ─── TournamentView ────────────────────────────────────────────────────────────
 
-export function TournamentView({ id, players, back, readOnly = false, initialT = null, reloadFn = null, isGroupMember = false, currentProfileId = null, spectatorMode = false, onArchiveChange = null, isAdmin = false, membersCanCreate = false }) {
+export function TournamentView({ id, players, back, readOnly = false, initialT = null, reloadFn = null, isGroupMember = false, currentProfileId = null, spectatorMode = false, onArchiveChange = null, isAdmin = false, membersCanCreate = false, onOpenPlayer = null }) {
   const hasInitRef = useRef(!!initialT);
   const [trnData, setTrnData] = useState(initialT ? { ...initialT, matches: initialT.matches || [], players: initialT.players || [] } : null);
   const [toast, setToast] = useState("");
@@ -1008,7 +1012,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     if (roundRef.current) return; roundRef.current = true;
     setAddingRound(true);
     try { await generateMexicanoRound(trnData.id, trnData.players, trnData.matches); await load(); setCur(N + 1); }
-    catch (e) { alert(e.message || tr("err_create_round")); }
+    catch (e) { showToast(e.message || tr("err_create_round")); }
     finally { setAddingRound(false); roundRef.current = false; }
   };
 
@@ -1016,7 +1020,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     if (roundRef.current) return; roundRef.current = true;
     setAddingRound(true);
     try { await generateKotHRound(trnData.id, trnData.matches); await load(); setCur(N + 1); }
-    catch (e) { alert(e.message || tr("err_create_match")); }
+    catch (e) { showToast(e.message || tr("err_create_match")); }
     finally { setAddingRound(false); roundRef.current = false; }
   };
 
@@ -1024,7 +1028,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     if (roundRef.current) return; roundRef.current = true;
     setAddingRound(true);
     try { await generateKotHLadderRound(trnData.id, trnData.matches); await load(); setCur(N + 1); }
-    catch (e) { alert(e.message || tr("err_create_round")); }
+    catch (e) { showToast(e.message || tr("err_create_round")); }
     finally { setAddingRound(false); roundRef.current = false; }
   };
 
@@ -1039,10 +1043,10 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     // Старт с неполным набором разрешён (кратность соблюдена), но не молча:
     // «собирали 8, стартуем с 4» должно быть осознанным решением организатора.
     if (trnData.players.length < trnData.target_size &&
-        !confirm(tr("trn_start_short").replace("{n}", String(trnData.players.length)).replace("{t}", String(trnData.target_size)))) return;
+        !(await confirmDialog({ title: tr("trn_start_title"), message: tr("trn_start_short").replace("{n}", String(trnData.players.length)).replace("{t}", String(trnData.target_size)), confirmLabel: tr("trn_start_btn"), danger: false }))) return;
     startingRef.current = true;
     try { await startTournament(trnData.id, trnData.players, trnData.format); await load(); }
-    catch (e) { alert(e.message || tr("err_start_tour")); }
+    catch (e) { showToast(e.message || tr("err_start_tour")); }
     finally { startingRef.current = false; }
   };
   const saveScore = async (matchId, a, b) => {
@@ -1051,7 +1055,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   };
   const genPin = async () => {
     const pin = String(Math.floor(1000 + Math.random() * 9000));
-    try { await setScorePin(trnData.id, pin); setPinShown(pin); } catch (e) { alert(e.message || tr("err_generic")); }
+    try { await setScorePin(trnData.id, pin); setPinShown(pin); } catch (e) { showToast(e.message || tr("err_generic")); }
   };
   const unlockPin = async () => {
     const v = pinInput.trim();
@@ -1081,9 +1085,9 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
 
       {/* Header */}
       <div className="tr-card" style={{ marginBottom: 12 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div className="tr-d" style={{ fontSize: 20 }}>{trnData.name || fmt.name}</div>
-          <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+          <div className="tr-d" style={{ fontSize: 20, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{trnData.name || fmt.name}</div>
+          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
             <button className="tr-ghost" style={{ padding: 8 }} onClick={load}><RefreshCw size={15} /></button>
             {!readOnly && (
               <button className="tr-btn" style={{ padding: "8px 12px", display: "flex", gap: 6, alignItems: "center" }} onClick={share}>
@@ -1093,8 +1097,8 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
             {isGroupMember && (
               <button className="tr-ghost" style={{ padding: 8, color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)" }} title={tr("delete_btn")}
                 onClick={async () => {
-                  if (!confirm(tr("trn_delete_confirm"))) return;
-                  try { await deleteTournament(id); onArchiveChange?.(); back?.(); } catch (e) { alert(tr("err_delete")); }
+                  if (!(await confirmDialog({ title: tr("trn_delete_confirm"), message: tr("trn_delete_msg"), confirmLabel: tr("delete_btn") }))) return;
+                  try { await deleteTournament(id); onArchiveChange?.(); back?.(); } catch (e) { showToast(tr("err_delete")); }
                 }}>
                 <Trash2 size={15} />
               </button>
@@ -1157,8 +1161,15 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
             <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{tr("trn_participants")} {trnData.players.length}/{trnData.target_size}</div>
             {trnData.players.map((p) => (
               <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 8px", borderBottom: "1px solid var(--line)", background: p.profile_id === currentProfileId ? "color-mix(in srgb, var(--lime) 10%, transparent)" : undefined, borderRadius: p.profile_id === currentProfileId ? 8 : undefined }}>
-                <Avatar name={p.name} url={avatarOfTp(p.id)} id={p.id} size={34} />
-                <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--ink)" }}>{p.name}</span>
+                {(() => {
+                  const tap = onOpenPlayer && p.profile_id ? () => onOpenPlayer(p.profile_id) : null;
+                  return (
+                    <div onClick={tap || undefined} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, cursor: tap ? "pointer" : "default" }}>
+                      <Avatar name={p.name} url={avatarOfTp(p.id)} id={p.profile_id} size={34} />
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--ink)" }}>{p.name}</span>
+                    </div>
+                  );
+                })()}
                 {!readOnly && (
                   <button aria-label={tr("delete_btn")} onClick={async () => { try { await removeTournamentPlayer(p.id); } catch (e) {} load(); }}
                     style={{ flexShrink: 0, width: 28, height: 28, borderRadius: "50%", border: "none", background: "color-mix(in srgb, var(--coral) 16%, transparent)", color: "var(--coral)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
