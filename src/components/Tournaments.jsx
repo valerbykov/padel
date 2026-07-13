@@ -359,7 +359,7 @@ function List({ groupId, profileId, players = [], create, open, session, onLogin
                 onTake={trn.status === "open" && canTake(trn) ? () => takeSeat(trn) : null}
                 takeBusy={takingId === trn.id} />;
               return canDel
-                ? <div key={trn.id} style={{ marginBottom: 8 }}><SwipeRow onDelete={async () => { if (!(await confirmDialog({ title: tr("trn_delete_confirm") }))) return; await deleteTournament(trn.id).catch(() => {}); reload(); }}>{card}</SwipeRow></div>
+                ? <div key={trn.id} style={{ marginBottom: 8 }}><SwipeRow onDelete={async () => { if (!(await confirmDialog({ title: tr("trn_delete_confirm"), message: tr("trn_delete_msg"), confirmLabel: tr("delete_btn") }))) return; await deleteTournament(trn.id).catch(() => {}); reload(); }}>{card}</SwipeRow></div>
                 : <div key={trn.id}>{card}</div>;
             })}
             {hidden > 0 && (
@@ -1043,7 +1043,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     // Старт с неполным набором разрешён (кратность соблюдена), но не молча:
     // «собирали 8, стартуем с 4» должно быть осознанным решением организатора.
     if (trnData.players.length < trnData.target_size &&
-        !(await confirmDialog({ title: tr("trn_start_short").replace("{n}", String(trnData.players.length)).replace("{t}", String(trnData.target_size)) }))) return;
+        !(await confirmDialog({ title: tr("trn_start_title"), message: tr("trn_start_short").replace("{n}", String(trnData.players.length)).replace("{t}", String(trnData.target_size)), confirmLabel: tr("trn_start_btn"), danger: false }))) return;
     startingRef.current = true;
     try { await startTournament(trnData.id, trnData.players, trnData.format); await load(); }
     catch (e) { showToast(e.message || tr("err_start_tour")); }
@@ -1097,7 +1097,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
             {isGroupMember && (
               <button className="tr-ghost" style={{ padding: 8, color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)" }} title={tr("delete_btn")}
                 onClick={async () => {
-                  if (!(await confirmDialog({ title: tr("trn_delete_confirm") }))) return;
+                  if (!(await confirmDialog({ title: tr("trn_delete_confirm"), message: tr("trn_delete_msg"), confirmLabel: tr("delete_btn") }))) return;
                   try { await deleteTournament(id); onArchiveChange?.(); back?.(); } catch (e) { showToast(tr("err_delete")); }
                 }}>
                 <Trash2 size={15} />

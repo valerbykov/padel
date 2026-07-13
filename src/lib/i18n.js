@@ -277,7 +277,7 @@ const T = {
     sets_a_label: 'Сеты A', sets_b_label: 'Сеты B',
     record_score: 'Записать результат',
     recording: 'Записываю…',
-    delete_game_confirm: 'Удалить эту игру?',
+    delete_game_confirm: 'Удалить эту игру?', delete_game_msg: 'Результат и рейтинговые изменения этой игры удалятся безвозвратно.', trn_delete_msg: 'Турнир, все матчи, счёт и рейтинговые изменения удалятся безвозвратно.', mix_delete_msg: 'Все игры сессии, их счёт и рейтинговые изменения удалятся безвозвратно.', trn_start_title: 'Начать турнир?',
     delete_match_confirm: 'Удалить этот матч из истории?',
     // ── History ───────────────────────────────────────────────────────────
     history_empty: 'Пока нет сыгранных игр и турниров.',
@@ -679,7 +679,7 @@ const T = {
     sets_a_label: 'Sets A', sets_b_label: 'Sets B',
     record_score: 'Record score',
     recording: 'Recording…',
-    delete_game_confirm: 'Delete this game?',
+    delete_game_confirm: 'Delete this game?', delete_game_msg: 'The result and rating changes of this game will be removed for good.', trn_delete_msg: 'The tournament, all its matches, scores and rating changes will be removed for good.', mix_delete_msg: 'All games of the session, their scores and rating changes will be removed for good.', trn_start_title: 'Start the tournament?',
     delete_match_confirm: 'Delete this match from history?',
     // ── History ───────────────────────────────────────────────────────────
     history_empty: 'No played games or tournaments yet.',
@@ -1081,7 +1081,7 @@ const T = {
     sets_a_label: 'Sets A', sets_b_label: 'Sets B',
     record_score: 'Registrar resultado',
     recording: 'Registrando…',
-    delete_game_confirm: '¿Eliminar esta partida?',
+    delete_game_confirm: '¿Eliminar esta partida?', delete_game_msg: 'El resultado y los cambios de rating de esta partida se eliminarán para siempre.', trn_delete_msg: 'El torneo, todos sus partidos, marcadores y cambios de rating se eliminarán para siempre.', mix_delete_msg: 'Todas las partidas de la sesión, sus marcadores y cambios de rating se eliminarán para siempre.', trn_start_title: '¿Iniciar el torneo?',
     delete_match_confirm: '¿Eliminar esta partida del historial?',
     // ── History ───────────────────────────────────────────────────────────
     history_empty: 'Todavía no hay partidas ni torneos jugados.',

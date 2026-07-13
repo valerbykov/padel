@@ -2213,7 +2213,7 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
               const row = <GameRow key={g.id} g={g} color={color} me={profileId} flush={!!del} onOpen={() => { setSelId(g.id); setMode("view"); }}
                 onTake={take && canTakeRow(g) ? () => takeFirstFree(g) : null} />;
               return del
-                ? <SwipeToDelete key={g.id} onDelete={async () => { if (!(await confirmDialog({ title: t("delete_game_confirm") }))) return; await deleteGame(g.id).catch(() => {}); loadGames(); bumpArchive?.(); }}>{row}</SwipeToDelete>
+                ? <SwipeToDelete key={g.id} onDelete={async () => { if (!(await confirmDialog({ title: t("delete_game_confirm"), message: t("delete_game_msg"), confirmLabel: t("delete_btn") }))) return; await deleteGame(g.id).catch(() => {}); loadGames(); bumpArchive?.(); }}>{row}</SwipeToDelete>
                 : row;
             })}
           </div>
@@ -2572,7 +2572,7 @@ function GameCourtBlock({ game, index, total, groupId, reloadSession, reloadLead
   // Переименование корта — только в лиге (court_name возвращается в выборке лиги).
   const renameCourt = groupId ? (name) => updateGameCourtName(game.id, name).then(reloadSession).catch(() => {}) : undefined;
   const del = async () => {
-    if (!(await confirmDialog({ title: t("delete_game_confirm") }))) return;
+    if (!(await confirmDialog({ title: t("delete_game_confirm"), message: t("delete_game_msg"), confirmLabel: t("delete_btn") }))) return;
     await deleteGame(game.id).catch(() => {});
     bumpArchive && bumpArchive();
     await reloadSession();
@@ -2813,7 +2813,7 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
     <div className="pl-pop">
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         {back && <BackButton onClick={back} label={t("to_list")} />}
-        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!(await confirmDialog({ title: t("delete_game_confirm") }))) return; await deleteGame(game.id); bumpArchive && bumpArchive(); reloadGames && reloadGames(); back && back(); }} title={t("delete_btn")}><Trash2 size={14} /></button>
+        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!(await confirmDialog({ title: t("delete_game_confirm"), message: t("delete_game_msg"), confirmLabel: t("delete_btn") }))) return; await deleteGame(game.id); bumpArchive && bumpArchive(); reloadGames && reloadGames(); back && back(); }} title={t("delete_btn")}><Trash2 size={14} /></button>
       </div>
       <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
@@ -3146,7 +3146,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
       const mine = !profileId || mineTour(tour);
       const card = <TournamentCard trn={tour} color="var(--yellow)" me={profileId} placeFor={focusId} showMeBadge={!pFilter || pFilter === profileId} myDelta={trDelta(tour)} flush={isGroupMember} onClick={() => setSel({ type: "tour", data: tour })} />;
       const inner = isGroupMember
-        ? <SwipeToDelete onCopy={groupId ? () => setCopyTour(tour) : null} onDelete={async () => { if (!(await confirmDialog({ title: t("trn_delete_confirm") }))) return; await deleteTournament(tour.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+        ? <SwipeToDelete onCopy={groupId ? () => setCopyTour(tour) : null} onDelete={async () => { if (!(await confirmDialog({ title: t("trn_delete_confirm"), message: t("trn_delete_msg"), confirmLabel: t("delete_btn") }))) return; await deleteTournament(tour.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
         : card;
       return <div key={ev.key} style={mine || pFilter ? undefined : { opacity: 0.55 }}>{inner}</div>;
     }
@@ -3160,7 +3160,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
       })();
       const card = <MixGroupCard games={ordered} color="#7d9488" me={profileId} showMeBadge={!pFilter || pFilter === profileId} delta={mixDelta} onOpenGame={(g) => setSel({ type: "game", data: g })} />;
       const inner = isGroupMember
-        ? <SwipeToDelete onDelete={async () => { if (!(await confirmDialog({ title: t("mix_delete_confirm").replace("{n}", ordered.length) }))) return; for (const gg of ordered) await deleteGame(gg.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+        ? <SwipeToDelete onDelete={async () => { if (!(await confirmDialog({ title: t("mix_delete_confirm").replace("{n}", ordered.length), message: t("mix_delete_msg"), confirmLabel: t("delete_btn") }))) return; for (const gg of ordered) await deleteGame(gg.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
         : card;
       return <div key={ev.key} style={mine || pFilter ? undefined : { opacity: 0.55 }}>{inner}</div>;
     }
@@ -3168,7 +3168,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
     const mine = !profileId || meInGame(g, profileId);
     const card = <GameRow g={g} color="#7d9488" me={profileId} showMeBadge={!pFilter || pFilter === profileId} delta={gDelta(g)} flush={isGroupMember} onOpen={() => setSel({ type: "game", data: g })} />;
     const inner = isGroupMember
-      ? <SwipeToDelete onCopy={groupId ? () => setCopyGame(g) : null} onDelete={async () => { if (!(await confirmDialog({ title: t("delete_game_confirm") }))) return; await deleteGame(g.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+      ? <SwipeToDelete onCopy={groupId ? () => setCopyGame(g) : null} onDelete={async () => { if (!(await confirmDialog({ title: t("delete_game_confirm"), message: t("delete_game_msg"), confirmLabel: t("delete_btn") }))) return; await deleteGame(g.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
       : card;
     return <div key={ev.key} style={mine || pFilter ? undefined : { opacity: 0.55 }}>{inner}</div>;
   };
