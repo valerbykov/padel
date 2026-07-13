@@ -17,7 +17,7 @@ import { Camera, Check, Loader, LogOut, BarChart3, Sun, Moon, X, Bell, Trash2, U
 import Avatar from "./Avatar";
 import { t, setLang , dateLocale} from "../lib/i18n";
 import { saveNotifPrefs, registerPush, OFFSET_OPTIONS } from "../lib/notifications";
-import { cachePeek } from "../lib/cache";
+import { cachePeek, bustCache } from "../lib/cache";
 
 // Иконка Telegram (фирменный самолётик) — вместо эмодзи-«самолёта» ✈️.
 const TgPlane = ({ size = 14 }) => (
@@ -65,11 +65,8 @@ const css = `
 .pc-camera{position:absolute;right:-4px;bottom:-2px;width:32px;height:32px;border-radius:50%;background:var(--lime);color:var(--lime-fg);border:3px solid var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:filter .12s;}
 .pc-camera:hover{filter:brightness(1.05);}
 .pc-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:var(--surface2);border:1px solid var(--line);font-size:11.5px;color:var(--mut);font-weight:600;}
-.pc-presets{overflow:hidden;margin-top:12px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent);mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent);}
-.pc-marquee{display:flex;gap:8px;width:max-content;animation:pc-scroll 26s linear infinite;}
-.pc-marquee:hover,.pc-marquee:active{animation-play-state:paused;}
-@keyframes pc-scroll{from{transform:translateX(-50%)}to{transform:translateX(0)}}
-@media (prefers-reduced-motion:reduce){.pc-presets{overflow-x:auto;mask-image:none;-webkit-mask-image:none}.pc-marquee{animation:none}}
+.pc-presets{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch;-webkit-mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent);mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent);}
+.pc-presets::-webkit-scrollbar{display:none;}
 .pc-preset{width:46px;height:46px;border-radius:50%;cursor:pointer;flex-shrink:0;background:var(--surface2);transition:transform .12s;}
 .pc-preset:hover{transform:scale(1.08);}
 .pc-tile{background:var(--surface2);border-radius:13px 13px 4px 4px;padding:10px 6px;text-align:center;min-height:64px;}
@@ -230,6 +227,9 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
       }).eq("user_id", userId);
       if (error) throw error;
       dirtyRef.current = false;
+      // Аватар/имя кэшируются в лидерборде (lb:*) — без сброса карточка игрока
+      // и таблица показывали старое фото. Чистим, чтобы обновилось везде.
+      bustCache();
       setSaveState("saved");
       onSaved?.();
     } catch (err) {
@@ -368,14 +368,14 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
                   {sinceLabel && <span className="pc-pill">{sinceLabel}</span>}
                 </div>
 
-                {/* Стая: бесшовная карусель пресетов (пауза при касании; reduced-motion → ручной скролл) */}
+                {/* Выбор аватара из стаи — прокручиваемая пальцем лента (авто-бегущую
+                    строку убрали: на мобиле :active залипал и ряд «застревал»). */}
+                <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 14, marginBottom: 6 }}>{t("pc_pick_avatar")}</div>
                 <div className="pc-presets">
-                  <div className="pc-marquee">
-                    {[...PRESETS, ...PRESETS].map((u, i) => (
-                      <img key={i} src={u} alt="" loading="lazy" onClick={() => setAvatarUrl(u)} className="pc-preset"
-                        style={{ border: avatarUrl === u ? "2px solid var(--lime)" : "2px solid transparent" }} />
-                    ))}
-                  </div>
+                  {PRESETS.map((u, i) => (
+                    <img key={i} src={u} alt="" loading="lazy" onClick={() => setAvatarUrl(u)} className="pc-preset"
+                      style={{ border: avatarUrl === u ? "2.5px solid var(--lime)" : "2px solid var(--line)" }} />
+                  ))}
                 </div>
 
                 {/* Стат-плитки активной лиги (из кэша лидерборда) + мостик в статистику */}

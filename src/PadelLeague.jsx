@@ -198,7 +198,7 @@ function ContactLinks({ contacts = {} }) {
 
 /* --------------------------------- root ----------------------------------- */
 
-export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin, onOpenLanding, onEditProfile, openSelfStatsNonce = 0, openAnalyticsNonce = 0, openEvent = null }) {
+export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin, onOpenLanding, onEditProfile, openSelfStatsNonce = 0, openAnalyticsNonce = 0, openEvent = null, profileNonce = 0 }) {
   const [tab, setTab] = useState(session ? "board" : "welcome");
   // Повторный тап по активной вкладке должен возвращать к её корню (закрыть
   // открытую детализацию). Меняем navNonce → key вкладки → ремоунт → сброс.
@@ -241,7 +241,9 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
     finally { if (seq === lbSeq.current) setLbLoaded(true); }
   }, [groupId, leaguesReady, leagues]);
 
-  useEffect(() => { loadLeaderboard(); }, [loadLeaderboard]);
+  // profileNonce меняется при сохранении профиля (смена аватара/имени) — перечитываем
+  // лидерборд, чтобы новое фото попало в карточки игроков и таблицу.
+  useEffect(() => { loadLeaderboard(); }, [loadLeaderboard, profileNonce]);
   // при смене лиги — снова показать скелетон, пока грузятся её друзья
   useEffect(() => { setLbLoaded(false); }, [groupId]);
 

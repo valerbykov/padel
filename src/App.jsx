@@ -562,6 +562,7 @@ export default function App({ initialShowLogin = false }) {
         openSelfStatsNonce={statsNonce}
         openAnalyticsNonce={analyticsNonce}
         openEvent={openEvent}
+        profileNonce={pNonce}
       />
       {profileModal}
     </div>
