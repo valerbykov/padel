@@ -969,7 +969,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
             <div className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", cursor: "pointer" }}>
               <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
+                <div style={{ fontWeight: 600, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
                 <div style={{ fontSize: 12, color: "var(--mut)", display: "inline-flex", alignItems: "center", gap: 4 }}><Swords size={13} /> {p.matches}</div>
               </div>
               <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />
@@ -1020,7 +1020,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
             <div key={p.id} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", marginBottom: 8, cursor: "pointer" }} onClick={() => setSelected(p)}>
               <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>{p.name}</div>
+                <div style={{ fontWeight: 600, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
                 <div style={{ fontSize: 12, color: "var(--mut)" }}>{t("not_in_league")}</div>
               </div>
               <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />
@@ -1136,7 +1136,7 @@ function PartnerCard({ label, bp, name, avatarUrl, help, onOpen }) {
       <div onClick={onOpen} style={{ display: "flex", alignItems: "center", gap: 10, cursor: onOpen ? "pointer" : "default" }}>
         <img src={avatarUrl} onError={avatarFallback(bp?.id || name)} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: 14 }}>{name || "?"}</div>
+          <div style={{ fontWeight: 600, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{name || "?"}</div>
           <div style={{ fontSize: 12, color: "var(--mut)" }}>{bp.w} {t("wins_short")} · {bp.l} {t("losses_short")} · {bp.total} {t("matches")}</div>
         </div>
         <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -2580,9 +2580,9 @@ function GameCourtBlock({ game, index, total, groupId, reloadSession, reloadLead
   return (
     <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <span className="pl-display" style={{ fontSize: 15 }}>{total > 1 ? `${t("mix_game_label")} ${index + 1}` : (game.title || "Padel")}</span>
-        {game.starts_at && <span style={{ fontSize: 12, color: "var(--mut)", display: "inline-flex", alignItems: "center", gap: 4 }}><Calendar size={12} />{fmtDate(game.starts_at)}</span>}
-        <button className="pl-ghost" style={{ marginLeft: "auto", padding: "5px 8px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)" }} onClick={del} title={t("delete_btn")}><Trash2 size={13} /></button>
+        <span className="pl-display" style={{ fontSize: 15, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{total > 1 ? `${t("mix_game_label")} ${index + 1}` : (game.title || "Padel")}</span>
+        {game.starts_at && <span style={{ fontSize: 12, color: "var(--mut)", display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0 }}><Calendar size={12} />{fmtDate(game.starts_at)}</span>}
+        <button className="pl-ghost" style={{ marginLeft: "auto", padding: "5px 8px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", flexShrink: 0 }} onClick={del} title={t("delete_btn")}><Trash2 size={13} /></button>
       </div>
       {played ? (
         <CourtView courtNumber={index + 1} mode="sets" courtName={game.court_name} onRenameCourt={renameCourt}
@@ -2816,15 +2816,15 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
         <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!(await confirmDialog({ title: t("delete_game_confirm") }))) return; await deleteGame(game.id); bumpArchive && bumpArchive(); reloadGames && reloadGames(); back && back(); }} title={t("delete_btn")}><Trash2 size={14} /></button>
       </div>
       <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+        <div style={{ minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
             {game.status === "live" && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 999, background: "color-mix(in srgb, var(--coral) 15%, transparent)", border: "1px solid color-mix(in srgb, var(--coral) 40%, transparent)", color: "var(--coral)", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--coral)" }} /> LIVE
               </span>
             )}
-            <div className="pl-display" style={{ fontSize: 18 }}>{game.title || "PadelPack"}</div>
+            <div className="pl-display" style={{ fontSize: 18, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{game.title || "PadelPack"}</div>
           </div>
           {game.status === "live" && game.started_at && (
             <div style={{ fontSize: 12, color: "var(--coral)", fontWeight: 700, marginTop: 2 }}>{t("game_live_min").replace("{n}", String(liveMin))}</div>
@@ -2841,7 +2841,7 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
             </div>
           )}
         </div>
-        <button className="pl-btn" style={{ padding: "8px 12px", display: "flex", gap: 6, alignItems: "center" }} onClick={share}><Share2 size={15} /> {toast || t("share_btn")}</button>
+        <button className="pl-btn" style={{ padding: "8px 12px", display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }} onClick={share}><Share2 size={15} /> {toast || t("share_btn")}</button>
       </div>
 
       <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>

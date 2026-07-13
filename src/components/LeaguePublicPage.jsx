@@ -91,7 +91,7 @@ export default function LeaguePublicPage({ code }) {
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: league.telegram_url ? 12 : 28 }}>
               {league.logo_url && <LeagueLogo url={league.logo_url} name={league.name} size={60} radius={16} />}
               <div style={{ minWidth: 0 }}>
-                <div className="lp-d" style={{ fontSize: 34, lineHeight: 1.05, marginBottom: 6, color: "var(--ink)" }}>
+                <div className="lp-d" style={{ fontSize: 34, lineHeight: 1.05, marginBottom: 6, color: "var(--ink)", overflowWrap: "anywhere" }}>
                   {league.name}
                 </div>
                 <div style={{ fontSize: 13, color: "var(--mut)" }}>

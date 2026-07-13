@@ -1085,9 +1085,9 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
 
       {/* Header */}
       <div className="tr-card" style={{ marginBottom: 12 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div className="tr-d" style={{ fontSize: 20 }}>{trnData.name || fmt.name}</div>
-          <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+          <div className="tr-d" style={{ fontSize: 20, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{trnData.name || fmt.name}</div>
+          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
             <button className="tr-ghost" style={{ padding: 8 }} onClick={load}><RefreshCw size={15} /></button>
             {!readOnly && (
               <button className="tr-btn" style={{ padding: "8px 12px", display: "flex", gap: 6, alignItems: "center" }} onClick={share}>
