@@ -1165,7 +1165,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                   const tap = onOpenPlayer && p.profile_id ? () => onOpenPlayer(p.profile_id) : null;
                   return (
                     <div onClick={tap || undefined} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, cursor: tap ? "pointer" : "default" }}>
-                      <Avatar name={p.name} url={avatarOfTp(p.id)} id={p.id} size={34} />
+                      <Avatar name={p.name} url={avatarOfTp(p.id)} id={p.profile_id} size={34} />
                       <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--ink)" }}>{p.name}</span>
                     </div>
                   );
