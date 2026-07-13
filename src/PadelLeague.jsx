@@ -206,7 +206,6 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
   // Карточка игрока, открытая из экрана турнира (там нет своего оверлея PlayerDetail —
   // TournamentView в Tournaments.jsx, откуда PadelLeague недоступен из-за цикла).
   const [tourPlayer, setTourPlayer] = useState(null);
-  const openTourPlayer = useCallback((id) => { const f = (players || []).find((p) => p.id === id); if (f) setTourPlayer(f); }, [players]);
   const goTab = useCallback((x) => { setNavNonce((n) => (x === tab ? n + 1 : n)); setTab(x); }, [tab]);
   // Смена активной лиги (переключение/удаление в свитчере) возвращает на «Друзья»
   // и ремоунтит вкладки (сброс открытых экранов). Тап по пушу из другой лиги
@@ -218,6 +217,9 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
     if (session) { setTab("board"); setNavNonce((n) => n + 1); }
   }, [groupId, session]);
   const [players, setPlayers] = useState([]);
+  // Карточка игрока, открытая из экрана турнира (объявляем ПОСЛЕ players —
+  // useCallback читает players в зависимостях, иначе TDZ и белый экран).
+  const openTourPlayer = useCallback((id) => { const f = (players || []).find((p) => p.id === id); if (f) setTourPlayer(f); }, [players]);
   const [lbLoaded, setLbLoaded] = useState(false);
   const [archiveNonce, setArchiveNonce] = useState(0);
   const bumpArchive = useCallback(() => setArchiveNonce((n) => n + 1), []);
