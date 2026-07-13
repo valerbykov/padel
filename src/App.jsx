@@ -4,7 +4,7 @@
 // и прокидывает активную лигу в PadelLeague. Ссылка /j/CODE открывает экран гостя.
 import React, { useEffect, useState, useCallback, useRef, lazy } from "react";
 import { supabase } from "./lib/supabase";
-import { handleAuthCallbackUrl, handleYandexCallback } from "./lib/auth";
+import { handleAuthCallbackUrl, handleYandexCallback, handleTelegramCallback } from "./lib/auth";
 import { cachePeek, cacheSet } from "./lib/cache";
 import Avatar from "./components/Avatar";
 import Logo from "./components/Logo"; // текстовый логотип в топбаре для гостя
@@ -44,6 +44,7 @@ const LeaguePublicPage = lazy(() => import("./components/LeaguePublicPage"));
 const GuestJoin        = lazy(() => import("./components/GuestJoin"));
 const TournamentJoin   = lazy(() => import("./components/TournamentJoin"));
 const ClaimProfile     = lazy(() => import("./components/ClaimProfile"));
+const TgNativeBridge   = lazy(() => import("./components/TgNativeBridge"));
 
 const BOT_NAME = "padelacc_bot"; // имя твоего Telegram-бота без @
 
@@ -212,6 +213,7 @@ export default function App({ initialShowLogin = false }) {
     const res = CapApp.addListener("appUrlOpen", async ({ url }) => {
       if (!url) return;
       if (routeFromUrl(url)) return;                                          // app link на лигу/игру/турнир
+      if (url.includes("tgauth=1")) { await handleTelegramCallback(url); return; } // возврат Telegram-моста
       if (!(await handleYandexCallback(url))) await handleAuthCallbackUrl(url); // иначе — auth-callback
     });
     // Capacitor 8: addListener может вернуть handle напрямую ИЛИ Promise<handle>
@@ -448,6 +450,10 @@ export default function App({ initialShowLogin = false }) {
       profile={profile} activeLeague={activeLeague} leagueCount={(leagues || []).length}
       onOpenStats={() => { setShowProfile(false); setStatsNonce((n) => n + 1); }} />
   ) : null;
+
+  // Страница-мост Telegram для нативного входа (открывается в системном браузере).
+  if (typeof window !== "undefined" && window.location.pathname === "/tg-native")
+    return <TgNativeBridge botName={BOT_NAME} />;
 
   // Публичная страница лиги — без логина.
   if (leaguePublicCode) return <LeaguePublicPage code={leaguePublicCode} />;
