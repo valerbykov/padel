@@ -2562,11 +2562,14 @@ function RematchMix({ players, onCreate, onCancel, busy }) {
         <button className="pl-ghost" style={{ padding: "10px 14px" }} onClick={onCancel}>{t("cancel")}</button>
         <button className="pl-btn" style={{ flex: 1, padding: 10 }} disabled={busy} onClick={() => onCreate(arr)}>{busy ? t("creating_game") : t("mix_create")}</button>
       </div>
-      {drag && (
+      {drag && createPortal(
+        // Портал в body: иначе position:fixed считается от трансформированного
+        // предка (анимация карточки) и призрак улетает в угол.
         <div style={{ position: "fixed", left: drag.x, top: drag.y, transform: "translate(-50%,-50%)", pointerEvents: "none", zIndex: 300, padding: "8px 10px", borderRadius: 12, background: "var(--surface)", border: "1.5px solid var(--lime)", display: "flex", alignItems: "center", gap: 8, boxShadow: "0 8px 24px rgba(0,0,0,.4)" }}>
           <Avatar url={arr[drag.idx].avatar_url} id={arr[drag.idx].profile_id || arr[drag.idx].guest_name} name={arr[drag.idx].name} size={28} />
           <span style={{ fontSize: 13, fontWeight: 600 }}>{arr[drag.idx].name}</span>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
