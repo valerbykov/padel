@@ -33,3 +33,6 @@ android/app/google-services.json
 *serviceAccount*.json
 *service-account*.json
 *firebase-adminsdk*.json
+
+playwright-report/
+test-results/
