@@ -9,7 +9,7 @@ import { TournamentView } from "./Tournaments";
 import LoginScreen from "./LoginScreen";
 import { Trophy, AlertCircle, Check, LogIn, UserCheck, Calendar, MapPin } from "lucide-react";
 import { t as tr , dateLocale} from "../lib/i18n";
-import { playerAvatar, avatarFallback } from "../lib/avatar";
+import { playerAvatar, avatarFallback, avatarBg } from "../lib/avatar";
 import { usePublicChrome, PublicToggles, plural } from "./publicChrome";
 import Logo from "./Logo";
 
@@ -166,7 +166,7 @@ export default function TournamentJoin({ code, botName }) {
                         {players.map((p) => (
                           <span key={p.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 11px 4px 4px", borderRadius: 999, background: "var(--surface2)", border: "1px solid var(--line)", fontSize: 12.5, fontWeight: 600 }}>
                             <img src={playerAvatar(p.profile?.avatar_url || p.avatar_url, p.profile_id || p.name)} onError={avatarFallback(p.profile_id || p.name)} alt=""
-                              style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover" }} /> {p.name}
+                              style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover", ...avatarBg(p.profile_id || p.name) }} /> {p.name}
                           </span>
                         ))}
                         {Array.from({ length: Math.min(freeN, 8) }).map((_, i) => (
