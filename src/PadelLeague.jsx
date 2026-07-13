@@ -3265,8 +3265,8 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
         });
         return out;
       })()}
-      {copyTour && <CopyDialog src={copyTour} groupId={groupId} profileId={profileId} onClose={() => setCopyTour(null)} onCopied={() => { setCopyTour(null); bumpArchive?.(); }} />}
-      {copyGame && <GameCopyDialog src={copyGame} groupId={groupId} profileId={profileId} onClose={() => setCopyGame(null)} onCopied={() => { setCopyGame(null); bumpArchive?.(); }} />}
+      {copyTour && <CopyDialog src={copyTour} groupId={groupId} profileId={profileId} onClose={() => setCopyTour(null)} onCopied={() => { setCopyTour(null); bumpArchive?.(); showToast(t("copy_tour_done")); }} />}
+      {copyGame && <GameCopyDialog src={copyGame} groupId={groupId} profileId={profileId} onClose={() => setCopyGame(null)} onCopied={() => { setCopyGame(null); bumpArchive?.(); showToast(t("copy_game_done")); }} />}
     </div>
   );
 }
