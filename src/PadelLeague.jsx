@@ -203,6 +203,10 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
   // Повторный тап по активной вкладке должен возвращать к её корню (закрыть
   // открытую детализацию). Меняем navNonce → key вкладки → ремоунт → сброс.
   const [navNonce, setNavNonce] = useState(0);
+  // Карточка игрока, открытая из экрана турнира (там нет своего оверлея PlayerDetail —
+  // TournamentView в Tournaments.jsx, откуда PadelLeague недоступен из-за цикла).
+  const [tourPlayer, setTourPlayer] = useState(null);
+  const openTourPlayer = useCallback((id) => { const f = (players || []).find((p) => p.id === id); if (f) setTourPlayer(f); }, [players]);
   const goTab = useCallback((x) => { setNavNonce((n) => (x === tab ? n + 1 : n)); setTab(x); }, [tab]);
   // Смена активной лиги (переключение/удаление в свитчере) возвращает на «Друзья»
   // и ремоунтит вкладки (сброс открытых экранов). Тап по пушу из другой лиги
@@ -289,8 +293,8 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
         {tab === "welcome" && !session && <WelcomeScreen onLogin={onLogin} onBrowseGames={() => goTab("games")} onBrowseTournaments={() => goTab("tournaments")} onOpenLanding={onOpenLanding} theme={theme} lang={lang} onThemeToggle={onThemeToggle} onLangChange={onLangChange} />}
         {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} loading={!lbLoaded} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} leaguesReady={leaguesReady} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsNonce={openSelfStatsNonce} analyticsNonce={openAnalyticsNonce} /> : <GateScreen />)}
         {tab === "games" && <Games key={navNonce} groupId={groupId} players={players} profileId={profileId} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} openReq={openEvent?.kind === "game" ? openEvent : null} />}
-        {tab === "tournaments" && <Tournaments key={navNonce} groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} membersCanCreate={!!activeLeague?.members_can_create} openReq={openEvent?.kind === "tour" ? openEvent : null} />}
-        {tab === "history" && (session ? <HistoryView key={navNonce} groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} isAdmin={isAdmin} archiveNonce={archiveNonce} bumpArchive={bumpArchive} /> : <GateScreen />)}
+        {tab === "tournaments" && <Tournaments key={navNonce} groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} membersCanCreate={!!activeLeague?.members_can_create} openReq={openEvent?.kind === "tour" ? openEvent : null} onOpenPlayer={openTourPlayer} />}
+        {tab === "history" && (session ? <HistoryView key={navNonce} groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} isAdmin={isAdmin} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onOpenPlayer={openTourPlayer} /> : <GateScreen />)}
       </div>
 
       <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--topbar-bg)", borderTop: "1px solid var(--line)", backdropFilter: "blur(8px)", paddingBottom: "env(safe-area-inset-bottom)" }}>
@@ -302,6 +306,12 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
           {session && <button className={`pl-tab ${tab === "history" ? "on" : ""}`} onClick={() => goTab("history")}><History size={20} strokeWidth={tab === "history" ? 2.6 : 2} />{t("tab_history")}</button>}
         </div>
       </nav>
+      {tourPlayer && createPortal(
+        <div style={{ position: "fixed", inset: 0, zIndex: 250, background: "var(--bg)", overflowY: "auto" }}>
+          <div style={{ maxWidth: 460, margin: "0 auto", padding: "14px 16px calc(20px + env(safe-area-inset-bottom))" }}>
+            <PlayerDetail key={tourPlayer.id} groupId={groupId} player={tourPlayer} players={players} close={() => setTourPlayer(null)} onOpenPlayer={(id) => { const f = (players || []).find((p) => p.id === id); setTourPlayer(f || null); }} />
+          </div>
+        </div>, document.body)}
     </div>
   );
 }
@@ -3023,7 +3033,7 @@ function GameCopyDialog({ src, groupId, profileId = null, onClose, onCopied }) {
   );
 }
 
-function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = false, archiveNonce, bumpArchive }) {
+function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = false, archiveNonce, bumpArchive, onOpenPlayer }) {
   const [games, setGames] = useState(null);  // сыгранные игры
   const [tours, setTours] = useState([]);     // завершённые турниры
   const [copyTour, setCopyTour] = useState(null);
@@ -3055,7 +3065,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
   }, [groupId, focusId, archiveNonce]);
 
   // Проваливание в результаты — те же экраны, что на вкладках Игры/Турниры (там и удаление).
-  if (sel?.type === "tour") return <TournamentView id={sel.data.id} players={players} back={() => setSel(null)} isGroupMember={isGroupMember} currentProfileId={profileId} onArchiveChange={bumpArchive} />;
+  if (sel?.type === "tour") return <TournamentView id={sel.data.id} players={players} back={() => setSel(null)} isGroupMember={isGroupMember} currentProfileId={profileId} onArchiveChange={bumpArchive} onOpenPlayer={onOpenPlayer} />;
   if (sel?.type === "game") return <GameCard game={sel.data} groupId={groupId} profileId={profileId} isAdmin={isAdmin} back={() => setSel(null)} reloadGames={load} reloadLeaderboard={() => {}} bumpArchive={bumpArchive} players={players} />;
 
   const gameDate = (g) => new Date(g.matches?.[0]?.played_at || g.starts_at || g.created_at || 0);
