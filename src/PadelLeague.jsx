@@ -2428,13 +2428,7 @@ function CreateGame({ groupId, players, profileId, back, done }) {
       <div className="pl-pop">
         <BackButton onClick={back} style={{ marginBottom: 12 }} />
         <div className="pl-card" style={{ padding: 14, marginBottom: 12, display: "flex", flexDirection: "column", gap: 12 }}>
-          <div>
-            <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 6 }}>{t("game_when_label")}</div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <input type="date" className="pl-input" style={{ padding: "10px 12px", flex: 3 }} value={day} onChange={(e) => setDay(e.target.value)} />
-              <input type="time" className="pl-input" style={{ padding: "10px 12px", flex: 2 }} value={time} onChange={(e) => setTime(e.target.value)} />
-            </div>
-          </div>
+          <DateTimePicker day={day} time={time} onDay={setDay} onTime={setTime} />
           <div>
             <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 6 }}>{t("game_where_label")}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

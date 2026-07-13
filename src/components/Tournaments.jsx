@@ -420,11 +420,14 @@ export function CopyDialog({ src, groupId, profileId, onClose, onCopied }) {
           <MapPin size={15} style={{ color: "var(--lime)", flexShrink: 0 }} />
           <input value={place} onChange={(e) => setPlace(e.target.value)} placeholder={tr("court_club_placeholder")} style={{ flex: 1, background: "none", border: "none", outline: "none", color: "var(--ink)", fontFamily: "'Outfit',sans-serif", fontSize: 15, fontWeight: 600, padding: "13px 0" }} />
         </div>
-        <label style={{ display: "flex", alignItems: "center", gap: 10, margin: "14px 2px 0", cursor: count ? "pointer" : "not-allowed", opacity: count ? 1 : 0.5 }}>
-          <input type="checkbox" checked={withPlayers && count > 0} disabled={!count} onChange={(e) => setWithPlayers(e.target.checked)}
-            style={{ width: 16, height: 16, accentColor: "var(--lime)" }} />
+        <div onClick={() => count && setWithPlayers((v) => !v)}
+          style={{ display: "flex", alignItems: "center", gap: 11, margin: "14px 2px 0", cursor: count ? "pointer" : "not-allowed", opacity: count ? 1 : 0.5 }}>
+          <span style={{ width: 40, height: 24, borderRadius: 999, flexShrink: 0, position: "relative", transition: "background .15s",
+            background: withPlayers && count > 0 ? "var(--lime)" : "var(--surface2)", border: withPlayers && count > 0 ? "none" : "1px solid var(--line)" }}>
+            <span style={{ position: "absolute", top: 3, left: withPlayers && count > 0 ? 19 : 3, width: 18, height: 18, borderRadius: "50%", background: withPlayers && count > 0 ? "var(--lime-fg)" : "var(--mut)", transition: "left .15s" }} />
+          </span>
           <span style={{ fontSize: 14 }}>{tr("trn_copy_with_players")} ({count})</span>
-        </label>
+        </div>
         <div style={{ display: "flex", gap: 9, marginTop: 20 }}>
           <button className="tr-ghost" style={{ flex: "0 0 34%", padding: 13 }} onClick={onClose} disabled={busy}>{tr("cancel")}</button>
           <button className="tr-btn" style={{ flex: 1, padding: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }} onClick={go} disabled={busy}><Copy size={15} /> {busy ? tr("creating") : tr("trn_copy_btn")}</button>
@@ -685,14 +688,8 @@ function Create({ groupId, profileId, back, open }) {
           </div>
         )}
 
-        {/* Date */}
-        <div>
-          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_date_label")}</div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input type="date" className="tr-input" style={{ flex: 3 }} value={day} onChange={(e) => setDay(e.target.value)} />
-            <input type="time" className="tr-input" style={{ flex: 2 }} value={time} onChange={(e) => setTime(e.target.value)} />
-          </div>
-        </div>
+        {/* Date & time */}
+        <DateTimePicker day={day} time={time} onDay={setDay} onTime={setTime} />
 
         {/* Place */}
         <div>
