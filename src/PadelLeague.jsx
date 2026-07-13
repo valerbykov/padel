@@ -2694,7 +2694,7 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
     const url = linkFor(game.invite_code);
     const text = `${t("game_share_text")}${game.title ? ` «${game.title}»` : ""}! ${t("game_share_join")}: ${url} (${t("code_label")} ${game.invite_code})`;
     try { if (navigator.share) { await navigator.share({ title: "PadelPack", text, url }); return; } } catch (e) {}
-    try { await navigator.clipboard.writeText(text); setToast(t("copied")); setTimeout(() => setToast(""), 1600); } catch (e) { setToast("Скопируй вручную"); }
+    try { await navigator.clipboard.writeText(text); setToast(t("copied")); setTimeout(() => setToast(""), 1600); } catch (e) { setToast(t("copy_manual")); }
   };
 
   // «Сыграть ещё»: создаём новую игру с теми же игроками в выбранной расстановке.

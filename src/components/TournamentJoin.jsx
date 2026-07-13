@@ -185,7 +185,7 @@ export default function TournamentJoin({ code, botName }) {
 
                 {session ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--lime)", fontSize: 13, marginBottom: 12 }}>
-                    <UserCheck size={16} /> {tr("pub_logged_rating").replace("{name}", profileName || "игрок")}
+                    <UserCheck size={16} /> {tr("pub_logged_rating").replace("{name}", profileName || tr("guest_default_name"))}
                   </div>
                 ) : (
                   <>

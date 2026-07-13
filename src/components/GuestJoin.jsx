@@ -176,7 +176,7 @@ export default function GuestJoin({ code, botName }) {
                   {open && freeSlots.length > 0 && (
                     session ? (
                       <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--lime)", fontSize: 13, marginBottom: 12 }}>
-                        <UserCheck size={16} /> {t("pub_logged_rating").replace("{name}", profileName || "игрок")}
+                        <UserCheck size={16} /> {t("pub_logged_rating").replace("{name}", profileName || t("guest_default_name"))}
                       </div>
                     ) : (
                       <input ref={nameRef} className="gj-input" placeholder={t("pub_guest_name_ph")} value={name} onChange={(e) => setName(e.target.value)} />
