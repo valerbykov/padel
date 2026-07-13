@@ -7,6 +7,7 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { t } from "../lib/i18n";
+import { registerBack } from "../lib/backstack";
 
 let confirmFn = null;   // ставится DialogHost'ом
 let toastFn = null;
@@ -31,6 +32,7 @@ export function DialogHost() {
   }, []);
 
   const close = (val) => { confirmState?.resolve(val); setConfirmState(null); };
+  useEffect(() => { if (confirmState) return registerBack(() => close(false)); }, [confirmState]);
   const o = confirmState?.opts || {};
   const danger = o.danger !== false; // по умолчанию — опасное действие (красная кнопка)
 

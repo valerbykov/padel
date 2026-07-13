@@ -54,6 +54,7 @@ import EmptyState from "./EmptyState";
 import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Share2, Trash2, Plus, Check, Calendar, MapPin } from "lucide-react";
 import { t as tr , dateLocale} from "../lib/i18n";
 import DateTimePicker from "./DateTimePicker";
+import { registerBack } from "../lib/backstack";
 import { confirmDialog, showToast } from "./ui-dialogs";
 import BackButton from "./BackButton";
 const nowLocalDT = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
@@ -388,6 +389,7 @@ function List({ groupId, profileId, players = [], create, open, session, onLogin
 }
 
 export function CopyDialog({ src, groupId, profileId, onClose, onCopied }) {
+  useEffect(() => registerBack(onClose), [onClose]);
   const fmt = fmtById(src.format);
   const [name, setName] = useState(`${src.name || fmt.name} ${tr("trn_copy_suffix")}`);
   const [withPlayers, setWithPlayers] = useState(true);
@@ -857,6 +859,7 @@ function AddPlayer({ players, existing, onAdd, disabled, meId = null }) {
 // ─── TournamentView ────────────────────────────────────────────────────────────
 
 export function TournamentView({ id, players, back, readOnly = false, initialT = null, reloadFn = null, isGroupMember = false, currentProfileId = null, spectatorMode = false, onArchiveChange = null, isAdmin = false, membersCanCreate = false, onOpenPlayer = null }) {
+  useEffect(() => { if (back) return registerBack(back); }, [back]);
   const hasInitRef = useRef(!!initialT);
   const [trnData, setTrnData] = useState(initialT ? { ...initialT, matches: initialT.matches || [], players: initialT.players || [] } : null);
   const [toast, setToast] = useState("");

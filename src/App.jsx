@@ -6,6 +6,7 @@ import React, { useEffect, useState, useCallback, useRef, lazy } from "react";
 import { supabase } from "./lib/supabase";
 import { handleAuthCallbackUrl, handleYandexCallback } from "./lib/auth";
 import { cachePeek, cacheSet } from "./lib/cache";
+import { runBack, registerBack } from "./lib/backstack";
 import Avatar from "./components/Avatar";
 import Logo from "./components/Logo"; // текстовый логотип в топбаре для гостя
 import LeagueSwitcher from "./components/LeagueSwitcher"; // глобальный переключатель лиги в топбаре
@@ -217,6 +218,26 @@ export default function App({ initialShowLogin = false }) {
       if (!(await handleYandexCallback(url))) await handleAuthCallbackUrl(url); // иначе — auth-callback
     });
     // Capacitor 8: addListener может вернуть handle напрямую ИЛИ Promise<handle>
+    if (res && typeof res.then === "function") res.then((h) => { sub = h; });
+    else sub = res;
+    return () => { sub?.remove?.(); };
+  }, []);
+
+  // Модалки App-уровня в back-stack: аппаратная «Назад» закрывает их, а не выходит.
+  useEffect(() => { if (showProfile) return registerBack(() => setShowProfile(false)); }, [showProfile]);
+  useEffect(() => { if (showLogin) return registerBack(() => setShowLogin(false)); }, [showLogin]);
+
+  // Аппаратная кнопка «Назад» (Android): сначала закрываем верхний открытый слой
+  // (модалку/под-экран через back-stack); если закрывать нечего — сворачиваем
+  // приложение (а не выходим). На вебе плагина нет — эффект ничего не делает.
+  useEffect(() => {
+    const CapApp = window.Capacitor?.Plugins?.App;
+    if (!CapApp) return;
+    let sub;
+    const res = CapApp.addListener("backButton", () => {
+      if (runBack()) return;                 // закрыли модалку/под-экран
+      (CapApp.minimizeApp ? CapApp.minimizeApp() : CapApp.exitApp?.());
+    });
     if (res && typeof res.then === "function") res.then((h) => { sub = h; });
     else sub = res;
     return () => { sub?.remove?.(); };
