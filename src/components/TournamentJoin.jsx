@@ -9,7 +9,7 @@ import { TournamentView } from "./Tournaments";
 import LoginScreen from "./LoginScreen";
 import { Trophy, AlertCircle, Check, LogIn, UserCheck, Calendar, MapPin } from "lucide-react";
 import { t as tr , dateLocale} from "../lib/i18n";
-import { playerAvatar, avatarFallback, avatarBg } from "../lib/avatar";
+import { playerAvatar, avatarFallback, avatarBg , avatarOnLoad} from "../lib/avatar";
 import { usePublicChrome, PublicToggles, plural } from "./publicChrome";
 import Logo from "./Logo";
 
@@ -165,7 +165,7 @@ export default function TournamentJoin({ code, botName }) {
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 10 }}>
                         {players.map((p) => (
                           <span key={p.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 11px 4px 4px", borderRadius: 999, background: "var(--surface2)", border: "1px solid var(--line)", fontSize: 12.5, fontWeight: 600, maxWidth: "100%", minWidth: 0 }}>
-                            <img src={playerAvatar(p.profile?.avatar_url || p.avatar_url, p.profile_id || p.name)} onError={avatarFallback(p.profile_id || p.name)} alt=""
+                            <img src={playerAvatar(p.profile?.avatar_url || p.avatar_url, p.profile_id || p.name)} onError={avatarFallback(p.profile_id || p.name)} onLoad={avatarOnLoad} alt=""
                               style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover", flexShrink: 0, ...avatarBg(p.profile_id || p.name) }} />
                             <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{p.name}</span>
                           </span>

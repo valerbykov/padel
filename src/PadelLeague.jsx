@@ -26,7 +26,7 @@ import Avatar from "./components/Avatar";
 import LeagueLogo from "./components/LeagueLogo";
 import InviteCard from "./components/InviteCard";
 import Analytics from "./components/Analytics";
-import { dogAvatar, playerAvatar, avatarFallback, DOG_COUNT , avatarBg} from "./lib/avatar";
+import { dogAvatar, playerAvatar, avatarFallback, DOG_COUNT , avatarBg, avatarOnLoad} from "./lib/avatar";
 
 // Текущая дата-время в формате datetime-local (YYYY-MM-DDTHH:MM) с учётом таймзоны.
 const nowLocalDT = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
@@ -854,7 +854,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
                     : isFirst ? "1px solid color-mix(in srgb, var(--yellow) 35%, transparent)" : undefined,
                   background: p.id === profileId ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined }}>
                 {isFirst && <div style={{ fontSize: 15, lineHeight: 1, marginBottom: 4 }}>👑</div>}
-                <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt=""
+                <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} onLoad={avatarOnLoad} alt=""
                   style={{ ...avatarBg(p.id), width: isFirst ? 58 : 48, height: isFirst ? 58 : 48, borderRadius: "50%", objectFit: "cover", border: `${isFirst ? 3 : 2.5}px solid ${ring}`, margin: "0 auto", display: "block" }} />
                 {/* Статус тем же языком, что в строках: ⭐/🛡/✓/гость. Имя — до двух строк. */}
                 <div style={{ fontSize: isFirst ? 12.5 : 11.5, fontWeight: isFirst ? 800 : 700, marginTop: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, minWidth: 0 }}>
@@ -903,7 +903,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
             organizerActive={p.role === "admin"} onTap={() => setSelected(p)}>
           <div className="pl-card" style={{ display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", cursor: "pointer", border: p.id === profileId ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined, background: p.id === profileId ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined }}>
             <div className="pl-display" style={{ width: 22, fontSize: 16, color: ["var(--yellow)", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)", textAlign: "center", flexShrink: 0 }}>{i + 1}</div>
-            <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ ...avatarBg(p.id), width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
+            <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(p.id), width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 600, fontSize: 15, display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
@@ -981,7 +981,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
             <SwipeRow key={p.id} onRemove={() => hidePlayer(p)} onTap={() => setSelected(p)}
               leftLabel={t("hide_btn")} leftIcon={<EyeOff size={16} />}>
             <div className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", cursor: "pointer" }}>
-              <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ ...avatarBg(p.id), width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
+              <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(p.id), width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
                 <div style={{ fontSize: 12, color: "var(--mut)", display: "inline-flex", alignItems: "center", gap: 4 }}><Swords size={13} /> {p.matches}</div>
@@ -1011,7 +1011,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
                 {netPlayers.filter((p) => (p.name || "").toLowerCase().includes(query.trim().toLowerCase())).slice(0, 6).map((p) => (
                   <button key={p.id} disabled={busy} onClick={() => addExisting(p)}
                     style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, cursor: "pointer", color: "var(--ink)", fontFamily: "'Outfit'", textAlign: "left" }}>
-                    <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ ...avatarBg(p.id), width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                    <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(p.id), width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                     <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
                     {p.registered && <span style={{ fontSize: 10, color: "var(--lime)", flexShrink: 0 }}>{t("account_badge")}</span>}
                   </button>
@@ -1032,7 +1032,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
           <div className="pl-display" style={{ fontSize: 12, color: "var(--mut)", margin: "14px 2px 8px", letterSpacing: 1 }}>{t("played_together_label")}</div>
           {extraPlayers.map((p) => (
             <div key={p.id} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", marginBottom: 8, cursor: "pointer" }} onClick={() => setSelected(p)}>
-              <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ ...avatarBg(p.id), width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
+              <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(p.id), width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
                 <div style={{ fontSize: 12, color: "var(--mut)" }}>{t("not_in_league")}</div>
@@ -1148,7 +1148,7 @@ function PartnerCard({ label, bp, name, avatarUrl, help, onOpen }) {
         <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "var(--mut)", background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 10, padding: "8px 10px", marginBottom: 10 }}>{help}</div>
       )}
       <div onClick={onOpen} style={{ display: "flex", alignItems: "center", gap: 10, cursor: onOpen ? "pointer" : "default" }}>
-        <img src={avatarUrl} onError={avatarFallback(bp?.id || name)} alt="" style={{ ...avatarBg(bp?.id || name), width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
+        <img src={avatarUrl} onError={avatarFallback(bp?.id || name)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(bp?.id || name), width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{name || "?"}</div>
           <div style={{ fontSize: 12, color: "var(--mut)" }}>{bp.w} {t("wins_short")} · {bp.l} {t("losses_short")} · {bp.total} {t("matches")}</div>
@@ -1598,7 +1598,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
             const self = !!onEditProfile && !!myId && myId === player.id;
             const av = (
               <span style={{ position: "relative", display: "inline-block", flexShrink: 0 }}>
-                <img src={playerAvatar(player.avatar_url, player.id)} onError={avatarFallback(player.id)} alt=""
+                <img src={playerAvatar(player.avatar_url, player.id)} onError={avatarFallback(player.id)} onLoad={avatarOnLoad} alt=""
                   style={{ ...avatarBg(player.id), width: 54, height: 54, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--lime)", display: "block" }} />
                 {self && (
                   <span style={{ position: "absolute", right: -3, bottom: -3, width: 19, height: 19, borderRadius: "50%", background: "var(--lime)", color: "var(--lime-fg)", border: "2px solid var(--surface)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1779,7 +1779,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
             {/* Заголовок в шапке плитки — как у «лучшего напарника», имя не обрезается */}
             <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{t("nemesis_label")}</div>
             <div onClick={p ? () => onOpenPlayer(p) : undefined} style={{ display: "flex", alignItems: "center", gap: 10, cursor: p ? "pointer" : "default" }}>
-              <img src={playerAvatar(p?.avatar_url, nm.id || nm.name)} onError={avatarFallback(nm.id || nm.name)} alt="" style={{ ...avatarBg(nm.id || nm.name), width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
+              <img src={playerAvatar(p?.avatar_url, nm.id || nm.name)} onError={avatarFallback(nm.id || nm.name)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(nm.id || nm.name), width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontWeight: 600, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p?.name || nm.name || "?"}</div>
                 <div style={{ fontSize: 12, color: "var(--mut)" }}>{t("nemesis_against").replace("{w}", String(nm.w)).replace("{n}", String(total))}</div>
@@ -2484,13 +2484,13 @@ function PickPlayerPanel({ slotLabel, players = [], takenIds = [], meId = null, 
           {me && (
             <button className="pl-ghost" onClick={() => onPick({ profileId: me.id, name: me.name })}
               style={{ flexShrink: 0, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 7, padding: "5px 12px 5px 5px", borderRadius: 999, fontSize: 12.5, fontWeight: 700, borderColor: "color-mix(in srgb, var(--lime) 45%, transparent)", color: "var(--lime)" }}>
-              <img src={playerAvatar(me.avatar_url, me.id)} onError={avatarFallback(me.id)} alt="" style={{ ...avatarBg(me.id), width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} /> {t("pick_me")}
+              <img src={playerAvatar(me.avatar_url, me.id)} onError={avatarFallback(me.id)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(me.id), width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} /> {t("pick_me")}
             </button>
           )}
           {free.slice(0, 24).map((p) => (
             <button key={p.id} className="pl-ghost" onClick={() => onPick({ profileId: p.id, name: p.name })}
               style={{ flexShrink: 0, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 7, padding: "5px 12px 5px 5px", borderRadius: 999, fontSize: 12.5 }}>
-              <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ ...avatarBg(p.id), width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} /> {p.name}
+              <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(p.id), width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} /> {p.name}
             </button>
           ))}
         </div>
@@ -2500,7 +2500,7 @@ function PickPlayerPanel({ slotLabel, players = [], takenIds = [], meId = null, 
         <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
           {matches.map((p) => (
             <button key={p.id} className="pl-ghost" style={{ padding: "9px 10px", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }} onClick={() => onPick({ profileId: p.id, name: p.name })}>
-              <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ ...avatarBg(p.id), width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} /> {p.name}
+              <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(p.id), width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} /> {p.name}
             </button>
           ))}
           <button className="pl-btn" style={{ padding: "9px 10px", textAlign: "left" }} onClick={() => onPick({ guestName: q.trim() })}>{t("add_guest_prefix")}{q.trim()}</button>
@@ -3012,7 +3012,7 @@ function GameCopyDialog({ src, groupId, profileId = null, onClose, onCopied }) {
             <div style={{ display: "flex" }}>
               {roster.map((sl, i) => (
                 <span key={i} style={{ width: 28, height: 28, borderRadius: "50%", marginLeft: i ? -8 : 0, border: "2px solid var(--surface)", overflow: "hidden", flexShrink: 0, background: "#243b2e" }}>
-                  <img src={playerAvatar(sl.profile?.avatar_url, sl.profile_id || sl.guest_name)} onError={avatarFallback(sl.profile_id || sl.guest_name)} alt="" style={{ ...avatarBg(sl.profile_id || sl.guest_name), width: "100%", height: "100%", objectFit: "cover" }} />
+                  <img src={playerAvatar(sl.profile?.avatar_url, sl.profile_id || sl.guest_name)} onError={avatarFallback(sl.profile_id || sl.guest_name)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(sl.profile_id || sl.guest_name), width: "100%", height: "100%", objectFit: "cover" }} />
                 </span>
               ))}
             </div>
@@ -3248,7 +3248,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
               <button key={p.id} onClick={() => setPFilter((v) => v === p.id ? null : p.id)} title={p.name} aria-pressed={on}
                 style={{ flexShrink: 0, width: 34, height: 34, borderRadius: "50%", padding: 0, cursor: "pointer", background: "var(--surface2)", position: "relative",
                   border: on ? `2px solid ${isMe ? "var(--lime)" : "var(--coral)"}` : "2px solid var(--line)", opacity: pFilter && !on ? .5 : 1 }}>
-                <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} alt="" style={{ ...avatarBg(p.id), width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+                <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(p.id), width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
                 {on && (
                   <span style={{ position: "absolute", right: -3, bottom: -3, width: 14, height: 14, borderRadius: "50%", background: isMe ? "var(--lime)" : "var(--coral)", color: "var(--lime-fg)", fontSize: 8.5, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}>✓</span>
                 )}

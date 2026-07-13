@@ -8,7 +8,7 @@ import LoginScreen from "./LoginScreen";
 import Logo from "./Logo";
 import { Calendar, MapPin, Check, AlertCircle, LogIn, UserCheck } from "lucide-react";
 import { t , dateLocale} from "../lib/i18n";
-import { playerAvatar, avatarFallback , avatarBg} from "../lib/avatar";
+import { playerAvatar, avatarFallback , avatarBg, avatarOnLoad} from "../lib/avatar";
 import { usePublicChrome, PublicToggles } from "./publicChrome";
 
 const fmtDate = (iso) => {
@@ -47,7 +47,7 @@ function CourtSpot({ s, side, busy, onTake }) {
   if (s.taken) {
     return (
       <div style={pos}>
-        <img src={playerAvatar(s.avatar_url, s.name)} onError={avatarFallback(s.name)} alt=""
+        <img src={playerAvatar(s.avatar_url, s.name)} onError={avatarFallback(s.name)} onLoad={avatarOnLoad} alt=""
           style={{ ...avatarBg(s.name), width: 46, height: 46, borderRadius: "50%", objectFit: "cover", border: `3px solid ${color}`, background: "var(--surface)" }} />
         <span style={plate}>{s.name}</span>
       </div>

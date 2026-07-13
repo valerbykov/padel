@@ -35,3 +35,8 @@ export function avatarFallback(idOrName) {
 export function avatarBg(idOrName) {
   return { backgroundImage: `url(${dogAvatar(idOrName)})`, backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat" };
 }
+
+// Когда настоящее фото загрузилось — убираем фон-собаку, иначе она просвечивает
+// сквозь прозрачные места фото (вырезанные портреты на прозрачном фоне).
+// Собака-фон нужна только как плейсхолдер на время загрузки/зависания.
+export const avatarOnLoad = (e) => { try { e.currentTarget.dataset.avatarLoaded = "1"; } catch (_) {} };
