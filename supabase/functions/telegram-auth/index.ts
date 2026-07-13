@@ -79,7 +79,12 @@ Deno.serve(async (req) => {
     if (tg.photo_url && link.user?.id) {
       try {
         const { data: prof0 } = await admin.from("profiles").select("id, avatar_url").eq("user_id", link.user.id).maybeSingle();
-        if (prof0 && !prof0.avatar_url) {
+        // Мигрируем, если фото ещё нет ИЛИ стоит внешняя ссылка t.me (в РФ она
+        // блокируется/троттлится и падает в собаку). Загруженное своё фото
+        // (наш Storage) и прочие ссылки не трогаем.
+        const cur = prof0?.avatar_url || "";
+        const needsMigrate = prof0 && (!cur || cur.includes("t.me") || cur.includes("telegram.org"));
+        if (needsMigrate) {
           const img = await fetch(tg.photo_url);
           if (img.ok) {
             const bytes = new Uint8Array(await img.arrayBuffer());
@@ -87,14 +92,10 @@ Deno.serve(async (req) => {
             const ext = ct.includes("png") ? "png" : "jpg";
             const path = `tg/${link.user.id}.${ext}`;
             const up = await admin.storage.from("avatars").upload(path, bytes, { contentType: ct, upsert: true });
-            if (!up.error) {
-              const { data: pub } = admin.storage.from("avatars").getPublicUrl(path);
-              const publicUrl = pub?.publicUrl ? `${pub.publicUrl}?v=${Date.now()}` : tg.photo_url;
-              await admin.from("profiles").update({ avatar_url: publicUrl }).eq("id", prof0.id).is("avatar_url", null);
-            } else {
-              // не удалось залить — хотя бы внешняя ссылка, лучше собаки
-              await admin.from("profiles").update({ avatar_url: tg.photo_url }).eq("id", prof0.id).is("avatar_url", null);
-            }
+            const publicUrl = !up.error
+              ? `${admin.storage.from("avatars").getPublicUrl(path).data.publicUrl}?v=${Date.now()}`
+              : tg.photo_url;
+            await admin.from("profiles").update({ avatar_url: publicUrl }).eq("id", prof0.id);
           }
         }
       } catch (_) { /* аватар — украшение */ }

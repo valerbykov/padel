@@ -85,7 +85,9 @@ Deno.serve(async (req) => {
     if (avatar && link.user?.id) {
       try {
         const { data: prof0 } = await admin.from("profiles").select("id, avatar_url").eq("user_id", link.user.id).maybeSingle();
-        if (prof0 && !prof0.avatar_url) {
+        const cur = prof0?.avatar_url || "";
+        // Мигрируем, если пусто ИЛИ стоит внешняя ссылка Яндекса; своё фото не трогаем.
+        if (prof0 && (!cur || cur.includes("avatars.yandex") || cur.includes("yandex.net"))) {
           const img = await fetch(avatar);
           if (img.ok) {
             const bytes = new Uint8Array(await img.arrayBuffer());
@@ -96,7 +98,7 @@ Deno.serve(async (req) => {
             const publicUrl = !up.error
               ? `${admin.storage.from("avatars").getPublicUrl(path).data.publicUrl}?v=${Date.now()}`
               : avatar;
-            await admin.from("profiles").update({ avatar_url: publicUrl }).eq("id", prof0.id).is("avatar_url", null);
+            await admin.from("profiles").update({ avatar_url: publicUrl }).eq("id", prof0.id);
           }
         }
       } catch (_) { /* аватар — украшение, вход не рушим */ }
