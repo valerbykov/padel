@@ -56,3 +56,47 @@ for (const theme of ['dark', 'light']) {
     expect(fatal, fatal.join(' | ')).toHaveLength(0)
   })
 }
+
+// Гостевая страница турнира /t/CODE (4-значный код): шапка с названием, чипами
+// игроков и прогрессом. Длинные имена не должны переполнять карточку.
+const T_FIXTURE = {
+  id: 'tid-1',
+  name: 'Американо · 2 корта в очень-длинном-клубе-без-пробелов',
+  status: 'open',
+  target_size: 8,
+  points_per_game: 32,
+  format: 'americano',
+  starts_at: '2026-07-16T21:00:00Z',
+  place: 'Корты 5 и 6, Сколково ПадлХаб очень длинное название',
+  players: [
+    { id: 'p1', profile_id: 'u1', name: 'Суперигрокссбесконечнодлиннымименембезпробелов', avatar_url: null },
+    { id: 'p2', profile_id: 'u2', name: 'Владислав Длиннофамильевский-Петров', avatar_url: null },
+    { id: 'p3', profile_id: null, name: 'Гость', avatar_url: null },
+  ],
+  matches: [],
+}
+
+for (const theme of ['dark', 'light']) {
+  test(`гостевой турнир: длинные имена не переполняют — ${theme}`, async ({ page }) => {
+    const fatal = []
+    page.on('pageerror', (e) => fatal.push(String(e)))
+    await page.addInitScript((t) => { localStorage.setItem('plTheme', t); localStorage.setItem('plLang', 'ru') }, theme)
+    // обогащение из таблицы (getTournament) вернёт null → падёт в фолбэк на base
+    await page.route('**example.supabase.co/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: 'null' }))
+    await page.route('**/rest/v1/rpc/get_tournament_by_code*', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(T_FIXTURE) }))
+    await page.goto('/t/ABCD')
+    await page.waitForTimeout(1500)
+    await expect(page.locator('body')).toContainText('Американо')
+    const overflow = await page.evaluate(() =>
+      document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(overflow, 'нет бокового скролла').toBeLessThanOrEqual(2)
+    const spill = await page.evaluate(() => {
+      const vw = document.documentElement.clientWidth
+      return [...document.querySelectorAll('*')].filter((el) => el.getBoundingClientRect().right > vw + 1).length
+    })
+    expect(spill, 'нет элементов за правым краем').toBeLessThanOrEqual(0)
+    expect(fatal, fatal.join(' | ')).toHaveLength(0)
+  })
+}
