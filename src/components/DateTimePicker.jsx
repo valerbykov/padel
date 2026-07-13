@@ -98,7 +98,7 @@ export default function DateTimePicker({ day, time, onDay, onTime }) {
 
       {/* ── Время ── */}
       <div style={lab}>{t("dt_time")}</div>
-      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2, scrollbarWidth: "none" }}>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         {timePresets.map((tp) => (
           <button key={tp} type="button" onClick={() => { onTime(tp); setCustomTime(false); }}
             style={{ flexShrink: 0, padding: "9px 13px", borderRadius: 11, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'Outfit',sans-serif",
