@@ -72,16 +72,31 @@ Deno.serve(async (req) => {
     // Освежаем метаданные (аватар/username могли поменяться).
     if (link.user?.id) await admin.auth.admin.updateUserById(link.user.id, { user_metadata: meta });
 
-    // Аватар из Telegram → в profiles.avatar_url (приложение читает его оттуда,
-    // а не из user_metadata — без этого показывалась собака-заглушка). Ставим
-    // только если своё фото ещё не задано, чтобы не перетереть загруженное.
-    // Некритично: ошибку глотаем, вход не рушим.
+    // Аватар из Telegram → СКАЧИВАЕМ и кладём в наш Storage (bucket avatars),
+    // а не храним внешнюю ссылку t.me: она грузится медленно/висит, и в UI был
+    // пустой круг. Из Storage раздаётся быстро и кешируется service worker'ом.
+    // Ставим только если своё фото ещё не задано. Всё некритично — вход не рушим.
     if (tg.photo_url && link.user?.id) {
       try {
-        await admin.from("profiles")
-          .update({ avatar_url: tg.photo_url })
-          .eq("user_id", link.user.id)
-          .is("avatar_url", null);
+        const { data: prof0 } = await admin.from("profiles").select("id, avatar_url").eq("user_id", link.user.id).maybeSingle();
+        if (prof0 && !prof0.avatar_url) {
+          const img = await fetch(tg.photo_url);
+          if (img.ok) {
+            const bytes = new Uint8Array(await img.arrayBuffer());
+            const ct = img.headers.get("content-type") || "image/jpeg";
+            const ext = ct.includes("png") ? "png" : "jpg";
+            const path = `tg/${link.user.id}.${ext}`;
+            const up = await admin.storage.from("avatars").upload(path, bytes, { contentType: ct, upsert: true });
+            if (!up.error) {
+              const { data: pub } = admin.storage.from("avatars").getPublicUrl(path);
+              const publicUrl = pub?.publicUrl ? `${pub.publicUrl}?v=${Date.now()}` : tg.photo_url;
+              await admin.from("profiles").update({ avatar_url: publicUrl }).eq("id", prof0.id).is("avatar_url", null);
+            } else {
+              // не удалось залить — хотя бы внешняя ссылка, лучше собаки
+              await admin.from("profiles").update({ avatar_url: tg.photo_url }).eq("id", prof0.id).is("avatar_url", null);
+            }
+          }
+        }
       } catch (_) { /* аватар — украшение */ }
     }
 
