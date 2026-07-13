@@ -8,13 +8,18 @@
 import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { t } from "../lib/i18n";
+import { isNativeApp } from "../lib/platform";
+import { signInTelegramNative } from "../lib/auth";
+import { Send } from "lucide-react";
 
 export default function TelegramLogin({ botName, onSuccess }) {
   const containerRef = useRef(null);
   const [status, setStatus] = useState(""); // '', 'busy', 'error'
   const [errText, setErrText] = useState("");
 
+  const native = isNativeApp();
   useEffect(() => {
+    if (native) return;  // в нативе виджет не грузим — вход через системный браузер
     // Глобальный колбэк, который дёргает виджет Telegram.
     window.__tgAuth = async (user) => {
       setStatus("busy"); setErrText("");
@@ -62,6 +67,16 @@ export default function TelegramLogin({ botName, onSuccess }) {
     return () => { try { delete window.__tgAuth; } catch (e) {} };
   }, [botName, onSuccess]);
 
+  if (native) {
+    return (
+      <div style={{ fontFamily: "'Outfit',sans-serif", textAlign: "center" }}>
+        <button onClick={() => signInTelegramNative()}
+          style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 0", borderRadius: 12, border: "none", cursor: "pointer", background: "#29a9eb", color: "#fff", fontFamily: "'Outfit',sans-serif", fontWeight: 700, fontSize: 15 }}>
+          <Send size={17} /> {t("tg_login_btn")}
+        </button>
+      </div>
+    );
+  }
   return (
     <div style={{ fontFamily: "'Outfit',sans-serif", textAlign: "center" }}>
       <div ref={containerRef} />

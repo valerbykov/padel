@@ -180,6 +180,35 @@ export async function handleAuthCallbackUrl(url) {
   return false;
 }
 
+// Возврат из страницы-моста Telegram (нативка): padelpack://login-callback?tgauth=1&th=…&tk=…&email=…
+// Меняем одноразовый token/token_hash на сессию. Возвращает true при успехе.
+export async function handleTelegramCallback(rawUrl) {
+  try {
+    const u = new URL(rawUrl);
+    if (u.searchParams.get("tgauth") !== "1") return false;
+    const email = u.searchParams.get("email");
+    const token = u.searchParams.get("tk");
+    const token_hash = u.searchParams.get("th");
+    let r = { error: new Error("no_token") };
+    if (email && token) r = await supabase.auth.verifyOtp({ email, token, type: "email" });
+    if (r.error && token_hash) r = await supabase.auth.verifyOtp({ token_hash, type: "email" });
+    if (!r.error) capPlugin("Browser")?.close?.();
+    return !r.error;
+  } catch (e) {
+    console.warn("telegram callback failed", e);
+    return false;
+  }
+}
+
+// Нативка: открыть страницу-мост Telegram в системном браузере (виджет требует
+// настоящий домен + рабочие попапы, чего нет в Android WebView).
+export function signInTelegramNative() {
+  const Browser = capPlugin("Browser");
+  const url = "https://padelpack.app/tg-native";
+  if (Browser) { Browser.open({ url }); return true; }
+  return false;
+}
+
 export async function signOut() {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
