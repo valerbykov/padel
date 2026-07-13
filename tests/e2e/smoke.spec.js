@@ -40,6 +40,10 @@ for (const lang of LANGS) {
     expect(fatal, fatal.join(' | ')).toHaveLength(0)
     // на странице есть заметный контент
     await expect(page.locator('body')).toContainText(/Padel/i)
+    // лендинг не должен скроллиться вбок на мобиле
+    const overflow = await page.evaluate(() =>
+      document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(overflow, 'лендинг без бокового скролла').toBeLessThanOrEqual(2)
   })
 }
 
