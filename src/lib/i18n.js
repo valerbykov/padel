@@ -48,7 +48,7 @@ const T = {
     // ── Common UI ─────────────────────────────────────────────────────────
     add_player: 'Добавить игрока',
     sign_in: 'Войти', sign_out: 'Выйти',
-    aria_theme: 'Сменить тему', aria_lang: 'Сменить язык',
+    aria_theme: 'Сменить тему', theme_to_light: 'Светлая тема', theme_to_dark: 'Тёмная тема', aria_lang: 'Сменить язык',
     pc_title: 'Личный кабинет',
     pc_login_to_edit: 'Войди в аккаунт, чтобы редактировать профиль.',
     pc_upload_photo: 'Загрузить фото', pc_uploading: 'Загрузка…',
@@ -450,7 +450,7 @@ const T = {
     // ── Common UI ─────────────────────────────────────────────────────────
     add_player: 'Add player',
     sign_in: 'Sign in', sign_out: 'Sign out',
-    aria_theme: 'Toggle theme', aria_lang: 'Change language',
+    aria_theme: 'Toggle theme', theme_to_light: 'Light theme', theme_to_dark: 'Dark theme', aria_lang: 'Change language',
     pc_title: 'My account',
     pc_login_to_edit: 'Sign in to edit your profile.',
     pc_upload_photo: 'Upload photo', pc_uploading: 'Uploading…',
@@ -852,7 +852,7 @@ const T = {
     // ── Common UI ─────────────────────────────────────────────────────────
     add_player: 'Añadir jugador',
     sign_in: 'Entrar', sign_out: 'Salir',
-    aria_theme: 'Cambiar tema', aria_lang: 'Cambiar idioma',
+    aria_theme: 'Cambiar tema', theme_to_light: 'Tema claro', theme_to_dark: 'Tema oscuro', aria_lang: 'Cambiar idioma',
     pc_title: 'Mi cuenta',
     pc_login_to_edit: 'Entra para editar tu perfil.',
     pc_upload_photo: 'Subir foto', pc_uploading: 'Subiendo…',

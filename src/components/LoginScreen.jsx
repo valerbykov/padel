@@ -172,7 +172,8 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
 
           {isRF && (
           <button className="lg-oauth" onClick={signInYandex}>
-            <span style={{ fontFamily: "Arial, sans-serif", fontWeight: 900, fontSize: 17, color: "#FC3F1D" }}>Я</span>
+            {/* eslint-disable-next-line no-restricted-syntax -- буква-логотип Яндекса, не текст */}
+              <span style={{ fontFamily: "Arial, sans-serif", fontWeight: 900, fontSize: 17, color: "#FC3F1D" }}>Я</span>
             {t("login_yandex")}
           </button>
           )}
