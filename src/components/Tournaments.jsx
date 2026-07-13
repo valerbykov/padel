@@ -427,7 +427,7 @@ export function CopyDialog({ src, groupId, profileId, onClose, onCopied }) {
             background: withPlayers && count > 0 ? "var(--lime)" : "var(--surface2)", border: withPlayers && count > 0 ? "none" : "1px solid var(--line)" }}>
             <span style={{ position: "absolute", top: 3, left: withPlayers && count > 0 ? 21 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
           </span>
-          <span style={{ fontSize: 14 }}>{tr("trn_copy_with_players")} ({count})</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{tr("trn_copy_with_players")} ({count})</span>
         </div>
         <div style={{ display: "flex", gap: 9, marginTop: 20 }}>
           <button className="tr-ghost" style={{ flex: "0 0 34%", padding: 13 }} onClick={onClose} disabled={busy}>{tr("cancel")}</button>
