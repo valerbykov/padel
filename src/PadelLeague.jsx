@@ -1442,7 +1442,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
         </div>
         <div style={{ flex: 2, height: 6, borderRadius: 3, overflow: "hidden", background: "var(--surface2)", display: "flex" }}>
           {w > 0 && <div style={{ flex: w, background: "#3ddc84" }} />}
-          {d > 0 && <div style={{ flex: d, background: "#7d9488" }} />}
+          {d > 0 && <div style={{ flex: d, background: "var(--mut)" }} />}
           {l > 0 && <div style={{ flex: l, background: "var(--coral)" }} />}
         </div>
       </div>
@@ -3168,7 +3168,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
         ordered.forEach((gg) => { const d0 = gDelta(gg); if (d0 != null) { sum += d0; found = true; } });
         return found ? sum : null;
       })();
-      const card = <MixGroupCard games={ordered} color="#7d9488" me={profileId} showMeBadge={!pFilter || pFilter === profileId} delta={mixDelta} onOpenGame={(g) => setSel({ type: "game", data: g })} />;
+      const card = <MixGroupCard games={ordered} color="var(--mut)" me={profileId} showMeBadge={!pFilter || pFilter === profileId} delta={mixDelta} onOpenGame={(g) => setSel({ type: "game", data: g })} />;
       const inner = isGroupMember
         ? <SwipeToDelete onDelete={async () => { if (!(await confirmDialog({ title: t("mix_delete_confirm").replace("{n}", ordered.length), message: t("mix_delete_msg"), confirmLabel: t("delete_btn") }))) return; for (const gg of ordered) await deleteGame(gg.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
         : card;
@@ -3176,7 +3176,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
     }
     const g = ev.game;
     const mine = !profileId || meInGame(g, profileId);
-    const card = <GameRow g={g} color="#7d9488" me={profileId} showMeBadge={!pFilter || pFilter === profileId} delta={gDelta(g)} flush={isGroupMember} onOpen={() => setSel({ type: "game", data: g })} />;
+    const card = <GameRow g={g} color="var(--mut)" me={profileId} showMeBadge={!pFilter || pFilter === profileId} delta={gDelta(g)} flush={isGroupMember} onOpen={() => setSel({ type: "game", data: g })} />;
     const inner = isGroupMember
       ? <SwipeToDelete onCopy={groupId ? () => setCopyGame(g) : null} onDelete={async () => { if (!(await confirmDialog({ title: t("delete_game_confirm"), message: t("delete_game_msg"), confirmLabel: t("delete_btn") }))) return; await deleteGame(g.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
       : card;
