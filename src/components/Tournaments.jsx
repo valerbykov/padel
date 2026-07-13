@@ -423,9 +423,9 @@ export function CopyDialog({ src, groupId, profileId, onClose, onCopied }) {
         </div>
         <div onClick={() => count && setWithPlayers((v) => !v)}
           style={{ display: "flex", alignItems: "center", gap: 11, margin: "14px 2px 0", cursor: count ? "pointer" : "not-allowed", opacity: count ? 1 : 0.5 }}>
-          <span style={{ width: 40, height: 24, borderRadius: 999, flexShrink: 0, position: "relative", transition: "background .15s",
+          <span style={{ width: 44, height: 26, borderRadius: 13, flexShrink: 0, position: "relative", transition: "background .15s",
             background: withPlayers && count > 0 ? "var(--lime)" : "var(--surface2)", border: withPlayers && count > 0 ? "none" : "1px solid var(--line)" }}>
-            <span style={{ position: "absolute", top: 3, left: withPlayers && count > 0 ? 19 : 3, width: 18, height: 18, borderRadius: "50%", background: withPlayers && count > 0 ? "var(--lime-fg)" : "var(--mut)", transition: "left .15s" }} />
+            <span style={{ position: "absolute", top: 3, left: withPlayers && count > 0 ? 21 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
           </span>
           <span style={{ fontSize: 14 }}>{tr("trn_copy_with_players")} ({count})</span>
         </div>
