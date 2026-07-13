@@ -279,6 +279,7 @@ export default function App({ initialShowLogin = false }) {
       if (active && data) { setProfile(data); cacheSet(key, data); }
       // Сеть не отдала профиль, но есть кэш — хотя бы запускаем каскад лиг по нему
       // (setProfile(cached) выше эффект лиг пропустил из-за bootBusyRef).
+      // eslint-disable-next-line no-use-before-define -- вызов асинхронный (после монтирования), loadLeagues к тому моменту определён
       else if (active && cached) loadLeagues(cached.id);
     })();
     return () => { active = false; };

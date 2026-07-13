@@ -81,6 +81,7 @@ export default function CourtView({
   const [busy, setBusy] = useState(false);
   const [dA, setDA] = useState(scoreA);
   const [dB, setDB] = useState(scoreB);
+  const [reEdit, setReEdit] = useState(false);  // до эффекта ниже (TDZ-гейт)
   useEffect(() => { setDA(scoreA); setDB(scoreB); setReEdit(false); }, [scoreA, scoreB]);
 
   // sets state
@@ -111,7 +112,6 @@ export default function CourtView({
   const savedAlready = scoreA != null && scoreB != null;
   // Сохранённый счёт по умолчанию заперт, но его можно перевести в режим
   // правки кнопкой «Изменить счёт» — пока матч вообще редактируем (editable).
-  const [reEdit, setReEdit] = useState(false);
   const locked = savedAlready && !reEdit;
   const scoringActive = editable && mode !== "sets" && !locked && !pickFor;
   // Счёта ещё нет и вводить его здесь нельзя (нет прав / состав не собран) —
