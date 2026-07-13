@@ -16,6 +16,7 @@ import StandingsTable from "./components/StandingsTable";
 import Fab from "./components/Fab";
 import { Trophy, Swords, History, Users, UserPlus, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, UserCheck, ShieldCheck, EyeOff, Star, User, Search, Pencil, Send, MessageCircle } from "lucide-react";
 import Tournaments, { TournamentView, TournamentCard, CopyDialog, css as trCss } from "./components/Tournaments";
+import DateTimePicker from "./components/DateTimePicker";
 import { copyTournament } from "./lib/tournamentApi";
 import { deleteTournament } from "./lib/tournamentApi";
 import CourtView from "./components/CourtView";
@@ -2986,19 +2987,40 @@ function GameCopyDialog({ src, groupId, profileId = null, onClose, onCopied }) {
     try { const gm = await createGame(groupId, { title: name.trim() || null, startsAt: startsAtIso, place, slots, hostId: profileId || null }); onCopied(gm?.id); }
     catch (e) { alert(t("err_create_game")); setBusy(false); }
   };
+  const lab = { fontSize: 10.5, fontWeight: 800, color: "var(--mut)", textTransform: "uppercase", letterSpacing: .7, margin: "16px 2px 7px" };
+  const roster = [["A", 1], ["A", 2], ["B", 1], ["B", 2]]
+    .map(([tm, pos]) => (src.slots || []).find((x) => x.team === tm && x.position === pos))
+    .filter((sl) => sl && (sl.profile_id || sl.guest_name));
   return createPortal(
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }} onClick={onClose}>
-      <div className="pl-card" style={{ width: "100%", maxWidth: 360 }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 12 }}>{t("copy_game_title")}</div>
-        <input className="pl-input" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-        <div style={{ display: "flex", gap: 8, margin: "10px 0" }}>
-          <input className="pl-input" type="date" value={day} onChange={(e) => setDay(e.target.value)} style={{ flex: 1 }} />
-          <input className="pl-input" type="time" value={time} onChange={(e) => setTime(e.target.value)} style={{ width: 120 }} />
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px", overflowY: "auto" }} onClick={onClose}>
+      <div className="pl-card" style={{ width: "100%", maxWidth: 344, padding: "20px 18px 18px", margin: "20px 0" }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+          <span style={{ width: 38, height: 38, borderRadius: 13, background: "color-mix(in srgb, var(--lime) 15%, transparent)", color: "var(--lime)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: "1px solid color-mix(in srgb, var(--lime) 30%, transparent)" }}><Copy size={18} /></span>
+          <div><div style={{ fontWeight: 800, fontSize: 17, color: "var(--ink)" }}>{t("copy_game_title")}</div><div style={{ fontSize: 11.5, color: "var(--mut)" }}>{t("copy_game_sub")}</div></div>
         </div>
-        <input className="pl-input" placeholder={t("court_club_placeholder")} value={place} onChange={(e) => setPlace(e.target.value)} style={{ marginBottom: 12 }} />
-        <div style={{ display: "flex", gap: 8 }}>
-          <button className="pl-ghost" style={{ flex: 1, padding: 11 }} onClick={onClose} disabled={busy}>{t("cancel")}</button>
-          <button className="pl-btn" style={{ flex: 1, padding: 11 }} onClick={go} disabled={busy}>{busy ? t("creating") : t("trn_copy_btn")}</button>
+        {roster.length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 15, padding: "9px 12px", background: "var(--surface2)", borderRadius: 14 }}>
+            <div style={{ display: "flex" }}>
+              {roster.map((sl, i) => (
+                <span key={i} style={{ width: 28, height: 28, borderRadius: "50%", marginLeft: i ? -8 : 0, border: "2px solid var(--surface)", overflow: "hidden", flexShrink: 0, background: "#243b2e" }}>
+                  <img src={playerAvatar(sl.profile?.avatar_url, sl.profile_id || sl.guest_name)} onError={avatarFallback(sl.profile_id || sl.guest_name)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </span>
+              ))}
+            </div>
+            <div style={{ fontSize: 11.5, color: "var(--mut)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{roster.map((sl) => (sl.profile?.name || sl.guest_name || "").split(" ")[0]).join(", ")}</div>
+          </div>
+        )}
+        <div style={lab}>{t("trn_copy_name_label")}</div>
+        <input className="pl-input" style={{ padding: "13px 14px", fontWeight: 600 }} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        <DateTimePicker day={day} time={time} onDay={setDay} onTime={setTime} />
+        <div style={lab}>{t("court_club_placeholder")}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 13, padding: "0 14px" }}>
+          <MapPin size={15} style={{ color: "var(--lime)", flexShrink: 0 }} />
+          <input value={place} onChange={(e) => setPlace(e.target.value)} placeholder={t("court_club_placeholder")} style={{ flex: 1, background: "none", border: "none", outline: "none", color: "var(--ink)", fontFamily: "'Outfit',sans-serif", fontSize: 15, fontWeight: 600, padding: "13px 0" }} />
+        </div>
+        <div style={{ display: "flex", gap: 9, marginTop: 20 }}>
+          <button className="pl-ghost" style={{ flex: "0 0 34%", padding: 13 }} onClick={onClose} disabled={busy}>{t("cancel")}</button>
+          <button className="pl-btn" style={{ flex: 1, padding: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }} onClick={go} disabled={busy}><Copy size={15} /> {busy ? t("creating") : t("trn_copy_btn")}</button>
         </div>
       </div>
     </div>,

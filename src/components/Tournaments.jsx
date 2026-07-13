@@ -53,6 +53,7 @@ import Avatar from "./Avatar";
 import EmptyState from "./EmptyState";
 import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Share2, Trash2, Plus, Check, Calendar, MapPin } from "lucide-react";
 import { t as tr , dateLocale} from "../lib/i18n";
+import DateTimePicker from "./DateTimePicker";
 import BackButton from "./BackButton";
 const nowLocalDT = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
 
@@ -394,6 +395,7 @@ export function CopyDialog({ src, groupId, profileId, onClose, onCopied }) {
   const [place, setPlace] = useState(src.place || "");
   const [busy, setBusy] = useState(false);
   const count = (src.players || []).length;
+  const lab = { fontSize: 10.5, fontWeight: 800, color: "var(--mut)", textTransform: "uppercase", letterSpacing: .7, margin: "16px 2px 7px" };
   const go = async () => {
     if (busy) return;
     setBusy(true);
@@ -405,23 +407,27 @@ export function CopyDialog({ src, groupId, profileId, onClose, onCopied }) {
   // Портал в body: fixed-оверлей внутри анимируемого предка «уезжает» от вьюпорта.
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px", fontFamily: "'Outfit',sans-serif" }} onClick={onClose}>
-      <div className="tr-card" style={{ width: "100%", maxWidth: 360 }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 12 }}>{tr("trn_copy_title")}</div>
-        <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_copy_name_label")}</div>
-        <input className="tr-input" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-        <div style={{ display: "flex", gap: 8, margin: "10px 0" }}>
-          <input className="tr-input" type="date" value={day} onChange={(e) => setDay(e.target.value)} style={{ flex: 1 }} />
-          <input className="tr-input" type="time" value={time} onChange={(e) => setTime(e.target.value)} style={{ width: 120 }} />
+      <div className="tr-card" style={{ width: "100%", maxWidth: 344, padding: "20px 18px 18px", margin: "20px 0" }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+          <span style={{ width: 38, height: 38, borderRadius: 13, background: "color-mix(in srgb, var(--lime) 15%, transparent)", color: "var(--lime)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: "1px solid color-mix(in srgb, var(--lime) 30%, transparent)" }}><Copy size={18} /></span>
+          <div><div style={{ fontWeight: 800, fontSize: 17, color: "var(--ink)" }}>{tr("trn_copy_title")}</div><div style={{ fontSize: 11.5, color: "var(--mut)" }}>{tr("trn_copy_sub")}</div></div>
         </div>
-        <input className="tr-input" placeholder={tr("court_club_placeholder")} value={place} onChange={(e) => setPlace(e.target.value)} style={{ marginBottom: 4 }} />
-        <label style={{ display: "flex", alignItems: "center", gap: 10, margin: "6px 0 16px", cursor: count ? "pointer" : "not-allowed", opacity: count ? 1 : 0.5 }}>
+        <div style={lab}>{tr("trn_copy_name_label")}</div>
+        <input className="tr-input" style={{ padding: "13px 14px", fontWeight: 600 }} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        <DateTimePicker day={day} time={time} onDay={setDay} onTime={setTime} />
+        <div style={lab}>{tr("court_club_placeholder")}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 13, padding: "0 14px" }}>
+          <MapPin size={15} style={{ color: "var(--lime)", flexShrink: 0 }} />
+          <input value={place} onChange={(e) => setPlace(e.target.value)} placeholder={tr("court_club_placeholder")} style={{ flex: 1, background: "none", border: "none", outline: "none", color: "var(--ink)", fontFamily: "'Outfit',sans-serif", fontSize: 15, fontWeight: 600, padding: "13px 0" }} />
+        </div>
+        <label style={{ display: "flex", alignItems: "center", gap: 10, margin: "14px 2px 0", cursor: count ? "pointer" : "not-allowed", opacity: count ? 1 : 0.5 }}>
           <input type="checkbox" checked={withPlayers && count > 0} disabled={!count} onChange={(e) => setWithPlayers(e.target.checked)}
             style={{ width: 16, height: 16, accentColor: "var(--lime)" }} />
           <span style={{ fontSize: 14 }}>{tr("trn_copy_with_players")} ({count})</span>
         </label>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button className="tr-ghost" style={{ flex: 1, padding: 11 }} onClick={onClose} disabled={busy}>{tr("cancel")}</button>
-          <button className="tr-btn" style={{ flex: 1, padding: 11 }} onClick={go} disabled={busy}>{busy ? tr("creating") : tr("trn_copy_btn")}</button>
+        <div style={{ display: "flex", gap: 9, marginTop: 20 }}>
+          <button className="tr-ghost" style={{ flex: "0 0 34%", padding: 13 }} onClick={onClose} disabled={busy}>{tr("cancel")}</button>
+          <button className="tr-btn" style={{ flex: 1, padding: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }} onClick={go} disabled={busy}><Copy size={15} /> {busy ? tr("creating") : tr("trn_copy_btn")}</button>
         </div>
       </div>
     </div>,
