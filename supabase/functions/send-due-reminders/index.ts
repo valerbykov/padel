@@ -89,26 +89,49 @@ async function getApnsAuthToken(p8Pem: string, keyId: string, teamId: string): P
 }
 
 // --- текст уведомления ---
-const OFFSET_LABEL: Record<number, string> = {
-  1440: "за день", 300: "за 5 часов", 120: "за 2 часа", 60: "за час",
+// Спортивные, мотивирующие и РАЗНЫЕ тексты. Выбор шаблона детерминирован хешом
+// (event_id+offset): один и тот же пуш всегда звучит одинаково (на ретраях не
+// «прыгает»), но разные события и разные офсеты одного события звучат по-разному.
+// Тон усиливается по мере приближения старта.
+function pickBy<T>(seed: string, arr: T[]): T {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) { h ^= seed.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return arr[(h >>> 0) % arr.length];
+}
+
+const WHEN: Record<number, string> = {
+  1440: "завтра", 300: "через 5 часов", 120: "через 2 часа", 60: "уже через час",
 };
-function compose(d: { event_type: string; title: string | null; place: string | null; offset_min: number }) {
-  const kind = d.event_type === "tournament" ? "турнир" : "игра";
-  const name = d.title || (d.event_type === "tournament" ? "Турнир" : "Игра");
-  const when = OFFSET_LABEL[d.offset_min] || `через ${Math.round(d.offset_min / 60)} ч`;
-  const title = `Напоминание: ${kind}`;
-  const body = `${name} — сбор ${when}${d.place ? ` · ${d.place}` : ""}`;
+
+const TITLES_NEAR = ["🎾 Пора на корт!", "🔥 Скоро выходим на корт", "🎾 Разминайся!", "🎾 Корт уже ждёт"];
+const TITLES_FAR_GAME = ["🎾 Скоро игра", "🎾 Готовь ракетку", "🎾 Собираемся на корт"];
+const TITLES_FAR_TOUR = ["🏆 Скоро турнир", "🏆 Турнир на подходе", "🎾 Готовь ракетку"];
+const TAILS_NEAR = ["Погнали! 💪", "Разомнись и покажи класс!", "Возьми воду и ракетку 🎾", "Время побеждать 🔥"];
+const TAILS_FAR = ["Не пропусти 💪", "Отметь в календаре 📅", "Собери своих 🎾", "Готовься к бою!"];
+
+function compose(d: { event_type: string; title: string | null; place: string | null; event_id: string; offset_min: number }) {
+  const isTour = d.event_type === "tournament";
+  const name = d.title || (isTour ? "Турнир" : "Игра");
+  const place = d.place ? ` · ${d.place}` : "";
+  const when = WHEN[d.offset_min] || `через ${Math.round(d.offset_min / 60)} ч`;
+  const near = d.offset_min <= 120; // близко к старту — тон бодрее
+  const seed = `${d.event_id}:${d.offset_min}`;
+  const title = pickBy(seed, near ? TITLES_NEAR : (isTour ? TITLES_FAR_TOUR : TITLES_FAR_GAME));
+  const tail = pickBy(seed + "·t", near ? TAILS_NEAR : TAILS_FAR);
+  const body = `${name}${place} — ${when}. ${tail}`;
   return { title, body };
 }
 
-// Текст событийного пуша (новая игра/турнир/объявление в лиге).
-function composeEvent(d: { event_type: string; title: string | null; place: string | null; league: string | null }) {
+// Текст событийного пуша (новая игра/турнир/объявление в лиге) — тоже с задором.
+const CTA_GAME = ["записывайся в состав 💪", "занимай слот 🎾", "врывайся в игру 🔥"];
+const CTA_TOUR = ["заявляйся, пока есть места 🎾", "регистрируйся и покажи класс 🏆", "лови слот в сетке 🔥"];
+function composeEvent(d: { event_type: string; title: string | null; place: string | null; league: string | null; event_id: string }) {
   const lg = d.league ? ` · ${d.league}` : "";
   if (d.event_type === "new_game")
-    return { title: `Новая игра${lg}`, body: `${d.title || "Игра"}${d.place ? ` · ${d.place}` : ""}` };
+    return { title: `🎾 Новая игра${lg}`, body: `${d.title || "Игра"}${d.place ? ` · ${d.place}` : ""} — ${pickBy(d.event_id, CTA_GAME)}` };
   if (d.event_type === "new_tournament")
-    return { title: `Новый турнир${lg}`, body: d.title || "Турнир" };
-  return { title: `Объявление${lg}`, body: d.title || "" }; // league_post: title = фрагмент текста
+    return { title: `🏆 Новый турнир${lg}`, body: `${d.title || "Турнир"} — ${pickBy(d.event_id, CTA_TOUR)}` };
+  return { title: `📣 Объявление${lg}`, body: d.title || "" }; // league_post: текст автора не трогаем
 }
 
 Deno.serve(async (req) => {
