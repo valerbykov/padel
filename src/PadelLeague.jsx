@@ -29,7 +29,9 @@ import Analytics from "./components/Analytics";
 import { dogAvatar, playerAvatar, avatarFallback, DOG_COUNT , avatarBg, avatarOnLoad} from "./lib/avatar";
 
 // Текущая дата-время в формате datetime-local (YYYY-MM-DDTHH:MM) с учётом таймзоны.
-const nowLocalDT = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
+// Округляем к сетке 5 минут (00:01 → 00:00), секунды в 0: степпер времени шагает
+// по 5 мин, поэтому дефолт должен быть «ровным», а не текущей произвольной минутой.
+const nowLocalDT = () => { const d = new Date(); d.setSeconds(0, 0); d.setMinutes(Math.round(d.getMinutes() / 5) * 5); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
 
 const fmtDate = (iso) => {
   if (!iso) return "";

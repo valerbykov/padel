@@ -32,7 +32,8 @@ export default function DateTimePicker({ day, time, onDay, onTime }) {
     { key: "sat", label: t("dt_saturday"), d: nextSaturday(today) },
     { key: "week", label: t("dt_in_week"), d: addDays(today, 7) },
   ];
-  const pickDate = (d) => { onDay(ymd(d)); setView(new Date(d.getFullYear(), d.getMonth(), 1)); };
+  // Выбрал дату → сворачиваем календарь (и presets, и клик по числу в сетке).
+  const pickDate = (d) => { onDay(ymd(d)); setView(new Date(d.getFullYear(), d.getMonth(), 1)); setCalOpen(false); };
 
   // Сетка месяца, неделя с понедельника.
   const monthGrid = () => {
