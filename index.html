@@ -2,7 +2,10 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- maximum-scale=1 + user-scalable=no: в нативном WKWebView пинч-зум «залипал»
+         без кнопки сброса (iOS). Для app-режима зум отключаем; авто-зум по инпутам
+         уже не нужен (все поля 16px). -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#0a1612" />
     <!-- TLS-рукопожатие с БД начинается сразу, а не при первом запросе данных -->
     <link rel="preconnect" href="https://ofewhhcwswjxvlqsygxu.supabase.co" crossorigin />
