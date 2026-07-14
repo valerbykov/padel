@@ -22,15 +22,18 @@ function DogCatch({ theme }) {
   const src = light ? "/anim/dog-catch-light.mp4" : "/anim/dog-catch-dark.mp4";
   const poster = light ? "/anim/dog-catch-light-poster.webp" : "/anim/dog-catch-dark-poster.webp";
   const reduce = (() => { try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } })();
-  // maxWidth 150 — под размер остальных пустых состояний (часы/подиум): видео
-  // заполняет кадр псом, поэтому его рамка меньше, чем у SVG-сцен (там рисунок
-  // мельче внутри 300px-вьюбокса).
+  // Слот того же размера, что и SVG-сцены (viewBox 720×540 при maxWidth 300 =
+  // высота 225): иначе плитка «Игр» ниже соседних (подиум/часы). Пёс — 150px по
+  // центру слота (сам рисунок совпадает по размеру с другими сценами).
+  const slot = { width: "100%", maxWidth: 300, aspectRatio: "720 / 540", display: "flex", alignItems: "center", justifyContent: "center" };
   const style = { width: "100%", maxWidth: 150, display: "block", cursor: reduce ? "default" : "pointer" };
-  if (reduce) return <img src={poster} alt="" aria-hidden="true" style={style} />;
+  if (reduce) return <div style={slot}><img src={poster} alt="" aria-hidden="true" style={style} /></div>;
   const replay = () => { const v = vref.current; if (v) { try { v.currentTime = 0; v.play(); } catch (e) {} } };
   return (
-    <video ref={vref} src={src} poster={poster} muted autoPlay playsInline preload="auto"
-      disablePictureInPicture onClick={replay} aria-hidden="true" style={style} />
+    <div style={slot}>
+      <video ref={vref} src={src} poster={poster} muted autoPlay playsInline preload="auto"
+        disablePictureInPicture onClick={replay} aria-hidden="true" style={style} />
+    </div>
   );
 }
 // variant → сцена в DogRunArt; статичный Art того же вида — fallback на время
