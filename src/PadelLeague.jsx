@@ -983,7 +983,10 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
             <div className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", cursor: "pointer" }}>
               <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(p.id), width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
+                  <span style={{ fontWeight: 600, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                  {p.is_registered && <ShieldCheck size={14} title={t("registered_badge")} style={{ color: "var(--lime)", flexShrink: 0 }} />}
+                </div>
                 <div style={{ fontSize: 12, color: "var(--mut)", display: "inline-flex", alignItems: "center", gap: 4 }}><Swords size={13} /> {p.matches}</div>
               </div>
               <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />

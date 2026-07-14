@@ -134,6 +134,7 @@ const T = {
     onboarding_3_sub_code: 'Код: {code} · или скопируй страницу лиги',
     onboarding_3_sub_no_code: 'Скопируй код приглашения выше',
     played_together_label: 'ИГРАЛИ ВМЕСТЕ',
+    registered_badge: 'Зарегистрирован в приложении',
     // ── Add player form ───────────────────────────────────────────────────
     add_player_form_title: 'Добавить в лигу',
     add_guest_league_hint: 'Добавленный здесь игрок не попадёт в лигу. Чтобы он был в лиге — добавьте его на вкладке «Друзья».',
@@ -536,6 +537,7 @@ const T = {
     onboarding_3_sub_code: 'Code: {code} · or copy the league page',
     onboarding_3_sub_no_code: 'Copy the invite code above',
     played_together_label: 'ALSO PLAYED',
+    registered_badge: 'Registered in the app',
     // ── Add player form ───────────────────────────────────────────────────
     add_player_form_title: 'Add to league',
     add_guest_league_hint: 'A player added here won’t appear in the league. To add them to the league, use the Friends tab.',
@@ -938,6 +940,7 @@ const T = {
     onboarding_3_sub_code: 'Código: {code} · o copia la página de la liga',
     onboarding_3_sub_no_code: 'Copia el código de invitación arriba',
     played_together_label: 'TAMBIÉN JUGARON',
+    registered_badge: 'Registrado en la app',
     // ── Add player form ───────────────────────────────────────────────────
     add_player_form_title: 'Añadir a liga',
     add_guest_league_hint: 'Un jugador añadido aquí no aparecerá en la liga. Para añadirlo a la liga, usa la pestaña Amigos.',
