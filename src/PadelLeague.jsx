@@ -795,16 +795,16 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
 
             <div className="demo-peek" aria-hidden="true" style={{ borderRadius: 13, background: "color-mix(in srgb, var(--bg) 55%, var(--surface))", border: "1px solid var(--line)", padding: 6, display: "flex", flexDirection: "column", gap: 3 }}>
               {[
-                { r: "1", n: "Rex", ti: t("demo_teaser_t1"), p: 1248, lead: true },
-                { r: "2", n: "Bruno", ti: t("demo_teaser_t2"), p: 1176, lead: false },
-                { r: "3", n: "Luna", ti: t("demo_teaser_t3"), p: 1090, lead: false },
+                { r: "1", n: "Rex", p: 1248, lead: true },
+                { r: "2", n: "Bruno", p: 1176, lead: false },
+                { r: "3", n: "Luna", p: 1090, lead: false },
               ].map((d) => (
                 <div key={d.r} style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 8px", borderRadius: 9, background: d.lead ? "color-mix(in srgb, var(--lime) 10%, transparent)" : "transparent" }}>
                   <span style={{ fontSize: 12, fontWeight: 800, color: d.lead ? "var(--lime)" : "var(--mut)", width: 14, textAlign: "center" }}>{d.r}</span>
                   <img src={dogAvatar(d.n)} alt="" style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, objectFit: "cover", border: "1px solid var(--line)" }} />
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: "block", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.n}</span>
-                    <span style={{ display: "block", fontSize: 10, color: "var(--mut)" }}>{d.ti}</span>
+                    <span style={{ display: "block", fontSize: 10, color: "var(--mut)" }}>{t(tierOf(d.p).key)}</span>
                   </span>
                   <span style={{ fontSize: 13, fontWeight: 800, color: "var(--lime)" }}>{d.p}</span>
                 </div>
@@ -816,9 +816,11 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
               🐕 {leagueBusy ? t("creating") : t("demo_hero_cta")} {!leagueBusy && <span className="demo-arrow">→</span>}
             </button>
 
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginTop: 12, fontSize: 12 }}>
-              <button onClick={() => setShowCreateLeague("create")} style={{ background: "none", border: "none", color: "var(--ink)", fontWeight: 700, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontSize: 12, borderBottom: "1px dashed var(--line)", paddingBottom: 1 }}>{t("demo_create_own")}</button>
-              <button onClick={() => setShowCreateLeague("join")} style={{ background: "none", border: "none", color: "var(--ink)", fontWeight: 700, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontSize: 12, borderBottom: "1px dashed var(--line)", paddingBottom: 1 }}>{t("demo_alt_join")}</button>
+            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+              <button onClick={() => setShowCreateLeague("create")}
+                style={{ flex: 1, padding: "11px 8px", borderRadius: 12, border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--ink)", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif" }}>{t("demo_create_own")}</button>
+              <button onClick={() => setShowCreateLeague("join")}
+                style={{ flex: 1, padding: "11px 8px", borderRadius: 12, border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--ink)", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif" }}>{t("demo_alt_join")}</button>
             </div>
             {leagueErr && <div style={{ fontSize: 12, color: "var(--coral)", marginTop: 8, textAlign: "center" }}>{leagueErr}</div>}
           </div>
