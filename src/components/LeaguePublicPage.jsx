@@ -62,7 +62,7 @@ export default function LeaguePublicPage({ code }) {
   return (
     <div className="lp-root" style={vars}>
       <style>{css}</style>
-      <div style={{ maxWidth: 440, margin: "0 auto", padding: "20px 16px 56px" }}>
+      <div style={{ maxWidth: 440, margin: "0 auto", padding: "max(20px, env(safe-area-inset-top)) 16px calc(56px + env(safe-area-inset-bottom))" }}>
         <PublicToggles theme={theme} lang={lang} onTheme={toggleTheme} onLang={cycleLang} />
 
         {/* Брендинг */}

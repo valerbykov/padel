@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
 const LeagueSetup = lazy(() => import("./components/LeagueSetup"));
 import { createPortal } from "react-dom";
+import { registerBack } from "./lib/backstack";
 import { supabase } from "./lib/supabase";
 import BackButton from "./components/BackButton";
 import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, createDemoLeague, joinSlot, clearGameSlot, startGame, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames, getMyDeltas } from "./lib/padelApi";
@@ -240,6 +241,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
   // Карточка игрока, открытая из экрана турнира (объявляем ПОСЛЕ players —
   // useCallback читает players в зависимостях, иначе TDZ и белый экран).
   const openTourPlayer = useCallback((id) => { const f = (players || []).find((p) => p.id === id); if (f) setTourPlayer(f); }, [players]);
+  useEffect(() => { if (tourPlayer) return registerBack(() => setTourPlayer(null)); }, [tourPlayer]);
   const [lbLoaded, setLbLoaded] = useState(false);
   const [archiveNonce, setArchiveNonce] = useState(0);
   const bumpArchive = useCallback(() => setArchiveNonce((n) => n + 1), []);
@@ -2685,6 +2687,8 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
   const [mix, setMix] = useState(false);
   const [prof, setProf] = useState(null);  // карточка игрока из состава (только просмотр)
   const onOpenPlayer = (id) => { const f = players.find((p) => p.id === id); if (f) setProf(f); };
+  useEffect(() => { if (prof) return registerBack(() => setProf(null)); }, [prof]);   // «назад» → закрыть карточку игрока
+  useEffect(() => { if (back) return registerBack(back); }, [back]);                   // «назад» → к списку игр
   const [mixBusy, setMixBusy] = useState(false);
   const [toast, setToast] = useState("");
   // Страница (микс-)сессии: все игры одной группы (mix_group_id || id).
@@ -3037,6 +3041,7 @@ function SwipeToDelete({ onDelete, onCopy, children }) {
 }
 
 function GameCopyDialog({ src, groupId, profileId = null, onClose, onCopied }) {
+  useEffect(() => registerBack(onClose), [onClose]);
   const [name, setName] = useState(src.title ? `${src.title} ${t("trn_copy_suffix")}` : "");
   const [day, setDay] = useState(() => nowLocalDT().slice(0, 10));
   const [time, setTime] = useState(() => nowLocalDT().slice(11, 16));

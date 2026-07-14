@@ -6,6 +6,7 @@ import React, { useEffect, useState, useCallback, useRef, lazy } from "react";
 import { supabase } from "./lib/supabase";
 import { handleAuthCallbackUrl, handleYandexCallback, handleTelegramCallback } from "./lib/auth";
 import { cachePeek, cacheSet } from "./lib/cache";
+import { runBack, registerBack } from "./lib/backstack";
 import Avatar from "./components/Avatar";
 import Logo from "./components/Logo"; // текстовый логотип в топбаре для гостя
 import LeagueSwitcher from "./components/LeagueSwitcher"; // глобальный переключатель лиги в топбаре
@@ -109,20 +110,22 @@ export default function App({ initialShowLogin = false }) {
   // «Подробнее о PadelPack» → полноэкранный лендинг (статическая маркетинговая страница).
   const openLanding = useCallback(() => { window.location.href = "/landing.html"; }, []);
 
-  // Нативный статус-бар (Android/iOS). На Android env(safe-area-inset-top) для
-  // строки состояния = 0, поэтому CSS-отступ не помогает — говорим системе НЕ
-  // накладывать статус-бар на webview (контент встаёт под ним) и задаём цвет/стиль
-  // иконок под тему. Доступ рантаймом — на вебе плагина нет, эффект тихо ничего не делает.
+  // Нативный статус-бар (Android/iOS) — EDGE-TO-EDGE. Android 15 (targetSdk 35+)
+  // принудительно включает отображение от края до края и объявил устаревшими
+  // Window.setStatusBarColor / setNavigationBarColor (Play помечает их
+  // предупреждением). Поэтому цвет бара НЕ красим — вместо этого пускаем webview
+  // под статус-бар (overlay:true), а его фон закрывает шапка/навбар, у которых
+  // есть отступы env(safe-area-inset-*). Оставляем только setStyle — он меняет
+  // контраст иконок через WindowInsetsController и не устарел.
   useEffect(() => {
     const Cap = window.Capacitor;
     const SB = Cap?.Plugins?.StatusBar;
     if (!SB) return;
     const dark = theme !== "light";
     if (Cap.getPlatform && Cap.getPlatform() === "android") {
-      SB.setOverlaysWebView({ overlay: false }).catch(() => {});
+      SB.setOverlaysWebView({ overlay: true }).catch(() => {});
     }
     SB.setStyle({ style: dark ? "DARK" : "LIGHT" }).catch(() => {}); // DARK = светлые иконки (для тёмного фона)
-    SB.setBackgroundColor({ color: dark ? "#0a1612" : "#ffffff" }).catch(() => {});
   }, [theme]);
 
   // PWA install prompt (Android/Desktop Chrome)
@@ -217,6 +220,26 @@ export default function App({ initialShowLogin = false }) {
       if (!(await handleYandexCallback(url))) await handleAuthCallbackUrl(url); // иначе — auth-callback
     });
     // Capacitor 8: addListener может вернуть handle напрямую ИЛИ Promise<handle>
+    if (res && typeof res.then === "function") res.then((h) => { sub = h; });
+    else sub = res;
+    return () => { sub?.remove?.(); };
+  }, []);
+
+  // Модалки App-уровня в back-stack: аппаратная «Назад» закрывает их, а не выходит.
+  useEffect(() => { if (showProfile) return registerBack(() => setShowProfile(false)); }, [showProfile]);
+  useEffect(() => { if (showLogin) return registerBack(() => setShowLogin(false)); }, [showLogin]);
+
+  // Аппаратная кнопка «Назад» (Android): сначала закрываем верхний открытый слой
+  // (модалку/под-экран через back-stack); если закрывать нечего — сворачиваем
+  // приложение (а не выходим). На вебе плагина нет — эффект ничего не делает.
+  useEffect(() => {
+    const CapApp = window.Capacitor?.Plugins?.App;
+    if (!CapApp) return;
+    let sub;
+    const res = CapApp.addListener("backButton", () => {
+      if (runBack()) return;                 // закрыли модалку/под-экран
+      (CapApp.minimizeApp ? CapApp.minimizeApp() : CapApp.exitApp?.());
+    });
     if (res && typeof res.then === "function") res.then((h) => { sub = h; });
     else sub = res;
     return () => { sub?.remove?.(); };
