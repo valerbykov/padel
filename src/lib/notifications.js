@@ -19,6 +19,11 @@ function platformName() {
   try { return window.Capacitor?.getPlatform?.() || "android"; } catch { return "android"; }
 }
 
+// Пояс устройства — чтобы напоминания показывали локальное время старта.
+function deviceTz() {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || null; } catch { return null; }
+}
+
 // Настройки текущего пользователя (или разумный дефолт, если строки ещё нет).
 // notifyEvents — пуши о событиях лиги (новая игра/турнир/объявление), поверх enabled.
 export async function getNotifPrefs() {
@@ -49,7 +54,7 @@ async function saveToken(token) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user || !token) return;
   await supabase.from("push_tokens").upsert(
-    { token, user_id: user.id, platform: platformName(), updated_at: new Date().toISOString() },
+    { token, user_id: user.id, platform: platformName(), tz: deviceTz(), updated_at: new Date().toISOString() },
     { onConflict: "token" }
   );
 }

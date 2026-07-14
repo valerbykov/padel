@@ -99,27 +99,53 @@ function pickBy<T>(seed: string, arr: T[]): T {
   return arr[(h >>> 0) % arr.length];
 }
 
-const WHEN: Record<number, string> = {
-  1440: "завтра", 300: "через 5 часов", 120: "через 2 часа", 60: "уже через час",
-};
-
-const TITLES_NEAR = ["🎾 Пора на корт!", "🔥 Скоро выходим на корт", "🎾 Разминайся!", "🎾 Корт уже ждёт"];
-const TITLES_FAR_GAME = ["🎾 Скоро игра", "🎾 Готовь ракетку", "🎾 Собираемся на корт"];
-const TITLES_FAR_TOUR = ["🏆 Скоро турнир", "🏆 Турнир на подходе", "🎾 Готовь ракетку"];
+// Заголовок под КАЖДЫЙ офсет: несёт «через сколько» (завтра / через 5 ч / 2 ч / час),
+// тон усиливается к старту. Тело несёт «когда» — конкретное локальное время.
+function titlePool(isTour: boolean, off: number): string[] {
+  if (off >= 1440) return isTour
+    ? ["🏆 Завтра турнир", "🏆 Турнир завтра — готовься", "🎾 Готовь ракетку: завтра турнир"]
+    : ["🎾 Завтра игра", "🎾 Готовь ракетку — завтра", "🎾 Завтра собираемся на корт"];
+  if (off >= 300) return isTour
+    ? ["🏆 Сегодня турнир — через 5 часов", "🏆 Турнир уже сегодня", "🎾 Готовься: турнир через 5 часов"]
+    : ["🎾 Сегодня игра — через 5 часов", "🎾 Игра уже сегодня", "🎾 Готовься: игра через 5 часов"];
+  if (off >= 120) return isTour
+    ? ["🔥 Турнир через 2 часа", "🏆 Через 2 часа — старт турнира", "🎾 Турнир скоро: через 2 часа"]
+    : ["🔥 Игра через 2 часа", "🎾 Через 2 часа на корт", "🎾 Игра скоро: через 2 часа"];
+  return isTour // <= 60 мин — хайп
+    ? ["🎾 Турнир уже через час!", "🔥 Через час — на корт!", "🏆 Час до турнира — разминайся"]
+    : ["🎾 Пора на корт — уже через час!", "🔥 Через час на корт!", "🎾 Час до игры — разминайся"];
+}
 const TAILS_NEAR = ["Погнали! 💪", "Разомнись и покажи класс!", "Возьми воду и ракетку 🎾", "Время побеждать 🔥"];
 const TAILS_FAR = ["Не пропусти 💪", "Отметь в календаре 📅", "Собери своих 🎾", "Готовься к бою!"];
 
-function compose(d: { event_type: string; title: string | null; place: string | null; event_id: string; offset_min: number }) {
+// Локальное «когда»: «сегодня в 19:30» / «завтра в 10:00» / «14 июля в 09:00».
+// tz — часовой пояс устройства (push_tokens.tz); фолбэк — Москва (осн. рынок РФ).
+function ymd(date: Date, tz: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+}
+function whenLocal(startsAtIso: string, tz: string): string {
+  const t = tz || "Europe/Moscow";
+  const start = new Date(startsAtIso);
+  const now = new Date();
+  const time = new Intl.DateTimeFormat("ru-RU", { timeZone: t, hour: "2-digit", minute: "2-digit" }).format(start);
+  const dStart = ymd(start, t);
+  let day: string;
+  if (dStart === ymd(now, t)) day = "сегодня";
+  else if (dStart === ymd(new Date(now.getTime() + 86400000), t)) day = "завтра";
+  else day = new Intl.DateTimeFormat("ru-RU", { timeZone: t, day: "numeric", month: "long" }).format(start);
+  return `${day} в ${time}`;
+}
+
+// Заголовок и хвост от tz не зависят — считаем один раз; время подставляем на токен.
+function compose(d: { event_type: string; title: string | null; place: string | null; event_id: string; offset_min: number; starts_at: string }) {
   const isTour = d.event_type === "tournament";
   const name = d.title || (isTour ? "Турнир" : "Игра");
-  const place = d.place ? ` · ${d.place}` : "";
-  const when = WHEN[d.offset_min] || `через ${Math.round(d.offset_min / 60)} ч`;
-  const near = d.offset_min <= 120; // близко к старту — тон бодрее
+  const lead = `${name}${d.place ? ` · ${d.place}` : ""}`;
   const seed = `${d.event_id}:${d.offset_min}`;
-  const title = pickBy(seed, near ? TITLES_NEAR : (isTour ? TITLES_FAR_TOUR : TITLES_FAR_GAME));
-  const tail = pickBy(seed + "·t", near ? TAILS_NEAR : TAILS_FAR);
-  const body = `${name}${place} — ${when}. ${tail}`;
-  return { title, body };
+  const title = pickBy(seed, titlePool(isTour, d.offset_min));
+  const tail = pickBy(seed + "·t", d.offset_min <= 120 ? TAILS_NEAR : TAILS_FAR);
+  // build(tz): тело с конкретным локальным временем старта под пояс устройства.
+  return { title, build: (tz: string) => `${lead} — ${whenLocal(d.starts_at, tz)}. ${tail}` };
 }
 
 // Текст событийного пуша (новая игра/турнир/объявление в лиге) — тоже с задором.
@@ -163,9 +189,9 @@ Deno.serve(async (req) => {
 
     // 2) токены участников (объединяем адресатов напоминаний и событий)
     const userIds = [...new Set([...(due || []), ...events].map((d: any) => d.user_id))];
-    const { data: tokRows } = await admin.from("push_tokens").select("user_id, token, platform").in("user_id", userIds);
-    const byUser: Record<string, Array<{ token: string; platform: string }>> = {};
-    for (const r of tokRows || []) (byUser[r.user_id] ||= []).push({ token: r.token, platform: r.platform || "android" });
+    const { data: tokRows } = await admin.from("push_tokens").select("user_id, token, platform, tz").in("user_id", userIds);
+    const byUser: Record<string, Array<{ token: string; platform: string; tz: string }>> = {};
+    for (const r of tokRows || []) (byUser[r.user_id] ||= []).push({ token: r.token, platform: r.platform || "android", tz: r.tz || "" });
 
     // 3) FCM access token (Android) + конфиг APNs (iOS напрямую)
     const accessToken = await getFcmAccessToken(sa);
@@ -191,13 +217,17 @@ Deno.serve(async (req) => {
       });
     };
 
-    // Единый отправитель: и напоминания, и события идут одним циклом.
-    const outbox: Array<{ user_id: string; event_type: string; event_id: string; offset_min: number; msg: { title: string; body: string } }> = [];
+    // Единый отправитель: и напоминания, и события идут одним циклом. У напоминаний
+    // тело зависит от пояса устройства (локальное время старта) → build(tz) на токен;
+    // у событий тело фиксированное.
+    const outbox: Array<{ user_id: string; event_type: string; event_id: string; offset_min: number; title: string; body?: string; build?: (tz: string) => string }> = [];
     for (const d of (due || []) as any[]) {
-      outbox.push({ user_id: d.user_id, event_type: d.event_type, event_id: d.event_id, offset_min: d.offset_min, msg: compose(d) });
+      const m = compose(d);
+      outbox.push({ user_id: d.user_id, event_type: d.event_type, event_id: d.event_id, offset_min: d.offset_min, title: m.title, build: m.build });
     }
     for (const d of events as any[]) {
-      outbox.push({ user_id: d.user_id, event_type: d.event_type, event_id: d.event_id, offset_min: 0, msg: composeEvent(d) });
+      const m = composeEvent(d);
+      outbox.push({ user_id: d.user_id, event_type: d.event_type, event_id: d.event_id, offset_min: 0, title: m.title, body: m.body });
     }
 
     for (const d of outbox) {
@@ -205,8 +235,10 @@ Deno.serve(async (req) => {
       // логируем факт обработки в любом случае — иначе будет ретраиться каждые 5 мин
       log.push({ user_id: d.user_id, event_type: d.event_type, event_id: d.event_id, offset_min: d.offset_min });
       if (tokens.length === 0) { if (log.length >= 20) await flushLog(); continue; }
-      const { title, body } = d.msg;
+      const title = d.title;
       for (const tk of tokens) {
+        // тело: у события фиксированное, у напоминания — с локальным временем пояса токена
+        const body = d.body != null ? d.body : d.build!(tk.tz);
         // Сетевой сбой одного fetch не должен ронять всю рассылку (и терять лог).
         try {
           if (tk.platform === "ios") {
