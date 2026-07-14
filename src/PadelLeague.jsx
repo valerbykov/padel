@@ -301,7 +301,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
 
         {tab === "welcome" && !session && <WelcomeScreen onLogin={onLogin} onBrowseGames={() => goTab("games")} onBrowseTournaments={() => goTab("tournaments")} onOpenLanding={onOpenLanding} theme={theme} lang={lang} onThemeToggle={onThemeToggle} onLangChange={onLangChange} />}
         {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} loading={!lbLoaded} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} leaguesReady={leaguesReady} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsNonce={openSelfStatsNonce} analyticsNonce={openAnalyticsNonce} /> : <GateScreen />)}
-        {tab === "games" && <Games key={navNonce} groupId={groupId} players={players} profileId={profileId} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} openReq={openEvent?.kind === "game" ? openEvent : null} />}
+        {tab === "games" && <Games key={navNonce} groupId={groupId} players={players} profileId={profileId} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} openReq={openEvent?.kind === "game" ? openEvent : null} theme={theme} />}
         {tab === "tournaments" && <Tournaments key={navNonce} groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} membersCanCreate={!!activeLeague?.members_can_create} openReq={openEvent?.kind === "tour" ? openEvent : null} onOpenPlayer={openTourPlayer} />}
         {tab === "history" && (session ? <HistoryView key={navNonce} groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} isAdmin={isAdmin} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onOpenPlayer={openTourPlayer} /> : <GateScreen />)}
       </div>
@@ -2197,7 +2197,7 @@ function MixGroupCard({ games, color, onOpenGame, me = null, delta = null, showM
   );
 }
 
-function Games({ groupId, players, profileId, reloadLeaderboard, session, archiveNonce, bumpArchive, onLogin, isAdmin = false, canCreate = false, openReq = null }) {
+function Games({ groupId, players, profileId, reloadLeaderboard, session, archiveNonce, bumpArchive, onLogin, isAdmin = false, canCreate = false, openReq = null, theme = "dark" }) {
   const [games, setGames] = useState([]);
   const [mode, setMode] = useState("list");
   const [selId, setSelId] = useState(null);
@@ -2238,7 +2238,7 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
       )}
       {session && groupId && canCreate && <Fab label={t("create_game")} icon={<Swords size={24} />} onClick={() => setMode("create")} />}
       {loading && <CardSkeleton count={4} />}
-      {!loading && games.length === 0 && <EmptyState variant="run" text={!session ? t("games_empty_guest") : (groupId ? t("games_empty_session") : t("solo_games_empty"))} />}
+      {!loading && games.length === 0 && <EmptyState variant="run" theme={theme} text={!session ? t("games_empty_guest") : (groupId ? t("games_empty_session") : t("solo_games_empty"))} />}
       {!loading && (() => {
         const upcoming = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length < 4);
         const active   = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length === 4);
@@ -2271,7 +2271,7 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
           </div>
         );
         return [
-          (games.length > 0 && upcoming.length === 0 && active.length === 0 && liveNow.length === 0) ? <EmptyState key="na" variant="run" text={t("games_no_active")} /> : null,
+          (games.length > 0 && upcoming.length === 0 && active.length === 0 && liveNow.length === 0) ? <EmptyState key="na" variant="run" theme={theme} text={t("games_no_active")} /> : null,
           hero && <GameHero key="hero" g={hero} me={profileId} onOpen={() => { setSelId(hero.id); setMode("view"); }} onTake={() => takeFirstFree(hero)} />,
           section(t("live_section"), "var(--coral)", liveNow, false, false),
           section(t("upcoming_section"), "var(--mut)", upcoming.filter((g) => g !== hero), canCreate, true),
