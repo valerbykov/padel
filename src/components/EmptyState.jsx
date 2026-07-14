@@ -22,7 +22,10 @@ function DogCatch({ theme }) {
   const src = light ? "/anim/dog-catch-light.mp4" : "/anim/dog-catch-dark.mp4";
   const poster = light ? "/anim/dog-catch-light-poster.webp" : "/anim/dog-catch-dark-poster.webp";
   const reduce = (() => { try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } })();
-  const style = { width: "100%", maxWidth: 240, display: "block", cursor: reduce ? "default" : "pointer" };
+  // maxWidth 150 — под размер остальных пустых состояний (часы/подиум): видео
+  // заполняет кадр псом, поэтому его рамка меньше, чем у SVG-сцен (там рисунок
+  // мельче внутри 300px-вьюбокса).
+  const style = { width: "100%", maxWidth: 150, display: "block", cursor: reduce ? "default" : "pointer" };
   if (reduce) return <img src={poster} alt="" aria-hidden="true" style={style} />;
   const replay = () => { const v = vref.current; if (v) { try { v.currentTime = 0; v.play(); } catch (e) {} } };
   return (

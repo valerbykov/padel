@@ -152,7 +152,6 @@ function PodiumScene({ still = false }) {
   }
   return (
     <>
-      <DogBg />
       <PodiumBars animated />
       {/* Мяч: дуга справа, два затухающих отскока, ложится на 1-ю ступень */}
       <g opacity="0">
@@ -223,7 +222,6 @@ function ClockScene({ still = false }) {
   }
   return (
     <>
-      <DogBg />
       <ClockFace animated />
       {/* Мяч: прилетает, стукается о корпус часов и отскакивает на привычное место */}
       <g opacity="0">
