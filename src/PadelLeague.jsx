@@ -42,7 +42,7 @@ const fmtDate = (iso) => {
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
-body{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;--lime-fg:#0a1612;--topbar-bg:rgba(10,22,18,.92);--yellow:#ffd23f;--border:var(--line);--card:var(--surface);--fg:var(--ink);background:var(--bg);}
+body{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;--lime-fg:#0a1612;--topbar-bg:rgba(10,22,18,.92);--yellow:#ffd23f;--border:var(--line);--card:var(--surface);--fg:var(--ink);background:var(--bg);color:var(--ink);}
 body.pl-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;--ink:#0d1f18;--mut:#4a7060;--lime:#2a7a00;--coral:#d93a1f;--lime-fg:#ffffff;--topbar-bg:rgba(242,247,244,.95);--yellow:#9a6800;}
 .pl-root{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;color-scheme:dark;
  background-image:radial-gradient(circle at 80% -10%,rgba(200,255,45,.10),transparent 45%),radial-gradient(circle at 0% 110%,rgba(40,120,90,.18),transparent 40%);}
@@ -333,8 +333,8 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
         </div>
       </nav>
       {tourPlayer && createPortal(
-        <div style={{ position: "fixed", inset: 0, zIndex: 250, background: "var(--bg)", overflowY: "auto" }}>
-          <div style={{ maxWidth: 460, margin: "0 auto", padding: "14px 16px calc(20px + env(safe-area-inset-bottom))" }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 250, background: "var(--bg)", color: "var(--ink)", overflowY: "auto" }}>
+          <div style={{ maxWidth: 460, margin: "0 auto", padding: "calc(14px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom))" }}>
             <PlayerDetail key={tourPlayer.id} groupId={groupId} player={tourPlayer} players={players} close={() => setTourPlayer(null)} onOpenPlayer={(id) => { const f = (players || []).find((p) => p.id === id); setTourPlayer(f || null); }} />
           </div>
         </div>, document.body)}
