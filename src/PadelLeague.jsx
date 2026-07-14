@@ -224,6 +224,19 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
     prevGroupRef.current = groupId;
     if (session) { setTab("board"); setNavNonce((n) => n + 1); }
   }, [groupId, session]);
+  // Логаут внутри игры/турнира: сессия ушла — сбрасываем навигацию, иначе
+  // остаёшься на открытом экране игры/турнира. Ремоунт вкладок (navNonce)
+  // чистит их внутреннее состояние (выбранная игра/турнир), + закрываем оверлеи.
+  const prevSessionRef = useRef(!!session);
+  useEffect(() => {
+    const has = !!session;
+    if (prevSessionRef.current && !has) {
+      setTab("welcome");
+      setNavNonce((n) => n + 1);
+      setTourPlayer(null);
+    }
+    prevSessionRef.current = has;
+  }, [session]);
   const [players, setPlayers] = useState([]);
   // Карточка игрока, открытая из экрана турнира (объявляем ПОСЛЕ players —
   // useCallback читает players в зависимостях, иначе TDZ и белый экран).
@@ -782,13 +795,13 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
 
             <div className="demo-peek" aria-hidden="true" style={{ borderRadius: 13, background: "color-mix(in srgb, var(--bg) 55%, var(--surface))", border: "1px solid var(--line)", padding: 6, display: "flex", flexDirection: "column", gap: 3 }}>
               {[
-                { r: "1", n: "Rex", ti: t("demo_teaser_t1"), p: 1248, bg: "var(--lime)", em: "🐕", lead: true },
-                { r: "2", n: "Bruno", ti: t("demo_teaser_t2"), p: 1176, bg: "var(--yellow)", em: "🦮", lead: false },
-                { r: "3", n: "Luna", ti: t("demo_teaser_t3"), p: 1090, bg: "var(--coral)", em: "🐩", lead: false },
+                { r: "1", n: "Rex", ti: t("demo_teaser_t1"), p: 1248, lead: true },
+                { r: "2", n: "Bruno", ti: t("demo_teaser_t2"), p: 1176, lead: false },
+                { r: "3", n: "Luna", ti: t("demo_teaser_t3"), p: 1090, lead: false },
               ].map((d) => (
                 <div key={d.r} style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 8px", borderRadius: 9, background: d.lead ? "color-mix(in srgb, var(--lime) 10%, transparent)" : "transparent" }}>
                   <span style={{ fontSize: 12, fontWeight: 800, color: d.lead ? "var(--lime)" : "var(--mut)", width: 14, textAlign: "center" }}>{d.r}</span>
-                  <span style={{ width: 30, height: 30, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0, border: "1px solid var(--line)", background: `color-mix(in srgb, ${d.bg} 22%, transparent)` }}>{d.em}</span>
+                  <img src={dogAvatar(d.n)} alt="" style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, objectFit: "cover", border: "1px solid var(--line)" }} />
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: "block", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.n}</span>
                     <span style={{ display: "block", fontSize: 10, color: "var(--mut)" }}>{d.ti}</span>
