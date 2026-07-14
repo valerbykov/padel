@@ -66,8 +66,10 @@ export default defineConfig([
   },
   {
     // Легитимные определения тем и canvas-рендер (CSS-переменных там нет):
-    // guest-темы и шаринг-карточки хардкодят цвета намеренно.
-    files: ['src/components/publicChrome.jsx', 'src/lib/shareCard.js'],
+    // guest-темы и шаринг-карточки хардкодят цвета намеренно. TgNativeBridge —
+    // отдельная тёмная страница-мост (рендерится вне PadelLeague, где инжектятся
+    // var(--...)), поэтому цвета там тоже хардкод по необходимости.
+    files: ['src/components/publicChrome.jsx', 'src/lib/shareCard.js', 'src/components/TgNativeBridge.jsx'],
     rules: { 'no-restricted-syntax': 'off' },
   },
   {
