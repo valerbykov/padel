@@ -64,6 +64,11 @@ body.pl-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;-
 .pl-tab.on::before{content:"";position:absolute;top:2px;left:50%;transform:translateX(-50%);width:48px;height:30px;border-radius:15px;background:color-mix(in srgb,var(--lime) 15%,transparent);}
 .pl-pop{animation:pop .35s cubic-bezier(.2,.8,.2,1) both;}
 @keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.demo-arrow{display:inline-block;animation:demoArrow 2.2s ease-in-out infinite;}
+@keyframes demoArrow{0%,100%{transform:translateX(0)}50%{transform:translateX(3px)}}
+.demo-peek{position:relative;}
+.demo-peek::after{content:"";position:absolute;left:0;right:0;bottom:0;height:34px;border-radius:0 0 13px 13px;background:linear-gradient(180deg,transparent,var(--surface));pointer-events:none;}
+@media(prefers-reduced-motion:reduce){.demo-arrow{animation:none}}
 .pl-codebox{font-family:'Outfit';font-weight:800;letter-spacing:6px;font-size:30px;color:var(--lime);text-align:center;background:var(--surface2);border:1px dashed var(--line);border-radius:14px;padding:12px;}
 .pl-slot{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--surface2);border:1px solid var(--line);}
 @media(max-width:400px){
@@ -298,7 +303,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
 
         {tab === "welcome" && !session && <WelcomeScreen onLogin={onLogin} onBrowseGames={() => goTab("games")} onBrowseTournaments={() => goTab("tournaments")} onOpenLanding={onOpenLanding} theme={theme} lang={lang} onThemeToggle={onThemeToggle} onLangChange={onLangChange} />}
         {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} loading={!lbLoaded} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} leaguesReady={leaguesReady} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsNonce={openSelfStatsNonce} analyticsNonce={openAnalyticsNonce} /> : <GateScreen />)}
-        {tab === "games" && <Games key={navNonce} groupId={groupId} players={players} profileId={profileId} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} openReq={openEvent?.kind === "game" ? openEvent : null} />}
+        {tab === "games" && <Games key={navNonce} groupId={groupId} players={players} profileId={profileId} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} openReq={openEvent?.kind === "game" ? openEvent : null} theme={theme} />}
         {tab === "tournaments" && <Tournaments key={navNonce} groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} membersCanCreate={!!activeLeague?.members_can_create} openReq={openEvent?.kind === "tour" ? openEvent : null} onOpenPlayer={openTourPlayer} />}
         {tab === "history" && (session ? <HistoryView key={navNonce} groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} isAdmin={isAdmin} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onOpenPlayer={openTourPlayer} /> : <GateScreen />)}
       </div>
@@ -762,16 +767,46 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
       {/* Без лиги — подсказка + вход в демо-стаю (создание/вступление — в переключателе в шапке).
           Только когда список лиг ДОГРУЖЕН: иначе карточка мигает при каждом логине. */}
       {leaguesReady && (!leagues || leagues.length === 0) && (
-        <div className="pl-card pl-pop" style={{ padding: 16, marginBottom: 12, textAlign: "center" }}>
-          <div style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.4 }}>{t("welcome_choose_sub")}</div>
-          <div style={{ fontSize: 12, color: "var(--lime)", marginTop: 10 }}>{t("league_switch_hint")}</div>
-          <button disabled={leagueBusy} onClick={handleDemoLeague}
-            style={{ width: "100%", marginTop: 14, padding: "12px 0", borderRadius: 12, background: "none", cursor: "pointer", fontFamily: "'Outfit',sans-serif",
-              border: "1px dashed color-mix(in srgb, var(--lime) 45%, transparent)", color: "var(--lime)", fontSize: 15, fontWeight: 700 }}>
-            {leagueBusy ? t("creating") : t("ls_demo")}
-          </button>
-          <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 6 }}>{t("ls_demo_hint")}</div>
-          {leagueErr && <div style={{ fontSize: 12, color: "var(--coral)", marginTop: 8 }}>{leagueErr}</div>}
+        <div className="pl-pop" style={{ marginBottom: 12 }}>
+          {/* Демо-лига — герой пустого экрана: живой тизер таблицы + крупный CTA,
+              чтобы новичок её не пропустил. Создать/вступить — спокойные ссылки ниже. */}
+          <div style={{ borderRadius: 20, padding: "16px 15px 15px", position: "relative", overflow: "hidden",
+            background: "linear-gradient(180deg, color-mix(in srgb, var(--lime) 12%, var(--surface)) 0%, var(--surface) 60%)",
+            border: "1px solid color-mix(in srgb, var(--lime) 38%, transparent)",
+            boxShadow: "0 0 0 4px color-mix(in srgb, var(--lime) 7%, transparent)" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10.5, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--lime)" }}>🐕 {t("demo_hero_eyebrow")}</span>
+            <div style={{ fontSize: 17, fontWeight: 800, lineHeight: 1.2, margin: "8px 0 3px", letterSpacing: -0.2 }}>{t("demo_hero_title")}</div>
+            <div style={{ fontSize: 12, color: "var(--mut)", margin: "0 0 13px", lineHeight: 1.4 }}>{t("demo_hero_desc")}</div>
+
+            <div className="demo-peek" aria-hidden="true" style={{ borderRadius: 13, background: "color-mix(in srgb, var(--bg) 55%, var(--surface))", border: "1px solid var(--line)", padding: 6, display: "flex", flexDirection: "column", gap: 3 }}>
+              {[
+                { r: "1", n: "Rex", ti: t("demo_teaser_t1"), p: 1248, bg: "var(--lime)", em: "🐕", lead: true },
+                { r: "2", n: "Bruno", ti: t("demo_teaser_t2"), p: 1176, bg: "var(--yellow)", em: "🦮", lead: false },
+                { r: "3", n: "Luna", ti: t("demo_teaser_t3"), p: 1090, bg: "var(--coral)", em: "🐩", lead: false },
+              ].map((d) => (
+                <div key={d.r} style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 8px", borderRadius: 9, background: d.lead ? "color-mix(in srgb, var(--lime) 10%, transparent)" : "transparent" }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: d.lead ? "var(--lime)" : "var(--mut)", width: 14, textAlign: "center" }}>{d.r}</span>
+                  <span style={{ width: 30, height: 30, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 16, flexShrink: 0, border: "1px solid var(--line)", background: `color-mix(in srgb, ${d.bg} 22%, transparent)` }}>{d.em}</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.n}</span>
+                    <span style={{ display: "block", fontSize: 10, color: "var(--mut)" }}>{d.ti}</span>
+                  </span>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: "var(--lime)" }}>{d.p}</span>
+                </div>
+              ))}
+            </div>
+
+            <button disabled={leagueBusy} onClick={handleDemoLeague}
+              style={{ width: "100%", marginTop: 13, padding: "13px 0", border: "none", borderRadius: 13, background: "var(--lime)", color: "var(--lime-fg)", fontSize: 15, fontWeight: 800, fontFamily: "'Outfit',sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, cursor: "pointer", boxShadow: "0 8px 22px -8px color-mix(in srgb, var(--lime) 65%, transparent)" }}>
+              🐕 {leagueBusy ? t("creating") : t("demo_hero_cta")} {!leagueBusy && <span className="demo-arrow">→</span>}
+            </button>
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginTop: 12, fontSize: 12 }}>
+              <button onClick={() => setShowCreateLeague("create")} style={{ background: "none", border: "none", color: "var(--ink)", fontWeight: 700, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontSize: 12, borderBottom: "1px dashed var(--line)", paddingBottom: 1 }}>{t("demo_create_own")}</button>
+              <button onClick={() => setShowCreateLeague("join")} style={{ background: "none", border: "none", color: "var(--ink)", fontWeight: 700, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontSize: 12, borderBottom: "1px dashed var(--line)", paddingBottom: 1 }}>{t("demo_alt_join")}</button>
+            </div>
+            {leagueErr && <div style={{ fontSize: 12, color: "var(--coral)", marginTop: 8, textAlign: "center" }}>{leagueErr}</div>}
+          </div>
         </div>
       )}
 
@@ -809,7 +844,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
             <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--ink)" }}>{t("demo_banner_title")}</div>
             <div style={{ fontSize: 10.5, color: "var(--mut)" }}>{t("demo_banner_sub")}</div>
           </div>
-          <button onClick={() => setShowCreateLeague(true)}
+          <button onClick={() => setShowCreateLeague("create")}
             style={{ flexShrink: 0, background: "var(--lime)", color: "var(--lime-fg)", fontSize: 11, fontWeight: 800, border: "none", borderRadius: 9, padding: "7px 11px", cursor: "pointer", fontFamily: "'Outfit',sans-serif" }}>
             {t("demo_create_own")}
           </button>
@@ -819,7 +854,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
       {showCreateLeague && createPortal(
         <div style={{ position: "fixed", inset: 0, zIndex: 250, background: "var(--bg)", overflowY: "auto" }}>
           <Suspense fallback={null}>
-            <LeagueSetup initialMode="create"
+            <LeagueSetup initialMode={typeof showCreateLeague === "string" ? showCreateLeague : "create"}
               onDone={(lg) => { setShowCreateLeague(false); onLeagueCreated && onLeagueCreated(lg); }}
               onCancel={() => setShowCreateLeague(false)} />
           </Suspense>
@@ -985,7 +1020,10 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
             <div className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", cursor: "pointer" }}>
               <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(p.id), width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
+                  <span style={{ fontWeight: 600, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                  {p.is_registered && <ShieldCheck size={14} title={t("registered_badge")} style={{ color: "var(--lime)", flexShrink: 0 }} />}
+                </div>
                 <div style={{ fontSize: 12, color: "var(--mut)", display: "inline-flex", alignItems: "center", gap: 4 }}><Swords size={13} /> {p.matches}</div>
               </div>
               <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />
@@ -2161,7 +2199,7 @@ function MixGroupCard({ games, color, onOpenGame, me = null, delta = null, showM
   );
 }
 
-function Games({ groupId, players, profileId, reloadLeaderboard, session, archiveNonce, bumpArchive, onLogin, isAdmin = false, canCreate = false, openReq = null }) {
+function Games({ groupId, players, profileId, reloadLeaderboard, session, archiveNonce, bumpArchive, onLogin, isAdmin = false, canCreate = false, openReq = null, theme = "dark" }) {
   const [games, setGames] = useState([]);
   const [mode, setMode] = useState("list");
   const [selId, setSelId] = useState(null);
@@ -2202,7 +2240,7 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
       )}
       {session && groupId && canCreate && <Fab label={t("create_game")} icon={<Swords size={24} />} onClick={() => setMode("create")} />}
       {loading && <CardSkeleton count={4} />}
-      {!loading && games.length === 0 && <EmptyState variant="run" text={!session ? t("games_empty_guest") : (groupId ? t("games_empty_session") : t("solo_games_empty"))} />}
+      {!loading && games.length === 0 && <EmptyState variant="run" theme={theme} text={!session ? t("games_empty_guest") : (groupId ? t("games_empty_session") : t("solo_games_empty"))} />}
       {!loading && (() => {
         const upcoming = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length < 4);
         const active   = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length === 4);
@@ -2235,7 +2273,7 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
           </div>
         );
         return [
-          (games.length > 0 && upcoming.length === 0 && active.length === 0 && liveNow.length === 0) ? <EmptyState key="na" variant="run" text={t("games_no_active")} /> : null,
+          (games.length > 0 && upcoming.length === 0 && active.length === 0 && liveNow.length === 0) ? <EmptyState key="na" variant="run" theme={theme} text={t("games_no_active")} /> : null,
           hero && <GameHero key="hero" g={hero} me={profileId} onOpen={() => { setSelId(hero.id); setMode("view"); }} onTake={() => takeFirstFree(hero)} />,
           section(t("live_section"), "var(--coral)", liveNow, false, false),
           section(t("upcoming_section"), "var(--mut)", upcoming.filter((g) => g !== hero), canCreate, true),

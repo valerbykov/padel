@@ -282,10 +282,22 @@ export function listMyHistoryMatches() { return swr("my_history", _listMyHistory
 async function _getPlayedWith() {
   const { data, error } = await supabase.rpc("played_with");
   if (error) throw error;
-  return (data || []).map((r) => ({
+  const rows = data || [];
+  // Кто из партнёров зарегистрирован (есть аккаунт) — отдельным RPC (RLS обходит).
+  // Если миграция ещё не применена — просто без бейджей, вход не рушим.
+  let reg = new Set();
+  try {
+    const ids = rows.map((r) => r.id).filter(Boolean);
+    if (ids.length) {
+      const { data: rd, error: re } = await supabase.rpc("registered_among", { ids });
+      if (!re && Array.isArray(rd)) reg = new Set(rd.map((x) => (typeof x === "string" ? x : x?.id)));
+    }
+  } catch (_) { /* бейдж — украшение */ }
+  return rows.map((r) => ({
     id: r.id, name: r.name, avatar_url: r.avatar_url,
     contacts: {}, claim_code: null,
-    rating: r.rating || 0, matches: r.matches || 0, wins: r.wins || 0, user_id: null,
+    rating: r.rating || 0, matches: r.matches || 0, wins: r.wins || 0,
+    user_id: null, is_registered: reg.has(r.id),
   }));
 }
 export function getPlayedWith() { return swr("played_with", _getPlayedWith); }

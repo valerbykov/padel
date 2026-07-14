@@ -8,9 +8,28 @@
 // консилиумов: композиция сразу + мини-пёс понизу + непрерывная физика мяча);
 // тяжёлые кадры пса грузятся лениво одним чанком, на время загрузки — статичный
 // line-art (ракетка/подиум/часы ниже).
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, useRef } from "react";
 
 const DogRunArt = lazy(() => import("./DogRunArt"));
+
+// Игры: ротоскоп-видео «пёс ловит мяч» (line-art лаймом). Две версии под тему —
+// фон совпадает с карточкой, поэтому пёс «парит» и на тёмной, и на светлой.
+// Играет один раз и замирает на финале (мяч в зубах); тап — переиграть.
+// prefers-reduced-motion → статичный постер (последний кадр).
+function DogCatch({ theme }) {
+  const vref = useRef(null);
+  const light = theme === "light";
+  const src = light ? "/anim/dog-catch-light.mp4" : "/anim/dog-catch-dark.mp4";
+  const poster = light ? "/anim/dog-catch-light-poster.webp" : "/anim/dog-catch-dark-poster.webp";
+  const reduce = (() => { try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } })();
+  const style = { width: "100%", maxWidth: 240, display: "block", cursor: reduce ? "default" : "pointer" };
+  if (reduce) return <img src={poster} alt="" aria-hidden="true" style={style} />;
+  const replay = () => { const v = vref.current; if (v) { try { v.currentTime = 0; v.play(); } catch (e) {} } };
+  return (
+    <video ref={vref} src={src} poster={poster} muted autoPlay playsInline preload="auto"
+      disablePictureInPicture onClick={replay} aria-hidden="true" style={style} />
+  );
+}
 // variant → сцена в DogRunArt; статичный Art того же вида — fallback на время
 // загрузки. Дефолтный "racket" (мелкие пустые состояния фильтров и т.п.)
 // остаётся статичным — сцену с псом там играть незачем.
@@ -101,13 +120,15 @@ function Clock() {
 
 const ART = { racket: RacketBall, podium: Podium, clock: Clock };
 
-export default function EmptyState({ text, children, className = "pl-card", variant = "racket" }) {
+export default function EmptyState({ text, children, className = "pl-card", variant = "racket", theme }) {
   const Art = ART[variant] || RacketBall;
   return (
     <div className={className} style={{ padding: "30px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
-      {SCENE_KIND[variant]
-        ? <Suspense fallback={<Art />}><DogRunArt kind={SCENE_KIND[variant]} /></Suspense>
-        : <Art />}
+      {variant === "run" && theme
+        ? <DogCatch theme={theme} />
+        : SCENE_KIND[variant]
+          ? <Suspense fallback={<Art />}><DogRunArt kind={SCENE_KIND[variant]} /></Suspense>
+          : <Art />}
       <div style={{ color: "var(--mut)", fontSize: 14, maxWidth: 290, lineHeight: 1.5 }}>{text}</div>
       {children}
     </div>
