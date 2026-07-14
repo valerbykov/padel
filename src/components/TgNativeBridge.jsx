@@ -22,15 +22,17 @@ export default function TgNativeBridge({ botName }) {
       try {
         const { data, error } = await supabase.functions.invoke("telegram-auth", { body: user });
         if (error || data?.error) throw new Error(data?.error || "auth_failed");
-        // Одноразовые token/token_hash → в приложение по deep link. Сессию поднимет
-        // именно приложение (не этот браузер), чтобы она оказалась в нативе.
-        const p = new URLSearchParams();
-        p.set("tgauth", "1");
-        if (data.email) p.set("email", data.email);
-        if (data.token) p.set("tk", data.token);
-        if (data.token_hash) p.set("th", data.token_hash);
+        if (!data.token_hash) throw new Error("no_token");
+        // ВАЖНО: не делаем window.location = "padelpack://…" из JS — браузер
+        // блокирует переход на кастомную схему без пользовательского жеста
+        // (жест «съел» fetch выше). Вместо этого идём на эндпоинт Supabase
+        // /auth/v1/verify — он делает СЕРВЕРНЫЙ 302 на deep link с токенами в
+        // #фрагменте, что открывает приложение надёжно (как Google/Apple).
+        // База — прокси (доступен из РФ), иначе прямой Supabase.
+        const base = (import.meta.env.VITE_SUPABASE_PROXY_URL || import.meta.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
+        const verifyUrl = `${base}/auth/v1/verify?token=${encodeURIComponent(data.token_hash)}&type=magiclink&redirect_to=${encodeURIComponent(NATIVE_REDIRECT)}`;
         setStatus("done");
-        window.location.href = `${NATIVE_REDIRECT}?${p.toString()}`;
+        window.location.href = verifyUrl;
       } catch (e) {
         setStatus("error");
       }
