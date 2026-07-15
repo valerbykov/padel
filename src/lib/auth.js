@@ -280,6 +280,7 @@ export async function handleYandexCallback(rawUrl) {
     if (error) throw error;
     let r = await supabase.auth.verifyOtp({ email: data.email, token: data.token, type: "email" });
     if (r.error && data.token_hash) r = await supabase.auth.verifyOtp({ token_hash: data.token_hash, type: "email" });
+    if (!r.error) capPlugin("Browser")?.close?.(); // закрыть системный браузер после успешного входа
     return !r.error;
   } catch (e) {
     console.warn("yandex callback failed", e);
