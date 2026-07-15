@@ -50,6 +50,7 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,svg,png,woff2,webp}"],
         cleanupOutdatedCaches: true,       // чистит старый precache (в т.ч. PNG-аватары до перехода на webp)
         navigateFallback: "/index.html",   // офлайн-фолбэк для клиентского роутинга
+        navigateFallbackDenylist: [/^\/tg-native/], // /tg-native — статическая страница-мост, не SPA
         runtimeCaching: [
           {
             // Кэшируем шрифты Google (их грузит интерфейс).

@@ -5,6 +5,13 @@
   command = "npm run build"
   publish = "dist"            # Vite собирает сюда
 
+# Лёгкая страница-мост Telegram: /tg-native отдаёт статический tg-native.html
+# (а НЕ SPA) — грузится мгновенно на слабой сети. Должно стоять ДО SPA-фолбэка.
+[[redirects]]
+  from = "/tg-native"
+  to = "/tg-native.html"
+  status = 200
+
 # SPA-fallback: любой путь (включая /j/CODE) отдаёт index.html,
 # чтобы клиентский роутинг и ссылки-приглашения работали без 404.
 [[redirects]]

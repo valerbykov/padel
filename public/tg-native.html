@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PadelPack — вход через Telegram</title>
+<!-- Лёгкая страница-мост Telegram для нативного входа. Открывается в системном
+     браузере (https://padelpack.app/tg-native), НЕ грузит SPA — виджет + минимум JS,
+     мгновенно даже на слабой сети. Виджет → edge telegram-auth → серверный 302 на
+     deep link. Netlify отдаёт этот файл раньше SPA-фолбэка (netlify.toml), SW не
+     перехватывает (navigateFallbackDenylist). anon-ключ публичный (защищён RLS). -->
+<style>
+  :root{--bg:#0a1612;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52}
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,system-ui,sans-serif;
+    min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:28px;text-align:center}
+  .logo{font-size:26px;font-weight:800}.logo b{color:var(--lime)}
+  .hint{font-size:14px;color:var(--mut);max-width:300px;line-height:1.5}
+  .status{font-size:13px;color:var(--mut);min-height:18px}
+  .status.err{color:var(--coral)}
+</style>
+</head>
+<body>
+  <div class="logo">Padel<b>Pack</b></div>
+  <div class="hint">Войдите через Telegram — вернём вас обратно в приложение автоматически.</div>
+  <div id="widget"></div>
+  <div class="status" id="status"></div>
+<script>
+  var BOT = "padelacc_bot";
+  var BASE = "https://api.padelpack.app";          // прокси (доступен из РФ)
+  var ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mZXdoaGN3c3dqeHZscXN5Z3h1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MTAzOTMsImV4cCI6MjA5NjA4NjM5M30.W4MVVm0M-2ketq3ZotpotuU9GG1bRRm5i4g1D6Vr3Cs";                              // публичный anon-ключ (RLS)
+  var REDIRECT = "padelpack://login-callback";
+  var st = document.getElementById("status");
+  window.__tgAuth = function (user) {
+    st.className = "status"; st.textContent = "Входим…";
+    fetch(BASE + "/functions/v1/telegram-auth", {
+      method: "POST",
+      headers: { "content-type": "application/json", "apikey": ANON, "authorization": "Bearer " + ANON },
+      body: JSON.stringify(user)
+    }).then(function (r) { return r.json(); }).then(function (data) {
+      if (!data || !data.token_hash) throw new Error((data && data.error) || "no_token");
+      st.textContent = "Готово, возвращаемся в приложение…";
+      // Серверный 302 на deep link (клиентский переход на кастомную схему браузер блокирует).
+      window.location.href = BASE + "/auth/v1/verify?token=" + encodeURIComponent(data.token_hash) +
+        "&type=magiclink&redirect_to=" + encodeURIComponent(REDIRECT);
+    }).catch(function (e) {
+      st.className = "status err"; st.textContent = "Не удалось войти. Попробуйте ещё раз.";
+    });
+  };
+  var s = document.createElement("script");
+  s.async = true; s.src = "https://telegram.org/js/telegram-widget.js?22";
+  s.setAttribute("data-telegram-login", BOT);
+  s.setAttribute("data-size", "large");
+  s.setAttribute("data-radius", "12");
+  s.setAttribute("data-onauth", "__tgAuth(user)");
+  s.setAttribute("data-request-access", "write");
+  document.getElementById("widget").appendChild(s);
+</script>
+</body>
+</html>
