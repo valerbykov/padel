@@ -135,7 +135,9 @@ export default function EmptyState({ text, children, className = "pl-card", vari
         : SCENE_KIND[variant]
           ? <Suspense fallback={<Art />}><DogRunArt kind={SCENE_KIND[variant]} /></Suspense>
           : <Art />}
-      <div style={{ color: "var(--mut)", fontSize: 14, maxWidth: 290, lineHeight: 1.5 }}>{text}</div>
+      {/* Резервируем 2 строки: 1-строчные пустышки (История, «Турниров нет») не
+          делают плитку ниже соседних с 2-строчным текстом — высоты совпадают. */}
+      <div style={{ color: "var(--mut)", fontSize: 14, maxWidth: 290, lineHeight: 1.5, minHeight: "3em", display: "flex", alignItems: "center", justifyContent: "center" }}>{text}</div>
       {children}
     </div>
   );
