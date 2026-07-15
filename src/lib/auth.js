@@ -248,7 +248,30 @@ export async function getMyProfile() {
 // меняет code на сессию (как telegram-auth).
 const YANDEX_CLIENT_ID = import.meta.env.VITE_YANDEX_CLIENT_ID;
 
-export function signInYandex() {
+export async function signInYandex() {
+  // 1) Нативный путь — Yandex ID SDK (плагин YandexAuth): нативный выбор аккаунта
+  //    (без телефона/кодов, аккаунты из установленных приложений Яндекса). Плагин
+  //    возвращает OAuth-токен → edge-функция yandex-auth (path token) → сессия.
+  const YA = capPlugin("YandexAuth");
+  if (isNativeApp() && YA) {
+    try {
+      const res = await YA.authorize();       // { token } | бросает при отмене/ошибке
+      const token = res?.token;
+      if (token) {
+        const { data, error } = await supabase.functions.invoke("yandex-auth", { body: { token } });
+        if (error) throw error;
+        let r = await supabase.auth.verifyOtp({ email: data.email, token: data.token, type: "email" });
+        if (r.error && data.token_hash) r = await supabase.auth.verifyOtp({ token_hash: data.token_hash, type: "email" });
+        if (!r.error) return; // успех — сессия поднята, onAuthChange перерисует
+      }
+    } catch (e) {
+      // отмена или ошибка SDK → не падаем, уходим в веб-фолбэк ниже
+      console.warn("yandex native failed → web fallback", e);
+    }
+  }
+
+  // 2) Веб-фолбэк — OAuth code flow в системном браузере (устройства без приложений
+  //    Яндекса, веб, или если плагин недоступен). Возврат по deep link в App.jsx.
   if (!YANDEX_CLIENT_ID) { console.warn("VITE_YANDEX_CLIENT_ID не задан"); return; }
   const redirect = isNativeApp() ? NATIVE_REDIRECT : window.location.origin + "/";
   const u = new URL("https://oauth.yandex.ru/authorize");
@@ -256,8 +279,6 @@ export function signInYandex() {
   u.searchParams.set("client_id", YANDEX_CLIENT_ID);
   u.searchParams.set("redirect_uri", redirect);
   u.searchParams.set("state", "padel_yandex");
-  // Нативка: Яндекс во встроенном webview капризен — открываем системный браузер,
-  // возврат ловим по deep link (padelpack://login-callback?code=...) в App.jsx.
   if (isNativeApp()) {
     const Browser = capPlugin("Browser");
     if (Browser) { Browser.open({ url: u.toString() }); return; }

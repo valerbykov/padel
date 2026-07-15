@@ -25,31 +25,41 @@ const json = (b: unknown, s = 200) =>
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
-    const clientId = Deno.env.get("YANDEX_CLIENT_ID");
-    const clientSecret = Deno.env.get("YANDEX_CLIENT_SECRET");
-    if (!clientId || !clientSecret) return json({ error: "yandex_not_configured" }, 500);
+    const { code, redirect_uri, token } = await req.json();
 
-    const { code, redirect_uri } = await req.json();
-    if (!code) return json({ error: "no_code" }, 400);
+    // Два пути:
+    //  • token — нативный вход через Yandex ID SDK: OAuth-токен уже получен на устройстве
+    //    (SDK привязан к нашему client_id), обмен code не нужен;
+    //  • code — веб-OAuth: меняем code на access_token через client_secret.
+    // В обоих случаях подлинность подтверждается тем, что по токену успешно
+    // тянется профиль (info.id) — токен, не выданный нашему приложению, не сработает.
+    let accessToken: string;
+    if (token) {
+      accessToken = String(token);
+    } else {
+      const clientId = Deno.env.get("YANDEX_CLIENT_ID");
+      const clientSecret = Deno.env.get("YANDEX_CLIENT_SECRET");
+      if (!clientId || !clientSecret) return json({ error: "yandex_not_configured" }, 500);
+      if (!code) return json({ error: "no_code" }, 400);
+      const tokenRes = await fetch("https://oauth.yandex.ru/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          code,
+          client_id: clientId,
+          client_secret: clientSecret,
+          ...(redirect_uri ? { redirect_uri } : {}),
+        }),
+      });
+      const tokenData = await tokenRes.json();
+      if (!tokenData.access_token) return json({ error: "bad_code", detail: tokenData }, 401);
+      accessToken = tokenData.access_token;
+    }
 
-    // 1. code -> access_token. Удачный обмен доказывает, что code выдан нашему приложению.
-    const tokenRes = await fetch("https://oauth.yandex.ru/token", {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "authorization_code",
-        code,
-        client_id: clientId,
-        client_secret: clientSecret,
-        ...(redirect_uri ? { redirect_uri } : {}),
-      }),
-    });
-    const tokenData = await tokenRes.json();
-    if (!tokenData.access_token) return json({ error: "bad_code", detail: tokenData }, 401);
-
-    // 2. Профиль пользователя Яндекса.
+    // Профиль пользователя Яндекса (валидирует токен).
     const infoRes = await fetch("https://login.yandex.ru/info?format=json", {
-      headers: { Authorization: `OAuth ${tokenData.access_token}` },
+      headers: { Authorization: `OAuth ${accessToken}` },
     });
     const info = await infoRes.json();
     if (!info.id) return json({ error: "no_userinfo" }, 401);
