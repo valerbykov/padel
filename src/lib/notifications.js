@@ -5,6 +5,7 @@
 // событие «созрело». Здесь — чтение/запись настроек и регистрация push-токена устройства.
 import { supabase } from "./supabase";
 import { isNativeApp, capPlugin } from "./platform";
+import { currentLang } from "./i18n";
 
 // Доступные офсеты (минуты до старта). key — ключ i18n для подписи чипа.
 export const OFFSET_OPTIONS = [
@@ -54,9 +55,20 @@ async function saveToken(token) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user || !token) return;
   await supabase.from("push_tokens").upsert(
-    { token, user_id: user.id, platform: platformName(), tz: deviceTz(), updated_at: new Date().toISOString() },
+    { token, user_id: user.id, platform: platformName(), tz: deviceTz(), lang: currentLang, updated_at: new Date().toISOString() },
     { onConflict: "token" }
   );
+}
+
+// Обновить язык уведомлений на всех устройствах пользователя (вызывать при смене
+// языка в приложении). Иначе уже зарегистрированные токены остаются на старом
+// языке, и пуши приходят не на том языке (баг «сменил на русский — пуши на испанском»).
+export async function updateNotifLang(lang) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || !lang) return;
+    await supabase.from("push_tokens").update({ lang }).eq("user_id", user.id);
+  } catch (_) { /* некритично */ }
 }
 
 // Запросить разрешение и зарегистрировать push-токен. Только нативка (веб/PWA — no-op).

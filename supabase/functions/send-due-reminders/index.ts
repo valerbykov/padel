@@ -99,65 +99,127 @@ function pickBy<T>(seed: string, arr: T[]): T {
   return arr[(h >>> 0) % arr.length];
 }
 
-// Заголовок под КАЖДЫЙ офсет: несёт «через сколько» (завтра / через 5 ч / 2 ч / час),
-// тон усиливается к старту. Тело несёт «когда» — конкретное локальное время.
-function titlePool(isTour: boolean, off: number): string[] {
-  if (off >= 1440) return isTour
-    ? ["🏆 Завтра турнир", "🏆 Турнир завтра — готовься", "🎾 Готовь ракетку: завтра турнир"]
-    : ["🎾 Завтра игра", "🎾 Готовь ракетку — завтра", "🎾 Завтра собираемся на корт"];
-  if (off >= 300) return isTour
-    ? ["🏆 Сегодня турнир — через 5 часов", "🏆 Турнир уже сегодня", "🎾 Готовься: турнир через 5 часов"]
-    : ["🎾 Сегодня игра — через 5 часов", "🎾 Игра уже сегодня", "🎾 Готовься: игра через 5 часов"];
-  if (off >= 120) return isTour
-    ? ["🔥 Турнир через 2 часа", "🏆 Через 2 часа — старт турнира", "🎾 Турнир скоро: через 2 часа"]
-    : ["🔥 Игра через 2 часа", "🎾 Через 2 часа на корт", "🎾 Игра скоро: через 2 часа"];
-  return isTour // <= 60 мин — хайп
-    ? ["🎾 Турнир уже через час!", "🔥 Через час — на корт!", "🏆 Час до турнира — разминайся"]
-    : ["🎾 Пора на корт — уже через час!", "🔥 Через час на корт!", "🎾 Час до игры — разминайся"];
-}
-const TAILS_NEAR = ["Погнали! 💪", "Разомнись и покажи класс!", "Возьми воду и ракетку 🎾", "Время побеждать 🔥"];
-const TAILS_FAR = ["Не пропусти 💪", "Отметь в календаре 📅", "Собери своих 🎾", "Готовься к бою!"];
+// Язык текста берём из push_tokens.lang (пишется клиентом, обновляется при смене
+// языка). Фолбэк — 'ru' (основной рынок). Шаблоны на офсет несут «через сколько»,
+// тон усиливается к старту; тело — конкретное локальное время старта.
+type Lang = "ru" | "en" | "es";
+const langOf = (l: string | null | undefined): Lang => (l === "en" || l === "es" ? l : "ru");
+const bucket = (off: number): "day" | "h5" | "h2" | "h1" =>
+  off >= 1440 ? "day" : off >= 300 ? "h5" : off >= 120 ? "h2" : "h1";
 
-// Локальное «когда»: «сегодня в 19:30» / «завтра в 10:00» / «14 июля в 09:00».
-// tz — часовой пояс устройства (push_tokens.tz); фолбэк — Москва (осн. рынок РФ).
+const TPL: Record<Lang, any> = {
+  ru: {
+    game: "Игра", tour: "Турнир", today: "сегодня", tomorrow: "завтра", at: "в", locale: "ru-RU",
+    tGame: {
+      day: ["🎾 Завтра игра", "🎾 Готовь ракетку — завтра", "🎾 Завтра собираемся на корт"],
+      h5: ["🎾 Сегодня игра — через 5 часов", "🎾 Игра уже сегодня", "🎾 Готовься: игра через 5 часов"],
+      h2: ["🔥 Игра через 2 часа", "🎾 Через 2 часа на корт", "🎾 Игра скоро: через 2 часа"],
+      h1: ["🎾 Пора на корт — уже через час!", "🔥 Через час на корт!", "🎾 Час до игры — разминайся"],
+    },
+    tTour: {
+      day: ["🏆 Завтра турнир", "🏆 Турнир завтра — готовься", "🎾 Готовь ракетку: завтра турнир"],
+      h5: ["🏆 Сегодня турнир — через 5 часов", "🏆 Турнир уже сегодня", "🎾 Готовься: турнир через 5 часов"],
+      h2: ["🔥 Турнир через 2 часа", "🏆 Через 2 часа — старт турнира", "🎾 Турнир скоро: через 2 часа"],
+      h1: ["🎾 Турнир уже через час!", "🔥 Через час — на корт!", "🏆 Час до турнира — разминайся"],
+    },
+    tailsNear: ["Погнали! 💪", "Разомнись и покажи класс!", "Возьми воду и ракетку 🎾", "Время побеждать 🔥"],
+    tailsFar: ["Не пропусти 💪", "Отметь в календаре 📅", "Собери своих 🎾", "Готовься к бою!"],
+    evGame: "🎾 Новая игра", evTour: "🏆 Новый турнир", evPost: "📣 Объявление",
+    ctaGame: ["записывайся в состав 💪", "занимай слот 🎾", "врывайся в игру 🔥"],
+    ctaTour: ["заявляйся, пока есть места 🎾", "регистрируйся и покажи класс 🏆", "лови слот в сетке 🔥"],
+  },
+  en: {
+    game: "Game", tour: "Tournament", today: "today", tomorrow: "tomorrow", at: "at", locale: "en-US",
+    tGame: {
+      day: ["🎾 Game tomorrow", "🎾 Grab your racket — tomorrow", "🎾 We hit the court tomorrow"],
+      h5: ["🎾 Game today — in 5 hours", "🎾 Game is today", "🎾 Get ready: game in 5 hours"],
+      h2: ["🔥 Game in 2 hours", "🎾 On court in 2 hours", "🎾 Game soon: in 2 hours"],
+      h1: ["🎾 Time to hit the court — in an hour!", "🔥 On court in an hour!", "🎾 An hour to the game — warm up"],
+    },
+    tTour: {
+      day: ["🏆 Tournament tomorrow", "🏆 Tournament tomorrow — get ready", "🎾 Grab your racket: tournament tomorrow"],
+      h5: ["🏆 Tournament today — in 5 hours", "🏆 Tournament is today", "🎾 Get ready: tournament in 5 hours"],
+      h2: ["🔥 Tournament in 2 hours", "🏆 In 2 hours — tournament starts", "🎾 Tournament soon: in 2 hours"],
+      h1: ["🎾 Tournament in an hour!", "🔥 In an hour — on court!", "🏆 An hour to the tournament — warm up"],
+    },
+    tailsNear: ["Let's go! 💪", "Warm up and show your best!", "Grab water and your racket 🎾", "Time to win 🔥"],
+    tailsFar: ["Don't miss it 💪", "Add it to your calendar 📅", "Round up your crew 🎾", "Get ready to battle!"],
+    evGame: "🎾 New game", evTour: "🏆 New tournament", evPost: "📣 Announcement",
+    ctaGame: ["grab a spot 💪", "take a slot 🎾", "jump into the game 🔥"],
+    ctaTour: ["sign up while there's room 🎾", "register and show your best 🏆", "grab a slot in the draw 🔥"],
+  },
+  es: {
+    game: "Partido", tour: "Torneo", today: "hoy", tomorrow: "mañana", at: "a las", locale: "es-ES",
+    tGame: {
+      day: ["🎾 Partido mañana", "🎾 Prepara la pala — mañana", "🎾 Mañana a la pista"],
+      h5: ["🎾 Partido hoy — en 5 horas", "🎾 El partido es hoy", "🎾 Prepárate: partido en 5 horas"],
+      h2: ["🔥 Partido en 2 horas", "🎾 A la pista en 2 horas", "🎾 Partido pronto: en 2 horas"],
+      h1: ["🎾 ¡A la pista — en una hora!", "🔥 ¡A la pista en una hora!", "🎾 Una hora para el partido — calienta"],
+    },
+    tTour: {
+      day: ["🏆 Torneo mañana", "🏆 Torneo mañana — prepárate", "🎾 Prepara la pala: torneo mañana"],
+      h5: ["🏆 Torneo hoy — en 5 horas", "🏆 El torneo es hoy", "🎾 Prepárate: torneo en 5 horas"],
+      h2: ["🔥 Torneo en 2 horas", "🏆 En 2 horas — empieza el torneo", "🎾 Torneo pronto: en 2 horas"],
+      h1: ["🎾 ¡Torneo en una hora!", "🔥 ¡En una hora — a la pista!", "🏆 Una hora para el torneo — calienta"],
+    },
+    tailsNear: ["¡Vamos! 💪", "¡Calienta y da lo mejor!", "Lleva agua y la pala 🎾", "Hora de ganar 🔥"],
+    tailsFar: ["No te lo pierdas 💪", "Anótalo en el calendario 📅", "Reúne a los tuyos 🎾", "¡Prepárate para la batalla!"],
+    evGame: "🎾 Nuevo partido", evTour: "🏆 Nuevo torneo", evPost: "📣 Anuncio",
+    ctaGame: ["apúntate al equipo 💪", "coge un hueco 🎾", "métete en el partido 🔥"],
+    ctaTour: ["inscríbete mientras haya plazas 🎾", "regístrate y da lo mejor 🏆", "coge plaza en el cuadro 🔥"],
+  },
+};
+
+// Локальное «когда»: «сегодня в 19:30» / «today at 7:30 PM» / «hoy a las 19:30».
+// tz — часовой пояс устройства (push_tokens.tz); фолбэк — Москва.
 function ymd(date: Date, tz: string): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
 }
-function whenLocal(startsAtIso: string, tz: string): string {
+function whenLocal(startsAtIso: string, tz: string, lang: Lang): string {
   const t = tz || "Europe/Moscow";
+  const p = TPL[lang];
   const start = new Date(startsAtIso);
   const now = new Date();
-  const time = new Intl.DateTimeFormat("ru-RU", { timeZone: t, hour: "2-digit", minute: "2-digit" }).format(start);
+  const time = new Intl.DateTimeFormat(p.locale, { timeZone: t, hour: "2-digit", minute: "2-digit" }).format(start);
   const dStart = ymd(start, t);
   let day: string;
-  if (dStart === ymd(now, t)) day = "сегодня";
-  else if (dStart === ymd(new Date(now.getTime() + 86400000), t)) day = "завтра";
-  else day = new Intl.DateTimeFormat("ru-RU", { timeZone: t, day: "numeric", month: "long" }).format(start);
-  return `${day} в ${time}`;
+  if (dStart === ymd(now, t)) day = p.today;
+  else if (dStart === ymd(new Date(now.getTime() + 86400000), t)) day = p.tomorrow;
+  else day = new Intl.DateTimeFormat(p.locale, { timeZone: t, day: "numeric", month: "long" }).format(start);
+  return `${day} ${p.at} ${time}`;
 }
 
-// Заголовок и хвост от tz не зависят — считаем один раз; время подставляем на токен.
+// Заголовок и тело зависят от языка (per-token) и tz. Выбор шаблона по хешу
+// (event_id+offset) — тот же индекс во всех языках, поэтому «фраза» стабильна.
 function compose(d: { event_type: string; title: string | null; place: string | null; event_id: string; offset_min: number; starts_at: string }) {
   const isTour = d.event_type === "tournament";
-  const name = d.title || (isTour ? "Турнир" : "Игра");
-  const lead = `${name}${d.place ? ` · ${d.place}` : ""}`;
   const seed = `${d.event_id}:${d.offset_min}`;
-  const title = pickBy(seed, titlePool(isTour, d.offset_min));
-  const tail = pickBy(seed + "·t", d.offset_min <= 120 ? TAILS_NEAR : TAILS_FAR);
-  // build(tz): тело с конкретным локальным временем старта под пояс устройства.
-  return { title, build: (tz: string) => `${lead} — ${whenLocal(d.starts_at, tz)}. ${tail}` };
+  const b = bucket(d.offset_min);
+  return {
+    build: (tz: string, lang: Lang) => {
+      const p = TPL[lang];
+      const title = pickBy(seed, (isTour ? p.tTour : p.tGame)[b]);
+      const tail = pickBy(seed + "·t", d.offset_min <= 120 ? p.tailsNear : p.tailsFar);
+      const name = d.title || (isTour ? p.tour : p.game);
+      const lead = `${name}${d.place ? ` · ${d.place}` : ""}`;
+      return { title, body: `${lead} — ${whenLocal(d.starts_at, tz, lang)}. ${tail}` };
+    },
+  };
 }
 
-// Текст событийного пуша (новая игра/турнир/объявление в лиге) — тоже с задором.
-const CTA_GAME = ["записывайся в состав 💪", "занимай слот 🎾", "врывайся в игру 🔥"];
-const CTA_TOUR = ["заявляйся, пока есть места 🎾", "регистрируйся и покажи класс 🏆", "лови слот в сетке 🔥"];
+// Событийный пуш (новая игра/турнир/объявление) — тоже локализуется на токен.
 function composeEvent(d: { event_type: string; title: string | null; place: string | null; league: string | null; event_id: string }) {
   const lg = d.league ? ` · ${d.league}` : "";
-  if (d.event_type === "new_game")
-    return { title: `🎾 Новая игра${lg}`, body: `${d.title || "Игра"}${d.place ? ` · ${d.place}` : ""} — ${pickBy(d.event_id, CTA_GAME)}` };
-  if (d.event_type === "new_tournament")
-    return { title: `🏆 Новый турнир${lg}`, body: `${d.title || "Турнир"} — ${pickBy(d.event_id, CTA_TOUR)}` };
-  return { title: `📣 Объявление${lg}`, body: d.title || "" }; // league_post: текст автора не трогаем
+  return {
+    build: (_tz: string, lang: Lang) => {
+      const p = TPL[lang];
+      if (d.event_type === "new_game")
+        return { title: `${p.evGame}${lg}`, body: `${d.title || p.game}${d.place ? ` · ${d.place}` : ""} — ${pickBy(d.event_id, p.ctaGame)}` };
+      if (d.event_type === "new_tournament")
+        return { title: `${p.evTour}${lg}`, body: `${d.title || p.tour} — ${pickBy(d.event_id, p.ctaTour)}` };
+      return { title: `${p.evPost}${lg}`, body: d.title || "" }; // league_post: текст автора не трогаем
+    },
+  };
 }
 
 Deno.serve(async (req) => {
@@ -189,9 +251,9 @@ Deno.serve(async (req) => {
 
     // 2) токены участников (объединяем адресатов напоминаний и событий)
     const userIds = [...new Set([...(due || []), ...events].map((d: any) => d.user_id))];
-    const { data: tokRows } = await admin.from("push_tokens").select("user_id, token, platform, tz").in("user_id", userIds);
-    const byUser: Record<string, Array<{ token: string; platform: string; tz: string }>> = {};
-    for (const r of tokRows || []) (byUser[r.user_id] ||= []).push({ token: r.token, platform: r.platform || "android", tz: r.tz || "" });
+    const { data: tokRows } = await admin.from("push_tokens").select("user_id, token, platform, tz, lang").in("user_id", userIds);
+    const byUser: Record<string, Array<{ token: string; platform: string; tz: string; lang: Lang }>> = {};
+    for (const r of tokRows || []) (byUser[r.user_id] ||= []).push({ token: r.token, platform: r.platform || "android", tz: r.tz || "", lang: langOf(r.lang) });
 
     // 3) FCM access token (Android) + конфиг APNs (iOS напрямую)
     const accessToken = await getFcmAccessToken(sa);
@@ -217,17 +279,14 @@ Deno.serve(async (req) => {
       });
     };
 
-    // Единый отправитель: и напоминания, и события идут одним циклом. У напоминаний
-    // тело зависит от пояса устройства (локальное время старта) → build(tz) на токен;
-    // у событий тело фиксированное.
-    const outbox: Array<{ user_id: string; event_type: string; event_id: string; offset_min: number; title: string; body?: string; build?: (tz: string) => string }> = [];
+    // Единый отправитель: и напоминания, и события идут одним циклом. Текст (заголовок
+    // и тело) собирается НА ТОКЕН — под язык (push_tokens.lang) и пояс устройства.
+    const outbox: Array<{ user_id: string; event_type: string; event_id: string; offset_min: number; build: (tz: string, lang: Lang) => { title: string; body: string } }> = [];
     for (const d of (due || []) as any[]) {
-      const m = compose(d);
-      outbox.push({ user_id: d.user_id, event_type: d.event_type, event_id: d.event_id, offset_min: d.offset_min, title: m.title, build: m.build });
+      outbox.push({ user_id: d.user_id, event_type: d.event_type, event_id: d.event_id, offset_min: d.offset_min, build: compose(d).build });
     }
     for (const d of events as any[]) {
-      const m = composeEvent(d);
-      outbox.push({ user_id: d.user_id, event_type: d.event_type, event_id: d.event_id, offset_min: 0, title: m.title, body: m.body });
+      outbox.push({ user_id: d.user_id, event_type: d.event_type, event_id: d.event_id, offset_min: 0, build: composeEvent(d).build });
     }
 
     for (const d of outbox) {
@@ -235,10 +294,9 @@ Deno.serve(async (req) => {
       // логируем факт обработки в любом случае — иначе будет ретраиться каждые 5 мин
       log.push({ user_id: d.user_id, event_type: d.event_type, event_id: d.event_id, offset_min: d.offset_min });
       if (tokens.length === 0) { if (log.length >= 20) await flushLog(); continue; }
-      const title = d.title;
       for (const tk of tokens) {
-        // тело: у события фиксированное, у напоминания — с локальным временем пояса токена
-        const body = d.body != null ? d.body : d.build!(tk.tz);
+        // заголовок+тело под язык и пояс конкретного токена
+        const { title, body } = d.build(tk.tz, tk.lang);
         // Сетевой сбой одного fetch не должен ронять всю рассылку (и терять лог).
         try {
           if (tk.platform === "ios") {

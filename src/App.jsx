@@ -15,7 +15,7 @@ import { LogIn, Sun, Moon } from "lucide-react";
 import { getMyLeagues, refreshMyLeagues, bootstrapApp, joinLeague } from "./lib/padelApi";
 import { t, setLang, applyLang, LANGS, LANG_LABELS, currentLang } from "./lib/i18n";
 import { detectCountry, langFromCountry } from "./lib/region";
-import { getNotifPrefs, registerPush } from "./lib/notifications";
+import { getNotifPrefs, registerPush, updateNotifLang } from "./lib/notifications";
 
 // Быстрый синхронный guess языка для самого первого рендера (до ответа гео):
 // кэш страны → язык браузера → ru (историчный дефолт, основной рынок). Не сохраняется —
@@ -86,7 +86,7 @@ export default function App({ initialShowLogin = false }) {
     applyLang(g); // активируем guess для первого рендера, без записи (гео уточнит ниже)
     return g;
   });
-  const handleLangChange = useCallback((l) => { setLang(l); setLangState(l); }, []);
+  const handleLangChange = useCallback((l) => { setLang(l); setLangState(l); updateNotifLang(l); }, []);
 
   // Первый заход (язык ещё не выбран): определяем по стране через гео-API и сохраняем.
   // RU/СНГ-ru → ru, Испания/ЛатАм → es, остальное → en. Возвращающиеся юзеры (plLang
