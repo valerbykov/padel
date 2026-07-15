@@ -42,7 +42,7 @@ const fmtDate = (iso) => {
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
-body{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;--lime-fg:#0a1612;--topbar-bg:rgba(10,22,18,.92);--yellow:#ffd23f;--border:var(--line);--card:var(--surface);--fg:var(--ink);background:var(--bg);}
+body{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;--lime-fg:#0a1612;--topbar-bg:rgba(10,22,18,.92);--yellow:#ffd23f;--border:var(--line);--card:var(--surface);--fg:var(--ink);background:var(--bg);color:var(--ink);}
 body.pl-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;--ink:#0d1f18;--mut:#4a7060;--lime:#2a7a00;--coral:#d93a1f;--lime-fg:#ffffff;--topbar-bg:rgba(242,247,244,.95);--yellow:#9a6800;}
 .pl-root{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;color-scheme:dark;
  background-image:radial-gradient(circle at 80% -10%,rgba(200,255,45,.10),transparent 45%),radial-gradient(circle at 0% 110%,rgba(40,120,90,.18),transparent 40%);}
@@ -333,8 +333,8 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
         </div>
       </nav>
       {tourPlayer && createPortal(
-        <div style={{ position: "fixed", inset: 0, zIndex: 250, background: "var(--bg)", overflowY: "auto" }}>
-          <div style={{ maxWidth: 460, margin: "0 auto", padding: "14px 16px calc(20px + env(safe-area-inset-bottom))" }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 250, background: "var(--bg)", color: "var(--ink)", overflowY: "auto" }}>
+          <div style={{ maxWidth: 460, margin: "0 auto", padding: "calc(14px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom))" }}>
             <PlayerDetail key={tourPlayer.id} groupId={groupId} player={tourPlayer} players={players} close={() => setTourPlayer(null)} onOpenPlayer={(id) => { const f = (players || []).find((p) => p.id === id); setTourPlayer(f || null); }} />
           </div>
         </div>, document.body)}
@@ -795,16 +795,16 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
 
             <div className="demo-peek" aria-hidden="true" style={{ borderRadius: 13, background: "color-mix(in srgb, var(--bg) 55%, var(--surface))", border: "1px solid var(--line)", padding: 6, display: "flex", flexDirection: "column", gap: 3 }}>
               {[
-                { r: "1", n: "Rex", ti: t("demo_teaser_t1"), p: 1248, lead: true },
-                { r: "2", n: "Bruno", ti: t("demo_teaser_t2"), p: 1176, lead: false },
-                { r: "3", n: "Luna", ti: t("demo_teaser_t3"), p: 1090, lead: false },
+                { r: "1", n: "Rex", p: 1248, lead: true },
+                { r: "2", n: "Bruno", p: 1176, lead: false },
+                { r: "3", n: "Luna", p: 1090, lead: false },
               ].map((d) => (
                 <div key={d.r} style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 8px", borderRadius: 9, background: d.lead ? "color-mix(in srgb, var(--lime) 10%, transparent)" : "transparent" }}>
                   <span style={{ fontSize: 12, fontWeight: 800, color: d.lead ? "var(--lime)" : "var(--mut)", width: 14, textAlign: "center" }}>{d.r}</span>
                   <img src={dogAvatar(d.n)} alt="" style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, objectFit: "cover", border: "1px solid var(--line)" }} />
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: "block", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.n}</span>
-                    <span style={{ display: "block", fontSize: 10, color: "var(--mut)" }}>{d.ti}</span>
+                    <span style={{ display: "block", fontSize: 10, color: "var(--mut)" }}>{t(tierOf(d.p).key)}</span>
                   </span>
                   <span style={{ fontSize: 13, fontWeight: 800, color: "var(--lime)" }}>{d.p}</span>
                 </div>
@@ -816,9 +816,11 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
               🐕 {leagueBusy ? t("creating") : t("demo_hero_cta")} {!leagueBusy && <span className="demo-arrow">→</span>}
             </button>
 
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginTop: 12, fontSize: 12 }}>
-              <button onClick={() => setShowCreateLeague("create")} style={{ background: "none", border: "none", color: "var(--ink)", fontWeight: 700, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontSize: 12, borderBottom: "1px dashed var(--line)", paddingBottom: 1 }}>{t("demo_create_own")}</button>
-              <button onClick={() => setShowCreateLeague("join")} style={{ background: "none", border: "none", color: "var(--ink)", fontWeight: 700, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontSize: 12, borderBottom: "1px dashed var(--line)", paddingBottom: 1 }}>{t("demo_alt_join")}</button>
+            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+              <button onClick={() => setShowCreateLeague("create")}
+                style={{ flex: 1, padding: "11px 8px", borderRadius: 12, border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--ink)", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif" }}>{t("demo_create_own")}</button>
+              <button onClick={() => setShowCreateLeague("join")}
+                style={{ flex: 1, padding: "11px 8px", borderRadius: 12, border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--ink)", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif" }}>{t("demo_alt_join")}</button>
             </div>
             {leagueErr && <div style={{ fontSize: 12, color: "var(--coral)", marginTop: 8, textAlign: "center" }}>{leagueErr}</div>}
           </div>
