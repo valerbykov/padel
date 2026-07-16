@@ -339,7 +339,9 @@ export default function App({ initialShowLogin = false }) {
     return () => clearTimeout(tm);
   }, [session]);
 
-  // Загрузить список лиг пользователя.
+  // Загрузить список лиг пользователя. loadLeaguesRef — для ретрая из catch
+  // (объявлен до useCallback, иначе TDZ).
+  const loadLeaguesRef = useRef(null);
   const loadLeagues = useCallback(async (pid) => {
     if (!pid) { setLeagues([]); setActiveLeague(null); return; }
     try {
@@ -352,8 +354,19 @@ export default function App({ initialShowLogin = false }) {
         const savedId = localStorage.getItem("plActiveLeague");
         return list.find((l) => l.id === savedId) || list[0] || null;
       });
-    } catch { setLeagues([]); setActiveLeague(null); }
+    } catch {
+      // Сетевой сбой ≠ «нет лиг»: раньше ставили [] и Board уходил в соло-режим
+      // «Играли вместе» (все «не в лиге») до ручного обновления. Прежний список
+      // не трогаем; если его ещё нет (холодный старт) — остаёмся в загрузке
+      // (skeleton) и повторяем через 3с, пока не получится.
+      setLeagues((prev) => {
+        if (prev) return prev;
+        setTimeout(() => loadLeaguesRef.current?.(pid), 3000);
+        return null;
+      });
+    }
   }, []);
+  useEffect(() => { loadLeaguesRef.current = loadLeagues; }, [loadLeagues]);
 
   useEffect(() => {
     if (!profile) { setLeagues(null); setActiveLeague(null); return; }
