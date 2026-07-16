@@ -9,6 +9,7 @@ import { createPortal } from "react-dom";
 import { Copy, Check, Share2, QrCode, X } from "lucide-react";
 import LeagueLogo from "./LeagueLogo";
 import { WEB_BASE } from "../lib/platform";
+import { shareUrl } from "../lib/shareLink";
 import { t } from "../lib/i18n";
 
 export default function InviteCard({ code, leagueName = "", logoUrl = null, compact = false, style }) {
@@ -22,11 +23,9 @@ export default function InviteCard({ code, leagueName = "", logoUrl = null, comp
     setCopied(true); setTimeout(() => setCopied(false), 1600);
   };
   const shareLink = async () => {
-    try {
-      if (navigator.share) { await navigator.share({ title: leagueName, url }); return; }
-    } catch (e) { if (e && e.name === "AbortError") return; }
-    try { navigator.clipboard?.writeText(url); } catch (e) { /* ignore */ }
-    setShared(true); setTimeout(() => setShared(false), 1600);
+    // Натив-безопасно: Capacitor Share (в Android WebView нет navigator.share), фолбэк — буфер.
+    const r = await shareUrl({ title: leagueName, text: leagueName, url });
+    if (r !== "shared") { setShared(true); setTimeout(() => setShared(false), 1600); }
   };
   const showQr = async () => {
     try {

@@ -15,7 +15,8 @@ import { t, nGames, currentLang , dateLocale} from "./lib/i18n";
 import { standings, detailedStandings } from "./lib/americano";
 import StandingsTable from "./components/StandingsTable";
 import Fab from "./components/Fab";
-import { Trophy, Swords, History, Users, UserPlus, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, UserCheck, ShieldCheck, EyeOff, Star, User, Search, Pencil, Send, MessageCircle } from "lucide-react";
+import { Trophy, Swords, History, Users, UserPlus, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, UserCheck, ShieldCheck, EyeOff, Star, User, Search, Pencil, Send, MessageCircle, QrCode } from "lucide-react";
+import { shareUrl } from "./lib/shareLink";
 import Tournaments, { TournamentView, TournamentCard, CopyDialog, css as trCss } from "./components/Tournaments";
 import DateTimePicker from "./components/DateTimePicker";
 import { confirmDialog, showToast } from "./components/ui-dialogs";
@@ -1136,32 +1137,51 @@ function DeletePlayerModal({ player, onConfirm, onCancel }) {
 }
 
 /* -------------------- ClaimLinkButton ------------------------------------ */
-function ClaimLinkButton({ claimCode }) {
+function ClaimLinkButton({ claimCode, name = "" }) {
   const [toast, setToast] = useState("");
+  const [qr, setQr] = useState(null);
   const link = `${WEB_BASE}/r/${claimCode}`;
-  const copy = async () => {
-    try { await navigator.clipboard.writeText(link); }
-    catch (e) {}
-    setToast(t("copied"));
-    setTimeout(() => setToast(""), 2200);
+  // Поделиться: на нативе — системный лист (Capacitor Share), иначе share/буфер.
+  const doShare = async () => {
+    const r = await shareUrl({ title: "PadelPack", text: t("claim_share_text"), url: link });
+    if (r === "copied") { setToast(t("copied")); setTimeout(() => setToast(""), 2000); }
+    else if (r === "failed") { setToast(t("copy_manual")); setTimeout(() => setToast(""), 2000); }
+    // "shared" — открылся системный лист, тост не нужен
   };
+  // QR той же ссылки /r/<code>: скан → регистрация → сразу в лиге под своим профилем.
+  const showQr = async () => {
+    try {
+      const mod = await import("qrcode-generator");
+      const make = mod.default || mod;
+      const q = make(0, "M"); q.addData(link); q.make();
+      setQr(q.createSvgTag(5, 4).replace("<svg ", '<svg style="width:100%;height:auto;display:block" '));
+    } catch (e) { /* без QR переживём */ }
+  };
+  const lime = { background: "rgba(200,255,45,.08)", border: "1px solid rgba(200,255,45,.45)", borderRadius: 12, cursor: "pointer", color: "var(--lime)", fontFamily: "'Outfit'", fontWeight: 600 };
   return (
     <div style={{ marginTop: 12, width: "100%" }}>
-      <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 6, textAlign: "center" }}>
-        {t("claim_link_label")}
+      <div style={{ fontSize: 11, color: "var(--mut)", marginBottom: 6, textAlign: "center" }}>{t("claim_link_label")}</div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button onClick={doShare} style={{ ...lime, flex: 1, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 13 }}>
+          <Share2 size={15} /> {toast || t("invite_share")}
+        </button>
+        <button onClick={showQr} aria-label="QR" title="QR" style={{ ...lime, flexShrink: 0, width: 42, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <QrCode size={17} />
+        </button>
       </div>
-      <button onClick={copy} style={{
-        width: "100%", padding: "10px 14px", background: "rgba(200,255,45,.08)",
-        border: "1px solid rgba(200,255,45,.45)", borderRadius: 12, cursor: "pointer",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        gap: 8, fontFamily: "'Outfit'", color: "var(--lime)", fontSize: 13, fontWeight: 600,
-      }}>
-        <Share2 size={15} />
-        {toast || t("copy_link")}
-      </button>
-      <div style={{ fontSize: 10, color: "var(--mut)", marginTop: 5, textAlign: "center", wordBreak: "break-all" }}>
-        {link}
-      </div>
+      <div style={{ fontSize: 10, color: "var(--mut)", marginTop: 5, textAlign: "center", wordBreak: "break-all" }}>{link}</div>
+
+      {qr && createPortal(
+        <div onClick={() => setQr(null)} style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,.7)", backdropFilter: "blur(5px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Outfit',sans-serif" }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 22, padding: 18, maxWidth: 320, width: "100%", textAlign: "center", position: "relative" }}>
+            <button onClick={() => setQr(null)} aria-label="✕" style={{ position: "absolute", top: 10, right: 10, background: "#f0f4f1", border: "none", borderRadius: 10, padding: 6, display: "flex", cursor: "pointer", color: "#4a7060" }}><X size={15} /></button>
+            {name && <div style={{ fontWeight: 800, fontSize: 16, color: "#0a1612", padding: "0 30px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</div>}
+            <div dangerouslySetInnerHTML={{ __html: qr }} style={{ margin: "12px auto 0", width: "100%", maxWidth: 232 }} />
+            <div style={{ fontSize: 12, color: "#4a7060", marginTop: 8 }}>{t("invite_scan")}</div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
@@ -1759,7 +1779,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
                 ))}
               </div>
             )}
-            {showClaimLink && <ClaimLinkButton claimCode={localClaimCode} />}
+            {showClaimLink && <ClaimLinkButton claimCode={localClaimCode} name={player.name} />}
           </div>
         )}
       </div>

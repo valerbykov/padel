@@ -156,6 +156,7 @@ const T = {
     player_deleted: 'Удалён',
     // ── Claim link ────────────────────────────────────────────────────────
     claim_link_label: 'Ссылка для регистрации игрока',
+    claim_share_text: 'Забери свой профиль в PadelPack — и ты сразу в лиге со своей статистикой 🎾',
     create_claim_link: 'Создать ссылку для регистрации',
     // ── Player detail ─────────────────────────────────────────────────────
     add_to_league: '+ Добавить в лигу',
@@ -563,6 +564,7 @@ const T = {
     player_deleted: 'Deleted',
     // ── Claim link ────────────────────────────────────────────────────────
     claim_link_label: 'Player registration link',
+    claim_share_text: 'Claim your PadelPack profile — you land right in the league with your stats 🎾',
     create_claim_link: 'Create registration link',
     // ── Player detail ─────────────────────────────────────────────────────
     add_to_league: '+ Add to league',
@@ -970,6 +972,7 @@ const T = {
     player_deleted: 'Eliminado',
     // ── Claim link ────────────────────────────────────────────────────────
     claim_link_label: 'Enlace de registro del jugador',
+    claim_share_text: 'Reclama tu perfil en PadelPack — entrarás directo a la liga con tus estadísticas 🎾',
     create_claim_link: 'Crear enlace de registro',
     // ── Player detail ─────────────────────────────────────────────────────
     add_to_league: '+ Añadir a liga',
