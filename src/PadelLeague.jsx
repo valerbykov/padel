@@ -690,10 +690,16 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
   }, [open, groupId, players]);
 
   // Добавить уже существующего игрока (из других лиг) в один тап.
+  // После успеха лист ЗАКРЫВАЕМ (раньше оставался висеть и выглядел как зависший
+  // экран) + тост-подтверждение. Добавить ещё — открыть лист заново.
   const addExisting = async (p) => {
     if (busy) return;
     setBusy(true);
-    try { await addExistingMember(groupId, p.id); setNetPlayers((prev) => prev.filter((x) => x.id !== p.id)); setQuery(""); reload(); }
+    try {
+      await addExistingMember(groupId, p.id);
+      setNetPlayers((prev) => prev.filter((x) => x.id !== p.id));
+      setQuery(""); setOpen(false); showToast(t("player_added")); reload();
+    }
     catch (e) { showToast(t("err_add_player")); }
     finally { setBusy(false); }
   };
@@ -703,7 +709,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
     const n = query.trim();
     if (!n || busy) return;
     setBusy(true);
-    try { await addMember(groupId, n, {}); setQuery(""); reload(); }
+    try { await addMember(groupId, n, {}); setQuery(""); setOpen(false); showToast(t("player_added")); reload(); }
     catch (e) { showToast(t("err_add_player")); }
     finally { setBusy(false); }
   };
