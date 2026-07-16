@@ -250,3 +250,39 @@ export async function setCourtName(tournamentId, court, name) {
   });
   if (error) throw error;
 }
+
+/* ---------- Взносы за турнир (кто скинулся за организацию) ---------------- */
+// Отдельные толерантные запросы (НЕ в T_SELECT): если миграция tournament_fees
+// ещё не применена, вкладка турниров не должна ломаться — карточка просто molча
+// не покажет данные.
+
+// Сумма с игрока (null = не задана / миграции нет).
+export async function getTournamentFee(id) {
+  try {
+    const { data, error } = await supabase.from("tournaments").select("fee_per_player").eq("id", id).single();
+    if (error) return null;
+    return data?.fee_per_player ?? null;
+  } catch (e) { return null; }
+}
+
+// Кто уже скинулся — Set из tournament_players.id.
+export async function getFeePayments(tournamentId) {
+  try {
+    const { data, error } = await supabase.rpc("get_fee_payments", { p_tournament_id: tournamentId });
+    if (error) return new Set();
+    return new Set((data || []).map((r) => (typeof r === "string" ? r : r?.get_fee_payments || r?.tp_id)).filter(Boolean));
+  } catch (e) { return new Set(); }
+}
+
+// Задать сумму с игрока (админ/создатель). null — убрать взносы.
+export async function setTournamentFee(tournamentId, perPlayer) {
+  const { error } = await supabase.rpc("set_tournament_fee", { p_tournament_id: tournamentId, p_per_player: perPlayer });
+  if (error) throw error;
+}
+
+// Переключить «скинулся» (сам за себя / админ за любого). Возвращает новое состояние.
+export async function toggleFeePaid(tpId) {
+  const { data, error } = await supabase.rpc("toggle_fee_paid", { p_tp_id: tpId });
+  if (error) throw error;
+  return !!data;
+}
