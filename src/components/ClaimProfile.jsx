@@ -10,6 +10,7 @@ import { UserCheck, AlertCircle, CheckCircle2, LogIn, ArrowRight } from "lucide-
 import { t } from "../lib/i18n";
 import { usePublicChrome, PublicToggles } from "./publicChrome";
 import Logo from "./Logo";
+import OpenInApp from "./OpenInApp";
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
@@ -153,6 +154,10 @@ export default function ClaimProfile({ code, botName }) {
                 <button className="cp-btn" onClick={() => setShowLogin(true)}>
                   <LogIn size={16} /> {t("pub_login_tg")}
                 </button>
+                {/* Сценарий «приложение уже установлено, QR открылся в браузере»:
+                    тап уводит в натив (padelpack:// по жесту), код клейма доезжает
+                    через appUrlOpen→routeFromUrl. Нет приложения — тап без эффекта. */}
+                <OpenInApp path={`/r/${code}`} style={{ marginTop: 8 }} />
               </>
             )}
           </>

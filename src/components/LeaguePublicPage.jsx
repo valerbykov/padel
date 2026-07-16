@@ -9,6 +9,7 @@ import { avatarFallback , avatarBg, avatarOnLoad} from "../lib/avatar";
 import { usePublicChrome, PublicToggles, plural } from "./publicChrome";
 import Logo from "./Logo";
 import LeagueLogo from "./LeagueLogo";
+import OpenInApp from "./OpenInApp";
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
@@ -166,6 +167,8 @@ export default function LeaguePublicPage({ code }) {
               onClick={() => { try { localStorage.setItem("pp_pending_join", code); } catch (e) {} }}>
               {t("pub_join_league")}
             </a>
+            {/* QR открылся в браузере, а приложение уже установлено → в натив по тапу */}
+            <OpenInApp path={`/l/${code}`} style={{ marginBottom: 12 }} />
             <div style={{ fontSize: 12, color: "var(--mut)", textAlign: "center", marginBottom: 28 }}>
               {t("pub_after_login")}
             </div>
