@@ -64,7 +64,9 @@ export default function ClaimProfile({ code, botName }) {
         claim_not_found: t("err_claim_invalid"),
         not_authenticated: t("err_claim_auth"),
       };
-      setErr(map[e.message] || t("err_claim_generic"));
+      // Неизвестную ошибку показываем ТЕКСТОМ (не прячем за «что-то пошло не так») —
+      // иначе диагностировать невозможно (урок кнопки «Link»).
+      setErr(map[e.message] || `${t("err_claim_generic")} (${e?.message || e})`);
     } finally {
       setBusy(false);
     }
