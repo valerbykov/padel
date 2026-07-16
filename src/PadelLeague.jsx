@@ -1260,11 +1260,15 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
   const generateClaimCode = async () => {
     setGenBusy(true);
     // Серверная генерация: только админ/владелец, только для гостя, идемпотентно.
-    // (Раньше прямой update profiles тихо падал у не-супер-админов.)
+    // Ошибку НЕ глотаем: раньше «Creating…» мелькал и тишина — непонятно, что не так.
     try {
-      const { data } = await supabase.rpc("ensure_claim_code", { p_profile_id: player.id });
+      const { data, error } = await supabase.rpc("ensure_claim_code", { p_profile_id: player.id });
+      if (error) throw error;
       if (data) setLocalClaimCode(data);
-    } catch (_) {}
+      else showToast(t("claim_gen_empty"));
+    } catch (e) {
+      showToast(`${t("err_generic")}: ${e?.message || e}`);
+    }
     setGenBusy(false);
   };
 

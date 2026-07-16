@@ -157,6 +157,7 @@ const T = {
     // ── Claim link ────────────────────────────────────────────────────────
     claim_link_label: 'Ссылка для регистрации игрока',
     claim_share_text: 'Забери свой профиль в PadelPack — и ты сразу в лиге со своей статистикой 🎾',
+    claim_gen_empty: 'Код не создан: игрок уже зарегистрирован или нет прав',
     create_claim_link: 'Создать ссылку для регистрации',
     // ── Player detail ─────────────────────────────────────────────────────
     add_to_league: '+ Добавить в лигу',
@@ -565,6 +566,7 @@ const T = {
     // ── Claim link ────────────────────────────────────────────────────────
     claim_link_label: 'Player registration link',
     claim_share_text: 'Claim your PadelPack profile — you land right in the league with your stats 🎾',
+    claim_gen_empty: 'No code: player already registered or no permission',
     create_claim_link: 'Create registration link',
     // ── Player detail ─────────────────────────────────────────────────────
     add_to_league: '+ Add to league',
@@ -973,6 +975,7 @@ const T = {
     // ── Claim link ────────────────────────────────────────────────────────
     claim_link_label: 'Enlace de registro del jugador',
     claim_share_text: 'Reclama tu perfil en PadelPack — entrarás directo a la liga con tus estadísticas 🎾',
+    claim_gen_empty: 'Sin código: el jugador ya está registrado o sin permiso',
     create_claim_link: 'Crear enlace de registro',
     // ── Player detail ─────────────────────────────────────────────────────
     add_to_league: '+ Añadir a liga',
