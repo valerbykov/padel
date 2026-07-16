@@ -36,3 +36,6 @@ android/app/google-services.json
 
 playwright-report/
 test-results/
+
+# Netlify CLI (локальная привязка сайта)
+.netlify/
