@@ -101,7 +101,7 @@ const T = {
     pub_claim_done_t: 'Готово!', pub_claim_done_s: 'История {name} привязана к твоему аккаунту. Рейтинг и все сыгранные матчи теперь твои.',
     pub_open_app: 'Открыть приложение', pub_added_by_admin: 'Тебя добавил администратор лиги. Привяжи аккаунт — и твоя история игр сохранится.',
     pub_login_as: 'Войдёшь как {name}', pub_claiming: 'Привязываю…', pub_claim_confirm: 'Да, это я — привязать аккаунт',
-    pub_login_other: 'Войти под другим аккаунтом', pub_login_to_claim: 'Войди в аккаунт, чтобы привязать историю игр.', pub_login_tg: 'Войти через Telegram',
+    pub_login_other: 'Войти под другим аккаунтом', pub_login_to_claim: 'Войди в аккаунт, чтобы привязать историю игр.', pub_login_tg: 'Войти или зарегистрироваться',
     not_in_league_sub: 'Создай свою лигу или вступи по коду на вкладке «Друзья». А играть в чужих матчах можно по ссылке-приглашению.',
     // ── Welcome screen ────────────────────────────────────────────────────
     chart_empty: 'Сыграй матч — появится динамика рейтинга.',
@@ -510,7 +510,7 @@ const T = {
     pub_claim_done_t: 'Done!', pub_claim_done_s: '{name}’s history is now linked to your account. The rating and all played matches are yours.',
     pub_open_app: 'Open the app', pub_added_by_admin: 'A league admin added you. Link your account to keep your match history.',
     pub_login_as: 'You’ll sign in as {name}', pub_claiming: 'Linking…', pub_claim_confirm: 'Yes, it’s me — link account',
-    pub_login_other: 'Sign in with another account', pub_login_to_claim: 'Sign in to link your match history.', pub_login_tg: 'Sign in with Telegram',
+    pub_login_other: 'Sign in with another account', pub_login_to_claim: 'Sign in to link your match history.', pub_login_tg: 'Sign in or create account',
     not_in_league_sub: 'Create your own league or join by code on the Friends tab. You can also play in others’ matches via an invite link.',
     // ── Welcome screen ────────────────────────────────────────────────────
     chart_empty: 'Play a match to see your rating history.',
@@ -919,7 +919,7 @@ const T = {
     pub_claim_done_t: '¡Listo!', pub_claim_done_s: 'El historial de {name} ya está vinculado a tu cuenta. El rating y los partidos son tuyos.',
     pub_open_app: 'Abrir la app', pub_added_by_admin: 'Un admin de la liga te añadió. Vincula tu cuenta para conservar tu historial.',
     pub_login_as: 'Entrarás como {name}', pub_claiming: 'Vinculando…', pub_claim_confirm: 'Sí, soy yo — vincular cuenta',
-    pub_login_other: 'Entrar con otra cuenta', pub_login_to_claim: 'Inicia sesión para vincular tu historial.', pub_login_tg: 'Entrar con Telegram',
+    pub_login_other: 'Entrar con otra cuenta', pub_login_to_claim: 'Inicia sesión para vincular tu historial.', pub_login_tg: 'Entrar o crear cuenta',
     not_in_league_sub: 'Crea tu propia liga o únete con un código en la pestaña Amigos. También puedes jugar en partidos de otros con un enlace de invitación.',
     // ── Welcome screen ────────────────────────────────────────────────────
     chart_empty: 'Juega una partida para ver tu historial de puntos.',
