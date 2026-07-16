@@ -54,10 +54,21 @@ export async function saveNotifPrefs({ enabled, offsets, notifyEvents = true }) 
 async function saveToken(token) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user || !token) return;
-  await supabase.from("push_tokens").upsert(
-    { token, user_id: user.id, platform: platformName(), tz: deviceTz(), lang: currentLang, updated_at: new Date().toISOString() },
+  const now = new Date().toISOString();
+  const { error } = await supabase.from("push_tokens").upsert(
+    { token, user_id: user.id, platform: platformName(), tz: deviceTz(), lang: currentLang, updated_at: now },
     { onConflict: "token" }
   );
+  // Если новая колонка (tz/lang) ещё не в БД — НЕ теряем токен: сохраняем ядро
+  // (иначе миграция-рассинхрон обнуляет все пуши, как было с lang на Андроиде).
+  if (error) {
+    try {
+      await supabase.from("push_tokens").upsert(
+        { token, user_id: user.id, platform: platformName(), updated_at: now },
+        { onConflict: "token" }
+      );
+    } catch (_) { /* ничего */ }
+  }
 }
 
 // Обновить язык уведомлений на всех устройствах пользователя (вызывать при смене
