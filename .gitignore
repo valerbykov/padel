@@ -39,3 +39,5 @@ test-results/
 
 # Netlify CLI (локальная привязка сайта)
 .netlify/
+.env.production
+.env.*.local
