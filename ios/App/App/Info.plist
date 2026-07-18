@@ -71,6 +71,19 @@
 				<string>com.googleusercontent.apps.935385008215-v564joapiu9nbfc2gkht0ed2tunld261</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>yandex-login</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>yx82bdbec842f948d49cdf25ee4d3877ae</string>
+			</array>
+		</dict>
+	</array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>yandexauth</string>
+		<string>yandexauth2</string>
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>

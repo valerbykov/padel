@@ -10,6 +10,9 @@ android {
         versionCode 9
         versionName "1.6"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        // Yandex ID SDK: client_id приложения в Yandex OAuth — redirect-activity SDK
+        // подставляет его в свой intent-filter (схема ya<CLIENT_ID>://)
+        manifestPlaceholders = [YANDEX_CLIENT_ID: "82bdbec842f948d49cdf25ee4d3877ae"]
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
@@ -40,6 +43,9 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+    // Yandex ID SDK (нативный вход «Выберите аккаунт») — версию сверить с
+    // актуальной: https://yandex.ru/dev/id/doc/ru/mobile-sdk/
+    implementation "com.yandex.android:authsdk:3.1.1"
 }
 
 apply from: 'capacitor.build.gradle'

@@ -1,5 +1,8 @@
 import UIKit
 import Capacitor
+#if canImport(YandexLoginSDK)
+import YandexLoginSDK
+#endif
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -8,6 +11,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        #if canImport(YandexLoginSDK)
+        // Yandex ID SDK: client_id приложения в Yandex OAuth (см. YANDEX_NATIVE.md)
+        try? YandexLoginSDK.shared.activate(with: "82bdbec842f948d49cdf25ee4d3877ae")
+        #endif
         return true
     }
 
@@ -36,6 +43,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
         // Called when the app was launched with a url. Feel free to add additional processing here,
         // but if you want the App API to support tracking app url opens, make sure to keep this call
+        #if canImport(YandexLoginSDK)
+        // Возврат из Yandex ID (yx<client_id>://) — отдаём SDK, остальное — Capacitor.
+        try? YandexLoginSDK.shared.handleOpenURL(url)
+        #endif
         return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
     }
 

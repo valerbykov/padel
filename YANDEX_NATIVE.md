@@ -15,12 +15,24 @@
   iOS Appid `LRNHLN732W.app.padelpack`, AppStore URL, Android package + отпечатки.
   **ClientID: `82bdbec842f948d49cdf25ee4d3877ae`**.
 
+✅ **Сделано в репо (2026-07-18):**
+- **Android — всё**: зависимость `com.yandex.android:authsdk:3.1.1` + manifestPlaceholder
+  `YANDEX_CLIENT_ID` (build.gradle), `YandexAuthPlugin.java`, регистрация в
+  `MainActivity.java`. Осталось только собрать в Android Studio (gradle скачает SDK;
+  версию/сигнатуры при ошибке сверить с докой).
+- **iOS — код**: `YandexAuthPlugin.swift` + активация и `handleOpenURL` в
+  `AppDelegate.swift` (всё под `#if canImport(YandexLoginSDK)` — собирается и БЕЗ
+  пакета), URL-схема `yx82bdbec…` и `LSApplicationQueriesSchemes` в Info.plist.
+
 ⬜ **Осталось:**
-1. Редеплой edge: `supabase functions deploy yandex-auth` (token-путь на сервере).
-2. Консоль: проверить, что в SHA256 Fingerprints **все три** отпечатка (см. ниже).
-3. Android: раздел 1 (gradle + плагин + MainActivity).
-4. iOS: раздел 2 (pod + AppDelegate + плагин + URL-схема).
-5. Проверка: раздел 4.
+1. **iOS: добавить пакет через SPM** (CocoaPods в проекте НЕТ — Capacitor 8 / CapApp-SPM):
+   Xcode → File → **Add Package Dependencies…** → URL репозитория YandexLoginSDK
+   (сверить в доке https://yandex.ru/dev/id/doc/ru/mobile-sdk/) → добавить к target App.
+   Без пакета всё собирается, плагин не регистрируется, JS уходит в веб-фолбэк.
+2. Редеплой edge: `supabase functions deploy yandex-auth` (token-путь на сервере).
+3. Консоль: проверить, что в SHA256 Fingerprints **все три** отпечатка (см. ниже).
+4. Сборка + проверка: раздел 4. При ошибках компиляции (SDK меняет API между
+   версиями) — прислать текст ошибки, поправлю сигнатуры.
 
 > ⚠ Версии SDK и точные сигнатуры меняются между релизами — сверяйся с актуальной
 > докой Яндекса. Ниже помечены места «сверить».
@@ -123,11 +135,9 @@ public class YandexAuthPlugin extends Plugin {
 
 ## 2. iOS
 
-**Podfile** (`ios/App/Podfile`, target `App`):
-```ruby
-pod 'YandexLoginSDK'   # сверить актуальную версию
-```
-Затем `cd ios/App && pod install`.
+**Пакет — через SPM, НЕ CocoaPods** (Podfile в проекте нет — Capacitor 8 / CapApp-SPM):
+Xcode → File → **Add Package Dependencies…** → URL YandexLoginSDK из актуальной доки
+(https://yandex.ru/dev/id/doc/ru/mobile-sdk/) → target `App`.
 
 **AppDelegate.swift** — активировать SDK и пробросить open-url:
 ```swift
