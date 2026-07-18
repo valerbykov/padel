@@ -82,6 +82,8 @@
 	</array>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
+		<string>primaryyandexloginsdk</string>
+		<string>secondaryyandexloginsdk</string>
 		<string>yandexauth</string>
 		<string>yandexauth2</string>
 	</array>
