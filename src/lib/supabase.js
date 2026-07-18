@@ -119,7 +119,15 @@ async function customFetch(input, init = {}) {
       const transient = e && (e.name === "AbortError" || e instanceof TypeError);
       if (transient) {
         persistMode("proxy");
-        return await dedupFetch(applyMode(input), init);
+        // Переотправлять на прокси безопасно ТОЛЬКО идемпотентные GET/HEAD. Для мутаций
+        // (POST/PATCH/PUT/DELETE) origin мог УЖЕ обработать запрос до сброса соединения —
+        // повтор задвоил бы эффект (двойной ELO, дубли слотов/участников). Режим уже
+        // переключён на proxy, поэтому СЛЕДУЮЩИЙ вызов пойдёт через него; текущую мутацию
+        // не пересылаем, а пробрасываем ошибку (пользователь повторит осознанно).
+        const method = (init.method || "GET").toUpperCase();
+        if (method === "GET" || method === "HEAD") {
+          return await dedupFetch(applyMode(input), init);
+        }
       }
       throw e;
     }

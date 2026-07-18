@@ -22,6 +22,9 @@ const kFactor = (m: number) => (m < 5 ? 60 : m < 15 ? 40 : 24);
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  // Снятие атомарного захвата игры при сбое (замыкание ставится после захвата) —
+  // объявлено здесь, чтобы быть в области видимости catch.
+  let unclaim: (() => Promise<void>) | null = null;
   try {
     const url = Deno.env.get("SUPABASE_URL")!;
     const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -55,6 +58,17 @@ Deno.serve(async (req) => {
     const { data: membership } = await admin.from("group_members")
       .select("profile_id").eq("group_id", game.group_id).eq("profile_id", me?.id).maybeSingle();
     if (!membership) return json({ error: "forbidden" }, 403);
+
+    // 3b. АТОМАРНЫЙ ЗАХВАТ игры: помечаем played ТОЛЬКО если ещё не played. 0 строк →
+    // конкурентный сабмит (двойной тап/ретрай) уже её обработал → already_played.
+    // Это сериализует гонку: без захвата два одновременных сабмита оба применяли бы ELO
+    // (двойное начисление рейтинга + два match-ряда). При ошибке ниже — снимаем захват.
+    const { data: claimed } = await admin.from("games")
+      .update({ status: "played" }).eq("id", game.id).neq("status", "played").select("id");
+    if (!claimed || claimed.length === 0) return json({ error: "already_played" }, 400);
+    // Захват удался — при любой ошибке ниже вернём статус в 'open' (иначе игра
+    // «сыграна» без счёта). Замыкание видит admin+game.
+    unclaim = async () => { await admin.from("games").update({ status: "open" }).eq("id", game.id).eq("status", "played"); };
 
     // 4. Раскладываем слоты в порядок [A1, A2, B1, B2] и резолвим игроков.
     const order = ["A1", "A2", "B1", "B2"];
@@ -158,10 +172,14 @@ Deno.serve(async (req) => {
         }),
       ]);
     }));
-    await admin.from("games").update({ status: "played" }).eq("id", game.id);
+    unclaim = null; // результат записан — захват подтверждён, снимать не нужно
 
     return json({ ok: true, deltas });
   } catch (e) {
-    return json({ error: String(e) }, 500);
+    // Захват был, но результат не дописался → возвращаем игру в 'open', иначе она
+    // «сыграна» без счёта и её нельзя переввести.
+    if (unclaim) { try { await unclaim(); } catch (_) { /* best effort */ } }
+    console.error("submit-result:", String(e));
+    return json({ error: "internal_error" }, 500);
   }
 });
