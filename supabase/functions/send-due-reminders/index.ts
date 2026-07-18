@@ -125,9 +125,9 @@ const TPL: Record<Lang, any> = {
     tailsNear: ["Погнали! 💪", "Разомнись и покажи класс!", "Возьми воду и ракетку 🎾", "Время побеждать 🔥"],
     tailsFar: ["Не пропусти 💪", "Отметь в календаре 📅", "Собери своих 🎾", "Готовься к бою!"],
     evGame: "🎾 Новая игра", evTour: "🏆 Новый турнир", evPost: "📣 Объявление",
-    feeTitle: "💸 Взнос за турнир", feeBody: "«{t}» — {n} ₽. Не забудь скинуться 🙏",
-    doneTourT: "🏁 Турнир завершён", doneTourB: "«{t}» — отличная игра! {greet} 🎾 Если скидывались на корты — не забудь про взнос 🙏",
-    doneGameT: "🏁 Игра сыграна", doneGameB: "Счёт записан — {greet} 🎾 Если скидывались за корт — не забудь про взнос 🙏",
+    feeTitle: "💸 Взнос за турнир", feeGameTitle: "💸 Взнос за игру", feeBody: "«{t}» — {n} ₽. Не забудь скинуться 🙏",
+    doneTourT: "🏁 Турнир завершён", doneTourB: "«{t}» — отличная игра! {greet} 🎾 Если корты платные — не забудь скинуться организатору 🙏",
+    doneGameT: "🏁 Игра сыграна", doneGameB: "Счёт записан — {greet} 🎾 Если корт платный — не забудь скинуться организатору 🙏",
     greetDay: "Хорошего дня", greetEve: "Хорошего вечера",
     ctaGame: ["записывайся в состав 💪", "занимай слот 🎾", "врывайся в игру 🔥"],
     ctaTour: ["заявляйся, пока есть места 🎾", "регистрируйся и покажи класс 🏆", "лови слот в сетке 🔥"],
@@ -149,9 +149,9 @@ const TPL: Record<Lang, any> = {
     tailsNear: ["Let's go! 💪", "Warm up and show your best!", "Grab water and your racket 🎾", "Time to win 🔥"],
     tailsFar: ["Don't miss it 💪", "Add it to your calendar 📅", "Round up your crew 🎾", "Get ready to battle!"],
     evGame: "🎾 New game", evTour: "🏆 New tournament", evPost: "📣 Announcement",
-    feeTitle: "💸 Tournament chip-in", feeBody: "\u201c{t}\u201d — {n} ₽. Don't forget to chip in 🙏",
-    doneTourT: "🏁 Tournament finished", doneTourB: "\u201c{t}\u201d — great game! {greet} 🎾 If you were splitting court costs — don't forget to chip in 🙏",
-    doneGameT: "🏁 Game played", doneGameB: "Score saved — {greet} 🎾 If you were splitting court costs — don't forget to chip in 🙏",
+    feeTitle: "💸 Tournament chip-in", feeGameTitle: "💸 Game chip-in", feeBody: "\u201c{t}\u201d — {n} ₽. Don't forget to chip in 🙏",
+    doneTourT: "🏁 Tournament finished", doneTourB: "\u201c{t}\u201d — great game! {greet} 🎾 If the court was paid — don't forget to chip in 🙏",
+    doneGameT: "🏁 Game played", doneGameB: "Score saved — {greet} 🎾 If the court was paid — don't forget to chip in 🙏",
     greetDay: "have a great day", greetEve: "have a great evening",
     ctaGame: ["grab a spot 💪", "take a slot 🎾", "jump into the game 🔥"],
     ctaTour: ["sign up while there's room 🎾", "register and show your best 🏆", "grab a slot in the draw 🔥"],
@@ -173,9 +173,9 @@ const TPL: Record<Lang, any> = {
     tailsNear: ["¡Vamos! 💪", "¡Calienta y da lo mejor!", "Lleva agua y la pala 🎾", "Hora de ganar 🔥"],
     tailsFar: ["No te lo pierdas 💪", "Anótalo en el calendario 📅", "Reúne a los tuyos 🎾", "¡Prepárate para la batalla!"],
     evGame: "🎾 Nuevo partido", evTour: "🏆 Nuevo torneo", evPost: "📣 Anuncio",
-    feeTitle: "💸 Aporte del torneo", feeBody: "«{t}» — {n} ₽. No olvides aportar 🙏",
-    doneTourT: "🏁 Torneo terminado", doneTourB: "«{t}» — ¡gran partido! {greet} 🎾 Si dividían las pistas — no olvides tu aporte 🙏",
-    doneGameT: "🏁 Partido jugado", doneGameB: "Resultado guardado — {greet} 🎾 Si dividían la pista — no olvides tu aporte 🙏",
+    feeTitle: "💸 Aporte del torneo", feeGameTitle: "💸 Aporte del partido", feeBody: "«{t}» — {n} ₽. No olvides aportar 🙏",
+    doneTourT: "🏁 Torneo terminado", doneTourB: "«{t}» — ¡gran partido! {greet} 🎾 Si la pista era de pago — no olvides aportar 🙏",
+    doneGameT: "🏁 Partido jugado", doneGameB: "Resultado guardado — {greet} 🎾 Si la pista era de pago — no olvides aportar 🙏",
     greetDay: "buen día", greetEve: "buena tarde",
     ctaGame: ["apúntate al equipo 💪", "coge un hueco 🎾", "métete en el partido 🔥"],
     ctaTour: ["inscríbete mientras haya plazas 🎾", "regístrate y da lo mejor 🏆", "coge plaza en el cuadro 🔥"],
@@ -266,14 +266,42 @@ Deno.serve(async (req) => {
     let feeRows: any[] = [];
     try {
       const fq = await admin.from("fee_reminder_queue")
-        .select("id, profile_id, tournament:tournaments(name, fee_per_player), profile:profiles(user_id)")
+        .select("id, profile_id, tournament_id, game_id, tournament:tournaments(name, fee_per_player, group_id), game:games(place, fee_per_player, group_id), profile:profiles(user_id, name)")
         .is("sent_at", null).limit(200);
       if (!fq.error && fq.data?.length) {
-        feeRows = fq.data.filter((r: any) => r.profile?.user_id && r.tournament);
+        feeRows = fq.data.filter((r: any) => r.profile?.user_id && (r.tournament || r.game));
         await admin.from("fee_reminder_queue").update({ sent_at: new Date().toISOString() })
           .in("id", fq.data.map((r: any) => r.id));
       }
     } catch (_) { /* миграции нет — тихо пропускаем */ }
+
+    // Авто-пост в Telegram-чат лиги (одно сообщение на игру/турнир, а не на должника):
+    // если у лиги привязан ПУБЛИЧНЫЙ чат (t.me/<username>) и бот в нём состоит.
+    // Тихо пропускаем, если токена/чата нет — пуши от этого не зависят.
+    if (feeRows.length) {
+      try {
+        const tgToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
+        if (tgToken) {
+          const byEntity: Record<string, any[]> = {};
+          for (const r of feeRows) (byEntity[r.tournament_id || r.game_id] ||= []).push(r);
+          for (const rows of Object.values(byEntity)) {
+            const r0: any = rows[0];
+            const groupId = r0.tournament?.group_id || r0.game?.group_id;
+            if (!groupId) continue;
+            const { data: grp } = await admin.from("groups").select("telegram_url").eq("id", groupId).maybeSingle();
+            const m = String(grp?.telegram_url || "").match(/t\.me\/([A-Za-z0-9_]{5,})/); // только публичные @username (не t.me/+invite)
+            if (!m) continue;
+            const title = r0.tournament ? `«${r0.tournament.name}»` : (r0.game?.place ? `«${r0.game.place}»` : "игра");
+            const per = r0.tournament?.fee_per_player ?? r0.game?.fee_per_player ?? "";
+            const names = rows.map((r: any) => r.profile?.name).filter(Boolean).join(", ");
+            await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+              method: "POST", headers: { "content-type": "application/json" },
+              body: JSON.stringify({ chat_id: `@${m[1]}`, text: `💸 ${title}: напоминание о взносе ${per} ₽ — ${names} 🙏` }),
+            }).catch(() => {});
+          }
+        }
+      } catch (_) { /* телеграм — best effort */ }
+    }
 
     // 1в) очередь «завершение игры/турнира» (триггеры БД). Толерантно к отсутствию
     // таблицы (миграция 2026-07-26). Помечаем sent_at сразу по выборке.
@@ -337,15 +365,18 @@ Deno.serve(async (req) => {
     for (const d of events as any[]) {
       outbox.push({ user_id: d.user_id, event_type: d.event_type, event_id: d.event_id, offset_min: 0, build: composeEvent(d).build });
     }
-    // Взносы: адресный пуш должнику — «💸 Взнос за турнир / «Название» — N ₽».
+    // Взносы: адресный пуш должнику — «💸 Взнос за турнир/игру / «Название» — N ₽».
     for (const r of feeRows) {
       outbox.push({
         user_id: r.profile.user_id, event_type: "fee", event_id: r.id, offset_min: 0,
         build: (_tz: string, lang: Lang) => {
           const p = TPL[lang];
+          const isTour = !!r.tournament;
+          const name = isTour ? (r.tournament.name || "") : (r.game?.place || p.game);
+          const per = isTour ? r.tournament.fee_per_player : r.game?.fee_per_player;
           return {
-            title: p.feeTitle,
-            body: p.feeBody.replace("{t}", r.tournament.name || "").replace("{n}", String(r.tournament.fee_per_player || "")),
+            title: isTour ? p.feeTitle : p.feeGameTitle,
+            body: p.feeBody.replace("{t}", name).replace("{n}", String(per || "")),
           };
         },
       });

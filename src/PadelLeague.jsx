@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { registerBack } from "./lib/backstack";
 import { supabase } from "./lib/supabase";
 import BackButton from "./components/BackButton";
-import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, createDemoLeague, joinSlot, clearGameSlot, startGame, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames, getMyDeltas } from "./lib/padelApi";
+import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, createDemoLeague, joinSlot, clearGameSlot, startGame, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames, getMyDeltas, getGameFee, getGameFeePayments, setGameFee, toggleGameFeePaid, remindGameFeeDebtors } from "./lib/padelApi";
 import { WEB_BASE } from "./lib/platform";
 import { CardSkeleton } from "./components/Skeleton";
 import { bustCache, cachePeek } from "./lib/cache";
@@ -19,6 +19,7 @@ import { Trophy, Swords, History, Users, UserPlus, Share2, Check, X, RefreshCw, 
 import { shareUrl } from "./lib/shareLink";
 import Tournaments, { TournamentView, TournamentCard, CopyDialog, css as trCss } from "./components/Tournaments";
 import DateTimePicker from "./components/DateTimePicker";
+import FeesCard from "./components/FeesCard";
 import { confirmDialog, showToast } from "./components/ui-dialogs";
 import { copyTournament } from "./lib/tournamentApi";
 import { deleteTournament } from "./lib/tournamentApi";
@@ -2896,6 +2897,29 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
             📸 {cardBusy ? t("sc_making") : list.length > 1 ? t("sc_share_mix") : t("sc_share_game")}
           </button>
         )}
+        {/* Взносы за игру: якорь — ПЕРВАЯ игра сессии; участники — уникальные люди
+            всей сессии (в миксе один человек имеет слоты в нескольких под-играх —
+            ключ отметки = его слот в первой игре, где он встретился). */}
+        {(() => {
+          const anchor = list[0];
+          const uniq = [];
+          const seen = new Set();
+          for (const g of list) for (const s of (g.slots || [])) {
+            const personKey = s.profile_id || `guest:${s.guest_name || s.id}`;
+            if (!s.profile_id && !s.guest_name) continue;
+            if (seen.has(personKey)) continue;
+            seen.add(personKey);
+            uniq.push({ key: s.id, profile_id: s.profile_id, name: s.profile?.name || s.guest_name, avatar_url: s.profile?.avatar_url });
+          }
+          return (
+            <FeesCard entityId={anchor.id} entityName={anchor.place || anchor.title || "Padel"}
+              players={uniq} me={profileId} readOnly={false}
+              canManage={isAdmin || anchor.host_id === profileId}
+              avatarOf={(key) => { const u = uniq.find((x) => x.key === key); return u?.profile_id ? playerAvatar(u.avatar_url, u.profile_id) : null; }}
+              api={{ getFee: getGameFee, getPaid: getGameFeePayments, setFee: setGameFee, togglePaid: toggleGameFeePaid, remind: remindGameFeeDebtors }}
+              cardClass="pl-card" />
+          );
+        })()}
         {canMix && (
           <div className="pl-card" style={{ padding: 14, marginTop: 4 }}>
             {!mix ? (

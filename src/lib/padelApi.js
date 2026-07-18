@@ -647,3 +647,33 @@ export async function getPublicLeague(code) {
   if (error) throw error;
   return data;
 }
+
+/* ---------- Взносы за игру (аналог турнирных, ключ — game_slots.id) --------- */
+export async function getGameFee(gameId) {
+  try {
+    const { data, error } = await supabase.from("games").select("fee_per_player").eq("id", gameId).single();
+    if (error) return null;
+    return data?.fee_per_player ?? null;
+  } catch (e) { return null; }
+}
+export async function getGameFeePayments(gameId) {
+  try {
+    const { data, error } = await supabase.rpc("get_game_fee_payments", { p_game_id: gameId });
+    if (error) return new Set();
+    return new Set((data || []).map((r) => (typeof r === "string" ? r : r?.get_game_fee_payments || r?.slot_id)).filter(Boolean));
+  } catch (e) { return new Set(); }
+}
+export async function setGameFee(gameId, perPlayer) {
+  const { error } = await supabase.rpc("set_game_fee", { p_game_id: gameId, p_per_player: perPlayer });
+  if (error) throw error;
+}
+export async function toggleGameFeePaid(slotId) {
+  const { data, error } = await supabase.rpc("toggle_game_fee_paid", { p_slot_id: slotId });
+  if (error) throw error;
+  return !!data;
+}
+export async function remindGameFeeDebtors(gameId) {
+  const { data, error } = await supabase.rpc("remind_game_fee_debtors", { p_game_id: gameId });
+  if (error) throw error;
+  return data ?? 0;
+}
