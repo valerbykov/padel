@@ -5,20 +5,38 @@
 `signInYandex()` сначала пробует нативный плагин `YandexAuth`, а если его нет —
 уходит в веб-OAuth (фолбэк). Edge-функция `yandex-auth` уже принимает `token`.
 
-Осталось добавить нативную часть (в Android Studio / Xcode). Ниже — всё по шагам.
+## СТАТУС (обновлено 2026-07-18)
+
+✅ **Сделано:**
+- JS-часть (`signInYandex` → плагин `YandexAuth` → фолбэк веб-OAuth) — в `main`.
+- Edge `yandex-auth` принимает `{token}` — код в `main`.
+- Консоль Yandex OAuth (раздел 0): приложение создано, scopes (email/логин-имя/аватар),
+  redirect URI (padelpack.app / localhost:5173 / padelpack://login-callback),
+  iOS Appid `LRNHLN732W.app.padelpack`, AppStore URL, Android package + отпечатки.
+  **ClientID: `82bdbec842f948d49cdf25ee4d3877ae`**.
+
+⬜ **Осталось:**
+1. Редеплой edge: `supabase functions deploy yandex-auth` (token-путь на сервере).
+2. Консоль: проверить, что в SHA256 Fingerprints **все три** отпечатка (см. ниже).
+3. Android: раздел 1 (gradle + плагин + MainActivity).
+4. iOS: раздел 2 (pod + AppDelegate + плагин + URL-схема).
+5. Проверка: раздел 4.
 
 > ⚠ Версии SDK и точные сигнатуры меняются между релизами — сверяйся с актуальной
 > докой Яндекса. Ниже помечены места «сверить».
 
 ---
 
-## 0. Регистрация приложения в Yandex OAuth
-Консоль https://oauth.yandex.ru → твоё приложение (или создать):
-- Права: «Доступ к email», «Доступ к логину, имени, аватарке».
-- Платформа **Android**: package `app.padelpack` + SHA-256 отпечаток(и) подписи
-  (debug и release keystore). Отпечаток: `keytool -list -v -keystore <ключ> | grep SHA256`.
-- Платформа **iOS**: Bundle ID `app.padelpack`.
-- Забрать **client_id (ID приложения)** и **callback URL-схему** (для iOS).
+## 0. Регистрация приложения в Yandex OAuth  ✅ сделано
+Консоль https://oauth.yandex.ru → приложение `padelpack` (ClientID `82bdbec842f948d49cdf25ee4d3877ae`):
+- Права: email, логин/имя, аватар — ✅.
+- **iOS**: Appid `LRNHLN732W.app.padelpack` (TeamID.bundle), AppStore URL — ✅.
+- **Android**: package `app.padelpack` + SHA-256 Fingerprints. Нужны **все три**
+  (одно приложение — три подписи):
+  - `CA:5B:E3:…:6C:80` — ключ подписи Google Play (App Signing) ✅
+  - `43:7C:98:…:09:1B` — подпись RuStore ✅ (внесён 2026-07-16)
+  - `E2:EF:22:…:74:0D` — upload-ключ (сборки, установленные напрямую/из Studio) — проверить
+- Callback URL-схема для iOS — взять из актуального README YandexLoginSDK при интеграции.
 
 ---
 
