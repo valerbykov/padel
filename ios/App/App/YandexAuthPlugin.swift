@@ -33,7 +33,11 @@ public class YandexAuthPlugin: CAPPlugin, CAPBridgedPlugin {
             do {
                 try YandexLoginSDK.shared.authorize(with: vc, authorizationStrategy: .default)
             } catch {
-                call.reject("authorize_failed: \(error.localizedDescription)")
+                // ДИАГНОСТИКА: печатаем ПОЛНУЮ ошибку (domain/code/userInfo) — там
+                // реальная причина, а localizedDescription даёт лишь «error 5».
+                let ns = error as NSError
+                NSLog("YandexAuth: authorize threw: %@", String(describing: ns))
+                call.reject("authorize_failed: domain=\(ns.domain) code=\(ns.code) desc=\(ns.localizedDescription) info=\(ns.userInfo)")
                 self.pendingCall = nil
             }
         }
@@ -48,7 +52,9 @@ extension YandexAuthPlugin: YandexLoginSDKObserver {
         case .success(let login):
             call.resolve(["token": login.token])
         case .failure(let error):
-            call.reject("yandex_failure: \(error.localizedDescription)")
+            let ns = error as NSError
+            NSLog("YandexAuth: didFinishLogin failure: %@", String(describing: ns))
+            call.reject("yandex_failure: domain=\(ns.domain) code=\(ns.code) desc=\(ns.localizedDescription) info=\(ns.userInfo)")
         }
     }
 }

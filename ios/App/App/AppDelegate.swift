@@ -8,8 +8,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Yandex ID SDK: client_id приложения в Yandex OAuth (см. YANDEX_NATIVE.md)
-        try? YandexLoginSDK.shared.activate(with: "82bdbec842f948d49cdf25ee4d3877ae")
+        // Yandex ID SDK: client_id приложения в Yandex OAuth (см. YANDEX_NATIVE.md).
+        // ДИАГНОСТИКА: не глотаем ошибку активации (была под try?) — печатаем в консоль.
+        do {
+            try YandexLoginSDK.shared.activate(with: "82bdbec842f948d49cdf25ee4d3877ae")
+            NSLog("YandexAuth: activate OK")
+        } catch {
+            NSLog("YandexAuth: activate FAILED: %@", String(describing: error as NSError))
+        }
         return true
     }
 
