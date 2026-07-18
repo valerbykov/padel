@@ -56,16 +56,19 @@ export default function TournamentJoin({ code, botName }) {
   const [showLogin, setShowLogin] = useState(false);
   const { theme, lang, vars, toggleTheme, cycleLang } = usePublicChrome();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const base = await getTournamentByCode(code);
       if (!base) { setT(null); return; }
-      // Enrich with direct query that includes score_a/score_b (getTournamentByCode uses RPC that may omit scores)
-      const rich = await getTournament(base.id).catch(() => null);
+      // Обогащаем счётами через прямой запрос (getTournamentByCode — RPC без
+      // score_a/score_b) ТОЛЬКО авторизованным: у анонима RLS рубит прямой
+      // select турнира в 406 (спам в консоли + бесполезный запрос). Гостю
+      // хватает данных из RPC.
+      const rich = session ? await getTournament(base.id).catch(() => null) : null;
       setT(rich || base);
     } catch (e) { setT(null); }
-  };
-  useEffect(() => { load(); }, [code]);
+  }, [code, session]);
+  useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -85,10 +88,14 @@ export default function TournamentJoin({ code, botName }) {
   }, [session]);
 
   const reloadBoth = useCallback(async () => {
-    const d = await getTournament(t?.id).catch(() => getTournamentByCode(code));
+    // Как и в load(): прямой getTournament — только для авторизованных (RLS),
+    // иначе аноним получает 406. Гость обновляется через публичный RPC.
+    const d = session
+      ? await getTournament(t?.id).catch(() => getTournamentByCode(code))
+      : await getTournamentByCode(code);
     if (d) setT(d);
     return d;
-  }, [t?.id, code]);
+  }, [t?.id, code, session]);
 
   if (showLogin && !session) return <LoginScreen botName={botName} onSuccess={() => setShowLogin(false)} onBack={() => setShowLogin(false)} theme={theme} lang={lang} onThemeToggle={toggleTheme} onLangChange={cycleLang} />;
 
