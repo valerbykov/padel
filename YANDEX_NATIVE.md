@@ -200,7 +200,7 @@ extension YandexAuthPlugin: YandexLoginSDKObserver {
     }
 }
 ```
-(iOS-плагин Capacitor находит по `@objc`/`CAPBridgedPlugin` сам — ручная регистрация не нужна.)
+(iOS-плагин Capacitor находит по `@objc`/`CAPBridgedPlugin` сам — ручная регистрация в коде не нужна. **НО**: файл `YandexAuthPlugin.swift` обязан быть **членом таргета App** — Capacitor находит плагин только среди скомпилированных классов. Если файла нет в Compile Sources таргета, `Capacitor.Plugins.YandexAuth === undefined`, и вход молча уходит в веб-OAuth — пересборка при этом НЕ помогает.)
 
 ---
 
@@ -219,3 +219,18 @@ extension YandexAuthPlugin: YandexLoginSDKObserver {
 4. Веб (padelpack.app) — без изменений, там был и остаётся веб-OAuth.
 
 Если плагин не подключён/сломан — JS сам уходит в веб-OAuth, вход не ломается.
+
+---
+
+## 5. Troubleshooting: открывается passport.yandex.ru с вводом телефона
+Значит нативный плагин НЕ зарегистрирован — JS ушёл в веб-фолбэк. Диагностика в
+Safari Web Inspector (консоль устройства): `window.Capacitor.Plugins.YandexAuth`
+→ `undefined`.
+
+Причина №1 (была 2026-07-18): `YandexAuthPlugin.swift` лежал в папке, но **не был
+добавлен в таргет App** — отсутствовал в `project.pbxproj` (в отличие от
+`AppDelegate.swift`). Файл не компилировался → Capacitor не находил класс.
+Фикс: в Xcode выделить `YandexAuthPlugin.swift` → File Inspector → **Target
+Membership → отметить App** (или файл уже прописан в `project.pbxproj` — тогда
+просто `git pull` + пересборка). Проверка: `grep YandexAuthPlugin
+ios/App/App.xcodeproj/project.pbxproj` должен вернуть 4 записи.
