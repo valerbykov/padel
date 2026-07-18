@@ -2251,6 +2251,9 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
   const [games, setGames] = useState([]);
   const [mode, setMode] = useState("list");
   const [selId, setSelId] = useState(null);
+  // Стабильная ссылка на back — иначе новый arrow на каждый ре-рендер заставляет
+  // GameCard перерегистрировать back-хэндлер и рушит порядок стека «Назад».
+  const backToList = useCallback(() => setMode("list"), []);
   const [loading, setLoading] = useState(true);
 
   const loadGames = useCallback(async () => {
@@ -2263,8 +2266,13 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
   const openedReqRef = useRef(0);
   useEffect(() => {
     if (!openReq?.id || loading || openReq.nonce === openedReqRef.current) return;
-    openedReqRef.current = openReq.nonce;
-    if (games.some((g) => g.id === openReq.id)) { setSelId(openReq.id); setMode("view"); }
+    // Помечаем nonce «использованным» ТОЛЬКО когда игра реально нашлась. Иначе (список
+    // ещё не той лиги при открытии из пуша) nonce «сгорал» и повторная загрузка списка
+    // уже не открывала игру — тап по уведомлению молча ничего не делал.
+    if (games.some((g) => g.id === openReq.id)) {
+      openedReqRef.current = openReq.nonce;
+      setSelId(openReq.id); setMode("view");
+    }
   }, [openReq, loading, games]);
 
   if (mode === "create")
@@ -2274,7 +2282,7 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
   if (mode === "view") {
     const g = games.find((x) => x.id === selId);
     if (!g) { setMode("list"); return null; }
-    return <GameCard game={g} groupId={groupId} profileId={profileId} isAdmin={isAdmin} back={() => setMode("list")} reloadGames={loadGames} reloadLeaderboard={reloadLeaderboard} bumpArchive={bumpArchive} players={players} />;
+    return <GameCard key={g.id} game={g} groupId={groupId} profileId={profileId} isAdmin={isAdmin} back={backToList} reloadGames={loadGames} reloadLeaderboard={reloadLeaderboard} bumpArchive={bumpArchive} players={players} />;
   }
 
   return (
@@ -3160,6 +3168,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
   const [copyTour, setCopyTour] = useState(null);
   const [copyGame, setCopyGame] = useState(null);
   const [sel, setSel] = useState(null);       // { type: 'tour' | 'game', data }
+  const backFromSel = useCallback(() => setSel(null), []); // стабильный back для GameCard/TournamentView
   const [swipeHint, setSwipeHint] = useState(() => { try { return !localStorage.getItem("pp_swipe_hint"); } catch (e) { return true; } });
   const dismissHint = () => { try { localStorage.setItem("pp_swipe_hint", "1"); } catch (e) {} setSwipeHint(false); };
   const [filter, setFilter] = useState("all"); // all | games | tours
@@ -3186,8 +3195,8 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
   }, [groupId, focusId, archiveNonce]);
 
   // Проваливание в результаты — те же экраны, что на вкладках Игры/Турниры (там и удаление).
-  if (sel?.type === "tour") return <TournamentView id={sel.data.id} players={players} back={() => setSel(null)} isGroupMember={isGroupMember} currentProfileId={profileId} onArchiveChange={bumpArchive} onOpenPlayer={onOpenPlayer} />;
-  if (sel?.type === "game") return <GameCard game={sel.data} groupId={groupId} profileId={profileId} isAdmin={isAdmin} back={() => setSel(null)} reloadGames={load} reloadLeaderboard={() => {}} bumpArchive={bumpArchive} players={players} />;
+  if (sel?.type === "tour") return <TournamentView id={sel.data.id} players={players} back={backFromSel} isGroupMember={isGroupMember} currentProfileId={profileId} onArchiveChange={bumpArchive} onOpenPlayer={onOpenPlayer} />;
+  if (sel?.type === "game") return <GameCard key={sel.data.id} game={sel.data} groupId={groupId} profileId={profileId} isAdmin={isAdmin} back={backFromSel} reloadGames={load} reloadLeaderboard={() => {}} bumpArchive={bumpArchive} players={players} />;
 
   const gameDate = (g) => new Date(g.matches?.[0]?.played_at || g.starts_at || g.created_at || 0);
   const tourDate = (tr) => new Date(tr.starts_at || tr.created_at || 0);
