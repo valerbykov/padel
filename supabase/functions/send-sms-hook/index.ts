@@ -77,8 +77,11 @@ Deno.serve(async (req) => {
     const payload = await req.text();
     const headers = Object.fromEntries(req.headers);
 
-    // 1. Проверяем подпись — что запрос действительно от Supabase.
-    const secret = (Deno.env.get("SEND_SMS_HOOK_SECRET") ?? "").replace("v1,whsec_", "");
+    // 1. Проверяем подпись — что запрос действительно от Supabase. Без секрета
+    // Webhook("") принял бы что угодно (fail-open) — поэтому явно закрываемся.
+    const rawSecret = Deno.env.get("SEND_SMS_HOOK_SECRET") ?? "";
+    if (!rawSecret) return hookError(500, "SEND_SMS_HOOK_SECRET не задан");
+    const secret = rawSecret.replace("v1,whsec_", "");
     const wh = new Webhook(secret);
     const { user, sms } = wh.verify(payload, headers) as {
       user: { phone: string };

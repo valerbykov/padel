@@ -6,7 +6,8 @@ import { swr, bustCache } from "./cache";
 import { WEB_BASE } from "./platform";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const genCode = () => Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join("");
+// 6 символов (≈1 млрд) — см. padelApi.genCode. Старые 4-символьные коды валидны.
+const genCode = () => Array.from({ length: 6 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join("");
 export const tournamentLink = (code) => `${WEB_BASE}/t/${code}`;
 
 const T_SELECT =
@@ -97,8 +98,11 @@ export async function addTournamentPlayer(tournamentId, { profileId = null, name
   // Идемпотентность для зарегистрированных: двойной тап «Занять» не должен
   // добавлять игрока дважды (дубль ломает жеребьёвку).
   if (profileId) {
-    const { data: dup } = await supabase.from("tournament_players")
+    const { data: dup, error: dupErr } = await supabase.from("tournament_players")
       .select("id").eq("tournament_id", tournamentId).eq("profile_id", profileId).limit(1);
+    // Не глотаем ошибку проверки: при сбое SELECT dup=null и раньше мы «падали в
+    // открытую» — вставляли второй ряд и ломали жеребьёвку. Лучше пробросить.
+    if (dupErr) throw dupErr;
     if (dup && dup.length > 0) return;
   }
   const { error } = await supabase.from("tournament_players")

@@ -21,6 +21,16 @@ const cors = {
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...cors, "content-type": "application/json" } });
 
+// Сравнение подписей за постоянное время: обычное `a === b` выходит на первом
+// несовпавшем символе, и по времени ответа можно посимвольно подобрать валидный
+// hash. Обе строки — 64-символьный hex SHA256, длина фиксирована.
+function timingSafeEqualHex(a: string, b: string) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 // Проверка подписи Telegram Login Widget.
 async function verifyTelegram(data: Record<string, string>, botToken: string) {
   const { hash, ...fields } = data;
@@ -31,7 +41,7 @@ async function verifyTelegram(data: Record<string, string>, botToken: string) {
   const key = await crypto.subtle.importKey("raw", secret, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   const sig = await crypto.subtle.sign("HMAC", key, enc.encode(checkString));
   const hex = [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
-  return hex === hash;
+  return timingSafeEqualHex(hex, String(hash || "").toLowerCase());
 }
 
 Deno.serve(async (req) => {

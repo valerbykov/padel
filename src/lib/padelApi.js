@@ -6,8 +6,10 @@ import { swr, bustCache, bustKey, cacheSet } from "./cache";
 import { WEB_BASE } from "./platform";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+// 6 символов из 32-буквенного алфавита (≈1 млрд) — перебор открытых игр/лиг по
+// коду нереален, коллизии исчезают. Старые 4-символьные коды ищутся как есть.
 const genCode = () =>
-  Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join("");
+  Array.from({ length: 6 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join("");
 
 // Ссылка-приглашение на текущем домене PWA: /j/:code
 export const linkFor = (code) => `${WEB_BASE}/j/${code}`;

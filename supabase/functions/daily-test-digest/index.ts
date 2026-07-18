@@ -47,8 +47,11 @@ const peopleTable = (title: string, list: any[], tsField: string, lastCol: strin
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
+    // Без CRON_SECRET эндпоинт (задеплоен --no-verify-jwt) был бы публичным —
+    // любой мог бы спамить админскую рассылку. Нет секрета → закрыто.
     const cronSecret = Deno.env.get("CRON_SECRET");
-    if (cronSecret && req.headers.get("x-cron-secret") !== cronSecret) {
+    if (!cronSecret) return json({ error: "cron_secret_not_set" }, 500);
+    if (req.headers.get("x-cron-secret") !== cronSecret) {
       return json({ error: "unauthorized" }, 401);
     }
     const resendKey = Deno.env.get("RESEND_API_KEY");
