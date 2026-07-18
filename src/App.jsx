@@ -49,13 +49,15 @@ const TgNativeBridge   = lazy(() => import("./components/TgNativeBridge"));
 
 const BOT_NAME = "padelacc_bot"; // имя твоего Telegram-бота без @
 
+// Длина кода — диапазон, НЕ ровно 4: клиентские genCode стали 6 символов
+// (было 4), демо-игры — 8. Жёсткое {4} роняло /j/ и /t/ новых кодов на welcome.
 function getInviteCode() {
-  const m = window.location.pathname.match(/^\/j\/([A-Za-z0-9]{4})$/);
+  const m = window.location.pathname.match(/^\/j\/([A-Za-z0-9]{4,12})$/);
   return m ? m[1].toUpperCase() : null;
 }
 
 function getTournamentCode() {
-  const m = window.location.pathname.match(/^\/t\/([A-Za-z0-9]{4})$/);
+  const m = window.location.pathname.match(/^\/t\/([A-Za-z0-9]{4,12})$/);
   return m ? m[1].toUpperCase() : null;
 }
 
@@ -65,7 +67,7 @@ function getClaimCode() {
 }
 
 function getLeaguePublicCode() {
-  const m = window.location.pathname.match(/^\/l\/([A-Za-z0-9]{6})$/i);
+  const m = window.location.pathname.match(/^\/l\/([A-Za-z0-9]{4,12})$/i);
   return m ? m[1].toUpperCase() : null;
 }
 
