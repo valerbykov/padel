@@ -7,6 +7,14 @@
          виджет делает это в main.jsx по isNativeApp(). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0a1612" />
+    <!-- iOS Smart App Banner: нативная плашка «Открыть/Установить» в мобильном Safari
+         (id приложения в App Store). app-argument = текущий URL → «Открыть» уводит в
+         приложение на нужную страницу через universal links. В нативной обёртке — игнор. -->
+    <meta name="apple-itunes-app" content="app-id=6787536510" />
+    <script>
+      var _ab = document.querySelector('meta[name="apple-itunes-app"]');
+      if (_ab) _ab.setAttribute("content", "app-id=6787536510, app-argument=" + location.href);
+    </script>
     <!-- TLS-рукопожатие с БД начинается сразу, а не при первом запросе данных -->
     <link rel="preconnect" href="https://ofewhhcwswjxvlqsygxu.supabase.co" crossorigin />
     <link rel="preconnect" href="https://ru.padelpack.app" crossorigin />
