@@ -38,13 +38,16 @@ export default function AppInstallBanner() {
 
   if (!state) return null;
   const dismiss = () => { try { localStorage.setItem(DISMISS_KEY, "1"); } catch (e) {} setState(null); };
+  // «Установлено или нет» из веба не определить (кроме системного баннера Safari).
+  // Поэтому: пробуем ОТКРЫТЬ приложение по deep link; если не открылось (вкладка
+  // осталась видимой ~1.4с) — на iOS уводим в App Store. Android: только deep link
+  // (публичного стора пока нет — фолбэк добавим при выходе в Play/RuStore).
   const open = () => {
-    if (state === "ios") { window.location.href = APP_STORE; }
-    else {
-      // Android: deep link в приложение (у кого установлено). Когда выйдет в
-      // Google Play/RuStore — заменить на ссылку стора.
-      try { window.location.href = `padelpack://padelpack.app${location.pathname}${location.search}`; } catch (e) {}
+    const deep = `padelpack://padelpack.app${location.pathname}${location.search}`;
+    if (state === "ios") {
+      setTimeout(() => { if (!document.hidden) window.location.href = APP_STORE; }, 1400);
     }
+    try { window.location.href = deep; } catch (e) {}
   };
 
   return (
@@ -59,11 +62,11 @@ export default function AppInstallBanner() {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 800, fontSize: 14, color: "var(--ink, #eef3ee)", lineHeight: 1.15 }}>PadelPack</div>
         <div style={{ fontSize: 11.5, color: "var(--mut, #7d9488)", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {t(state === "ios" ? "banner_sub" : "banner_sub_open")}
+          {t("banner_sub")}
         </div>
       </div>
       <button onClick={open} style={{ flexShrink: 0, background: "#0a84ff", color: "#fff", border: "none", borderRadius: 999, padding: "8px 17px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif" }}>
-        {t(state === "ios" ? "banner_get" : "banner_open")}
+        {t("banner_open")}
       </button>
     </div>
   );

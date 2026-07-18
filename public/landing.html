@@ -305,9 +305,13 @@
         var safari = iOS && /safari/i.test(u) && !/crios|fxios|edgios|yabrowser|opios|duckduckgo/i.test(u);
         if (iOS && safari) return;                 // системный Smart App Banner
         var b = document.getElementById("appbanner"), sub = document.getElementById("ab-sub"), cta = document.getElementById("ab-cta");
-        // data-i18n проставляем по платформе; текст подставит applyLang (ниже) на текущем языке
-        if (iOS) { sub.setAttribute("data-i18n", "banner_sub"); cta.setAttribute("data-i18n", "banner_get"); cta.href = "https://apps.apple.com/ru/app/padelpack/id6787536510"; }
-        else { sub.setAttribute("data-i18n", "banner_sub_open"); cta.setAttribute("data-i18n", "banner_open"); cta.href = "padelpack://padelpack.app/"; }
+        // Кнопка всегда «Открыть»: пробуем deep link; не открылось → на iOS в App Store.
+        sub.setAttribute("data-i18n", "banner_sub"); cta.setAttribute("data-i18n", "banner_open");
+        cta.href = "padelpack://padelpack.app" + location.pathname + location.search;
+        cta.onclick = function (e) {
+          if (iOS) setTimeout(function () { if (!document.hidden) location.href = "https://apps.apple.com/ru/app/padelpack/id6787536510"; }, 1400);
+          // клик сам перейдёт по href (deep link)
+        };
         b.style.display = "flex";
         document.getElementById("ab-x").onclick = function () { try { localStorage.setItem("pp_appbanner_dismissed", "1"); } catch (e) {} b.style.display = "none"; };
       } catch (e) { /* ignore */ }
