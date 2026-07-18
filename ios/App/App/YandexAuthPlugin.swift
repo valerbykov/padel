@@ -30,6 +30,15 @@ public class YandexAuthPlugin: CAPPlugin, CAPBridgedPlugin {
             guard let vc = self.bridge?.viewController else {
                 call.reject("no_view_controller"); self.pendingCall = nil; return
             }
+            // authorize кидал .loginSDKIsNotActivated: активация из AppDelegate не
+            // «дожила» до этого момента. Активируем здесь, прямо перед авторизацией.
+            // Повторная активация уже активного SDK безвредна; реальную ошибку логируем.
+            do {
+                try YandexLoginSDK.shared.activate(with: "82bdbec842f948d49cdf25ee4d3877ae")
+                NSLog("YandexAuth: activate (in authorize) OK")
+            } catch {
+                NSLog("YandexAuth: activate (in authorize) error: %@", String(describing: error as NSError))
+            }
             do {
                 try YandexLoginSDK.shared.authorize(with: vc, authorizationStrategy: .default)
             } catch {
