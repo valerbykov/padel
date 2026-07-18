@@ -29,8 +29,8 @@
 
 ⬜ **Осталось (только сборка):**
 1. **iOS: добавить пакет через SPM** (CocoaPods в проекте НЕТ — Capacitor 8 / CapApp-SPM):
-   Xcode → File → **Add Package Dependencies…** → URL репозитория YandexLoginSDK
-   (сверить в доке https://yandex.ru/dev/id/doc/ru/mobile-sdk/) → добавить к target App.
+   Xcode → File → **Add Package Dependencies…** → URL: **https://github.com/yandexmobile/yandex-login-sdk-ios** (SPM поддерживается,
+   актуальный тег 3.1.1; НЕ вставлять ссылку на документацию — Xcode ждёт git-репо) → target App.
    Без пакета всё собирается, плагин не регистрируется, JS уходит в веб-фолбэк.
 2. Сборка Android/iOS + проверка: раздел 4. При ошибках компиляции (SDK меняет API
    между версиями) — прислать текст ошибки, поправлю сигнатуры.
@@ -137,8 +137,8 @@ public class YandexAuthPlugin extends Plugin {
 ## 2. iOS
 
 **Пакет — через SPM, НЕ CocoaPods** (Podfile в проекте нет — Capacitor 8 / CapApp-SPM):
-Xcode → File → **Add Package Dependencies…** → URL YandexLoginSDK из актуальной доки
-(https://yandex.ru/dev/id/doc/ru/mobile-sdk/) → target `App`.
+Xcode → File → **Add Package Dependencies…** → **https://github.com/yandexmobile/yandex-login-sdk-ios**
+(тег 3.1.1, Up to Next Major) → target `App`.
 
 **AppDelegate.swift** — активировать SDK и пробросить open-url:
 ```swift
