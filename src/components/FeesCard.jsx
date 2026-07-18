@@ -27,6 +27,9 @@ export default function FeesCard({ entityId, entityName = "", players = [], me, 
 
   useEffect(() => {
     let alive = true;
+    // Сброс на смену сущности: иначе на новой карточке мелькает сумма/оплаты
+    // прошлой игры и остаётся открытой её форма редактирования.
+    setFee(undefined); setPaid(new Set()); setSetup(false); setAmount(""); setBusyKey(null);
     api.getFee(entityId).then((f) => { if (alive) setFee(f); });
     api.getPaid(entityId).then((s) => { if (alive) setPaid(s); });
     return () => { alive = false; };
@@ -119,7 +122,7 @@ export default function FeesCard({ entityId, entityName = "", players = [], me, 
             ))}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <input inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={mode === "total" ? tr("fee_ph_total") : tr("fee_ph_each")}
+            <input inputMode="numeric" aria-label={mode === "total" ? tr("fee_ph_total") : tr("fee_ph_each")} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={mode === "total" ? tr("fee_ph_total") : tr("fee_ph_each")}
               style={{ flex: 1, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 11, padding: "10px 12px", color: "var(--ink)", fontSize: 15, fontFamily: "'Outfit',sans-serif" }} />
             <button disabled={saving} onClick={save} style={{ padding: "10px 16px", fontSize: 13, borderRadius: 11, border: "none", background: "var(--lime)", color: "var(--lime-fg)", fontWeight: 800, cursor: "pointer", fontFamily: "'Outfit',sans-serif" }}>{saving ? "…" : tr("fee_save")}</button>
           </div>

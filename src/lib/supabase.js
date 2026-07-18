@@ -94,10 +94,28 @@ function bufToResponse(b) {
   const nullBody = b.status === 204 || b.status === 205 || b.status === 304;
   return new Response(nullBody ? null : b.body, { status: b.status, statusText: b.statusText, headers: b.headers });
 }
+// Чтение заголовка из init.headers (Headers | массив пар | объект) или из
+// input, если это Request — для дедуп-ключа, чувствительного к авторизации.
+function readHeader(input, init, name) {
+  const lname = name.toLowerCase();
+  const from = (h) => {
+    if (!h) return "";
+    try {
+      if (typeof h.get === "function") return h.get(name) || "";
+      if (Array.isArray(h)) { const f = h.find(([k]) => String(k).toLowerCase() === lname); return f ? f[1] : ""; }
+      const k = Object.keys(h).find((k) => k.toLowerCase() === lname);
+      return k ? h[k] : "";
+    } catch { return ""; }
+  };
+  return from(init && init.headers) || (input && typeof input === "object" ? from(input.headers) : "");
+}
+
 function dedupFetch(input, init = {}, opts) {
   const method = (init.method || "GET").toUpperCase();
   if (method === "GET" || method === "HEAD") {
-    const key = method + " " + reqUrl(input);
+    // Ключ учитывает Authorization и Range: два GET на один URL с разным JWT
+    // (до/после логина) или разным диапазоном не должны делить один ответ.
+    const key = method + " " + reqUrl(input) + " " + readHeader(input, init, "authorization") + " " + readHeader(input, init, "range");
     let p = _getInflight.get(key);
     if (!p) {
       p = fetchBuffered(input, init, opts).finally(() => _getInflight.delete(key));

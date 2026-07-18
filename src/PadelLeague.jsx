@@ -9,6 +9,7 @@ import { getLeaderboard, addMember, removeMember, createGame, listGames, submitR
 import { WEB_BASE } from "./lib/platform";
 import { CardSkeleton } from "./components/Skeleton";
 import { bustCache, cachePeek } from "./lib/cache";
+import { useMinuteTick } from "./lib/useTick";
 import { getRatingHistory, getWeekDeltas } from "./lib/statsApi";
 import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
 import { t, nGames, currentLang , dateLocale} from "./lib/i18n";
@@ -611,6 +612,11 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
   const gamesOf = (p) => srv ? (srv.games[p.id] ?? 0) : (matchCounts[p.id] || p.matches || 0);
   const toursOf = (p) => srv ? (srv.tours[p.id] ?? 0) : (tourCounts[p.id] || tourCountsByName[(p.name || "").trim().toLowerCase()] || 0);
 
+  // Стабильная сигнатура состава: массив players пересоздаётся на каждый рендер
+  // (сортировки по рейтингу и т.п.), а статистику надо тянуть только при реальном
+  // изменении набора участников, а не при смене ссылки.
+  const memberKey = players.map((p) => p.id).sort().join(",");
+
   useEffect(() => {
     let active = true;
     if (!groupId) { setSrv(null); setExtraPlayers([]); setTourCounts({}); setTourCountsByName({}); setMatchCounts({}); setStreaks({}); return () => { active = false; }; }
@@ -686,11 +692,11 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
     }).catch(() => { if (active) { setTourCounts({}); setExtraPlayers([]); } });
     getGroupCounts(groupId).then((c) => { if (active) setSrv(c); }).catch(() => { if (active) setSrv(null); });
     return () => { active = false; };
-  }, [groupId, players]);
+  }, [groupId, memberKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (open && groupId) getLeagueablePlayers(groupId).then(setNetPlayers).catch(() => setNetPlayers([]));
-  }, [open, groupId, players]);
+  }, [open, groupId, memberKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Добавить уже существующего игрока (из других лиг) в один тап.
   // После успеха лист ЗАКРЫВАЕМ (раньше оставался висеть и выглядел как зависший
@@ -1282,35 +1288,39 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
   };
 
   useEffect(() => {
-    getRatingHistory(groupId, player.id).then(setHist).catch(() => setHist([]));
+    // Гард на размонтирование/смену игрока: панель можно закрыть или переключить
+    // на другого игрока до прихода ответов — не пишем стейт в мёртвое дерево.
+    let alive = true;
+    getRatingHistory(groupId, player.id).then((h) => { if (alive) setHist(h); }).catch(() => { if (alive) setHist([]); });
 
     // Определяем свой profile_id
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
+      if (!user || !alive) return;
       supabase.from("profiles").select("id").eq("user_id", user.id).maybeSingle()
-        .then(({ data }) => { if (data) setMyId(data.id); });
+        .then(({ data }) => { if (alive && data) setMyId(data.id); });
     });
 
     // Загружаем матчи группы для статистики
-    getStatMatches(groupId).then((data) => setAllMatches(data || []));
+    getStatMatches(groupId).then((data) => { if (alive) setAllMatches(data || []); });
 
     // Лиги игрока (RLS отдаёт только общие с текущим пользователем лиги; свои — все).
     // Лёгкий вариант: рейтинг и игры едут тем же запросом, место не считаем.
     supabase.from("group_members")
       .select("role, rating, matches_played, group:groups(id, name, logo_url)")
       .eq("profile_id", player.id)
-      .then(({ data }) => setPlayerLeagues((data || []).map((r) => ({
+      .then(({ data }) => { if (alive) setPlayerLeagues((data || []).map((r) => ({
         id: r.group.id, name: r.group.name, logo: r.group.logo_url || null,
         role: r.role, rating: r.rating, matches: r.matches_played,
-      }))));
+      }))); });
 
     // Загружаем турниры игрока
     listTournaments(groupId).then((all) => {
+      if (!alive) return;
       const finished = all.filter((tour) => tour.status === "finished");
       const participated = finished.filter((tour) =>
         (tour.players || []).some((p) => p.profile_id === player.id)
       );
-      setRawTours(participated);
+      if (alive) setRawTours(participated);
       const rows = participated.map((tour) => {
         const tPlayers = (tour.players || []).map((p) => ({ id: p.id, name: p.name }));
         // как на экране турнира: считаем только матчи реальных раундов (round_number > 0)
@@ -1330,8 +1340,9 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
       });
       // по дате — свежие первыми (для «последних 10» в статистике)
       rows.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-      setPlayerTours(rows);
-    }).catch(() => setPlayerTours([]));
+      if (alive) setPlayerTours(rows);
+    }).catch(() => { if (alive) setPlayerTours([]); });
+    return () => { alive = false; };
   }, [groupId, player.id]);
 
   // Турнирный H2H — пересчитываем когда оба (rawTours и myId) готовы
@@ -2086,6 +2097,7 @@ function MeBadge({ style }) {
 // Hero «Ближайшая игра»: обратный отсчёт, состав и действие в одной карточке
 // наверху вкладки — зеркало пуш-напоминаний, но всегда на виду.
 function GameHero({ g, me, onOpen, onTake }) {
+  useMinuteTick(!!g.starts_at && g.status !== "played");  // живой отсчёт до игры
   const slots = [...(g.slots || [])].sort((a, b) => ((a.team || "") + (a.position || "")).localeCompare((b.team || "") + (b.position || "")));
   const filled = slots.filter((s) => s.profile_id || s.guest_name).length;
   const meIn = meInGame(g, me);
@@ -2123,33 +2135,42 @@ function GameHero({ g, me, onOpen, onTake }) {
   );
 }
 
+const hasSlot = (s) => !!(s && (s.profile_id || s.guest_name));
+const ROW_AV = 38;
+const ROW_NAMES_CSS = { fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", fontSize: 11.5, lineHeight: 1.25, textAlign: "center", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" };
+// RowSlot/RowTeam вынесены из тела GameRow: определённые внутри рендера, они
+// были новым типом компонента на каждый рендер → React ремаунтил Avatar-
+// поддерево (мигание аватаров при любой перерисовке списка игр, в т.ч. по тику
+// LIVE-таймера). На уровне модуля тип стабилен — поддерево переиспользуется.
+function RowSlot({ s, ring, me }) {
+  const isMe = !!me && hasSlot(s) && s.profile_id === me;
+  const sz = isMe ? ROW_AV + 12 : ROW_AV;
+  return hasSlot(s)
+    ? <Avatar name={s.profile?.name || s.guest_name} url={s.profile?.avatar_url} id={s.profile_id || s.guest_name} size={sz} ring={ring} style={{ marginLeft: -12, position: "relative", zIndex: isMe ? 2 : 1 }} />
+    : <span style={{ width: ROW_AV, height: ROW_AV, borderRadius: "50%", border: "1.5px dashed var(--line)", background: "var(--surface2)", flexShrink: 0, display: "inline-block", marginLeft: -12, boxSizing: "border-box" }} />;
+}
+function RowTeam({ a, b, ring, names, won, me }) {
+  return (
+    <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+      <div style={{ display: "flex", paddingLeft: 12 }}><RowSlot s={a} ring={ring} me={me} /><RowSlot s={b} ring={ring} me={me} /></div>
+      <div style={{ ...ROW_NAMES_CSS, color: won ? "var(--lime)" : "var(--mut)", fontWeight: won ? 700 : 500 }}>{names}</div>
+    </div>
+  );
+}
+
 export function GameRow({ g, color, onOpen, flush, bare, label, me = null, onTake = null, delta = null, showMeBadge = true }) {
+  useMinuteTick(g.status === "live");  // «LIVE · N мин» тикает только у живой игры
   const mine = meInGame(g, me);
   const gslots = [...(g.slots || [])].sort((a, b) => ((a.team || "") + (a.position || "")).localeCompare((b.team || "") + (b.position || "")));
   const tA = gslots.filter(s => s.team === "A");
   const tB = gslots.filter(s => s.team === "B");
   const filled = gslots.filter(s => s.profile_id || s.guest_name).length;
-  const has = (s) => !!(s && (s.profile_id || s.guest_name));
+  const has = hasSlot;
   const m = (g.matches || [])[0];
   const played = g.status === "played";
-  const avSize = 38;
   const aWon = played && m && m.sets_a > m.sets_b;
   const bWon = played && m && m.sets_b > m.sets_a;
-  const Slot = ({ s, ring }) => {
-    const isMe = !!me && has(s) && s.profile_id === me;
-    const sz = isMe ? avSize + 12 : avSize;
-    return has(s)
-      ? <Avatar name={s.profile?.name || s.guest_name} url={s.profile?.avatar_url} id={s.profile_id || s.guest_name} size={sz} ring={ring} style={{ marginLeft: -12, position: "relative", zIndex: isMe ? 2 : 1 }} />
-      : <span style={{ width: avSize, height: avSize, borderRadius: "50%", border: "1.5px dashed var(--line)", background: "var(--surface2)", flexShrink: 0, display: "inline-block", marginLeft: -12, boxSizing: "border-box" }} />;
-  };
   const nm = (slots) => slots.filter(has).map(s => s.profile?.name || s.guest_name).join(" & ") || "—";
-  const namesCss = { fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", fontSize: 11.5, lineHeight: 1.25, textAlign: "center", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" };
-  const Team = ({ a, b, ring, names, won }) => (
-    <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
-      <div style={{ display: "flex", paddingLeft: 12 }}><Slot s={a} ring={ring} /><Slot s={b} ring={ring} /></div>
-      <div style={{ ...namesCss, color: won ? "var(--lime)" : "var(--mut)", fontWeight: won ? 700 : 500 }}>{names}</div>
-    </div>
-  );
   return (
     <div className={bare ? "" : "pl-card"} style={{ marginBottom: bare ? 0 : (flush ? 0 : 8), cursor: "pointer", padding: bare ? "10px 2px" : "12px 14px", border: (mine && !bare) ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined, background: (mine && !bare) ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined }} onClick={onOpen}>
       {/* bare-режим (внутри плашки микс-сессии): без шапки, только составы и счёт. */}
@@ -2187,11 +2208,11 @@ export function GameRow({ g, color, onOpen, flush, bare, label, me = null, onTak
       )}
       {bare && label && <div style={{ fontSize: 11, fontWeight: 700, color: "var(--mut)", letterSpacing: 0.5 }}>{label}</div>}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "center", gap: 10, marginTop: bare ? 6 : 11 }}>
-        <Team a={tA[0]} b={tA[1]} ring="var(--lime)" names={nm(tA)} won={aWon} />
+        <RowTeam a={tA[0]} b={tA[1]} ring="var(--lime)" names={nm(tA)} won={aWon} me={me} />
         <span style={{ fontFamily: "'Anton',sans-serif", fontSize: played ? 32 : 13, color: "var(--mut)", flexShrink: 0, minWidth: 44, textAlign: "center", paddingTop: 10 }}>
           {played && m ? <><span style={{ color: aWon ? "var(--lime)" : "var(--ink)" }}>{m.sets_a}</span><span style={{ color: "var(--mut)" }}>:</span><span style={{ color: bWon ? "var(--coral)" : "var(--ink)" }}>{m.sets_b}</span></> : "—"}
         </span>
-        <Team a={tB[0]} b={tB[1]} ring="var(--coral)" names={nm(tB)} won={bWon} />
+        <RowTeam a={tB[0]} b={tB[1]} ring="var(--coral)" names={nm(tB)} won={bWon} me={me} />
       </div>
       {/* Счёт по геймам внутри каждого сета (как было до унификации). */}
       {played && Array.isArray(m?.score_detail) && m.score_detail.length > 0 && (
@@ -2610,6 +2631,19 @@ function PickPlayerPanel({ slotLabel, players = [], takenIds = [], meId = null, 
 }
 
 // Микс команд для «сыграть ещё»: 4 игрока, drag & drop для обмена местами.
+// Вынесен из тела RematchMix: при драге pointermove → setDrag на каждый пиксель
+// → перерисовка; Chip-в-рендере был бы новым типом → ремаунт всех 4 аватаров на
+// каждое движение пальца. Модульный тип стабилен — аватары не перезагружаются.
+function MixChip({ p, ring, chipRef, onPointerDown, dimmed }) {
+  return (
+    <div ref={chipRef} onPointerDown={onPointerDown}
+      style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 12, background: "var(--surface2)", border: `1.5px solid ${ring}`, cursor: "grab", touchAction: "none", userSelect: "none", minWidth: 0, opacity: dimmed ? .25 : 1 }}>
+      <span style={{ flexShrink: 0, display: "flex" }}><Avatar url={p.avatar_url} id={p.profile_id || p.guest_name} name={p.name} size={28} /></span>
+      <span style={{ fontSize: 13, fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+    </div>
+  );
+}
+
 function RematchMix({ players, onCreate, onCancel, busy }) {
   const [arr, setArr] = useState(players);
   const refs = useRef([]);
@@ -2632,27 +2666,21 @@ function RematchMix({ players, onCreate, onCancel, busy }) {
     if (tgt >= 0 && tgt !== drag.idx) setArr((prev) => { const n = [...prev]; const t = n[tgt]; n[tgt] = n[drag.idx]; n[drag.idx] = t; return n; });
     setDrag(null);
   };
-  const Chip = ({ idx, ring }) => {
-    const p = arr[idx];
-    return (
-      <div ref={(el) => (refs.current[idx] = el)} onPointerDown={start(idx)}
-        style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 12, background: "var(--surface2)", border: `1.5px solid ${ring}`, cursor: "grab", touchAction: "none", userSelect: "none", minWidth: 0, opacity: drag?.idx === idx ? .25 : 1 }}>
-        <span style={{ flexShrink: 0, display: "flex" }}><Avatar url={p.avatar_url} id={p.profile_id || p.guest_name} name={p.name} size={28} /></span>
-        <span style={{ fontSize: 13, fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
-      </div>
-    );
-  };
+  const chip = (idx, ring) => (
+    <MixChip p={arr[idx]} ring={ring} chipRef={(el) => (refs.current[idx] = el)}
+      onPointerDown={start(idx)} dimmed={drag?.idx === idx} />
+  );
   return (
     <div ref={wrap} onPointerMove={move} onPointerUp={end} onPointerCancel={end} style={{ touchAction: drag ? "none" : "auto" }}>
       <div style={{ display: "flex", gap: 10, alignItems: "stretch" }}>
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: "var(--lime)", letterSpacing: 1, textAlign: "center" }}>A</div>
-          <Chip idx={0} ring="var(--lime)" /><Chip idx={1} ring="var(--lime)" />
+          {chip(0, "var(--lime)")}{chip(1, "var(--lime)")}
         </div>
         <div style={{ display: "flex", alignItems: "center", color: "var(--mut)", fontWeight: 700, fontSize: 12 }}>vs</div>
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: "var(--coral)", letterSpacing: 1, textAlign: "center" }}>B</div>
-          <Chip idx={2} ring="var(--coral)" /><Chip idx={3} ring="var(--coral)" />
+          {chip(2, "var(--coral)")}{chip(3, "var(--coral)")}
         </div>
       </div>
       <div style={{ fontSize: 11, color: "var(--mut)", textAlign: "center", marginTop: 8 }}>{t("mix_hint")}</div>

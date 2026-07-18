@@ -8,6 +8,8 @@
 
 const MEM = new Map();        // key -> { v, t }
 const INFLIGHT = new Map();   // key -> Promise
+const GEN = new Map();        // key -> поколение (растёт при bustKey)
+let EPOCH = 0;                // глобальное поколение (растёт при bustCache)
 const LS_PREFIX = "pp_cache:";
 const LS_MAX_AGE = 1000 * 60 * 60 * 24; // сутки
 const FRESH_MS = 4000;                  // окно «свежести» памяти (дедуп всплеска)
@@ -31,8 +33,17 @@ export function swr(key, fn) {
   if (c && Date.now() - c.t < FRESH_MS) return Promise.resolve(c.v);
   if (INFLIGHT.has(key)) return INFLIGHT.get(key);
 
+  // Фиксируем поколение на старте запроса. Если пока он летел, ключ инвалидировали
+  // (мутация → bustKey/bustCache) и уже подтянули свежее — поздний ответ этого
+  // запроса НЕ затираем в кэш (иначе на экране снова старые данные).
+  const gen = GEN.get(key) || 0;
+  const epoch = EPOCH;
   const p = Promise.resolve().then(fn).then(
-    (v) => { MEM.set(key, { v, t: Date.now() }); INFLIGHT.delete(key); lsSet(key, v); return v; },
+    (v) => {
+      INFLIGHT.delete(key);
+      if ((GEN.get(key) || 0) === gen && EPOCH === epoch) { MEM.set(key, { v, t: Date.now() }); lsSet(key, v); }
+      return v;
+    },
     (e) => { INFLIGHT.delete(key); throw e; }
   );
   INFLIGHT.set(key, p);
@@ -57,12 +68,14 @@ export function cacheSet(key, v) {
 }
 
 export function bustKey(key) {
+  GEN.set(key, (GEN.get(key) || 0) + 1);   // инвалидируем ещё летящий запрос по ключу
   MEM.delete(key);
   INFLIGHT.delete(key);
   try { localStorage.removeItem(LS_PREFIX + key); } catch { /* недоступно */ }
 }
 
 export function bustCache() {
+  EPOCH++;                                 // инвалидируем все летящие запросы
   MEM.clear();
   INFLIGHT.clear();
   try {
