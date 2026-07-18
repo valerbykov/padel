@@ -134,7 +134,7 @@ const T = {
     onboarding_3_sub_code: 'Код: {code} · или скопируй страницу лиги',
     onboarding_3_sub_no_code: 'Скопируй код приглашения выше',
     played_together_label: 'ИГРАЛИ ВМЕСТЕ',
-    registered_badge: 'Зарегистрирован в приложении', banner_sub: 'Падел-лига для своих', banner_sub_open: 'Открыть в приложении', banner_get: 'Установить', banner_open: 'Открыть',
+    registered_badge: 'Зарегистрирован в приложении', banner_sub: 'Падел-лига для друзей', banner_sub_open: 'Открыть в приложении', banner_get: 'Установить', banner_open: 'Открыть',
     // ── Add player form ───────────────────────────────────────────────────
     add_player_form_title: 'Добавить в лигу',
     add_guest_league_hint: 'Добавленный здесь игрок не попадёт в лигу. Чтобы он был в лиге — добавьте его на вкладке «Друзья».',
@@ -1239,15 +1239,23 @@ export let currentLang = localStorage.getItem('plLang') || 'ru';
 
 // Сменить активный язык БЕЗ записи в localStorage — для гео-guess на первом заходе,
 // пока пользователь/гео не зафиксировали выбор явно через setLang.
+// Уведомление о смене языка — для компонентов вне дерева App (напр. баннер в Root),
+// которые не перерисовываются от смены state приложения.
+function emitLangChange() {
+  try { window.dispatchEvent(new CustomEvent('pp-langchange', { detail: currentLang })); } catch (e) { /* SSR/старый браузер */ }
+}
+
 export function applyLang(lang) {
   if (!LANGS.includes(lang)) return;
   currentLang = lang;
+  emitLangChange();
 }
 
 export function setLang(lang) {
   if (!LANGS.includes(lang)) return;
   currentLang = lang;
   localStorage.setItem('plLang', lang);
+  emitLangChange();
 }
 
 export function t(key) {

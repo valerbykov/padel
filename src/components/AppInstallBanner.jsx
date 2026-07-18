@@ -13,6 +13,14 @@ const ua = () => { try { return navigator.userAgent || ""; } catch (e) { return 
 
 export default function AppInstallBanner() {
   const [state, setState] = useState(null); // null | "ios" | "android"
+  const [, bump] = useState(0);             // форс-перерисовка при смене языка
+
+  // Баннер живёт в Root (вне дерева App) — на смену языка реагируем через событие.
+  useEffect(() => {
+    const onLang = () => bump((n) => n + 1);
+    window.addEventListener("pp-langchange", onLang);
+    return () => window.removeEventListener("pp-langchange", onLang);
+  }, []);
 
   useEffect(() => {
     try {
