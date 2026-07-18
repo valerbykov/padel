@@ -125,6 +125,7 @@ const TPL: Record<Lang, any> = {
     tailsNear: ["Погнали! 💪", "Разомнись и покажи класс!", "Возьми воду и ракетку 🎾", "Время побеждать 🔥"],
     tailsFar: ["Не пропусти 💪", "Отметь в календаре 📅", "Собери своих 🎾", "Готовься к бою!"],
     evGame: "🎾 Новая игра", evTour: "🏆 Новый турнир", evPost: "📣 Объявление",
+    feeTitle: "💸 Взнос за турнир", feeBody: "«{t}» — {n} ₽. Не забудь скинуться 🙏",
     ctaGame: ["записывайся в состав 💪", "занимай слот 🎾", "врывайся в игру 🔥"],
     ctaTour: ["заявляйся, пока есть места 🎾", "регистрируйся и покажи класс 🏆", "лови слот в сетке 🔥"],
   },
@@ -145,6 +146,7 @@ const TPL: Record<Lang, any> = {
     tailsNear: ["Let's go! 💪", "Warm up and show your best!", "Grab water and your racket 🎾", "Time to win 🔥"],
     tailsFar: ["Don't miss it 💪", "Add it to your calendar 📅", "Round up your crew 🎾", "Get ready to battle!"],
     evGame: "🎾 New game", evTour: "🏆 New tournament", evPost: "📣 Announcement",
+    feeTitle: "💸 Tournament chip-in", feeBody: "\u201c{t}\u201d — {n} ₽. Don't forget to chip in 🙏",
     ctaGame: ["grab a spot 💪", "take a slot 🎾", "jump into the game 🔥"],
     ctaTour: ["sign up while there's room 🎾", "register and show your best 🏆", "grab a slot in the draw 🔥"],
   },
@@ -165,6 +167,7 @@ const TPL: Record<Lang, any> = {
     tailsNear: ["¡Vamos! 💪", "¡Calienta y da lo mejor!", "Lleva agua y la pala 🎾", "Hora de ganar 🔥"],
     tailsFar: ["No te lo pierdas 💪", "Anótalo en el calendario 📅", "Reúne a los tuyos 🎾", "¡Prepárate para la batalla!"],
     evGame: "🎾 Nuevo partido", evTour: "🏆 Nuevo torneo", evPost: "📣 Anuncio",
+    feeTitle: "💸 Aporte del torneo", feeBody: "«{t}» — {n} ₽. No olvides aportar 🙏",
     ctaGame: ["apúntate al equipo 💪", "coge un hueco 🎾", "métete en el partido 🔥"],
     ctaTour: ["inscríbete mientras haya plazas 🎾", "regístrate y da lo mejor 🏆", "coge plaza en el cuadro 🔥"],
   },
@@ -247,10 +250,32 @@ Deno.serve(async (req) => {
     const evRes = await admin.rpc("due_event_pushes", { lookback_min: 15 });
     if (evRes.error) console.error("due_event_pushes:", evRes.error);
     const events = evRes.error ? [] : (evRes.data || []);
-    if ((!due || due.length === 0) && events.length === 0) return json({ due: 0, events: 0, sent: 0 });
 
-    // 2) токены участников (объединяем адресатов напоминаний и событий)
-    const userIds = [...new Set([...(due || []), ...events].map((d: any) => d.user_id))];
+    // 1б) очередь «напомнить должникам» (взносы за турнир). Таблицы может не быть
+    // до миграции 2026-07-25 — тогда просто пропускаем. Помечаем sent_at СРАЗУ по
+    // выборке (даже если у адресата нет токенов) — иначе бесконечный ретрай.
+    let feeRows: any[] = [];
+    try {
+      const fq = await admin.from("fee_reminder_queue")
+        .select("id, profile_id, tournament:tournaments(name, fee_per_player), profile:profiles(user_id)")
+        .is("sent_at", null).limit(200);
+      if (!fq.error && fq.data?.length) {
+        feeRows = fq.data.filter((r: any) => r.profile?.user_id && r.tournament);
+        await admin.from("fee_reminder_queue").update({ sent_at: new Date().toISOString() })
+          .in("id", fq.data.map((r: any) => r.id));
+      }
+    } catch (_) { /* миграции нет — тихо пропускаем */ }
+
+    if ((!due || due.length === 0) && events.length === 0 && feeRows.length === 0) {
+      return json({ due: 0, events: 0, fees: 0, sent: 0 });
+    }
+
+    // 2) токены участников (объединяем адресатов напоминаний, событий и взносов)
+    const userIds = [...new Set([
+      ...(due || []).map((d: any) => d.user_id),
+      ...events.map((d: any) => d.user_id),
+      ...feeRows.map((r: any) => r.profile.user_id),
+    ])];
     const { data: tokRows } = await admin.from("push_tokens").select("user_id, token, platform, tz, lang").in("user_id", userIds);
     const byUser: Record<string, Array<{ token: string; platform: string; tz: string; lang: Lang }>> = {};
     for (const r of tokRows || []) (byUser[r.user_id] ||= []).push({ token: r.token, platform: r.platform || "android", tz: r.tz || "", lang: langOf(r.lang) });
@@ -287,6 +312,19 @@ Deno.serve(async (req) => {
     }
     for (const d of events as any[]) {
       outbox.push({ user_id: d.user_id, event_type: d.event_type, event_id: d.event_id, offset_min: 0, build: composeEvent(d).build });
+    }
+    // Взносы: адресный пуш должнику — «💸 Взнос за турнир / «Название» — N ₽».
+    for (const r of feeRows) {
+      outbox.push({
+        user_id: r.profile.user_id, event_type: "fee", event_id: r.id, offset_min: 0,
+        build: (_tz: string, lang: Lang) => {
+          const p = TPL[lang];
+          return {
+            title: p.feeTitle,
+            body: p.feeBody.replace("{t}", r.tournament.name || "").replace("{n}", String(r.tournament.fee_per_player || "")),
+          };
+        },
+      });
     }
 
     for (const d of outbox) {
@@ -349,7 +387,7 @@ Deno.serve(async (req) => {
     await flushLog();
     if (bad.length) await admin.from("push_tokens").delete().in("token", bad);
 
-    return json({ due: (due || []).length, events: events.length, events_error: evRes.error ? String(evRes.error.message || evRes.error) : null, sent, pruned: bad.length });
+    return json({ due: (due || []).length, events: events.length, fees: feeRows.length, events_error: evRes.error ? String(evRes.error.message || evRes.error) : null, sent, pruned: bad.length });
   } catch (e) {
     return json({ error: String(e) }, 500);
   }

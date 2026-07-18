@@ -8,7 +8,7 @@ import {
   createTournament, listTournaments, getTournament, addTournamentPlayer, removeTournamentPlayer,
   startTournament, submitMatchScore, finishTournament, tournamentLink, deleteTournament, listMyTournaments, copyTournament,
   generateMexicanoRound, generateKotHRound, generateKotHLadderRound, setCourtName, setScorePin, checkScorePin,
-  getTournamentFee, getFeePayments, setTournamentFee, toggleFeePaid,
+  getTournamentFee, getFeePayments, setTournamentFee, toggleFeePaid, remindFeeDebtors,
 } from "../lib/tournamentApi";
 import { standings, detailedStandings, allMatchesPlayed } from "../lib/americano";
 import { dogAvatar } from "../lib/avatar";
@@ -870,6 +870,7 @@ function FeesCard({ trn, me, canManage, readOnly, avatarOf }) {
   const [amount, setAmount] = useState("");
   const [busyTp, setBusyTp] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [remindBusy, setRemindBusy] = useState(false);
   const players = trn.players || [];
 
   useEffect(() => {
@@ -910,7 +911,21 @@ function FeesCard({ trn, me, canManage, readOnly, avatarOf }) {
     finally { setBusyTp(null); }
   };
 
-  const remind = async () => {
+  // Основное напоминание: адресный ПУШ каждому должнику с аккаунтом (на локскрин,
+  // через очередь + крон, долетает в течение ~5 мин). Троттлинг на сервере — час.
+  const remindPush = async () => {
+    if (remindBusy) return;
+    setRemindBusy(true);
+    try {
+      const n = await remindFeeDebtors(trn.id);
+      showToast(n > 0 ? tr("fee_push_sent").replace("{n}", String(n)) : tr("fee_push_none"));
+    } catch (e) { showToast(`${tr("err_generic") || "Ошибка"}: ${e?.message || e}`); }
+    finally { setRemindBusy(false); }
+  };
+
+  // Запасной путь: готовое сообщение в чат (share-sheet / буфер) — для гостей без
+  // аккаунта и лиг, живущих в Telegram-чате.
+  const remindChat = async () => {
     const debtors = players.filter((p) => !paid.has(p.id)).map((p) => p.name);
     if (!debtors.length) { showToast(tr("fee_all_paid")); return; }
     const msg = tr("fee_remind_msg").replace("{names}", debtors.join(", ")).replace("{n}", String(per)).replace("{t}", trn.name);
@@ -986,10 +1001,19 @@ function FeesCard({ trn, me, canManage, readOnly, avatarOf }) {
             );
           })}
           {!readOnly && paidCount < players.length && (
-            <button onClick={remind} style={{ width: "100%", marginTop: 12, padding: 12, borderRadius: 12, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontWeight: 700, fontSize: 13.5,
-              background: "color-mix(in srgb, var(--lime) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", color: "var(--lime)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
-              📣 {tr("fee_remind")}
-            </button>
+            <>
+              {/* Пуш на локскрин должникам (только админ/организатор — как и RPC) */}
+              {canManage && (
+                <button onClick={remindPush} disabled={remindBusy} style={{ width: "100%", marginTop: 12, padding: 12, borderRadius: 12, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontWeight: 700, fontSize: 13.5,
+                  background: "color-mix(in srgb, var(--lime) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", color: "var(--lime)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, opacity: remindBusy ? .6 : 1 }}>
+                  🔔 {remindBusy ? "…" : tr("fee_remind_push")}
+                </button>
+              )}
+              <button onClick={remindChat} style={{ width: "100%", marginTop: 8, padding: 11, borderRadius: 12, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontWeight: 600, fontSize: 12.5,
+                background: "var(--surface2)", border: "1px solid var(--line)", color: "var(--mut)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+                📣 {tr("fee_remind")}
+              </button>
+            </>
           )}
         </>
       )}

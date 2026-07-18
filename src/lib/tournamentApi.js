@@ -286,3 +286,12 @@ export async function toggleFeePaid(tpId) {
   if (error) throw error;
   return !!data;
 }
+
+// «Напомнить должникам» пушем: ставит в очередь адресные уведомления всем
+// неотметившимся участникам с аккаунтом (крон разошлёт в течение ~5 мин).
+// Возвращает, скольким поставлено (0 = все скинулись или напоминали < часа назад).
+export async function remindFeeDebtors(tournamentId) {
+  const { data, error } = await supabase.rpc("remind_fee_debtors", { p_tournament_id: tournamentId });
+  if (error) throw error;
+  return data ?? 0;
+}
