@@ -188,6 +188,9 @@
     /* store badges (заглушка «скоро в сторах») */
     .stores{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:18px;}
     .sbadge{display:inline-flex; align-items:center; gap:9px; padding:7px 14px; border:1px solid var(--line); border-radius:12px; background:var(--surface); opacity:.8;}
+    /* Живая ссылка на App Store: без приглушения, лаймовая рамка, hover */
+    .sbadge-live{opacity:1; text-decoration:none; color:inherit; border-color:color-mix(in srgb, var(--lime) 45%, transparent); transition:transform .15s, border-color .15s;}
+    .sbadge-live:hover{transform:translateY(-1px); border-color:var(--lime);}
     .sbadge i{font-style:normal; font-size:19px; line-height:1;}
     .sbadge small{display:block; font-size:9px; color:var(--mut); font-weight:600; letter-spacing:.4px;}
     .sbadge b{font-size:13.5px; line-height:1.1;}
@@ -321,11 +324,11 @@
             <span class="auths"><i style="background:#4285F4">G</i><i style="background:#229ED9"><svg viewBox="0 0 448 512" width="12" height="12" fill="#fff" aria-hidden="true"><path d="M446.7 98.6l-67.6 318.8c-5.1 22.5-18.4 28.1-37.3 17.5l-103-75.9-49.7 47.8c-5.5 5.5-10.1 10.1-20.7 10.1l7.4-104.9 190.9-172.5c8.3-7.4-1.8-11.5-12.9-4.1L117.8 284 16.2 252.2c-22.1-6.9-22.5-22.1 4.6-32.7L418.2 66.4c18.4-6.8 34.5 4.4 28.5 32.2z"/></svg></i><i style="background:#FC3F1D">Я</i></span>
           </span>
         </div>
-        <!-- Заглушка сторов: приложения на финальном ревью -->
+        <!-- iOS вышел в App Store (кликабельно); Android пока на тестировании -->
         <div class="stores">
-          <span class="sbadge"><i></i><span><small data-i18n="store_soon">Скоро в</small><b>App Store</b></span></span>
+          <a class="sbadge sbadge-live" href="https://apps.apple.com/ru/app/padelpack/id6787536510" target="_blank" rel="noopener"><svg viewBox="0 0 384 512" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg><span><small data-i18n="store_get">Скачать в</small><b>App Store</b></span></a>
           <span class="sbadge"><i>▶</i><span><small data-i18n="store_soon">Скоро в</small><b>Google Play</b></span></span>
-          <span class="stores-note" data-i18n="store_note">iOS и Android — на финальном ревью в сторах</span>
+          <span class="stores-note" data-i18n="store_note">iOS — уже в App Store, Android скоро</span>
         </div>
       </div>
 
@@ -634,7 +637,7 @@
         f6_t:"Напоминания об играх", f6_d:"Пуш «сбор через 2 часа» — никто не забудет про корт.",
         f7_t:"Карточки результатов", f7_d:"Итог игры или подиум турнира — красивой картинкой прямо в чат стаи.",
         m_tier_alpha:"Вожак стаи", m_tier_hunter:"Охотник", m_you:"Ты сейчас",
-        store_soon:"Скоро в", store_note:"iOS и Android — на финальном ревью в сторах",
+        store_soon:"Скоро в", store_get:"Скачать в", store_note:"iOS — уже в App Store, Android скоро",
         m_league_name:"Падел по четвергам", m_lang_chip:"RU",
         m_name1:"Артём Соколов", m_name2:"Игорь Лебедев", m_name3:"Павел Морозов", m_name4:"Никита Орлов", m_name5:"Дмитрий Зайцев",
         m_fn1:"Артём", m_fn2:"Игорь", m_fn3:"Павел", m_fn4:"Никита", m_fn5:"Дмитрий",
@@ -706,7 +709,7 @@
         f6_t:"Game reminders", f6_d:"A push \"game in 2 hours\" — nobody forgets the court.",
         f7_t:"Result cards", f7_d:"A game result or a tournament podium — as a beautiful image straight to your pack's chat.",
         m_tier_alpha:"Pack Leader", m_tier_hunter:"Hunter", m_you:"You now",
-        store_soon:"Soon on", store_note:"iOS & Android are in final store review",
+        store_soon:"Soon on", store_get:"Download on", store_note:"iOS is on the App Store, Android coming soon",
         m_league_name:"Thursday Padel", m_lang_chip:"EN",
         m_name1:"Liam Carter", m_name2:"Noah Bennett", m_name3:"Owen Hughes", m_name4:"Ethan Brooks", m_name5:"Lucas Reed",
         m_fn1:"Liam", m_fn2:"Noah", m_fn3:"Owen", m_fn4:"Ethan", m_fn5:"Lucas",
@@ -778,7 +781,7 @@
         f6_t:"Recordatorios de partidas", f6_d:"Un push «partida en 2 horas» — nadie se olvida de la pista.",
         f7_t:"Tarjetas de resultados", f7_d:"El resultado o el podio del torneo — como imagen directa al chat de tu manada.",
         m_tier_alpha:"Líder de la manada", m_tier_hunter:"Cazador", m_you:"Tú ahora",
-        store_soon:"Pronto en", store_note:"iOS y Android — en revisión final en las tiendas",
+        store_soon:"Pronto en", store_get:"Descárgala en", store_note:"iOS ya está en App Store, Android muy pronto",
         m_league_name:"Pádel de los jueves", m_lang_chip:"ES",
         m_name1:"Mateo García", m_name2:"Hugo Torres", m_name3:"Bruno Romero", m_name4:"Diego Navarro", m_name5:"Pablo Castro",
         m_fn1:"Mateo", m_fn2:"Hugo", m_fn3:"Bruno", m_fn4:"Diego", m_fn5:"Pablo",
