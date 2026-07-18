@@ -227,10 +227,31 @@ extension YandexAuthPlugin: YandexLoginSDKObserver {
 Safari Web Inspector (консоль устройства): `window.Capacitor.Plugins.YandexAuth`
 → `undefined`.
 
-Причина №1 (была 2026-07-18): `YandexAuthPlugin.swift` лежал в папке, но **не был
-добавлен в таргет App** — отсутствовал в `project.pbxproj` (в отличие от
-`AppDelegate.swift`). Файл не компилировался → Capacitor не находил класс.
-Фикс: в Xcode выделить `YandexAuthPlugin.swift` → File Inspector → **Target
-Membership → отметить App** (или файл уже прописан в `project.pbxproj` — тогда
-просто `git pull` + пересборка). Проверка: `grep YandexAuthPlugin
-ios/App/App.xcodeproj/project.pbxproj` должен вернуть 4 записи.
+Две причины, обе закрыты 2026-07-18/19:
+
+**(1) Файл не в таргете.** `YandexAuthPlugin.swift` лежал в папке, но отсутствовал
+в `project.pbxproj` → не компилировался. Фикс: файл прописан в таргете App
+(проверка: `grep -c YandexAuthPlugin ios/App/App.xcodeproj/project.pbxproj` = 4;
+в Xcode — File Inspector → Target Membership → App).
+
+**(2) Главное — Capacitor 8 (SPM) НЕ регистрирует плагины из таргета App.**
+Даже скомпилированный `CAPBridgedPlugin` не появляется в `Capacitor.Plugins`,
+если он не в отдельном плагин-пакете: `cap sync` собирает список плагинов только
+из сгенерированного `Package.swift` (там лишь npm-пакеты). Классический `.m` с
+`CAP_PLUGIN` в SPM тоже нельзя (нельзя мешать ObjC+Swift в одном таргете).
+Решение (офиц. дока «Custom Native iOS Code»): регистрировать вручную в
+кастомном `CAPBridgeViewController`:
+```swift
+// MainViewController.swift
+class MainViewController: CAPBridgeViewController {
+    override func capacitorDidLoad() {
+        bridge?.registerPluginInstance(YandexAuthPlugin())
+    }
+}
+```
+и назначить его классом вью-контроллера в `Main.storyboard`
+(`customClass="MainViewController" customModule="App" customModuleProvider="target"`).
+После этого `Object.keys(Capacitor.Plugins)` содержит `YandexAuth`.
+
+Диагностика: в консоли устройства `Object.keys(Capacitor.Plugins)` — если там 15
+плагинов-пакетов и нет `YandexAuth`, значит регистрация (2) не сработала.
