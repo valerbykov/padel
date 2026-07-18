@@ -951,7 +951,16 @@ function FeesCard({ trn, me, canManage, readOnly, avatarOf }) {
         )}
       </div>
 
-      {(fee == null || setup) ? (
+      {fee == null && !setup ? (
+        /* Сбор не запущен: организатор ЯВНО решает, запускать ли его вообще */
+        <>
+          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 10 }}>{tr("fee_start_hint")}</div>
+          <button className="tr-btn" onClick={() => { setSetup(true); setMode("each"); setAmount(""); }}
+            style={{ width: "100%", padding: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14 }}>
+            💸 {tr("fee_start_btn")}
+          </button>
+        </>
+      ) : (fee == null || setup) ? (
         <>
           <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 10 }}>{tr("fee_setup_hint")}</div>
           <div style={{ display: "flex", gap: 4, background: "var(--surface2)", borderRadius: 10, padding: 3, marginBottom: 8 }}>
@@ -1004,15 +1013,19 @@ function FeesCard({ trn, me, canManage, readOnly, avatarOf }) {
             <>
               {/* Пуш на локскрин должникам (только админ/организатор — как и RPC) */}
               {canManage && (
-                <button onClick={remindPush} disabled={remindBusy} style={{ width: "100%", marginTop: 12, padding: 12, borderRadius: 12, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontWeight: 700, fontSize: 13.5,
-                  background: "color-mix(in srgb, var(--lime) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", color: "var(--lime)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, opacity: remindBusy ? .6 : 1 }}>
-                  🔔 {remindBusy ? "…" : tr("fee_remind_push")}
-                </button>
+                <>
+                  <button onClick={remindPush} disabled={remindBusy} style={{ width: "100%", marginTop: 12, padding: 12, borderRadius: 12, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontWeight: 700, fontSize: 13.5,
+                    background: "color-mix(in srgb, var(--lime) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", color: "var(--lime)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, opacity: remindBusy ? .6 : 1 }}>
+                    🔔 {remindBusy ? "…" : tr("fee_remind_push")}
+                  </button>
+                  <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 4, textAlign: "center" }}>{tr("fee_remind_push_hint")}</div>
+                </>
               )}
               <button onClick={remindChat} style={{ width: "100%", marginTop: 8, padding: 11, borderRadius: 12, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontWeight: 600, fontSize: 12.5,
                 background: "var(--surface2)", border: "1px solid var(--line)", color: "var(--mut)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
                 📣 {tr("fee_remind")}
               </button>
+              <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 4, textAlign: "center" }}>{tr("fee_remind_chat_hint")}</div>
             </>
           )}
         </>

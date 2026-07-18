@@ -126,6 +126,9 @@ const TPL: Record<Lang, any> = {
     tailsFar: ["Не пропусти 💪", "Отметь в календаре 📅", "Собери своих 🎾", "Готовься к бою!"],
     evGame: "🎾 Новая игра", evTour: "🏆 Новый турнир", evPost: "📣 Объявление",
     feeTitle: "💸 Взнос за турнир", feeBody: "«{t}» — {n} ₽. Не забудь скинуться 🙏",
+    doneTourT: "🏁 Турнир завершён", doneTourB: "«{t}» — отличная игра! {greet} 🎾 Если скидывались на корты — не забудь про взнос 🙏",
+    doneGameT: "🏁 Игра сыграна", doneGameB: "Счёт записан — {greet} 🎾 Если скидывались за корт — не забудь про взнос 🙏",
+    greetDay: "Хорошего дня", greetEve: "Хорошего вечера",
     ctaGame: ["записывайся в состав 💪", "занимай слот 🎾", "врывайся в игру 🔥"],
     ctaTour: ["заявляйся, пока есть места 🎾", "регистрируйся и покажи класс 🏆", "лови слот в сетке 🔥"],
   },
@@ -147,6 +150,9 @@ const TPL: Record<Lang, any> = {
     tailsFar: ["Don't miss it 💪", "Add it to your calendar 📅", "Round up your crew 🎾", "Get ready to battle!"],
     evGame: "🎾 New game", evTour: "🏆 New tournament", evPost: "📣 Announcement",
     feeTitle: "💸 Tournament chip-in", feeBody: "\u201c{t}\u201d — {n} ₽. Don't forget to chip in 🙏",
+    doneTourT: "🏁 Tournament finished", doneTourB: "\u201c{t}\u201d — great game! {greet} 🎾 If you were splitting court costs — don't forget to chip in 🙏",
+    doneGameT: "🏁 Game played", doneGameB: "Score saved — {greet} 🎾 If you were splitting court costs — don't forget to chip in 🙏",
+    greetDay: "have a great day", greetEve: "have a great evening",
     ctaGame: ["grab a spot 💪", "take a slot 🎾", "jump into the game 🔥"],
     ctaTour: ["sign up while there's room 🎾", "register and show your best 🏆", "grab a slot in the draw 🔥"],
   },
@@ -168,6 +174,9 @@ const TPL: Record<Lang, any> = {
     tailsFar: ["No te lo pierdas 💪", "Anótalo en el calendario 📅", "Reúne a los tuyos 🎾", "¡Prepárate para la batalla!"],
     evGame: "🎾 Nuevo partido", evTour: "🏆 Nuevo torneo", evPost: "📣 Anuncio",
     feeTitle: "💸 Aporte del torneo", feeBody: "«{t}» — {n} ₽. No olvides aportar 🙏",
+    doneTourT: "🏁 Torneo terminado", doneTourB: "«{t}» — ¡gran partido! {greet} 🎾 Si dividían las pistas — no olvides tu aporte 🙏",
+    doneGameT: "🏁 Partido jugado", doneGameB: "Resultado guardado — {greet} 🎾 Si dividían la pista — no olvides tu aporte 🙏",
+    greetDay: "buen día", greetEve: "buena tarde",
     ctaGame: ["apúntate al equipo 💪", "coge un hueco 🎾", "métete en el partido 🔥"],
     ctaTour: ["inscríbete mientras haya plazas 🎾", "regístrate y da lo mejor 🏆", "coge plaza en el cuadro 🔥"],
   },
@@ -266,15 +275,30 @@ Deno.serve(async (req) => {
       }
     } catch (_) { /* миграции нет — тихо пропускаем */ }
 
-    if ((!due || due.length === 0) && events.length === 0 && feeRows.length === 0) {
-      return json({ due: 0, events: 0, fees: 0, sent: 0 });
+    // 1в) очередь «завершение игры/турнира» (триггеры БД). Толерантно к отсутствию
+    // таблицы (миграция 2026-07-26). Помечаем sent_at сразу по выборке.
+    let doneRows: any[] = [];
+    try {
+      const dq = await admin.from("event_push_queue")
+        .select("id, profile_id, kind, payload, profile:profiles(user_id)")
+        .is("sent_at", null).limit(300);
+      if (!dq.error && dq.data?.length) {
+        doneRows = dq.data.filter((r: any) => r.profile?.user_id);
+        await admin.from("event_push_queue").update({ sent_at: new Date().toISOString() })
+          .in("id", dq.data.map((r: any) => r.id));
+      }
+    } catch (_) { /* миграции нет */ }
+
+    if ((!due || due.length === 0) && events.length === 0 && feeRows.length === 0 && doneRows.length === 0) {
+      return json({ due: 0, events: 0, fees: 0, done: 0, sent: 0 });
     }
 
-    // 2) токены участников (объединяем адресатов напоминаний, событий и взносов)
+    // 2) токены участников (объединяем всех адресатов)
     const userIds = [...new Set([
       ...(due || []).map((d: any) => d.user_id),
       ...events.map((d: any) => d.user_id),
       ...feeRows.map((r: any) => r.profile.user_id),
+      ...doneRows.map((r: any) => r.profile.user_id),
     ])];
     const { data: tokRows } = await admin.from("push_tokens").select("user_id, token, platform, tz, lang").in("user_id", userIds);
     const byUser: Record<string, Array<{ token: string; platform: string; tz: string; lang: Lang }>> = {};
@@ -323,6 +347,25 @@ Deno.serve(async (req) => {
             title: p.feeTitle,
             body: p.feeBody.replace("{t}", r.tournament.name || "").replace("{n}", String(r.tournament.fee_per_player || "")),
           };
+        },
+      });
+    }
+    // Завершение игры/турнира: всем участникам, приветствие по ЛОКАЛЬНОМУ часу
+    // устройства (до 17:00 — «хорошего дня», после — «хорошего вечера»).
+    const localHour = (tz: string): number => {
+      try { return Number(new Intl.DateTimeFormat("en-GB", { timeZone: tz || "Europe/Moscow", hour: "2-digit", hourCycle: "h23" }).format(new Date())); }
+      catch (_) { return 12; }
+    };
+    for (const r of doneRows) {
+      outbox.push({
+        user_id: r.profile.user_id, event_type: r.kind, event_id: r.id, offset_min: 0,
+        build: (tz: string, lang: Lang) => {
+          const p = TPL[lang];
+          const greet = localHour(tz) >= 17 ? p.greetEve : p.greetDay;
+          if (r.kind === "tour_finished") {
+            return { title: p.doneTourT, body: p.doneTourB.replace("{t}", r.payload?.t || "").replace("{greet}", greet) };
+          }
+          return { title: p.doneGameT, body: p.doneGameB.replace("{greet}", greet) };
         },
       });
     }
@@ -387,7 +430,7 @@ Deno.serve(async (req) => {
     await flushLog();
     if (bad.length) await admin.from("push_tokens").delete().in("token", bad);
 
-    return json({ due: (due || []).length, events: events.length, fees: feeRows.length, events_error: evRes.error ? String(evRes.error.message || evRes.error) : null, sent, pruned: bad.length });
+    return json({ due: (due || []).length, events: events.length, fees: feeRows.length, done: doneRows.length, events_error: evRes.error ? String(evRes.error.message || evRes.error) : null, sent, pruned: bad.length });
   } catch (e) {
     return json({ error: String(e) }, 500);
   }
