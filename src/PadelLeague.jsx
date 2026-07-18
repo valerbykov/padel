@@ -263,7 +263,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
     try {
       const data = groupId ? await getLeaderboard(groupId) : await getPlayedWith();
       if (seq === lbSeq.current) setPlayers(data);
-    } catch (e) { /* noop */ }
+    } catch (e) { console.warn("loadLeaderboard failed", groupId, e?.message || e); }
     finally { if (seq === lbSeq.current) setLbLoaded(true); }
   }, [groupId, leaguesReady, leagues]);
 
@@ -271,7 +271,9 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
   // лидерборд, чтобы новое фото попало в карточки игроков и таблицу.
   useEffect(() => { loadLeaderboard(); }, [loadLeaderboard, profileNonce]);
   // при смене лиги — снова показать скелетон, пока грузятся её друзья
-  useEffect(() => { setLbLoaded(false); }, [groupId]);
+  // Чистим ростер при смене лиги: иначе при сбое загрузки следующей лиги на экране
+  // остаётся ростер ПРЕДЫДУЩЕЙ как «свежий» (скелетон показывается по !lbLoaded).
+  useEffect(() => { setLbLoaded(false); setPlayers([]); }, [groupId]);
 
   // После логина/выхода синхронизируем вкладку.
   // Баг: tab инициализировался один раз ("welcome") и не менялся при появлении
@@ -2258,7 +2260,7 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
 
   const loadGames = useCallback(async () => {
     setLoading(true);
-    try { setGames(groupId ? await listGames(groupId) : await listMyGames()); } catch (e) { /* noop */ } finally { setLoading(false); }
+    try { setGames(groupId ? await listGames(groupId) : await listMyGames()); } catch (e) { console.warn("listGames failed", e?.message || e); } finally { setLoading(false); }
   }, [groupId]);
   useEffect(() => { loadGames(); }, [loadGames, archiveNonce]);
 
@@ -2323,7 +2325,7 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
               const row = <GameRow key={g.id} g={g} color={color} me={profileId} flush={!!del} onOpen={() => { setSelId(g.id); setMode("view"); }}
                 onTake={take && canTakeRow(g) ? () => takeFirstFree(g) : null} />;
               return del
-                ? <SwipeToDelete key={g.id} onDelete={async () => { if (!(await confirmDialog({ title: t("delete_game_confirm"), message: t("delete_game_msg"), confirmLabel: t("delete_btn") }))) return; await deleteGame(g.id).catch(() => {}); loadGames(); bumpArchive?.(); }}>{row}</SwipeToDelete>
+                ? <SwipeToDelete key={g.id} onDelete={async () => { if (!(await confirmDialog({ title: t("delete_game_confirm"), message: t("delete_game_msg"), confirmLabel: t("delete_btn") }))) return; await deleteGame(g.id).catch(() => showToast(t("err_delete"))); loadGames(); bumpArchive?.(); }}>{row}</SwipeToDelete>
                 : row;
             })}
           </div>
@@ -2686,7 +2688,7 @@ function GameCourtBlock({ game, index, total, groupId, reloadSession, reloadLead
   const renameCourt = groupId ? (name) => updateGameCourtName(game.id, name).then(reloadSession).catch(() => {}) : undefined;
   const del = async () => {
     if (!(await confirmDialog({ title: t("delete_game_confirm"), message: t("delete_game_msg"), confirmLabel: t("delete_btn") }))) return;
-    await deleteGame(game.id).catch(() => {});
+    await deleteGame(game.id).catch(() => showToast(t("err_delete")));
     bumpArchive && bumpArchive();
     await reloadSession();
   };
@@ -3286,7 +3288,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
       const mine = !profileId || mineTour(tour);
       const card = <TournamentCard trn={tour} color="var(--yellow)" me={profileId} placeFor={focusId} showMeBadge={!pFilter || pFilter === profileId} myDelta={trDelta(tour)} flush={isGroupMember} onClick={() => setSel({ type: "tour", data: tour })} />;
       const inner = isGroupMember
-        ? <SwipeToDelete onCopy={groupId ? () => setCopyTour(tour) : null} onDelete={async () => { if (!(await confirmDialog({ title: t("trn_delete_confirm"), message: t("trn_delete_msg"), confirmLabel: t("delete_btn") }))) return; await deleteTournament(tour.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+        ? <SwipeToDelete onCopy={groupId ? () => setCopyTour(tour) : null} onDelete={async () => { if (!(await confirmDialog({ title: t("trn_delete_confirm"), message: t("trn_delete_msg"), confirmLabel: t("delete_btn") }))) return; await deleteTournament(tour.id).catch(() => showToast(t("err_delete"))); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
         : card;
       return <div key={ev.key} style={mine || pFilter ? undefined : { opacity: 0.55 }}>{inner}</div>;
     }
@@ -3300,7 +3302,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
       })();
       const card = <MixGroupCard games={ordered} color="var(--mut)" me={profileId} showMeBadge={!pFilter || pFilter === profileId} delta={mixDelta} onOpenGame={(g) => setSel({ type: "game", data: g })} />;
       const inner = isGroupMember
-        ? <SwipeToDelete onDelete={async () => { if (!(await confirmDialog({ title: t("mix_delete_confirm").replace("{n}", ordered.length), message: t("mix_delete_msg"), confirmLabel: t("delete_btn") }))) return; for (const gg of ordered) await deleteGame(gg.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+        ? <SwipeToDelete onDelete={async () => { if (!(await confirmDialog({ title: t("mix_delete_confirm").replace("{n}", ordered.length), message: t("mix_delete_msg"), confirmLabel: t("delete_btn") }))) return; for (const gg of ordered) await deleteGame(gg.id).catch(() => showToast(t("err_delete"))); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
         : card;
       return <div key={ev.key} style={mine || pFilter ? undefined : { opacity: 0.55 }}>{inner}</div>;
     }
@@ -3308,7 +3310,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
     const mine = !profileId || meInGame(g, profileId);
     const card = <GameRow g={g} color="var(--mut)" me={profileId} showMeBadge={!pFilter || pFilter === profileId} delta={gDelta(g)} flush={isGroupMember} onOpen={() => setSel({ type: "game", data: g })} />;
     const inner = isGroupMember
-      ? <SwipeToDelete onCopy={groupId ? () => setCopyGame(g) : null} onDelete={async () => { if (!(await confirmDialog({ title: t("delete_game_confirm"), message: t("delete_game_msg"), confirmLabel: t("delete_btn") }))) return; await deleteGame(g.id).catch(() => {}); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
+      ? <SwipeToDelete onCopy={groupId ? () => setCopyGame(g) : null} onDelete={async () => { if (!(await confirmDialog({ title: t("delete_game_confirm"), message: t("delete_game_msg"), confirmLabel: t("delete_btn") }))) return; await deleteGame(g.id).catch(() => showToast(t("err_delete"))); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
       : card;
     return <div key={ev.key} style={mine || pFilter ? undefined : { opacity: 0.55 }}>{inner}</div>;
   };

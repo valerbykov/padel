@@ -67,7 +67,7 @@ async function saveToken(token) {
         { token, user_id: user.id, platform: platformName(), updated_at: now },
         { onConflict: "token" }
       );
-    } catch (_) { /* ничего */ }
+    } catch (e2) { console.warn("saveToken fallback failed", e2); }
   }
 }
 
@@ -79,7 +79,7 @@ export async function updateNotifLang(lang) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user || !lang) return;
     await supabase.from("push_tokens").update({ lang }).eq("user_id", user.id);
-  } catch (_) { /* некритично */ }
+  } catch (e) { console.warn("updateNotifLang failed", e); }
 }
 
 // Запросить разрешение и зарегистрировать push-токен. Только нативка (веб/PWA — no-op).

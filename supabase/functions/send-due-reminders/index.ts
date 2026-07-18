@@ -261,19 +261,20 @@ Deno.serve(async (req) => {
     const events = evRes.error ? [] : (evRes.data || []);
 
     // 1б) очередь «напомнить должникам» (взносы за турнир). Таблицы может не быть
-    // до миграции 2026-07-25 — тогда просто пропускаем. Помечаем sent_at СРАЗУ по
-    // выборке (даже если у адресата нет токенов) — иначе бесконечный ретрай.
+    // до миграции 2026-07-25 — тогда просто пропускаем. sent_at помечаем НЕ здесь, а
+    // ПОСЛЕ получения FCM-креденшелов (см. ниже) — иначе сбой ключа терял бы пачку.
     let feeRows: any[] = [];
+    let feeIds: string[] = [];
     try {
       const fq = await admin.from("fee_reminder_queue")
         .select("id, profile_id, tournament_id, game_id, tournament:tournaments(name, fee_per_player, group_id), game:games(place, fee_per_player, group_id), profile:profiles(user_id, name)")
         .is("sent_at", null).limit(200);
-      if (!fq.error && fq.data?.length) {
+      if (fq.error) console.error("fee_reminder_queue read:", fq.error);
+      else if (fq.data?.length) {
         feeRows = fq.data.filter((r: any) => r.profile?.user_id && (r.tournament || r.game));
-        await admin.from("fee_reminder_queue").update({ sent_at: new Date().toISOString() })
-          .in("id", fq.data.map((r: any) => r.id));
+        feeIds = fq.data.map((r: any) => r.id);
       }
-    } catch (_) { /* миграции нет — тихо пропускаем */ }
+    } catch (e) { console.error("fee_reminder_queue:", e); }
 
     // Авто-пост в Telegram-чат лиги (одно сообщение на игру/турнир, а не на должника):
     // если у лиги привязан ПУБЛИЧНЫЙ чат (t.me/<username>) и бот в нём состоит.
@@ -304,18 +305,19 @@ Deno.serve(async (req) => {
     }
 
     // 1в) очередь «завершение игры/турнира» (триггеры БД). Толерантно к отсутствию
-    // таблицы (миграция 2026-07-26). Помечаем sent_at сразу по выборке.
+    // таблицы (миграция 2026-07-26). sent_at — тоже после FCM-креденшелов.
     let doneRows: any[] = [];
+    let doneIds: string[] = [];
     try {
       const dq = await admin.from("event_push_queue")
         .select("id, profile_id, kind, payload, profile:profiles(user_id)")
         .is("sent_at", null).limit(300);
-      if (!dq.error && dq.data?.length) {
+      if (dq.error) console.error("event_push_queue read:", dq.error);
+      else if (dq.data?.length) {
         doneRows = dq.data.filter((r: any) => r.profile?.user_id);
-        await admin.from("event_push_queue").update({ sent_at: new Date().toISOString() })
-          .in("id", dq.data.map((r: any) => r.id));
+        doneIds = dq.data.map((r: any) => r.id);
       }
-    } catch (_) { /* миграции нет */ }
+    } catch (e) { console.error("event_push_queue:", e); }
 
     if ((!due || due.length === 0) && events.length === 0 && feeRows.length === 0 && doneRows.length === 0) {
       return json({ due: 0, events: 0, fees: 0, done: 0, sent: 0 });
@@ -334,6 +336,17 @@ Deno.serve(async (req) => {
 
     // 3) FCM access token (Android) + конфиг APNs (iOS напрямую)
     const accessToken = await getFcmAccessToken(sa);
+
+    // Креденшелы получены — ТЕПЕРЬ безопасно пометить очереди взносов/завершений
+    // отправленными (до этого места ошибка ключа откатила бы всю функцию без потери).
+    if (feeIds.length) {
+      const u = await admin.from("fee_reminder_queue").update({ sent_at: new Date().toISOString() }).in("id", feeIds);
+      if (u.error) console.error("fee_reminder_queue mark:", u.error);
+    }
+    if (doneIds.length) {
+      const u = await admin.from("event_push_queue").update({ sent_at: new Date().toISOString() }).in("id", doneIds);
+      if (u.error) console.error("event_push_queue mark:", u.error);
+    }
     const apnsKey = Deno.env.get("APNS_KEY");
     const apnsKeyId = Deno.env.get("APNS_KEY_ID");
     const apnsTeamId = Deno.env.get("APNS_TEAM_ID");
@@ -452,6 +465,9 @@ Deno.serve(async (req) => {
           if (r.status === 404 || code === "UNREGISTERED" || code === "INVALID_ARGUMENT") {
             bad.push(tk.token);
             console.log("fcm prune:", r.status, code, tk.token.slice(0, 12));
+          } else {
+            // прочие сбои FCM (auth, квота, битый payload, аутэйдж) — раньше терялись молча
+            console.error("fcm:", r.status, code);
           }
         } catch (e) { console.error("push fetch:", e); }
       }

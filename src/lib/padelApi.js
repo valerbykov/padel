@@ -37,6 +37,7 @@ export async function ensureMyProfile(name) {
 // откатывается на старый каскад.
 export async function bootstrapApp(savedGroupId = null) {
   const { data, error } = await supabase.rpc("app_bootstrap", { p_group_id: savedGroupId || null });
+  if (error) console.warn("app_bootstrap failed", error);
   if (error || !data || !data.profile) return null;
   const leagues = (data.leagues || []).map((r) => ({
     id: r.id, name: r.name, invite_code: r.invite_code, logo_url: r.logo_url,

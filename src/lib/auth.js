@@ -263,6 +263,7 @@ export async function signInYandex() {
         let r = await supabase.auth.verifyOtp({ email: data.email, token: data.token, type: "email" });
         if (r.error && data.token_hash) r = await supabase.auth.verifyOtp({ token_hash: data.token_hash, type: "email" });
         if (!r.error) return; // успех — сессия поднята, onAuthChange перерисует
+        console.warn("yandex native verifyOtp failed → web fallback", r.error);
       }
     } catch (e) {
       // отмена или ошибка SDK → не падаем, уходим в веб-фолбэк ниже
