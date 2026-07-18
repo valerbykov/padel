@@ -149,8 +149,20 @@ try? YandexLoginSDK.shared.activate(with: "ВАШ_CLIENT_ID")
 try? YandexLoginSDK.shared.handleOpenURL(url)
 ```
 
-**Info.plist** — добавить callback URL-схему из консоли Яндекса в существующий
-`CFBundleURLTypes` (рядом с `padelpack` и google-схемой).
+**Info.plist** — ДВА обязательных места (иначе `activate()` кидает
+`ActivationError.absentQueriesScheme`, а `authorize()` — `.loginSDKIsNotActivated`
+= generic «error 5»; проверено `Sources/.../ActivationValidator.swift` SDK):
+1. `CFBundleURLTypes` → `CFBundleURLSchemes` = `yx<clientid>` (у нас
+   `yx82bdbec842f948d49cdf25ee4d3877ae`) — callback-схема.
+2. `LSApplicationQueriesSchemes` = **`primaryyandexloginsdk`** и
+   **`secondaryyandexloginsdk`** — это схемы SDK **3.x** для app-to-app. Старые
+   `yandexauth`/`yandexauth2` (SDK 2.x) их НЕ заменяют. Без этих двух схем
+   активация молча падает.
+
+**JS deep-link**: в `App.jsx` слушатель `appUrlOpen` ПРОПУСКАЕТ нативный возврат
+`yx<clientid>://…` (`/^yx[0-9a-f]{16,}:/i`) — его несёт яндексовый `?code`, и без
+пропуска `handleAuthCallbackUrl` гонит его в Supabase-PKCE → 400. Нативный возврат
+обрабатывается натив­но (AppDelegate→SDK→плагин).
 
 **Плагин** — `ios/App/App/YandexAuthPlugin.swift`:
 ```swift

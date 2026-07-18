@@ -9,12 +9,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Yandex ID SDK: client_id приложения в Yandex OAuth (см. YANDEX_NATIVE.md).
-        // ДИАГНОСТИКА: не глотаем ошибку активации (была под try?) — печатаем в консоль.
+        // Ошибку активации НЕ глотаем (была под try?): именно так пропущенная схема
+        // в Info.plist маскировалась под generic error 5 при authorize.
         do {
             try YandexLoginSDK.shared.activate(with: "82bdbec842f948d49cdf25ee4d3877ae")
-            NSLog("YandexAuth: activate OK")
         } catch {
-            NSLog("YandexAuth: activate FAILED: %@", String(describing: error as NSError))
+            NSLog("YandexLoginSDK activate failed: %@", String(describing: error as NSError))
         }
         return true
     }

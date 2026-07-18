@@ -217,6 +217,11 @@ export default function App({ initialShowLogin = false }) {
     CapApp.getLaunchUrl?.().then((r) => { if (r?.url) routeFromUrl(r.url); }).catch(() => {});
     const res = CapApp.addListener("appUrlOpen", async ({ url }) => {
       if (!url) return;
+      // Нативный возврат Yandex ID SDK (yx<clientid>://finish?code=…) полностью
+      // обрабатывается натив­но (AppDelegate→SDK→плагин отдаёт token). У него свой
+      // ?code — яндексовый, не Supabase-PKCE. JS его не трогает, иначе
+      // handleAuthCallbackUrl зря дёргает exchangeCodeForSession → 400.
+      if (/^yx[0-9a-f]{16,}:/i.test(url)) return;
       if (routeFromUrl(url)) return;                                          // app link на лигу/игру/турнир
       if (url.includes("tgauth=1")) { await handleTelegramCallback(url); return; } // возврат Telegram-моста
       if (!(await handleYandexCallback(url))) await handleAuthCallbackUrl(url); // иначе — auth-callback

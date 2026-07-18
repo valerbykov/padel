@@ -30,23 +30,14 @@ public class YandexAuthPlugin: CAPPlugin, CAPBridgedPlugin {
             guard let vc = self.bridge?.viewController else {
                 call.reject("no_view_controller"); self.pendingCall = nil; return
             }
-            // authorize кидал .loginSDKIsNotActivated: активация из AppDelegate не
-            // «дожила» до этого момента. Активируем здесь, прямо перед авторизацией.
-            // Повторная активация уже активного SDK безвредна; реальную ошибку логируем.
-            do {
-                try YandexLoginSDK.shared.activate(with: "82bdbec842f948d49cdf25ee4d3877ae")
-                NSLog("YandexAuth: activate (in authorize) OK")
-            } catch {
-                NSLog("YandexAuth: activate (in authorize) error: %@", String(describing: error as NSError))
-            }
+            // Страховка: гарантируем активацию перед authorize (идемпотентно —
+            // повторная активация уже активного SDK безвредна). Реальную ошибку
+            // активации логирует AppDelegate.
+            try? YandexLoginSDK.shared.activate(with: "82bdbec842f948d49cdf25ee4d3877ae")
             do {
                 try YandexLoginSDK.shared.authorize(with: vc, authorizationStrategy: .default)
             } catch {
-                // ДИАГНОСТИКА: печатаем ПОЛНУЮ ошибку (domain/code/userInfo) — там
-                // реальная причина, а localizedDescription даёт лишь «error 5».
-                let ns = error as NSError
-                NSLog("YandexAuth: authorize threw: %@", String(describing: ns))
-                call.reject("authorize_failed: domain=\(ns.domain) code=\(ns.code) desc=\(ns.localizedDescription) info=\(ns.userInfo)")
+                call.reject("authorize_failed: \(error.localizedDescription)")
                 self.pendingCall = nil
             }
         }
@@ -61,9 +52,7 @@ extension YandexAuthPlugin: YandexLoginSDKObserver {
         case .success(let login):
             call.resolve(["token": login.token])
         case .failure(let error):
-            let ns = error as NSError
-            NSLog("YandexAuth: didFinishLogin failure: %@", String(describing: ns))
-            call.reject("yandex_failure: domain=\(ns.domain) code=\(ns.code) desc=\(ns.localizedDescription) info=\(ns.userInfo)")
+            call.reject("yandex_failure: \(error.localizedDescription)")
         }
     }
 }
