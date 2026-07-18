@@ -134,7 +134,7 @@ const T = {
     onboarding_3_sub_code: 'Код: {code} · или скопируй страницу лиги',
     onboarding_3_sub_no_code: 'Скопируй код приглашения выше',
     played_together_label: 'ИГРАЛИ ВМЕСТЕ',
-    registered_badge: 'Зарегистрирован в приложении',
+    registered_badge: 'Зарегистрирован в приложении', banner_sub: 'Падел-лига для своих', banner_sub_open: 'Открыть в приложении', banner_get: 'Установить', banner_open: 'Открыть',
     // ── Add player form ───────────────────────────────────────────────────
     add_player_form_title: 'Добавить в лигу',
     add_guest_league_hint: 'Добавленный здесь игрок не попадёт в лигу. Чтобы он был в лиге — добавьте его на вкладке «Друзья».',
@@ -544,7 +544,7 @@ const T = {
     onboarding_3_sub_code: 'Code: {code} · or copy the league page',
     onboarding_3_sub_no_code: 'Copy the invite code above',
     played_together_label: 'ALSO PLAYED',
-    registered_badge: 'Registered in the app',
+    registered_badge: 'Registered in the app', banner_sub: 'A padel league for your crew', banner_sub_open: 'Open in the app', banner_get: 'Get', banner_open: 'Open',
     // ── Add player form ───────────────────────────────────────────────────
     add_player_form_title: 'Add to league',
     add_guest_league_hint: 'A player added here won’t appear in the league. To add them to the league, use the Friends tab.',
@@ -954,7 +954,7 @@ const T = {
     onboarding_3_sub_code: 'Código: {code} · o copia la página de la liga',
     onboarding_3_sub_no_code: 'Copia el código de invitación arriba',
     played_together_label: 'TAMBIÉN JUGARON',
-    registered_badge: 'Registrado en la app',
+    registered_badge: 'Registrado en la app', banner_sub: 'Liga de pádel con amigos', banner_sub_open: 'Abrir en la app', banner_get: 'Obtener', banner_open: 'Abrir',
     // ── Add player form ───────────────────────────────────────────────────
     add_player_form_title: 'Añadir a liga',
     add_guest_league_hint: 'Un jugador añadido aquí no aparecerá en la liga. Para añadirlo a la liga, usa la pestaña Amigos.',
