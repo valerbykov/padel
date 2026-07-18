@@ -1,18 +1,14 @@
 import Foundation
 import Capacitor
+import YandexLoginSDK
 
 // Нативный вход через Yandex ID SDK (экран «Выберите аккаунт»).
 // JS: const { token } = await Capacitor.Plugins.YandexAuth.authorize()
 // → edge-функция yandex-auth (path token) → сессия Supabase.
 //
-// Пакет добавляется через SPM (проект на CapApp-SPM, CocoaPods нет):
-//   Xcode → File → Add Package Dependencies… → https://github.com/yandex/YandexLoginSDK-iOS
-//   (URL сверить с актуальной докой https://yandex.ru/dev/id/doc/ru/mobile-sdk/)
-// Весь код под #if canImport — проект СОБИРАЕТСЯ и до добавления пакета:
-// без него плагин просто не регистрируется, JS уходит в веб-OAuth фолбэк.
-
-#if canImport(YandexLoginSDK)
-import YandexLoginSDK
+// Пакет YandexLoginSDK добавляется через SPM и привязывается к таргету App.
+// БЕЗ #if canImport: класс должен компилироваться всегда, иначе Capacitor его
+// не регистрирует и JS уходит в веб-OAuth.
 
 @objc(YandexAuthPlugin)
 public class YandexAuthPlugin: CAPPlugin, CAPBridgedPlugin {
@@ -35,7 +31,6 @@ public class YandexAuthPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.reject("no_view_controller"); self.pendingCall = nil; return
             }
             do {
-                // authorizationStrategy — сверить с версией SDK (.default / .primaryOnly)
                 try YandexLoginSDK.shared.authorize(with: vc, authorizationStrategy: .default)
             } catch {
                 call.reject("authorize_failed: \(error.localizedDescription)")
@@ -46,15 +41,14 @@ public class YandexAuthPlugin: CAPPlugin, CAPBridgedPlugin {
 }
 
 extension YandexAuthPlugin: YandexLoginSDKObserver {
-    public func didFinishLogin(with result: Result<LoginResult, Error>) {
+    public func didFinishLogin(with result: Result<LoginResult, any Error>) {
         guard let call = pendingCall else { return }
         pendingCall = nil
         switch result {
         case .success(let login):
-            call.resolve(["token": login.token])   // имя свойства токена — сверить (login.token)
+            call.resolve(["token": login.token])
         case .failure(let error):
             call.reject("yandex_failure: \(error.localizedDescription)")
         }
     }
 }
-#endif
