@@ -24,14 +24,15 @@
   `AppDelegate.swift` (всё под `#if canImport(YandexLoginSDK)` — собирается и БЕЗ
   пакета), URL-схема `yx82bdbec…` и `LSApplicationQueriesSchemes` в Info.plist.
 
+✅ Консоль: все **три** отпечатка внесены (43:7C RuStore, CA:5B Play, E2:EF upload) — 2026-07-18.
+
 ⬜ **Осталось:**
 1. **iOS: добавить пакет через SPM** (CocoaPods в проекте НЕТ — Capacitor 8 / CapApp-SPM):
    Xcode → File → **Add Package Dependencies…** → URL репозитория YandexLoginSDK
    (сверить в доке https://yandex.ru/dev/id/doc/ru/mobile-sdk/) → добавить к target App.
    Без пакета всё собирается, плагин не регистрируется, JS уходит в веб-фолбэк.
 2. Редеплой edge: `supabase functions deploy yandex-auth` (token-путь на сервере).
-3. Консоль: проверить, что в SHA256 Fingerprints **все три** отпечатка (см. ниже).
-4. Сборка + проверка: раздел 4. При ошибках компиляции (SDK меняет API между
+3. Сборка + проверка: раздел 4. При ошибках компиляции (SDK меняет API между
    версиями) — прислать текст ошибки, поправлю сигнатуры.
 
 > ⚠ Версии SDK и точные сигнатуры меняются между релизами — сверяйся с актуальной
