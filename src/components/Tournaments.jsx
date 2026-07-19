@@ -91,6 +91,7 @@ export const css = `
 const FORMAT_META = {
   americano:    { emoji: "🔄", color: "#b8ef28", multiOf: 4 },
   mexicano:     { emoji: "📊", color: "var(--yellow)", multiOf: 4 },
+  round_robin:  { emoji: "🔁", color: "#4db8e8", multiOf: 4 },
   king_of_hill: { emoji: "⛰️", color: "#ff9d3f", multiOf: 4 },
   beat_the_box: { emoji: "📦", color: "#ff6a52", multiOf: 2 },
 };
@@ -105,6 +106,9 @@ function getFormats() {
     { id: "mexicano",     ...FORMAT_META.mexicano, category: "solo",
       name: tr("fmt_mexicano_name"), tagline: tr("fmt_mexicano_tagline"), desc: tr("fmt_mexicano_desc"),
       tags: [tr("fmt_mexicano_t1"), tr("fmt_mexicano_t2"), tr("fmt_mexicano_t3")] },
+    { id: "round_robin",  ...FORMAT_META.round_robin, category: "pair",
+      name: tr("fmt_rr_name"), tagline: tr("fmt_rr_tagline"), desc: tr("fmt_rr_desc"),
+      tags: [tr("fmt_rr_t1"), tr("fmt_rr_t2"), tr("fmt_rr_t3")] },
     { id: "king_of_hill", ...FORMAT_META.king_of_hill, category: "pair",
       name: tr("fmt_koth_name"), tagline: tr("fmt_koth_tagline"), desc: tr("fmt_koth_desc"),
       tags: [tr("fmt_koth_t1"), tr("fmt_koth_t2"), tr("fmt_koth_t3")] },
