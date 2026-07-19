@@ -80,3 +80,16 @@ export function langFromCountry(cc) {
   if (RU_COUNTRIES.has(c)) return "ru";
   return "en";
 }
+
+// Валюта по стране для дефолта взноса (display-only). Неизвестно → EUR.
+const COUNTRY_CURRENCY = {
+  RU: "RUB", BY: "RUB", KZ: "RUB", KG: "RUB",
+  US: "USD", GB: "GBP", AR: "ARS", MX: "MXN", BR: "BRL", AE: "AED",
+};
+export function currencyFromCountry(cc) {
+  if (!cc) return "EUR";
+  return COUNTRY_CURRENCY[String(cc).toUpperCase()] || "EUR";
+}
+export async function defaultCurrency() {
+  try { return currencyFromCountry(await detectCountry()); } catch (e) { return "EUR"; }
+}
