@@ -107,6 +107,15 @@ const langOf = (l: string | null | undefined): Lang => (l === "en" || l === "es"
 const bucket = (off: number): "day" | "h5" | "h2" | "h1" =>
   off >= 1440 ? "day" : off >= 300 ? "h5" : off >= 120 ? "h2" : "h1";
 
+// Валюта взноса (E4) — символ из карты (locale-независимо), суффиксом. Зеркало
+// src/lib/money.js. Дефолт RUB (основной рынок).
+const CUR_SYMBOLS: Record<string, string> = { RUB: "₽", EUR: "€", USD: "$", GBP: "£", ARS: "AR$", MXN: "MX$", BRL: "R$", AED: "AED" };
+const fmtMoney = (n: unknown, cur: string | null | undefined): string => {
+  const amount = Number(n) || 0;
+  const sym = CUR_SYMBOLS[cur || "RUB"] || cur || "";
+  return `${amount.toLocaleString()} ${sym}`.trim();
+};
+
 const TPL: Record<Lang, any> = {
   ru: {
     game: "Игра", tour: "Турнир", today: "сегодня", tomorrow: "завтра", at: "в", locale: "ru-RU",
@@ -125,7 +134,7 @@ const TPL: Record<Lang, any> = {
     tailsNear: ["Погнали! 💪", "Разомнись и покажи класс!", "Возьми воду и ракетку 🎾", "Время побеждать 🔥"],
     tailsFar: ["Не пропусти 💪", "Отметь в календаре 📅", "Собери своих 🎾", "Готовься к бою!"],
     evGame: "🎾 Новая игра", evTour: "🏆 Новый турнир", evPost: "📣 Объявление",
-    feeTitle: "💸 Взнос за турнир", feeGameTitle: "💸 Взнос за игру", feeBody: "«{t}» — {n} ₽. Не забудь скинуться 🙏",
+    feeTitle: "💸 Взнос за турнир", feeGameTitle: "💸 Взнос за игру", feeBody: "«{t}» — {n}. Не забудь скинуться 🙏",
     doneTourT: "🏁 Турнир завершён", doneTourB: "«{t}» — отличная игра! {greet} 🎾 Если корты платные — не забудь скинуться организатору 🙏",
     doneGameT: "🏁 Игра сыграна", doneGameB: "Счёт записан — {greet} 🎾 Если корт платный — не забудь скинуться организатору 🙏",
     greetDay: "Хорошего дня", greetEve: "Хорошего вечера",
@@ -149,7 +158,7 @@ const TPL: Record<Lang, any> = {
     tailsNear: ["Let's go! 💪", "Warm up and show your best!", "Grab water and your racket 🎾", "Time to win 🔥"],
     tailsFar: ["Don't miss it 💪", "Add it to your calendar 📅", "Round up your crew 🎾", "Get ready to battle!"],
     evGame: "🎾 New game", evTour: "🏆 New tournament", evPost: "📣 Announcement",
-    feeTitle: "💸 Tournament chip-in", feeGameTitle: "💸 Game chip-in", feeBody: "\u201c{t}\u201d — {n} ₽. Don't forget to chip in 🙏",
+    feeTitle: "💸 Tournament chip-in", feeGameTitle: "💸 Game chip-in", feeBody: "\u201c{t}\u201d — {n}. Don't forget to chip in 🙏",
     doneTourT: "🏁 Tournament finished", doneTourB: "\u201c{t}\u201d — great game! {greet} 🎾 If the court was paid — don't forget to chip in 🙏",
     doneGameT: "🏁 Game played", doneGameB: "Score saved — {greet} 🎾 If the court was paid — don't forget to chip in 🙏",
     greetDay: "have a great day", greetEve: "have a great evening",
@@ -173,7 +182,7 @@ const TPL: Record<Lang, any> = {
     tailsNear: ["¡Vamos! 💪", "¡Calienta y da lo mejor!", "Lleva agua y la pala 🎾", "Hora de ganar 🔥"],
     tailsFar: ["No te lo pierdas 💪", "Anótalo en el calendario 📅", "Reúne a los tuyos 🎾", "¡Prepárate para la batalla!"],
     evGame: "🎾 Nuevo partido", evTour: "🏆 Nuevo torneo", evPost: "📣 Anuncio",
-    feeTitle: "💸 Aporte del torneo", feeGameTitle: "💸 Aporte del partido", feeBody: "«{t}» — {n} ₽. No olvides aportar 🙏",
+    feeTitle: "💸 Aporte del torneo", feeGameTitle: "💸 Aporte del partido", feeBody: "«{t}» — {n}. No olvides aportar 🙏",
     doneTourT: "🏁 Torneo terminado", doneTourB: "«{t}» — ¡gran partido! {greet} 🎾 Si la pista era de pago — no olvides aportar 🙏",
     doneGameT: "🏁 Partido jugado", doneGameB: "Resultado guardado — {greet} 🎾 Si la pista era de pago — no olvides aportar 🙏",
     greetDay: "buen día", greetEve: "buena tarde",
@@ -267,7 +276,7 @@ Deno.serve(async (req) => {
     let feeIds: string[] = [];
     try {
       const fq = await admin.from("fee_reminder_queue")
-        .select("id, profile_id, tournament_id, game_id, tournament:tournaments(name, fee_per_player, group_id), game:games(place, fee_per_player, group_id), profile:profiles(user_id, name)")
+        .select("id, profile_id, tournament_id, game_id, tournament:tournaments(name, fee_per_player, fee_currency, group_id), game:games(place, fee_per_player, fee_currency, group_id), profile:profiles(user_id, name)")
         .is("sent_at", null).limit(200);
       if (fq.error) console.error("fee_reminder_queue read:", fq.error);
       else if (fq.data?.length) {
@@ -294,10 +303,11 @@ Deno.serve(async (req) => {
             if (!m) continue;
             const title = r0.tournament ? `«${r0.tournament.name}»` : (r0.game?.place ? `«${r0.game.place}»` : "игра");
             const per = r0.tournament?.fee_per_player ?? r0.game?.fee_per_player ?? "";
+            const cur = r0.tournament?.fee_currency ?? r0.game?.fee_currency;
             const names = rows.map((r: any) => r.profile?.name).filter(Boolean).join(", ");
             await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
               method: "POST", headers: { "content-type": "application/json" },
-              body: JSON.stringify({ chat_id: `@${m[1]}`, text: `💸 ${title}: напоминание о взносе ${per} ₽ — ${names} 🙏` }),
+              body: JSON.stringify({ chat_id: `@${m[1]}`, text: `💸 ${title}: напоминание о взносе ${fmtMoney(per, cur)} — ${names} 🙏` }),
             }).catch(() => {});
           }
         }
@@ -387,9 +397,10 @@ Deno.serve(async (req) => {
           const isTour = !!r.tournament;
           const name = isTour ? (r.tournament.name || "") : (r.game?.place || p.game);
           const per = isTour ? r.tournament.fee_per_player : r.game?.fee_per_player;
+          const cur = isTour ? r.tournament.fee_currency : r.game?.fee_currency;
           return {
             title: isTour ? p.feeTitle : p.feeGameTitle,
-            body: p.feeBody.replace("{t}", name).replace("{n}", String(per || "")),
+            body: p.feeBody.replace("{t}", name).replace("{n}", fmtMoney(per, cur)),
           };
         },
       });
