@@ -546,6 +546,10 @@ function Create({ groupId, profileId, back, open }) {
   const date = day ? `${day}T${time || "00:00"}` : "";
   const [place, setPlace] = useState("");
   const [name, setName] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [description, setDescription] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [contactLink, setContactLink] = useState("");
   const [busy, setBusy] = useState(false);
 
   const fmt = format ? fmtById(format) : null;
@@ -593,7 +597,11 @@ function Create({ groupId, profileId, back, open }) {
       // время совпадало с показанным при чтении (без сдвига часовых поясов).
       let startsAtIso = null;
       try { if (date) startsAtIso = new Date(date).toISOString(); } catch (e) { startsAtIso = null; }
-      const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format, createdBy: profileId, startsAt: startsAtIso, place, kotHChampionRule: isKoth ? kotHChampionRule : undefined, openScoring });
+      // Окончание: тот же день + endTime. Раньше начала — игнорируем (это подсказка).
+      let endsAtIso = null;
+      try { if (day && endTime) endsAtIso = new Date(`${day}T${endTime}`).toISOString(); } catch (e) { endsAtIso = null; }
+      if (endsAtIso && startsAtIso && endsAtIso <= startsAtIso) endsAtIso = null;
+      const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format, createdBy: profileId, startsAt: startsAtIso, endsAt: endsAtIso, place, description: description.trim() || null, contactName: contactName.trim() || null, contactLink: contactLink.trim() || null, kotHChampionRule: isKoth ? kotHChampionRule : undefined, openScoring });
       open(trn.id);
     } catch (e) { showToast(tr("err_create_tour")); setBusy(false); }
   };
@@ -730,6 +738,25 @@ function Create({ groupId, profileId, back, open }) {
         <div>
           <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_name_label")}</div>
           <input className="tr-input" placeholder={fmt.name} value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+
+        {/* Время окончания (опционально, тот же день) */}
+        <div>
+          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_end_label")}</div>
+          <input className="tr-input" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+        </div>
+
+        {/* Описание */}
+        <div>
+          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_desc_label")}</div>
+          <textarea className="tr-input" rows={3} placeholder={tr("trn_desc_ph")} value={description} onChange={(e) => setDescription(e.target.value)} style={{ resize: "vertical", fontFamily: "inherit" }} />
+        </div>
+
+        {/* Ответственный / контакт */}
+        <div>
+          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_contact_name_label")}</div>
+          <input className="tr-input" placeholder={tr("trn_contact_name_ph")} value={contactName} onChange={(e) => setContactName(e.target.value)} style={{ marginBottom: 6 }} />
+          <input className="tr-input" placeholder={tr("trn_contact_link_ph")} value={contactLink} onChange={(e) => setContactLink(e.target.value)} />
         </div>
 
         {/* Превью: что получится из настроек */}
