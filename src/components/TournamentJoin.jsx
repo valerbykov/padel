@@ -11,6 +11,7 @@ import { Trophy, AlertCircle, Check, LogIn, UserCheck, Calendar, MapPin } from "
 import { t as tr , dateLocale} from "../lib/i18n";
 import { playerAvatar, avatarFallback, avatarBg , avatarOnLoad} from "../lib/avatar";
 import { usePublicChrome, PublicToggles, plural } from "./publicChrome";
+import { groupPairs } from "../lib/pairs";
 import Logo from "./Logo";
 
 const fmtDate = (iso) => {
@@ -99,25 +100,28 @@ export default function TournamentJoin({ code, botName }) {
 
   if (showLogin && !session) return <LoginScreen botName={botName} onSuccess={() => setShowLogin(false)} onBack={() => setShowLogin(false)} theme={theme} lang={lang} onThemeToggle={toggleTheme} onLangChange={cycleLang} />;
 
-  const join = async () => {
+  // pairNo: null — solo или «создать пару» (RPC сам решит по формату); N — встать в пару N.
+  const join = async (pairNo = null) => {
     const display = session ? (profileName || tr("guest_default_name")) : name.trim();
     if (!session && !name.trim()) return;
     if (busy) return;
     setBusy(true); setErr("");
     try {
-      const res = await joinTournamentByCode(code, display);
+      const res = await joinTournamentByCode(code, display, pairNo);
       setJoined(true);
       setJoinNote(res?.already ? tr("tj_already") : res?.linked ? tr("tj_linked") : "");
       await load();
     }
     catch (e) {
-      const map = { tournament_full: tr("err_tour_full"), tournament_closed: tr("err_tour_closed"), tournament_not_found: tr("err_tour_not_found") };
+      const map = { tournament_full: tr("err_tour_full"), tournament_closed: tr("err_tour_closed"), tournament_not_found: tr("err_tour_not_found"), pair_full: tr("err_tour_full"), pair_not_found: tr("err_join") };
       setErr(map[e.message] || tr("err_join"));
     } finally { setBusy(false); }
   };
 
   // Вводить счёт могут только участники турнира (profile_id совпадает) или если турнир ещё в наборе
   const canEdit = !!session && !!profileId && (t?.players || []).some((p) => p.profile_id === profileId);
+  const isPair = !!t && (t.format === "king_of_hill" || t.format === "round_robin");
+  const targetPair = (() => { try { const v = new URLSearchParams(window.location.search).get("pair"); return v && /^\d+$/.test(v) ? Number(v) : null; } catch (e) { return null; } })();
 
   return (
     <div className="tj-root" style={vars}>
@@ -164,8 +168,45 @@ export default function TournamentJoin({ code, botName }) {
                 {t.description && <div style={{ fontSize: 13, color: "var(--ink)", margin: "0 0 10px", whiteSpace: "pre-wrap", lineHeight: 1.45 }}>{t.description}</div>}
                 {t.contact_name && <div style={{ fontSize: 12.5, color: "var(--mut)", marginBottom: 10 }}>{tr("trn_contact_name_label")}: <span style={{ color: "var(--ink)", fontWeight: 600 }}>{t.contact_name}</span>{t.contact_link && <span> · {t.contact_link}</span>}</div>}
 
-                {/* Кто уже записан — чипы «аватар + имя»; свободные — пунктирные «＋ место» */}
-                {(() => {
+                {/* Ростер: для парных форматов — по парам, иначе плоские чипы */}
+                {isPair ? (() => {
+                  const { pairs, pool } = groupPairs(t.players || []);
+                  const filled = (t.players || []).length;
+                  const pct = t.target_size ? Math.round((filled / t.target_size) * 100) : 0;
+                  const chip = (p) => (
+                    <span key={p.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 11px 4px 4px", borderRadius: 999, background: "var(--surface2)", border: "1px solid var(--line)", fontSize: 12.5, fontWeight: 600, maxWidth: "100%", minWidth: 0 }}>
+                      <img src={playerAvatar(p.profile?.avatar_url || p.avatar_url, p.profile_id || p.name)} onError={avatarFallback(p.profile_id || p.name)} onLoad={avatarOnLoad} alt=""
+                        style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", flexShrink: 0, ...avatarBg(p.profile_id || p.name) }} />
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{p.name}</span>
+                    </span>
+                  );
+                  return (
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 12, color: "var(--mut)", fontWeight: 700, marginBottom: 8 }}>{tr("trn_pairs")} · {pairs.filter((pr) => pr.members.length === 2).length}/{Math.floor((t.target_size || 0) / 2)}</div>
+                      {pairs.map((pr) => (
+                        <div key={pr.pair_no} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "8px 0", borderBottom: "1px solid var(--line)" }}>
+                          {chip(pr.members[0])}
+                          <span style={{ color: "var(--mut)", fontWeight: 700 }}>&amp;</span>
+                          {pr.members.length === 2 ? chip(pr.members[1]) : (
+                            <>
+                              <span style={{ display: "inline-flex", alignItems: "center", padding: "4px 11px", borderRadius: 999, border: "1.5px dashed var(--line)", color: "var(--mut)", fontSize: 12.5 }}>{tr("trn_looking_partner")}</span>
+                              {!joined && <button className="tj-ghost" style={{ fontSize: 12, color: "var(--lime)" }} onClick={() => join(pr.pair_no)}>{tr("trn_join_partner")}</button>}
+                            </>
+                          )}
+                        </div>
+                      ))}
+                      {pool.map((p) => (
+                        <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderBottom: "1px solid var(--line)" }}>
+                          {chip(p)}<span style={{ fontSize: 11.5, color: "var(--mut)" }}>{tr("trn_looking_partner")}</span>
+                        </div>
+                      ))}
+                      <div style={{ height: 6, borderRadius: 4, background: "var(--surface2)", overflow: "hidden", margin: "10px 0 4px" }}>
+                        <div style={{ width: `${pct}%`, height: "100%", background: "var(--lime)", transition: "width .3s" }} />
+                      </div>
+                      <div style={{ fontSize: 11.5, color: "var(--mut)" }}>{filled}/{t.target_size}</div>
+                    </div>
+                  );
+                })() : (() => {
                   const players = t.players || [];
                   const freeN = Math.max(0, (t.target_size || 0) - players.length);
                   const pct = t.target_size ? Math.round((players.length / t.target_size) * 100) : 0;
@@ -207,9 +248,15 @@ export default function TournamentJoin({ code, botName }) {
                   </>
                 )}
 
-                <button className="tj-btn" disabled={(!session && !name.trim()) || busy} onClick={join}>
-                  {busy ? tr("pub_joining") : tr("pub_join_trn")}
-                </button>
+                {isPair ? (
+                  <button className="tj-btn" disabled={(!session && !name.trim()) || busy} onClick={() => join(targetPair)}>
+                    {busy ? tr("pub_joining") : (targetPair ? tr("trn_join_partner") : tr("trn_create_pair"))}
+                  </button>
+                ) : (
+                  <button className="tj-btn" disabled={(!session && !name.trim()) || busy} onClick={() => join()}>
+                    {busy ? tr("pub_joining") : tr("pub_join_trn")}
+                  </button>
+                )}
                 {err && <p style={{ color: "var(--coral)", fontSize: 13, marginTop: 8 }}>{err}</p>}
               </div>
             )}
