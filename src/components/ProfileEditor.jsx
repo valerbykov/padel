@@ -18,7 +18,7 @@ import Avatar from "./Avatar";
 import { t, setLang , dateLocale} from "../lib/i18n";
 import { saveNotifPrefs, registerPush, OFFSET_OPTIONS } from "../lib/notifications";
 import { cachePeek, bustCache } from "../lib/cache";
-import { LEVEL_SYSTEMS, LETTER_OPTIONS, sanitizeLevels } from "../lib/levels";
+import { LETTER_OPTIONS, sanitizeLevels } from "../lib/levels";
 
 // Иконка Telegram (фирменный самолётик) — вместо эмодзи-«самолёта» ✈️.
 const TgPlane = ({ size = 14 }) => (
@@ -519,7 +519,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
                     <div style={{ background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, padding: 12 }}>
                       <div style={{ display: "flex", gap: 4, background: "var(--bg)", borderRadius: 10, padding: 3, marginBottom: 10 }}>
                         {[["pt", "Playtomic"], ["ltr", t("pc_level_sys_ltr")], ["oth", t("pc_level_sys_oth")]].map(([k, lbl]) => (
-                          <button key={k} onClick={() => { setLvlSys(k); setLvlVal(""); }} style={{ flex: 1, border: "none", borderRadius: 8, padding: "7px 0", cursor: "pointer", fontWeight: 700, fontSize: 12, background: lvlSys === k ? "var(--lime)" : "none", color: lvlSys === k ? "var(--lime-fg)" : "var(--mut)" }}>{lbl}</button>
+                          <button key={k} onClick={() => { setLvlSys(k); setLvlVal(""); setLvlLbl(""); }} style={{ flex: 1, border: "none", borderRadius: 8, padding: "7px 0", cursor: "pointer", fontWeight: 700, fontSize: 12, background: lvlSys === k ? "var(--lime)" : "none", color: lvlSys === k ? "var(--lime-fg)" : "var(--mut)" }}>{lbl}</button>
                         ))}
                       </div>
                       {lvlSys === "pt" && (
