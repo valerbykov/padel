@@ -15,6 +15,11 @@ create or replace function public.tournament_pair_max2()
 returns trigger language plpgsql as $$
 begin
   if NEW.pair_no is not null then
+    -- Сериализуем одновременные посадки в одну пару: без этого два напарника,
+    -- вставляющиеся параллельно, оба увидят count=1 (READ COMMITTED не блокирует
+    -- строки при SELECT) и оба вставятся → 3 в паре. Advisory-lock на (турнир,пара)
+    -- держится до конца транзакции — второй ждёт первого и затем видит count=2.
+    perform pg_advisory_xact_lock(hashtextextended(NEW.tournament_id::text || ':' || NEW.pair_no::text, 0));
     if (select count(*) from tournament_players
           where tournament_id = NEW.tournament_id and pair_no = NEW.pair_no
             and id <> NEW.id) >= 2 then
