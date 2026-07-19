@@ -79,7 +79,7 @@ async function _getLeaderboard(groupId) {
   // (account-takeover). Он выдаётся точечно админу через ensure_claim_code RPC.
   const { data, error } = await supabase
     .from("group_members")
-    .select("rating, matches_played, wins, role, profile:profiles(id, name, avatar_url, contacts, user_id)")
+    .select("rating, matches_played, wins, role, profile:profiles(id, name, avatar_url, contacts, user_id, levels)")
     .eq("group_id", groupId)
     .order("rating", { ascending: false });
   if (error) throw error;
@@ -93,6 +93,7 @@ async function _getLeaderboard(groupId) {
     wins: r.wins,
     user_id: r.profile.user_id || null,
     role: r.role,
+    levels: r.profile.levels,
   }));
 }
 export function getLeaderboard(groupId) {
@@ -201,7 +202,7 @@ export async function getRatingHistory(groupId, profileId) {
    ===================================================================== */
 
 const GAME_SELECT =
-  "id, invite_code, title, starts_at, started_at, place, status, host_id, created_at, mix_group_id, court_name, fee_per_player, fee_currency, fee_timing, " +
+  "id, invite_code, title, starts_at, started_at, place, status, host_id, created_at, mix_group_id, court_name, fee_per_player, fee_currency, fee_timing, level, ends_at, " +
   "slots:game_slots(id, team, position, profile_id, guest_name, profile:profiles(name, avatar_url))," +
   "matches(id, sets_a, sets_b, score_detail, played_at)";
 
@@ -214,7 +215,7 @@ export async function updateGameCourtName(gameId, name) {
 
 // Создать игру + 4 слота. slots: [A1, A2, B1, B2] — profileId или null (по ссылке).
 // mixGroupId — для «Сыграть ещё (микс)»: связывает под-игры одного выхода.
-export async function createGame(groupId, { title, startsAt, place, slots = [], hostId, mixGroupId } = {}) {
+export async function createGame(groupId, { title, startsAt, endsAt, place, slots = [], hostId, mixGroupId, level } = {}) {
   let game = null;
   for (let attempt = 0; attempt < 5; attempt++) {
     const res = await supabase
@@ -224,10 +225,12 @@ export async function createGame(groupId, { title, startsAt, place, slots = [], 
         invite_code: genCode(),
         title: title?.trim() || null,
         starts_at: startsAt || null,
+        ends_at: endsAt || null,
         place: place?.trim() || null,
         host_id: hostId || null,
         mix_group_id: mixGroupId || null,
         status: "open",
+        level: level || null,
       })
       .select()
       .single();

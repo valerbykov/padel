@@ -13,6 +13,7 @@ import { playerAvatar, avatarFallback, avatarBg , avatarOnLoad} from "../lib/ava
 import { usePublicChrome, PublicToggles, plural } from "./publicChrome";
 import { groupPairs } from "../lib/pairs";
 import { formatMoney } from "../lib/money";
+import { EventLevelBadge } from "./LevelBadges";
 import Logo from "./Logo";
 
 const fmtDate = (iso) => {
@@ -182,6 +183,7 @@ export default function TournamentJoin({ code, botName }) {
                 {t.description && <div style={{ fontSize: 13, color: "var(--ink)", margin: "0 0 10px", whiteSpace: "pre-wrap", lineHeight: 1.45 }}>{t.description}</div>}
                 {t.contact_name && <div style={{ fontSize: 12.5, color: "var(--mut)", marginBottom: 10 }}>{tr("trn_contact_name_label")}: <span style={{ color: "var(--ink)", fontWeight: 600 }}>{t.contact_name}</span>{t.contact_link && <span> · {t.contact_link}</span>}</div>}
                 {t.fee_per_player > 0 && <div style={{ marginBottom: 10 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 700, color: "var(--lime)", background: "color-mix(in srgb, var(--lime) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", borderRadius: 999, padding: "3px 10px" }}>💸 {formatMoney(t.fee_per_player, t.fee_currency)}</span></div>}
+                {t.level && <div style={{ marginBottom: 10 }}><EventLevelBadge level={t.level} /></div>}
 
                 {/* Ростер: для парных форматов — по парам, иначе плоские чипы */}
                 {isPair ? (() => {
@@ -189,7 +191,7 @@ export default function TournamentJoin({ code, botName }) {
                   const filled = (t.players || []).length;
                   const pct = t.target_size ? Math.round((filled / t.target_size) * 100) : 0;
                   const chip = (p) => (
-                    <span key={p.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 11px 4px 4px", borderRadius: 999, background: "var(--surface2)", border: "1px solid var(--line)", fontSize: 12.5, fontWeight: 600, maxWidth: "100%", minWidth: 0 }}>
+                    <span key={p.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 11px 4px 4px", borderRadius: 999, background: "var(--surface2)", border: "1px solid var(--line)", fontSize: 12.5, fontWeight: 600, flex: "1 1 0", maxWidth: "100%", minWidth: 0 }}>
                       <img src={playerAvatar(p.profile?.avatar_url || p.avatar_url, p.profile_id || p.name)} onError={avatarFallback(p.profile_id || p.name)} onLoad={avatarOnLoad} alt=""
                         style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", flexShrink: 0, ...avatarBg(p.profile_id || p.name) }} />
                       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{p.name}</span>
@@ -199,7 +201,7 @@ export default function TournamentJoin({ code, botName }) {
                     <div style={{ marginBottom: 12 }}>
                       <div style={{ fontSize: 12, color: "var(--mut)", fontWeight: 700, marginBottom: 8 }}>{tr("trn_pairs")} · {pairs.filter((pr) => pr.members.length === 2).length}/{Math.floor((t.target_size || 0) / 2)}</div>
                       {pairs.map((pr) => (
-                        <div key={pr.pair_no} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "8px 0", borderBottom: "1px solid var(--line)" }}>
+                        <div key={pr.pair_no} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap", padding: "8px 0", borderBottom: "1px solid var(--line)" }}>
                           {chip(pr.members[0])}
                           <span style={{ color: "var(--mut)", fontWeight: 700 }}>&amp;</span>
                           {pr.members.length === 2 ? chip(pr.members[1]) : (

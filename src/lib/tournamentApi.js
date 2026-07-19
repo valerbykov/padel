@@ -11,11 +11,11 @@ const genCode = () => Array.from({ length: 6 }, () => CODE_CHARS[Math.floor(Math
 export const tournamentLink = (code) => `${WEB_BASE}/t/${code}`;
 
 const T_SELECT =
-  "id, invite_code, name, format, points_per_game, target_size, status, court_names, koth_champion_rule, created_by, created_at, starts_at, ends_at, place, description, contact_name, contact_link, open_scoring, fee_per_player, fee_currency, fee_timing, " +
+  "id, invite_code, name, format, points_per_game, target_size, status, court_names, koth_champion_rule, created_by, created_at, starts_at, ends_at, place, description, contact_name, contact_link, open_scoring, fee_per_player, fee_currency, fee_timing, level, " +
   "players:tournament_players(id, profile_id, name, pair_no, created_at, profile:profiles(name, avatar_url)), " +
   "matches:tournament_matches(id, round_number, court, team_a, team_b, score_a, score_b)";
 
-export async function createTournament(groupId, { name, pointsPerGame = 32, targetSize = 8, createdBy, format = "americano", startsAt, endsAt, place, description, contactName, contactLink, kotHChampionRule, openScoring = false } = {}) {
+export async function createTournament(groupId, { name, pointsPerGame = 32, targetSize = 8, createdBy, format = "americano", startsAt, endsAt, place, description, contactName, contactLink, kotHChampionRule, openScoring = false, level } = {}) {
   let t = null;
   for (let i = 0; i < 5; i++) {
     const res = await supabase.from("tournaments").insert({
@@ -26,7 +26,7 @@ export async function createTournament(groupId, { name, pointsPerGame = 32, targ
       starts_at: startsAt || null, ends_at: endsAt || null, place: place?.trim() || null,
       description: description?.trim() || null,
       contact_name: contactName?.trim() || null, contact_link: contactLink?.trim() || null,
-      open_scoring: !!openScoring,
+      open_scoring: !!openScoring, level: level || null,
     }).select().single();
     if (!res.error) { t = res.data; break; }
     if (res.error.code !== "23505") throw res.error;

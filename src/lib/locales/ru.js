@@ -338,7 +338,7 @@ export default {
     fmt_mexicano_tagline: 'Умный подбор соперников',
     fmt_mexicano_desc: 'Как Американо, но пары составляются по текущим очкам. Лидеры играют вместе против лидеров — конкуренция максимальная.',
     fmt_mexicano_t1: 'Динамичные пары', fmt_mexicano_t2: 'Лидеры vs лидеров', fmt_mexicano_t3: 'Больше борьбы',
-    fmt_koth_name: 'King of the Court',
+    fmt_koth_name: 'Король корта',
     fmt_koth_tagline: 'Держи корт!',
     fmt_koth_desc: 'Кортов = игроков÷4, на каждом две пары. Победители поднимаются к корту №1 и удерживают его, проигравшие опускаются ниже. Пары не меняются весь турнир.',
     fmt_koth_t1: 'Фикс-пары', fmt_koth_t2: 'Победители остаются', fmt_koth_t3: 'Очередь претендентов',
@@ -416,4 +416,5 @@ export default {
     trn_loading_fail: 'Не удалось загрузить турнир.',
     trn_delete_confirm: 'Удалить турнир и все его данные?',
     games_loading: 'Загрузка…',
+    evt_level_label: 'Уровень', evt_level_opt: 'необязательно', evt_level_range: 'Диапазон', evt_level_to: 'до', dur_label: 'Длительность', dur_h: 'ч', dur_min: 'мин', contact_pick_league: 'Контакт из Лиги', trn_share_pair_hint: 'Ссылка именно для этой пары — кто её откроет, встанет вторым к этому игроку',
 };

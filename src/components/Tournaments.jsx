@@ -59,6 +59,10 @@ import { defaultCurrency } from "../lib/region";
 import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Share2, Trash2, Plus, Check, Calendar, MapPin } from "lucide-react";
 import { t as tr , dateLocale} from "../lib/i18n";
 import DateTimePicker from "./DateTimePicker";
+import DurationPicker from "./DurationPicker";
+import LevelPicker from "./LevelPicker";
+import { EventLevelBadge } from "./LevelBadges";
+import { sanitizeEventLevel } from "../lib/levels";
 import { registerBack } from "../lib/backstack";
 import { confirmDialog, showToast } from "./ui-dialogs";
 import BackButton from "./BackButton";
@@ -143,7 +147,7 @@ export default function Tournaments({ groupId, players, profileId, bumpArchive, 
     openedReqRef.current = openReq.nonce;
     setActiveId(openReq.id); setMode("view");
   }, [openReq]);
-  if (mode === "create") return <Create groupId={groupId} profileId={profileId} back={() => setMode("list")} open={(id) => { setActiveId(id); setMode("view"); }} />;
+  if (mode === "create") return <Create groupId={groupId} profileId={profileId} players={players} back={() => setMode("list")} open={(id) => { setActiveId(id); setMode("view"); }} />;
   if (mode === "view") return <TournamentView id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} onArchiveChange={bumpArchive} isAdmin={isAdmin} membersCanCreate={membersCanCreate} onOpenPlayer={onOpenPlayer} />;
   return <List groupId={groupId} profileId={profileId} players={players} session={session} onLogin={onLogin} canCreate={canCreate} isAdmin={isAdmin} membersCanCreate={membersCanCreate} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
 }
@@ -540,29 +544,59 @@ function FormatPicker({ selected, onSelect }) {
 
 // ─── Create (2 шага: format → config) ─────────────────────────────────────────
 
-function Create({ groupId, profileId, back, open }) {
-  const [step, setStep] = useState("format");
-  const [format, setFormat] = useState(null);
-  const [courts, setCourts] = useState(2);
-  const [playerCount, setPlayerCount] = useState(8);
-  const [kotHChampionRule, setKotHChampionRule] = useState("court_1"); // #4: правило чемпиона KotH
-  const [points, setPoints] = useState(32);
-  const [openScoring, setOpenScoring] = useState(false); // счёт: по PIN (как раньше) или свободный
-  const [day, setDay] = useState(() => nowLocalDT().slice(0, 10));
-  const [time, setTime] = useState(() => nowLocalDT().slice(11, 16));
+// Черновик формы создания турнира — переживает уход со вкладки «Турниры»
+// (весь Create размонтируется при переключении табов и терял бы состояние).
+// Ключ привязан к лиге (groupId): черновик одной лиги не должен подставляться
+// в другую при переключении активной лиги в той же вкладке.
+function loadTrnDraft(key) {
+  try { return JSON.parse(sessionStorage.getItem(key) || "{}"); } catch (e) { return {}; }
+}
+
+function Create({ groupId, profileId, players = [], back, open }) {
+  const DRAFT_KEY = `pp_trn_draft_${groupId}`;
+  const draftRef = useRef(null);
+  if (draftRef.current === null) draftRef.current = loadTrnDraft(DRAFT_KEY);
+  const d0 = draftRef.current;
+
+  const [step, setStep] = useState(() => d0.step || "format");
+  const [format, setFormat] = useState(() => d0.format ?? null);
+  const [courts, setCourts] = useState(() => d0.courts ?? 2);
+  const [playerCount, setPlayerCount] = useState(() => d0.playerCount ?? 8);
+  const [kotHChampionRule, setKotHChampionRule] = useState(() => d0.kotHChampionRule || "court_1"); // #4: правило чемпиона KotH
+  const [points, setPoints] = useState(() => d0.points ?? 32);
+  const [openScoring, setOpenScoring] = useState(() => d0.openScoring ?? false); // счёт: по PIN (как раньше) или свободный
+  const [day, setDay] = useState(() => d0.day || nowLocalDT().slice(0, 10));
+  const [time, setTime] = useState(() => d0.time || nowLocalDT().slice(11, 16));
   const date = day ? `${day}T${time || "00:00"}` : "";
-  const [place, setPlace] = useState("");
-  const [name, setName] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [description, setDescription] = useState("");
-  const [contactName, setContactName] = useState("");
-  const [contactLink, setContactLink] = useState("");
+  const [place, setPlace] = useState(() => d0.place || "");
+  const [name, setName] = useState(() => d0.name || "");
+  const [durMin, setDurMin] = useState(() => d0.durMin || 120); // длительность вместо времени окончания
+  const [description, setDescription] = useState(() => d0.description || "");
+  const [contactName, setContactName] = useState(() => d0.contactName || "");
+  const [contactLink, setContactLink] = useState(() => d0.contactLink || "");
+  const [level, setLevel] = useState(() => d0.level ?? null);
+  const [contactFromLeague, setContactFromLeague] = useState(() => d0.contactFromLeague !== false); // по умолчанию — из Лиги
   const [busy, setBusy] = useState(false);
+  // Восстановленное из черновика название не должно затираться авто-именем при
+  // первом же прогоне эффекта (format уже truthy на восстановлении).
+  const skipAutoName = useRef(!!d0.name);
+
+  // Сохраняем черновик при любом изменении полей — переживает уход со вкладки
+  // (включая выбранный формат и шаг мастера, чтобы вернуться на тот же экран).
+  useEffect(() => {
+    const draft = { step, format, courts, playerCount, points, openScoring, kotHChampionRule, day, time, place, name, durMin, description, contactName, contactLink, level, contactFromLeague };
+    try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch (e) {}
+  }, [step, format, courts, playerCount, points, openScoring, kotHChampionRule, day, time, place, name, durMin, description, contactName, contactLink, level, contactFromLeague]);
 
   const fmt = format ? fmtById(format) : null;
   const isKothBtB = format === "king_of_hill" || format === "beat_the_box";
   const isBtb = format === "beat_the_box";     // единственный формат «один корт + очередь»
   const isKoth = format === "king_of_hill";    // «король корта» — по кортам (игроков/4)
+
+  // Контакт «из Лиги»: карусель участников — я сам первым, затем остальные.
+  const meP = players.find((p) => p.id === profileId) || null;
+  const contactMembers = meP ? [meP, ...players.filter((p) => p.id !== profileId)] : players;
+  const contactHandleOf = (contacts) => contacts ? (contacts.telegram || contacts.phone || contacts.whatsapp || "") : "";
 
   const POINTS_OPTS = [16, 24, 32, 48, 64];
   const COURTS_OPTS = [
@@ -584,6 +618,7 @@ function Create({ groupId, profileId, back, open }) {
   // дата показывается отдельно в карточке турнира.
   React.useEffect(() => {
     if (!format) return;
+    if (skipAutoName.current) { skipAutoName.current = false; return; }
     try {
       if (isBtb) {
         const teams = playerCount / 2;
@@ -604,11 +639,11 @@ function Create({ groupId, profileId, back, open }) {
       // время совпадало с показанным при чтении (без сдвига часовых поясов).
       let startsAtIso = null;
       try { if (date) startsAtIso = new Date(date).toISOString(); } catch (e) { startsAtIso = null; }
-      // Окончание: тот же день + endTime. Раньше начала — игнорируем (это подсказка).
+      // Окончание = начало + выбранная длительность.
       let endsAtIso = null;
-      try { if (day && endTime) endsAtIso = new Date(`${day}T${endTime}`).toISOString(); } catch (e) { endsAtIso = null; }
-      if (endsAtIso && startsAtIso && endsAtIso <= startsAtIso) endsAtIso = null;
-      const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format, createdBy: profileId, startsAt: startsAtIso, endsAt: endsAtIso, place, description: description.trim() || null, contactName: contactName.trim() || null, contactLink: contactLink.trim() || null, kotHChampionRule: isKoth ? kotHChampionRule : undefined, openScoring });
+      try { endsAtIso = new Date(new Date(`${day}T${time}`).getTime() + durMin * 60000).toISOString(); } catch (e) { endsAtIso = null; }
+      const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format, createdBy: profileId, startsAt: startsAtIso, endsAt: endsAtIso, place, description: description.trim() || null, contactName: contactName.trim() || null, contactLink: contactLink.trim() || null, kotHChampionRule: isKoth ? kotHChampionRule : undefined, openScoring, level: sanitizeEventLevel(level) });
+      try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) {}
       open(trn.id);
     } catch (e) { showToast(tr("err_create_tour")); setBusy(false); }
   };
@@ -747,11 +782,8 @@ function Create({ groupId, profileId, back, open }) {
           <input className="tr-input" placeholder={fmt.name} value={name} onChange={(e) => setName(e.target.value)} />
         </div>
 
-        {/* Время окончания (опционально, тот же день) */}
-        <div>
-          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_end_label")}</div>
-          <input className="tr-input" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
-        </div>
+        {/* Длительность (заменяет ручное время окончания) */}
+        <DurationPicker value={durMin} onChange={setDurMin} />
 
         {/* Описание */}
         <div>
@@ -759,11 +791,45 @@ function Create({ groupId, profileId, back, open }) {
           <textarea className="tr-input" rows={3} placeholder={tr("trn_desc_ph")} value={description} onChange={(e) => setDescription(e.target.value)} style={{ resize: "vertical", fontFamily: "inherit" }} />
         </div>
 
-        {/* Ответственный / контакт */}
+        {/* Уровень турнира (опционально) */}
+        <LevelPicker value={level} onChange={setLevel} />
+
+        {/* Ответственный / контакт: из Лиги (по умолчанию) или вручную.
+            Пустой ростер (лига не загружена / новая) → всегда ручной ввод. */}
         <div>
-          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_contact_name_label")}</div>
-          <input className="tr-input" placeholder={tr("trn_contact_name_ph")} value={contactName} onChange={(e) => setContactName(e.target.value)} style={{ marginBottom: 6 }} />
-          <input className="tr-input" placeholder={tr("trn_contact_link_ph")} value={contactLink} onChange={(e) => setContactLink(e.target.value)} />
+          {/* Тумблер «из Лиги» скрываем, если участников нет — переключать не на что */}
+          {contactMembers.length > 0 && (
+            <div onClick={() => setContactFromLeague((v) => !v)}
+              style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 10, cursor: "pointer" }}>
+              <span style={{ width: 44, height: 26, borderRadius: 13, flexShrink: 0, position: "relative", transition: "background .15s",
+                background: contactFromLeague ? "var(--lime)" : "var(--surface2)", border: contactFromLeague ? "none" : "1px solid var(--line)" }}>
+                <span style={{ position: "absolute", top: 3, left: contactFromLeague ? 21 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{tr("contact_pick_league")}</span>
+            </div>
+          )}
+          {(contactFromLeague && contactMembers.length > 0) ? (
+            <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none", WebkitOverflowScrolling: "touch", WebkitMaskImage: "linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)", maskImage: "linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)" }}>
+              {contactMembers.map((p) => {
+                const isMe = p.id === profileId;
+                const active = !!contactName && contactName === p.name;
+                return (
+                  <button key={p.id} type="button" className="tr-ghost" onClick={() => { setContactName(p.name); setContactLink(contactHandleOf(p.contacts)); }}
+                    style={{ flexShrink: 0, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 7, padding: "6px 12px 6px 6px", borderRadius: 999, fontSize: 13, fontWeight: active || isMe ? 700 : 400,
+                      borderColor: active ? "var(--lime)" : isMe ? "color-mix(in srgb, var(--lime) 45%, transparent)" : "var(--line)",
+                      color: active || isMe ? "var(--lime)" : "var(--ink)" }}>
+                    <Avatar name={p.name} url={p.avatar_url} id={p.id} size={22} /> {isMe ? tr("pick_me") : p.name}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_contact_name_label")}</div>
+              <input className="tr-input" placeholder={tr("trn_contact_name_ph")} value={contactName} onChange={(e) => setContactName(e.target.value)} style={{ marginBottom: 6 }} />
+              <input className="tr-input" placeholder={tr("trn_contact_link_ph")} value={contactLink} onChange={(e) => setContactLink(e.target.value)} />
+            </>
+          )}
         </div>
 
         {/* Превью: что получится из настроек */}
@@ -1193,10 +1259,11 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
             {tr("created_by_label")}: <span style={{ color: "var(--ink)", fontWeight: 600 }}>{creatorName}</span>
           </div>
         )}
-        {(trnData.starts_at || trnData.place) && (
-          <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 4, display: "flex", gap: 12, flexWrap: "wrap" }}>
+        {(trnData.starts_at || trnData.place || trnData.level) && (
+          <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 4, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
             {trnData.starts_at && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={12} />{(() => { try { const s = new Date(trnData.starts_at).toLocaleString(dateLocale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); const e = trnData.ends_at ? new Date(trnData.ends_at).toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit" }) : null; return e ? `${s} – ${e}` : s; } catch (e) { return ""; } })()}</span>}
             {trnData.place && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><MapPin size={12} />{trnData.place}</span>}
+            {trnData.level && <EventLevelBadge level={trnData.level} compact />}
           </div>
         )}
         {trnData.description && (
@@ -1262,8 +1329,8 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
               const member = (p) => {
                 const tap = onOpenPlayer && p.profile_id ? () => onOpenPlayer(p.profile_id) : null;
                 return (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                    <span onClick={tap || undefined} style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0, cursor: tap ? "pointer" : "default" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0, flex: "1 1 0" }}>
+                    <span onClick={tap || undefined} style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0, flex: "1 1 0", cursor: tap ? "pointer" : "default" }}>
                       <Avatar name={p.name} url={avatarOfTp(p.id)} id={p.profile_id} size={26} />
                       <span style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{p.name}</span>
                     </span>
@@ -1280,20 +1347,23 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                 <>
                   <div style={{ fontSize: 12, color: "var(--mut)", fontWeight: 700, marginBottom: 8 }}>{tr("trn_pairs")} {done}/{pairCap}</div>
                   {pairs.map((pr) => (
-                    <div key={pr.pair_no} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "9px 4px", borderBottom: "1px solid var(--line)" }}>
+                    <div key={pr.pair_no} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap", padding: "9px 4px", borderBottom: "1px solid var(--line)" }}>
                       <span style={{ width: 16, flexShrink: 0, fontWeight: 800, color: "var(--mut)", fontSize: 13, textAlign: "center" }}>{pr.pair_no}</span>
                       {member(pr.members[0])}
-                      <span style={{ color: "var(--mut)", fontWeight: 700 }}>&amp;</span>
+                      <span style={{ color: "var(--mut)", fontWeight: 700, flexShrink: 0 }}>&amp;</span>
                       {pr.members[1] ? member(pr.members[1]) : (
                         !readOnly ? (
-                          <>
-                            <button onClick={() => setAddingToPair(pr.pair_no)}
-                              style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1.5px dashed color-mix(in srgb, var(--lime) 45%, transparent)", background: "none", borderRadius: 999, padding: "5px 12px", color: "var(--lime)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-                              ＋ {tr("trn_choose_partner")}
-                            </button>
-                            <button onClick={() => sharePairLink(pr.pair_no)} aria-label={tr("trn_share_pair")}
-                              style={{ marginLeft: 6, border: "1px solid var(--line)", background: "var(--surface2)", borderRadius: 999, padding: "5px 10px", color: "var(--mut)", cursor: "pointer", fontSize: 12.5 }}>🔗</button>
-                          </>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 3, flex: "1 1 0", minWidth: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <button onClick={() => setAddingToPair(pr.pair_no)}
+                                style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1.5px dashed color-mix(in srgb, var(--lime) 45%, transparent)", background: "none", borderRadius: 999, padding: "5px 12px", color: "var(--lime)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                                ＋ {tr("trn_choose_partner")}
+                              </button>
+                              <button onClick={() => sharePairLink(pr.pair_no)} aria-label={tr("trn_share_pair")}
+                                style={{ marginLeft: 6, border: "1px solid var(--line)", background: "var(--surface2)", borderRadius: 999, padding: "5px 10px", color: "var(--mut)", cursor: "pointer", fontSize: 12.5 }}>🔗</button>
+                            </div>
+                            <div style={{ fontSize: 10.5, color: "var(--mut)", lineHeight: 1.3 }}>{tr("trn_share_pair_hint")}</div>
+                          </div>
                         ) : <span style={{ color: "var(--mut)", fontSize: 12.5 }}>{tr("trn_looking_partner")}</span>
                       )}
                     </div>

@@ -416,4 +416,5 @@ export default {
     trn_loading_fail: 'Failed to load tournament.',
     trn_delete_confirm: 'Delete this tournament and all its data?',
     games_loading: 'Loading…',
+    evt_level_label: 'Level', evt_level_opt: 'optional', evt_level_range: 'Range', evt_level_to: 'to', dur_label: 'Duration', dur_h: 'h', dur_min: 'min', contact_pick_league: 'Contact from League', trn_share_pair_hint: 'Link for THIS pair — whoever opens it joins as the partner',
 };

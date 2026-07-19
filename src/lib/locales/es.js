@@ -416,4 +416,5 @@ export default {
     trn_loading_fail: 'No se pudo cargar el torneo.',
     trn_delete_confirm: '¿Eliminar el torneo y todos sus datos?',
     games_loading: 'Cargando…',
+    evt_level_label: 'Nivel', evt_level_opt: 'opcional', evt_level_range: 'Rango', evt_level_to: 'a', dur_label: 'Duración', dur_h: 'h', dur_min: 'min', contact_pick_league: 'Contacto de la Liga', trn_share_pair_hint: 'Enlace para ESTA pareja — quien lo abra se une como compañero',
 };

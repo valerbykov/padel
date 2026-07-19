@@ -31,7 +31,10 @@ import Avatar from "./components/Avatar";
 import LeagueLogo from "./components/LeagueLogo";
 import InviteCard from "./components/InviteCard";
 import Analytics from "./components/Analytics";
-import LevelBadges from "./components/LevelBadges";
+import LevelBadges, { EventLevelBadge } from "./components/LevelBadges";
+import DurationPicker from "./components/DurationPicker";
+import LevelPicker from "./components/LevelPicker";
+import { sanitizeEventLevel } from "./lib/levels";
 import { dogAvatar, playerAvatar, avatarFallback, DOG_COUNT , avatarBg, avatarOnLoad} from "./lib/avatar";
 
 // Текущая дата-время в формате datetime-local (YYYY-MM-DDTHH:MM) с учётом таймзоны.
@@ -2199,7 +2202,7 @@ export function GameRow({ g, color, onOpen, flush, bare, label, me = null, onTak
         ) : (
         <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: g.status === "live" ? "color-mix(in srgb, var(--coral) 15%, transparent)" : "rgba(255,255,255,.06)", color: played ? "var(--mut)" : g.status === "live" ? "var(--coral)" : color, flexShrink: 0 }}>
           {played ? "✓" : g.status === "live"
-            ? `● LIVE${g.started_at ? " · " + t("game_live_min").replace("{n}", String(Math.max(0, Math.floor((Date.now() - new Date(g.started_at).getTime()) / 60000)))) : ""}`
+            ? <><span className="pp-live-dot" style={{ display: "inline-block" }}>●</span> LIVE{g.started_at ? " · " + t("game_live_min").replace("{n}", String(Math.max(0, Math.floor((Date.now() - new Date(g.started_at).getTime()) / 60000)))) : ""}</>
             : `${filled}/4`}
         </span>
         )}
@@ -2533,6 +2536,8 @@ function CreateGame({ groupId, players, profileId, back, done }) {
   const date = day ? `${day}T${time || "00:00"}` : "";
   const [place, setPlace] = useState("");
   const [slots, setSlots] = useState([null, null, null, null]);
+  const [durMin, setDurMin] = useState(60);
+  const [level, setLevel] = useState(null);
   const [busy, setBusy] = useState(false);
   const chosenIds = slots.filter((v) => v && v.profileId).map((v) => v.profileId);
   const filled = slots.filter((v) => v && (v.profileId || v.guestName)).length;
@@ -2552,7 +2557,8 @@ function CreateGame({ groupId, players, profileId, back, done }) {
     // ISO с таймзоной — чтобы введённое локальное время совпадало с показанным.
     let startsAtIso = null;
     try { if (date) startsAtIso = new Date(date).toISOString(); } catch (e) { startsAtIso = null; }
-    try { const g = await createGame(groupId, { title: title.trim() || null, startsAt: startsAtIso, place, slots, hostId: profileId || null }); notifyGameCreated(g?.id); creatingRef.current = false; done(g); }
+    const endsAt = startsAtIso ? new Date(new Date(startsAtIso).getTime() + durMin * 60000).toISOString() : null;
+    try { const g = await createGame(groupId, { title: title.trim() || null, startsAt: startsAtIso, endsAt, level: sanitizeEventLevel(level), place, slots, hostId: profileId || null }); notifyGameCreated(g?.id); creatingRef.current = false; done(g); }
     catch (e) { showToast(t("err_create_game")); setBusy(false); creatingRef.current = false; }
   };
 
@@ -2580,6 +2586,8 @@ function CreateGame({ groupId, players, profileId, back, done }) {
             <input className="pl-input" style={{ padding: "10px 12px" }} placeholder={t("game_name_placeholder")} value={title}
               onChange={(e) => { setTitle(e.target.value); setTitleEdited(true); }} />
           </div>
+          <DurationPicker value={durMin} onChange={setDurMin} />
+          <LevelPicker value={level} onChange={setLevel} />
         </div>
         <button className="pl-btn" style={{ width: "100%", padding: 14, fontSize: 16 }} disabled={!day || busy} onClick={create}>{busy ? t("creating_game") : t("create_and_get_link")}</button>
       </div>
@@ -2997,17 +3005,18 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
           <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
             {game.status === "live" && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 999, background: "color-mix(in srgb, var(--coral) 15%, transparent)", border: "1px solid color-mix(in srgb, var(--coral) 40%, transparent)", color: "var(--coral)", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
-                <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--coral)" }} /> LIVE
+                <span className="pp-live-dot" style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--coral)" }} /> LIVE
               </span>
             )}
             <div className="pl-display" style={{ fontSize: 18, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{game.title || "PadelPack"}</div>
+            {game.level && <EventLevelBadge level={game.level} compact />}
           </div>
           {game.status === "live" && game.started_at && (
             <div style={{ fontSize: 12, color: "var(--coral)", fontWeight: 700, marginTop: 2 }}>{t("game_live_min").replace("{n}", String(liveMin))}</div>
           )}
           {(game.starts_at || game.place) && (
             <div style={{ fontSize: 12, color: "var(--mut)", display: "flex", gap: 10, marginTop: 2, flexWrap: "wrap" }}>
-              {game.starts_at && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={12} />{fmtDate(game.starts_at)}</span>}
+              {game.starts_at && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={12} />{fmtDate(game.starts_at)}{game.ends_at ? ` – ${new Date(game.ends_at).toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit" })}` : ""}</span>}
               {game.place && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><MapPin size={12} />{game.place}</span>}
             </div>
           )}
@@ -3089,6 +3098,26 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
         )}
       </div>
       </div>
+      {(() => {
+        const uniq = [];
+        const seen = new Set();
+        for (const s of slots) {
+          const personKey = s.profile_id || `guest:${s.guest_name || s.id}`;
+          if (!s.profile_id && !s.guest_name) continue;
+          if (seen.has(personKey)) continue;
+          seen.add(personKey);
+          uniq.push({ key: s.id, profile_id: s.profile_id, name: s.profile?.name || s.guest_name, avatar_url: s.profile?.avatar_url });
+        }
+        return (
+          <FeesCard entityId={game.id} entityName={game.place || game.title || "Padel"}
+            players={uniq} me={profileId} readOnly={false}
+            canManage={isAdmin || game.host_id === profileId}
+            avatarOf={(key) => { const u = uniq.find((x) => x.key === key); return u?.profile_id ? playerAvatar(u.avatar_url, u.profile_id) : null; }}
+            api={{ getFee: getGameFee, getPaid: getGameFeePayments, setFee: setGameFee, togglePaid: toggleGameFeePaid, remind: remindGameFeeDebtors }}
+            currency={game.fee_currency} timing={game.fee_timing} defaultCurrency={defCur}
+            cardClass="pl-card" />
+        );
+      })()}
     </div>
   );
 }

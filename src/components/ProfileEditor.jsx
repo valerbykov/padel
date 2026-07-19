@@ -19,6 +19,8 @@ import { t, setLang , dateLocale} from "../lib/i18n";
 import { saveNotifPrefs, registerPush, OFFSET_OPTIONS } from "../lib/notifications";
 import { cachePeek, bustCache } from "../lib/cache";
 import { LETTER_OPTIONS, sanitizeLevels } from "../lib/levels";
+import ptIcon from "../assets/levels/playtomic.webp";
+import lundaIcon from "../assets/levels/lunda.webp";
 
 // Иконка Telegram (фирменный самолётик) — вместо эмодзи-«самолёта» ✈️.
 const TgPlane = ({ size = 14 }) => (
@@ -500,6 +502,12 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
                     )}
                   </div>
                 )}
+                <div className="pc-row pc-row-static" title={t("pc_email_locked")}>
+                  <span className="pc-chip" style={{ background: "color-mix(in srgb, var(--mut) 15%, transparent)", color: "var(--mut)" }}><Mail size={15} /></span>
+                  <span className="pc-rlabel">{t("pc_email")}</span>
+                  <span className="pc-rval" style={{ color: "var(--mut)", fontWeight: 400 }}>{email || "—"}</span>
+                  <Lock size={12} style={{ color: "var(--mut)", opacity: .7, flexShrink: 0 }} />
+                </div>
                 {/* Мой уровень (самозаявленные бейджи) */}
                 <div style={{ padding: "12px 4px 4px", borderTop: "1px solid var(--line)" }}>
                   <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>🎖️ {t("pc_my_level")}</div>
@@ -507,6 +515,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 8 }}>
                     {levels.map((l, i) => (
                       <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 999, padding: "4px 6px 4px 11px", fontSize: 12.5, fontWeight: 700, background: "var(--surface2)", border: "1px solid var(--line)" }}>
+                        {(l.sys === "pt" || l.sys === "ltr") && <img src={l.sys === "pt" ? ptIcon : lundaIcon} alt="" width={15} height={15} style={{ borderRadius: 3, flexShrink: 0 }} />}
                         {l.sys === "pt" ? `Playtomic ${l.val}` : l.sys === "oth" ? `${(l.lbl || "").trim()} ${l.val}`.trim() : l.val}
                         <button aria-label={t("delete_btn")} onClick={() => removeLevel(i)} style={{ border: "none", background: "none", color: "var(--mut)", cursor: "pointer", fontSize: 13, lineHeight: 1 }}>×</button>
                       </span>
@@ -523,7 +532,11 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
                         ))}
                       </div>
                       {lvlSys === "pt" && (
-                        <input className="pc-input" type="number" min="0" max="7" step="0.1" value={lvlVal} onChange={(e) => setLvlVal(e.target.value)} placeholder="0 – 7" />
+                        <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+                          {["1.0","1.5","2.0","2.5","3.0","3.5","4.0","4.5","5.0","5.5","6.0","6.5","7.0"].map((v) => (
+                            <button key={v} onClick={() => setLvlVal(v)} style={{ flexShrink: 0, border: "1px solid var(--line)", borderRadius: 8, padding: "7px 11px", fontWeight: 800, fontSize: 13, cursor: "pointer", background: lvlVal === v ? "var(--lime)" : "var(--bg)", color: lvlVal === v ? "var(--lime-fg)" : "var(--mut)" }}>{v}</button>
+                          ))}
+                        </div>
                       )}
                       {lvlSys === "ltr" && (
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -541,12 +554,6 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
                       <button onClick={addLevel} disabled={!lvlVal.trim()} style={{ width: "100%", marginTop: 10, padding: 10, borderRadius: 10, border: "none", background: "var(--lime)", color: "var(--lime-fg)", fontWeight: 800, fontSize: 13, cursor: "pointer", opacity: lvlVal.trim() ? 1 : .5 }}>{t("pc_level_add_btn")}</button>
                     </div>
                   )}
-                </div>
-                <div className="pc-row pc-row-static" title={t("pc_email_locked")}>
-                  <span className="pc-chip" style={{ background: "color-mix(in srgb, var(--mut) 15%, transparent)", color: "var(--mut)" }}><Mail size={15} /></span>
-                  <span className="pc-rlabel">{t("pc_email")}</span>
-                  <span className="pc-rval" style={{ color: "var(--mut)", fontWeight: 400 }}>{email || "—"}</span>
-                  <Lock size={12} style={{ color: "var(--mut)", opacity: .7, flexShrink: 0 }} />
                 </div>
               </div>
 

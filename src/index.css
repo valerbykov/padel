@@ -30,3 +30,7 @@ body {
 /* Аватар: после загрузки фото убираем фон-собаку (перебивает инлайновый avatarBg,
    переживает ре-рендеры). Собака-фон нужна только как плейсхолдер на время загрузки. */
 img[data-avatar-loaded]{background-image:none !important;}
+
+@keyframes pp-pulse { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+.pp-live-dot { animation: pp-pulse 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .pp-live-dot { animation: none; } }
