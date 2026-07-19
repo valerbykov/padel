@@ -14,8 +14,9 @@ import React, { useEffect, useState } from "react";
 import Avatar from "./Avatar";
 import { showToast } from "./ui-dialogs";
 import { t as tr } from "../lib/i18n";
+import { formatMoney, CURRENCIES } from "../lib/money";
 
-export default function FeesCard({ entityId, entityName = "", players = [], me, canManage, readOnly, avatarOf, api, cardClass = "tr-card" }) {
+export default function FeesCard({ entityId, entityName = "", players = [], me, canManage, readOnly, avatarOf, api, cardClass = "tr-card", currency = null, timing = "end", defaultCurrency = "EUR" }) {
   const [fee, setFee] = useState(undefined);        // undefined=загрузка, null=не задана
   const [paid, setPaid] = useState(new Set());
   const [setup, setSetup] = useState(false);
@@ -24,6 +25,9 @@ export default function FeesCard({ entityId, entityName = "", players = [], me, 
   const [busyKey, setBusyKey] = useState(null);
   const [saving, setSaving] = useState(false);
   const [remindBusy, setRemindBusy] = useState(false);
+  const [cur, setCur] = useState(currency || defaultCurrency || "EUR");
+  const [when, setWhen] = useState(timing || "end");
+  useEffect(() => { setCur(currency || defaultCurrency || "EUR"); setWhen(timing || "end"); }, [currency, timing, defaultCurrency, entityId]);
 
   useEffect(() => {
     let alive = true;
@@ -47,14 +51,14 @@ export default function FeesCard({ entityId, entityName = "", players = [], me, 
   const paidCount = players.filter((p) => paid.has(p.key)).length;
   const total = per * players.length;
   const collected = per * paidCount;
-  const fmtR = (n) => `${n.toLocaleString("ru-RU")} ₽`;
+  const fmtR = (n) => formatMoney(n, cur);
 
   const save = async () => {
     const n = Math.round(Number(String(amount).replace(/[^\d.]/g, "")));
     if (!n || n <= 0) { showToast(tr("fee_bad_amount")); return; }
     const perPlayer = mode === "total" ? Math.ceil(n / Math.max(players.length, 1)) : n;
     setSaving(true);
-    try { await api.setFee(entityId, perPlayer); setFee(perPlayer); setSetup(false); }
+    try { await api.setFee(entityId, perPlayer, cur, when); setFee(perPlayer); setSetup(false); }
     catch (e) { showToast(`${tr("err_generic") || "Ошибка"}: ${e?.message || e}`); }
     finally { setSaving(false); }
   };
@@ -83,7 +87,7 @@ export default function FeesCard({ entityId, entityName = "", players = [], me, 
   const remindChat = async () => {
     const debtors = players.filter((p) => !paid.has(p.key)).map((p) => p.name);
     if (!debtors.length) { showToast(tr("fee_all_paid")); return; }
-    const msg = tr("fee_remind_msg").replace("{names}", debtors.join(", ")).replace("{n}", String(per)).replace("{t}", entityName);
+    const msg = tr("fee_remind_msg").replace("{names}", debtors.join(", ")).replace("{n}", fmtR(per)).replace("{t}", entityName);
     const Share = (typeof window !== "undefined" && window.Capacitor?.Plugins?.Share) || null;
     if (Share) { try { await Share.share({ text: msg }); return; } catch (e) { /* отмена — ок */ } }
     try { await navigator.clipboard.writeText(msg); showToast(tr("copied")); }
@@ -119,6 +123,18 @@ export default function FeesCard({ entityId, entityName = "", players = [], me, 
       ) : (fee == null || setup) ? (
         <>
           <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 10 }}>{tr("fee_setup_hint")}</div>
+          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("fee_timing_label")}</div>
+          <div style={{ display: "flex", gap: 4, background: "var(--surface2)", borderRadius: 10, padding: 3, marginBottom: 8 }}>
+            {[["start", tr("fee_timing_start")], ["end", tr("fee_timing_end")]].map(([k, lbl]) => (
+              <button key={k} onClick={() => setWhen(k)} style={{ flex: 1, border: "none", borderRadius: 8, padding: "7px 0", cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontWeight: 700, fontSize: 12, background: when === k ? "var(--lime)" : "none", color: when === k ? "var(--lime-fg)" : "var(--mut)" }}>{lbl}</button>
+            ))}
+          </div>
+          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("fee_currency_label")}</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+            {CURRENCIES.map((c) => (
+              <button key={c} onClick={() => setCur(c)} style={{ border: "1px solid var(--line)", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontWeight: 700, fontSize: 12, background: cur === c ? "var(--lime)" : "var(--surface2)", color: cur === c ? "var(--lime-fg)" : "var(--mut)" }}>{c}</button>
+            ))}
+          </div>
           <div style={{ display: "flex", gap: 4, background: "var(--surface2)", borderRadius: 10, padding: 3, marginBottom: 8 }}>
             {[["each", tr("fee_mode_each")], ["total", tr("fee_mode_total")]].map(([k, lbl]) => (
               <button key={k} onClick={() => setMode(k)} style={{ flex: 1, border: "none", borderRadius: 8, padding: "7px 0", cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontWeight: 700, fontSize: 12,
