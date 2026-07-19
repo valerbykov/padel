@@ -12,6 +12,7 @@ import { t as tr , dateLocale} from "../lib/i18n";
 import { playerAvatar, avatarFallback, avatarBg , avatarOnLoad} from "../lib/avatar";
 import { usePublicChrome, PublicToggles, plural } from "./publicChrome";
 import { groupPairs } from "../lib/pairs";
+import { formatMoney } from "../lib/money";
 import Logo from "./Logo";
 
 const fmtDate = (iso) => {
@@ -180,6 +181,7 @@ export default function TournamentJoin({ code, botName }) {
                 <div style={{ fontSize: 12.5, color: "var(--mut)", marginBottom: 10 }}>{tr("pub_upto")} {t.points_per_game} {tr("pub_points")}</div>
                 {t.description && <div style={{ fontSize: 13, color: "var(--ink)", margin: "0 0 10px", whiteSpace: "pre-wrap", lineHeight: 1.45 }}>{t.description}</div>}
                 {t.contact_name && <div style={{ fontSize: 12.5, color: "var(--mut)", marginBottom: 10 }}>{tr("trn_contact_name_label")}: <span style={{ color: "var(--ink)", fontWeight: 600 }}>{t.contact_name}</span>{t.contact_link && <span> · {t.contact_link}</span>}</div>}
+                {t.fee_per_player > 0 && <div style={{ marginBottom: 10 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 700, color: "var(--lime)", background: "color-mix(in srgb, var(--lime) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", borderRadius: 999, padding: "3px 10px" }}>💸 {formatMoney(t.fee_per_player, t.fee_currency)}</span></div>}
 
                 {/* Ростер: для парных форматов — по парам, иначе плоские чипы */}
                 {isPair ? (() => {
