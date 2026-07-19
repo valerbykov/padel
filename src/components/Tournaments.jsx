@@ -1568,7 +1568,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                 ? (() => { const me = (trnData.players || []).find((p) => p.profile_id === currentProfileId); return me?.pair_no != null ? `pair-${me.pair_no}` : null; })()
                 : (trnData.players || []).find((p) => p.profile_id === currentProfileId)?.id}
               avatarOf={(row) => ({ url: isPairFmt ? null : avatarOfTp(row.id) })}
-              championIds={trnData.status === "finished" && champRowId ? [champRowId] : null} />
+              championIds={trnData.status === "finished" && isPairFmt && champRowId ? [champRowId] : null} />
           </div>
         </>
       )}
