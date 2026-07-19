@@ -12,7 +12,7 @@ alter table tournaments add column if not exists contact_link text;
 -- Страховка: не больше 2 игроков на (tournament_id, pair_no). RPC проверяет тоже,
 -- но триггер закрывает гонку (двое напарников на одно место одновременно).
 create or replace function public.tournament_pair_max2()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql security invoker set search_path to 'public' as $$
 begin
   if NEW.pair_no is not null then
     -- Сериализуем одновременные посадки в одну пару: без этого два напарника,
