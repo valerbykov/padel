@@ -21,6 +21,7 @@ import { shareUrl } from "./lib/shareLink";
 import Tournaments, { TournamentView, TournamentCard, CopyDialog, css as trCss } from "./components/Tournaments";
 import DateTimePicker from "./components/DateTimePicker";
 import FeesCard from "./components/FeesCard";
+import { defaultCurrency } from "./lib/region";
 import { confirmDialog, showToast } from "./components/ui-dialogs";
 import { copyTournament } from "./lib/tournamentApi";
 import { deleteTournament } from "./lib/tournamentApi";
@@ -2766,6 +2767,8 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
   useEffect(() => { if (back) return registerBack(back); }, [back]);                   // «назад» → к списку игр
   const [mixBusy, setMixBusy] = useState(false);
   const [toast, setToast] = useState("");
+  const [defCur, setDefCur] = useState("EUR");
+  useEffect(() => { defaultCurrency().then(setDefCur).catch(() => {}); }, []);
   // Страница (микс-)сессии: все игры одной группы (mix_group_id || id).
   const mixKey = game.mix_group_id || game.id;
   const [session, setSession] = useState(null);
@@ -2959,6 +2962,7 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
               canManage={isAdmin || anchor.host_id === profileId}
               avatarOf={(key) => { const u = uniq.find((x) => x.key === key); return u?.profile_id ? playerAvatar(u.avatar_url, u.profile_id) : null; }}
               api={{ getFee: getGameFee, getPaid: getGameFeePayments, setFee: setGameFee, togglePaid: toggleGameFeePaid, remind: remindGameFeeDebtors }}
+              currency={anchor.fee_currency} timing={anchor.fee_timing} defaultCurrency={defCur}
               cardClass="pl-card" />
           );
         })()}
