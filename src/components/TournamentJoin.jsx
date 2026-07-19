@@ -22,7 +22,7 @@ const fmtDate = (iso) => {
 // вводил в заблуждение (показывал момент создания), поэтому фолбэк убран.
 const TrnMeta = ({ trn }) => ((trn.starts_at || trn.place) ? (
   <div style={{ fontSize: 13, color: "var(--mut)", display: "flex", gap: 12, margin: "6px 0 12px", flexWrap: "wrap" }}>
-    {trn.starts_at && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={13} />{fmtDate(trn.starts_at)}</span>}
+    {trn.starts_at && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={13} />{fmtDate(trn.starts_at)}{trn.ends_at ? ` – ${(() => { try { return new Date(trn.ends_at).toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } })()}` : ""}</span>}
     {trn.place && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><MapPin size={13} />{trn.place}</span>}
   </div>
 ) : null);
@@ -161,6 +161,8 @@ export default function TournamentJoin({ code, botName }) {
                 <div className="tj-d" style={{ fontSize: 20, marginBottom: 4 }}>{t.name || tr("pub_americano")}</div>
                 <TrnMeta trn={t} />
                 <div style={{ fontSize: 12.5, color: "var(--mut)", marginBottom: 10 }}>{tr("pub_upto")} {t.points_per_game} {tr("pub_points")}</div>
+                {t.description && <div style={{ fontSize: 13, color: "var(--ink)", margin: "0 0 10px", whiteSpace: "pre-wrap", lineHeight: 1.45 }}>{t.description}</div>}
+                {t.contact_name && <div style={{ fontSize: 12.5, color: "var(--mut)", marginBottom: 10 }}>{tr("trn_contact_name_label")}: <span style={{ color: "var(--ink)", fontWeight: 600 }}>{t.contact_name}</span>{t.contact_link && <span> · {t.contact_link}</span>}</div>}
 
                 {/* Кто уже записан — чипы «аватар + имя»; свободные — пунктирные «＋ место» */}
                 {(() => {
