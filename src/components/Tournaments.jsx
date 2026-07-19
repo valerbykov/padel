@@ -50,7 +50,7 @@ function Confetti({ burst }) {
 }
 
 import StandingsTable from "./StandingsTable";
-import { groupPairs, openPairs, nextPairNo, allPaired } from "../lib/pairs";
+import { groupPairs, nextPairNo, allPaired } from "../lib/pairs";
 import Avatar from "./Avatar";
 import FeesCard from "./FeesCard";
 import EmptyState from "./EmptyState";
@@ -1059,12 +1059,16 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
       .sort((a, b) => (lastPlayed[[...a].sort().join(",")] || 0) - (lastPlayed[[...b].sort().join(",")] || 0));
   }
 
-  const canStart = isBtb
+  const pairFmt = fmt.category === "pair" && !isBtb; // king_of_hill (и будущий round_robin)
+  const countOk = isBtb
     ? trnData.players.length >= 4 && trnData.players.length % 2 === 0
     : trnData.players.length >= 4 && trnData.players.length % 4 === 0;
-  const startHint = isBtb
+  // Для парных форматов дополнительно требуем, чтобы все были в ПОЛНЫХ парах.
+  const canStart = countOk && (!pairFmt || allPaired(trnData.players));
+  const startHint = (isBtb
     ? (trnData.players.length % 2 !== 0 ? tr("trn_need_even") : null)
-    : (trnData.players.length % 4 !== 0 ? tr("trn_need_mult4") : null);
+    : (trnData.players.length % 4 !== 0 ? tr("trn_need_mult4") : null))
+    || (pairFmt && countOk && !allPaired(trnData.players) ? tr("trn_need_pairs") : null);
 
   const addMexicanoRound = async () => {
     if (roundRef.current) return; roundRef.current = true;
