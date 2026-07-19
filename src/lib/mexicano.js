@@ -111,6 +111,27 @@ export function buildKotHLadderRound(matches) {
   return next;
 }
 
+// ─── ROUND ROBIN (круговой, пары) ────────────────────────────────────────────
+// Фиксированные пары; каждая пара играет с каждой ровно раз. Круговой метод
+// (фиксируем последнюю, крутим остальные): N пар → N-1 раундов, floor(N/2) кортов
+// на раунд. Матчап [x,y] = пара pairs[x] vs pairs[y]. Всё генерится на старте.
+export function buildRoundRobinPairs(pairs) {
+  const N = pairs.length;
+  if (N < 2) return [];
+  const fixed = N - 1;
+  let rot = [...Array(N - 1).keys()]; // крутящиеся индексы 0..N-2
+  const matches = [];
+  for (let r = 0; r < N - 1; r++) {
+    const round = [[fixed, rot[0]]];
+    for (let i = 1; i <= (N - 2) / 2; i++) round.push([rot[i], rot[N - 1 - i]]);
+    round.forEach(([a, b], c) => {
+      matches.push({ round_number: r + 1, court: c + 1, team_a: pairs[a], team_b: pairs[b] });
+    });
+    rot = [rot[rot.length - 1], ...rot.slice(0, rot.length - 1)]; // ротация
+  }
+  return matches;
+}
+
 // ─── BEAT THE BOX ─────────────────────────────────────────────────────────────
 // (King of the Hill в старой модели «одного корта с очередью» — оставлено для BtB.)
 
