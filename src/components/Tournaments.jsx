@@ -1232,7 +1232,8 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
         <BackButton onClick={back} label={tr("trn_to_list")} style={{ marginBottom: 12 }} />
       )}
 
-      {/* Header */}
+      {/* Header — для открытого турнира его заменяет афиша (см. лобби ниже), иначе двоилась бы дата/место/уровень/взнос/контакт. */}
+      {trnData.status !== "open" && (
       <div className="tr-card" style={{ marginBottom: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
           <div className="tr-d" style={{ fontSize: 20, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{trnData.name || fmt.name}</div>
@@ -1285,6 +1286,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
           </div>
         )}
       </div>
+      )}
 
       {/* Турнир со свободным счётом: PIN-карточка не нужна — короткая пометка */}
       {trnData.status === "active" && !readOnly && trnData.open_scoring && (
@@ -1322,6 +1324,80 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
       {/* ── LOBBY ─────────────────────────────────────────────────────────── */}
       {trnData.status === "open" && (
         <>
+          {/* Афиша: постер со всей инфой турнира (тайтл/дата/место/уровень/взнос/описание/контакт) — над карточкой участников. */}
+          <div className="trp-poster">
+            <style>{`
+              .trp-poster{border-radius:20px;padding:20px 18px 18px;overflow:hidden;position:relative;background:linear-gradient(160deg,#153a2a 0%,#112a20 55%,#0e2018 100%);border:1px solid var(--line);margin-bottom:12px;}
+              .trp-trophy{position:absolute;right:-8px;bottom:-14px;font-size:96px;opacity:.14;transform:rotate(-8deg);pointer-events:none;line-height:1;}
+              .trp-eyebrow{color:var(--lime);font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;position:relative;padding-right:120px;}
+              .trp-title{font-family:'Anton',sans-serif;font-size:26px;line-height:1.02;margin:0 0 12px;color:#fff;position:relative;padding-right:120px;}
+              .trp-meta{display:flex;flex-direction:column;gap:9px;position:relative;}
+              .trp-row{display:flex;align-items:center;gap:10px;font-size:14px;color:#e8f0ea;}
+              .trp-ic{width:19px;text-align:center;flex-shrink:0;}
+              .trp-chip{display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:600;}
+              .trp-chip-fee{background:color-mix(in srgb,var(--lime) 12%,transparent);border-color:color-mix(in srgb,var(--lime) 40%,transparent);color:var(--lime);}
+              .trp-desc{margin-top:14px;padding:12px 13px;background:rgba(0,0,0,.22);border-radius:13px;font-size:13.5px;line-height:1.5;color:#d4e0d6;position:relative;white-space:pre-wrap;}
+              .trp-contact{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;position:relative;}
+              .trp-avatar{flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--lime);color:#0e2018;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;}
+              .trp-contact-label{font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--mut);}
+              .trp-contact-name{font-size:13.5px;font-weight:600;color:var(--ink);}
+              .trp-actions{position:absolute;top:14px;right:14px;display:flex;gap:6px;z-index:2;}
+              .trp-act{display:flex;align-items:center;gap:6px;padding:8px;border-radius:10px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.15);color:var(--ink);cursor:pointer;font-size:13px;font-weight:600;}
+              .trp-act:hover{background:rgba(0,0,0,.4);}
+            `}</style>
+            <span className="trp-trophy">🏆</span>
+            <div className="trp-actions">
+              <button className="trp-act" onClick={load}><RefreshCw size={15} /></button>
+              {!readOnly && (
+                <button className="trp-act" style={{ padding: "8px 12px" }} onClick={share}>
+                  <Share2 size={14} /> {toast || tr("share_btn")}
+                </button>
+              )}
+              {isGroupMember && (
+                <button className="trp-act" style={{ color: "var(--coral)", borderColor: "rgba(255,106,82,.4)" }} title={tr("delete_btn")}
+                  onClick={async () => {
+                    if (!(await confirmDialog({ title: tr("trn_delete_confirm"), message: tr("trn_delete_msg"), confirmLabel: tr("delete_btn") }))) return;
+                    try { await deleteTournament(id); onArchiveChange?.(); back?.(); } catch (e) { showToast(tr("err_delete")); }
+                  }}>
+                  <Trash2 size={15} />
+                </button>
+              )}
+            </div>
+            <div className="trp-eyebrow">🏆 {tr("trn_share_text")}</div>
+            <div className="trp-title">{trnData.name || fmt.name}</div>
+            <div className="trp-meta">
+              {trnData.starts_at && (
+                <div className="trp-row"><span className="trp-ic">🗓️</span>
+                  <span>{(() => { try { const s = new Date(trnData.starts_at).toLocaleString(dateLocale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); const e = trnData.ends_at ? new Date(trnData.ends_at).toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit" }) : null; return e ? `${s} – ${e}` : s; } catch (e) { return ""; } })()}</span>
+                </div>
+              )}
+              {trnData.place && (
+                <div className="trp-row"><span className="trp-ic">📍</span><span>{trnData.place}</span></div>
+              )}
+              {trnData.level && (
+                <div className="trp-row"><span className="trp-ic">🎖️</span><EventLevelBadge level={trnData.level} compact /></div>
+              )}
+              <div className="trp-row"><span className="trp-ic">🎾</span><span>{fmt.emoji} {fmt.name} · {trnData.points_per_game} {tr("trn_winner_points")}</span></div>
+              {trnData.fee_per_player > 0 && (
+                <div className="trp-row"><span className="trp-ic">💸</span><span className="trp-chip trp-chip-fee">{formatMoney(trnData.fee_per_player, trnData.fee_currency)}</span></div>
+              )}
+              <div className="trp-row"><span className="trp-ic">👥</span>
+                <span>{trnData.players.length}/{trnData.target_size} {tr("trn_players_label").toLowerCase()}{(fmt.category === "pair" && !isBtb) && trnData.target_size ? ` · ${Math.floor(trnData.target_size / 2)} ${tr("trn_pairs").toLowerCase()}` : ""}</span>
+              </div>
+            </div>
+            {trnData.description && (
+              <div className="trp-desc">{trnData.description}</div>
+            )}
+            {trnData.contact_name && (
+              <div className="trp-contact">
+                <span className="trp-avatar">{trnData.contact_name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}</span>
+                <div style={{ minWidth: 0 }}>
+                  <div className="trp-contact-label">{tr("trn_contact_name_label")}</div>
+                  <div className="trp-contact-name">{trnData.contact_name}{trnData.contact_link && <span style={{ color: "var(--mut)", fontWeight: 400 }}> · {trnData.contact_link}</span>}</div>
+                </div>
+              </div>
+            )}
+          </div>
           <div className="tr-card" style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{tr("trn_participants")} {trnData.players.length}/{trnData.target_size}</div>
             {(fmt.category === "pair" && !isBtb) ? (() => {
