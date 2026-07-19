@@ -1734,18 +1734,6 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
               </div>
             )}
             {trnData.status === "finished" && <Confetti burst={burst} />}
-            {/* Взносы: доступны на любом этапе (не только finished), не для зрителей.
-                Тайминг (fee_timing) — только подсказка; карточка сама скрывается,
-                пока сумма не задана и ты не организатор. */}
-            {!spectatorMode && (
-              <FeesCard entityId={trnData.id} entityName={trnData.name}
-                players={(trnData.players || []).map((p) => ({ key: p.id, profile_id: p.profile_id, name: p.name }))}
-                me={currentProfileId} readOnly={readOnly}
-                canManage={isAdmin || trnData.created_by === currentProfileId}
-                avatarOf={avatarOfTp}
-                currency={trnData.fee_currency} timing={trnData.fee_timing} defaultCurrency={defCur}
-                api={{ getFee: getTournamentFee, getPaid: getFeePayments, setFee: setTournamentFee, togglePaid: toggleFeePaid, remind: remindFeeDebtors }} />
-            )}
             <StandingsTable rows={table}
               highlightId={isPairFmt
                 ? (() => { const me = (trnData.players || []).find((p) => p.profile_id === currentProfileId); return me?.pair_no != null ? `pair-${me.pair_no}` : null; })()
@@ -1753,6 +1741,19 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
               avatarOf={(row) => ({ url: isPairFmt ? null : avatarOfTp(row.id) })}
               championIds={trnData.status === "finished" && isPairFmt && champRowId ? [champRowId] : null} />
           </div>
+
+          {/* Взносы — отдельным блоком в САМОМ НИЗУ и СВЁРНУТО (компактно, раскрыть по тапу):
+              не для зрителей; тайминг (fee_timing) — только подсказка; карточка сама скрывается,
+              пока сумма не задана и ты не организатор. */}
+          {!spectatorMode && (
+            <FeesCard entityId={trnData.id} entityName={trnData.name} collapsible
+              players={(trnData.players || []).map((p) => ({ key: p.id, profile_id: p.profile_id, name: p.name }))}
+              me={currentProfileId} readOnly={readOnly}
+              canManage={isAdmin || trnData.created_by === currentProfileId}
+              avatarOf={avatarOfTp}
+              currency={trnData.fee_currency} timing={trnData.fee_timing} defaultCurrency={defCur}
+              api={{ getFee: getTournamentFee, getPaid: getFeePayments, setFee: setTournamentFee, togglePaid: toggleFeePaid, remind: remindFeeDebtors }} />
+          )}
         </>
       )}
     </div>

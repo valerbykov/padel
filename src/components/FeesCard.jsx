@@ -16,7 +16,7 @@ import { showToast } from "./ui-dialogs";
 import { t as tr } from "../lib/i18n";
 import { formatMoney, CURRENCIES } from "../lib/money";
 
-export default function FeesCard({ entityId, entityName = "", players = [], me, canManage, readOnly, avatarOf, api, cardClass = "tr-card", currency = null, timing = "end", defaultCurrency = "EUR" }) {
+export default function FeesCard({ entityId, entityName = "", players = [], me, canManage, readOnly, avatarOf, api, cardClass = "tr-card", currency = null, timing = "end", defaultCurrency = "EUR", collapsible = false }) {
   const [fee, setFee] = useState(undefined);        // undefined=загрузка, null=не задана
   const [paid, setPaid] = useState(new Set());
   const [setup, setSetup] = useState(false);
@@ -29,6 +29,7 @@ export default function FeesCard({ entityId, entityName = "", players = [], me, 
   const [when, setWhen] = useState(timing || "end");
   const curTouchedRef = useRef(false);
   const [loadErr, setLoadErr] = useState(false);
+  const [expanded, setExpanded] = useState(false);   // collapsible: свёрнуто по умолчанию
   // Сброс «трогал» при смене сущности.
   useEffect(() => { curTouchedRef.current = false; }, [entityId]);
   // Синхроним валюту/тайминг из пропов, ПОКА организатор не выбрал вручную —
@@ -121,17 +122,25 @@ export default function FeesCard({ entityId, entityName = "", players = [], me, 
 
   return (
     <div className={cardClass} style={{ marginBottom: 14, padding: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+      <div onClick={collapsible ? () => setExpanded((e) => !e) : undefined}
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: (collapsible && !expanded) ? 0 : 4, cursor: collapsible ? "pointer" : "default" }}>
         <span style={{ fontWeight: 800, fontSize: 15 }}>💸 {tr("fee_title")}</span>
-        {fee != null && (
-          <span style={{ fontSize: 12, color: "var(--mut)" }}>
-            {tr("fee_per_label").replace("{n}", fmtR(per))}
-            {canManage && <button onClick={() => { setSetup((s) => !s); setMode("each"); setAmount(String(per)); }} style={{ background: "none", border: "none", color: "var(--mut)", cursor: "pointer", fontSize: 12, padding: "0 0 0 6px" }}>✎</button>}
-          </span>
-        )}
+        <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--mut)", minWidth: 0 }}>
+          {collapsible && !expanded ? (
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {fee != null ? `${fmtR(per)} · ${paidCount}/${players.length} ✓` : tr("fee_start_btn")}
+            </span>
+          ) : fee != null ? (
+            <>
+              {tr("fee_per_label").replace("{n}", fmtR(per))}
+              {canManage && <button onClick={(e) => { e.stopPropagation(); setSetup((s) => !s); setMode("each"); setAmount(String(per)); }} style={{ background: "none", border: "none", color: "var(--mut)", cursor: "pointer", fontSize: 12, padding: "0 0 0 6px" }}>✎</button>}
+            </>
+          ) : null}
+          {collapsible && <span style={{ transition: "transform .2s", transform: expanded ? "rotate(180deg)" : "none", fontSize: 10, flexShrink: 0 }}>▾</span>}
+        </span>
       </div>
 
-      {fee == null && !setup ? (
+      {(!collapsible || expanded) && (fee == null && !setup ? (
         <>
           <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 10 }}>{tr("fee_start_hint")}</div>
           <button onClick={() => { setSetup(true); setMode("each"); setAmount(""); }} style={{ ...primBtn, background: "var(--lime)", color: "var(--lime-fg)", fontWeight: 800, fontSize: 14, border: "none" }}>
@@ -217,7 +226,7 @@ export default function FeesCard({ entityId, entityName = "", players = [], me, 
             </>
           )}
         </>
-      )}
+      ))}
     </div>
   );
 }
