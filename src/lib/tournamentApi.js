@@ -11,7 +11,7 @@ const genCode = () => Array.from({ length: 6 }, () => CODE_CHARS[Math.floor(Math
 export const tournamentLink = (code) => `${WEB_BASE}/t/${code}`;
 
 const T_SELECT =
-  "id, invite_code, name, format, points_per_game, target_size, status, court_names, koth_champion_rule, created_by, created_at, starts_at, ends_at, place, description, contact_name, contact_link, open_scoring, " +
+  "id, invite_code, name, format, points_per_game, target_size, status, court_names, koth_champion_rule, created_by, created_at, starts_at, ends_at, place, description, contact_name, contact_link, open_scoring, fee_per_player, fee_currency, fee_timing, " +
   "players:tournament_players(id, profile_id, name, pair_no, created_at, profile:profiles(name, avatar_url)), " +
   "matches:tournament_matches(id, round_number, court, team_a, team_b, score_a, score_b)";
 
@@ -282,8 +282,8 @@ export async function getFeePayments(tournamentId) {
 }
 
 // Задать сумму с игрока (админ/создатель). null — убрать взносы.
-export async function setTournamentFee(tournamentId, perPlayer) {
-  const { error } = await supabase.rpc("set_tournament_fee", { p_tournament_id: tournamentId, p_per_player: perPlayer });
+export async function setTournamentFee(tournamentId, perPlayer, currency = null, timing = "end") {
+  const { error } = await supabase.rpc("set_tournament_fee", { p_tournament_id: tournamentId, p_per_player: perPlayer, p_currency: currency || "", p_timing: timing || "end" });
   if (error) throw error;
 }
 
