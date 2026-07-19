@@ -50,6 +50,7 @@ function Confetti({ burst }) {
 }
 
 import StandingsTable from "./StandingsTable";
+import { groupPairs, openPairs, nextPairNo, allPaired } from "../lib/pairs";
 import Avatar from "./Avatar";
 import FeesCard from "./FeesCard";
 import EmptyState from "./EmptyState";
@@ -922,6 +923,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   const [pinInput, setPinInput] = useState("");
   const [pinMsg, setPinMsg] = useState(""); // #1: сообщение о неверном PIN — отдельно от toast (кнопки «Ссылка»)
   const [unlocked, setUnlocked] = useState(() => { try { return !!localStorage.getItem("pp_scorepin_" + id); } catch (e) { return false; } });
+  const [addingToPair, setAddingToPair] = useState(null); // pair_no | "new" | null — куда добавляем
   const [openCourts, setOpenCourts] = useState({}); // {matchId: true} — раскрытые сыгранные корты
   const initRef = useRef(false);
   const roundRef = useRef(false);
@@ -1223,31 +1225,101 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
         <>
           <div className="tr-card" style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{tr("trn_participants")} {trnData.players.length}/{trnData.target_size}</div>
-            {trnData.players.map((p) => (
-              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 8px", borderBottom: "1px solid var(--line)", background: p.profile_id === currentProfileId ? "color-mix(in srgb, var(--lime) 10%, transparent)" : undefined, borderRadius: p.profile_id === currentProfileId ? 8 : undefined }}>
-                {(() => {
-                  const tap = onOpenPlayer && p.profile_id ? () => onOpenPlayer(p.profile_id) : null;
-                  return (
-                    <div onClick={tap || undefined} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, cursor: tap ? "pointer" : "default" }}>
-                      <Avatar name={p.name} url={avatarOfTp(p.id)} id={p.profile_id} size={34} />
-                      <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--ink)" }}>{p.name}</span>
+            {fmt.category === "pair" ? (() => {
+              const { pairs, pool } = groupPairs(trnData.players);
+              const pairCap = Math.floor((trnData.target_size || 0) / 2);
+              const done = pairs.filter((pr) => pr.members.length === 2).length;
+              // Строка игрока внутри пары/пула: аватар + имя + (тап на профиль) + ✕
+              const member = (p) => {
+                const tap = onOpenPlayer && p.profile_id ? () => onOpenPlayer(p.profile_id) : null;
+                return (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                    <span onClick={tap || undefined} style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0, cursor: tap ? "pointer" : "default" }}>
+                      <Avatar name={p.name} url={avatarOfTp(p.id)} id={p.profile_id} size={26} />
+                      <span style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{p.name}</span>
+                    </span>
+                    {!readOnly && (
+                      <button aria-label={tr("delete_btn")} onClick={async () => { try { await removeTournamentPlayer(p.id); } catch (e) {} setAddingToPair(null); load(); }}
+                        style={{ flexShrink: 0, width: 20, height: 20, borderRadius: "50%", border: "none", background: "color-mix(in srgb, var(--coral) 16%, transparent)", color: "var(--coral)", display: "grid", placeItems: "center", cursor: "pointer" }}>
+                        <X size={12} />
+                      </button>
+                    )}
+                  </span>
+                );
+              };
+              return (
+                <>
+                  <div style={{ fontSize: 12, color: "var(--mut)", fontWeight: 700, marginBottom: 8 }}>{tr("trn_pairs")} {done}/{pairCap}</div>
+                  {pairs.map((pr) => (
+                    <div key={pr.pair_no} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "9px 4px", borderBottom: "1px solid var(--line)" }}>
+                      <span style={{ width: 16, flexShrink: 0, fontWeight: 800, color: "var(--mut)", fontSize: 13, textAlign: "center" }}>{pr.pair_no}</span>
+                      {member(pr.members[0])}
+                      <span style={{ color: "var(--mut)", fontWeight: 700 }}>&amp;</span>
+                      {pr.members[1] ? member(pr.members[1]) : (
+                        !readOnly ? (
+                          <button onClick={() => setAddingToPair(pr.pair_no)}
+                            style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1.5px dashed color-mix(in srgb, var(--lime) 45%, transparent)", background: "none", borderRadius: 999, padding: "5px 12px", color: "var(--lime)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                            ＋ {tr("trn_choose_partner")}
+                          </button>
+                        ) : <span style={{ color: "var(--mut)", fontSize: 12.5 }}>{tr("trn_looking_partner")}</span>
+                      )}
                     </div>
-                  );
-                })()}
+                  ))}
+                  {pool.length > 0 && (
+                    <>
+                      <div style={{ fontSize: 11.5, color: "var(--mut)", textTransform: "uppercase", letterSpacing: .5, fontWeight: 800, margin: "10px 0 6px" }}>{tr("trn_no_pair")}</div>
+                      {pool.map((p) => (
+                        <div key={p.id} style={{ display: "flex", alignItems: "center", padding: "8px 4px", borderBottom: "1px solid var(--line)" }}>{member(p)}</div>
+                      ))}
+                    </>
+                  )}
+                  {!readOnly && addingToPair == null && trnData.players.length < trnData.target_size && (
+                    <button onClick={() => setAddingToPair("new")} className="tr-btn" style={{ marginTop: 12, background: "color-mix(in srgb, var(--lime) 12%, transparent)", color: "var(--lime)", border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)" }}>
+                      ＋ {tr("trn_new_pair")}
+                    </button>
+                  )}
+                  {!readOnly && addingToPair != null && (
+                    <div style={{ marginTop: 10 }}>
+                      <AddPlayer players={players} existing={trnData.players} meId={currentProfileId}
+                        disabled={trnData.players.length >= trnData.target_size}
+                        onAdd={async (entry) => {
+                          const pairNo = addingToPair === "new" ? nextPairNo(trnData.players) : addingToPair;
+                          await addTournamentPlayer(trnData.id, { ...entry, pairNo });
+                          setAddingToPair(null); load();
+                        }} />
+                    </div>
+                  )}
+                </>
+              );
+            })() : (
+              <>
+                {trnData.players.map((p) => (
+                  <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 8px", borderBottom: "1px solid var(--line)", background: p.profile_id === currentProfileId ? "color-mix(in srgb, var(--lime) 10%, transparent)" : undefined, borderRadius: p.profile_id === currentProfileId ? 8 : undefined }}>
+                    {(() => {
+                      const tap = onOpenPlayer && p.profile_id ? () => onOpenPlayer(p.profile_id) : null;
+                      return (
+                        <div onClick={tap || undefined} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, cursor: tap ? "pointer" : "default" }}>
+                          <Avatar name={p.name} url={avatarOfTp(p.id)} id={p.profile_id} size={34} />
+                          <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--ink)" }}>{p.name}</span>
+                        </div>
+                      );
+                    })()}
+                    {!readOnly && (
+                      <button aria-label={tr("delete_btn")} onClick={async () => { try { await removeTournamentPlayer(p.id); } catch (e) {} load(); }}
+                        style={{ flexShrink: 0, width: 28, height: 28, borderRadius: "50%", border: "none", background: "color-mix(in srgb, var(--coral) 16%, transparent)", color: "var(--coral)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <X size={15} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {/* Добор состава: единый инструмент — «Я сам» первым чипом карусели
+                    (заменил отдельную кнопку «Записаться»), дальше лига, поиск, гость. */}
                 {!readOnly && (
-                  <button aria-label={tr("delete_btn")} onClick={async () => { try { await removeTournamentPlayer(p.id); } catch (e) {} load(); }}
-                    style={{ flexShrink: 0, width: 28, height: 28, borderRadius: "50%", border: "none", background: "color-mix(in srgb, var(--coral) 16%, transparent)", color: "var(--coral)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <X size={15} />
-                  </button>
+                  <AddPlayer players={players} existing={trnData.players} meId={currentProfileId}
+                    disabled={trnData.players.length >= trnData.target_size}
+                    onAdd={async (entry) => { await addTournamentPlayer(trnData.id, entry); load(); }} />
                 )}
-              </div>
-            ))}
-            {/* Добор состава: единый инструмент — «Я сам» первым чипом карусели
-                (заменил отдельную кнопку «Записаться»), дальше лига, поиск, гость. */}
-            {!readOnly && (
-              <AddPlayer players={players} existing={trnData.players} meId={currentProfileId}
-                disabled={trnData.players.length >= trnData.target_size}
-                onAdd={async (entry) => { await addTournamentPlayer(trnData.id, entry); load(); }} />
+              </>
             )}
           </div>
           {!readOnly && (
