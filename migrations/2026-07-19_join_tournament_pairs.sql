@@ -2,8 +2,12 @@
 -- (вернуть её номер); N → встать напарником в пару N (атомарность добивает триггер
 -- max-2). solo-форматы p_pair_no игнорируют. Профиль строго из auth.uid();
 -- привязка гостя — только по верифиц. email/phone/telegram (по имени убрана ранее).
-create or replace function public.join_tournament(
-  p_code text, p_name text, p_profile_id uuid default null, p_pair_no integer default null)
+-- ВАЖНО: p_profile_id и p_pair_no БЕЗ default. С default'ами 3-арг вызов легаси-
+-- функции становился неоднозначным (function is not unique) и запись падала. Без
+-- default'ов: 3-арг вызов → легаси-функция, 4-арг → эта. Клиент всегда шлёт 4 арг.
+drop function if exists public.join_tournament(text, text, uuid, integer);
+create function public.join_tournament(
+  p_code text, p_name text, p_profile_id uuid, p_pair_no integer)
 returns jsonb language plpgsql security definer set search_path to 'public'
 as $function$
 declare
