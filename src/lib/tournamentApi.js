@@ -1,7 +1,7 @@
 // lib/tournamentApi.js
 import { supabase } from "./supabase";
 import { buildMatches, standings } from "./americano";
-import { buildFirstRound, buildMexicanoRound, buildKotHStart, buildKotHNextMatch, buildKotHLadderStart, buildKotHLadderRound } from "./mexicano";
+import { buildFirstRound, buildMexicanoRound, buildKotHStart, buildKotHNextMatch, buildKotHLadderStart, buildKotHLadderRound, pairsFromPlayers } from "./mexicano";
 import { swr, bustCache } from "./cache";
 import { WEB_BASE } from "./platform";
 
@@ -174,7 +174,7 @@ export async function startTournament(tournamentId, players, format = "americano
 
   let rawMatches;
   if (isBtb) rawMatches = buildKotHStart(ids);
-  else if (isKoth) rawMatches = buildKotHLadderStart(ids);
+  else if (isKoth) rawMatches = buildKotHLadderStart(pairsFromPlayers(players));
   else if (format === "mexicano") rawMatches = buildFirstRound(ids);
   else rawMatches = buildMatches(ids);
 
