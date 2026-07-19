@@ -47,11 +47,31 @@ export function buildMexicanoRound(sorted, nextRound) {
 // опускается на корт ниже (на последнем корте остаётся). Раунды генерятся, пока
 // организатор не завершит турнир.
 
-/** Старт KotH: раунд 1 — все корты, по 2 пары на корт. Без round 0. */
-export function buildKotHLadderStart(playerIds) {
-  const order = shuffle([...playerIds]);
+/**
+ * Собрать пары из ростера по pair_no. players: [{id, pair_no}].
+ * Возвращает [[idA,idB], …] в порядке возрастания pair_no. Бросает, если у кого-то
+ * нет pair_no или пара неполна (полноту гарантирует старт-гейт в UI).
+ */
+export function pairsFromPlayers(players) {
+  const groups = new Map();
+  for (const p of players) {
+    if (p.pair_no == null) throw new Error("У игрока нет пары");
+    const g = groups.get(p.pair_no) || [];
+    g.push(p.id);
+    groups.set(p.pair_no, g);
+  }
   const pairs = [];
-  for (let i = 0; i + 1 < order.length; i += 2) pairs.push([order[i], order[i + 1]]);
+  for (const pn of [...groups.keys()].sort((a, b) => a - b)) {
+    const ids = groups.get(pn);
+    if (ids.length !== 2) throw new Error("Пара неполна");
+    pairs.push(ids);
+  }
+  return pairs;
+}
+
+/** Старт KotH: раунд 1 — все корты, по 2 ФИКС-пары на корт. Пары приходят готовыми
+ *  (из pair_no), НЕ перемешиваем. pairs: [[idA,idB], …]. */
+export function buildKotHLadderStart(pairs) {
   const courts = Math.floor(pairs.length / 2);
   const matches = [];
   for (let c = 0; c < courts; c++) {
