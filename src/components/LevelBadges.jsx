@@ -2,8 +2,8 @@
 // Бейджи самозаявленного уровня игрока (см. lib/levels.js). Пусто → ничего.
 import React from "react";
 import { formatLevel, formatEventLevel } from "../lib/levels";
-import ptIcon from "../assets/levels/playtomic.webp";
-import lundaIcon from "../assets/levels/lunda.webp";
+import ptIcon from "../assets/levels/playtomic.png";
+import lundaIcon from "../assets/levels/lunda.png";
 
 // Логотип системы уровня (Playtomic / буквенная Lunda-стиль); для "oth" — нет.
 const sysIcon = (sys) => sys === "pt" ? ptIcon : sys === "ltr" ? lundaIcon : null;

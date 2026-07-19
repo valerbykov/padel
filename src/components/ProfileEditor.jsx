@@ -19,8 +19,8 @@ import { t, setLang , dateLocale} from "../lib/i18n";
 import { saveNotifPrefs, registerPush, OFFSET_OPTIONS } from "../lib/notifications";
 import { cachePeek, bustCache } from "../lib/cache";
 import { LETTER_OPTIONS, sanitizeLevels } from "../lib/levels";
-import ptIcon from "../assets/levels/playtomic.webp";
-import lundaIcon from "../assets/levels/lunda.webp";
+import ptIcon from "../assets/levels/playtomic.png";
+import lundaIcon from "../assets/levels/lunda.png";
 
 // Иконка Telegram (фирменный самолётик) — вместо эмодзи-«самолёта» ✈️.
 const TgPlane = ({ size = 14 }) => (
