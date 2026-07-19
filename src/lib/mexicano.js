@@ -72,6 +72,7 @@ export function pairsFromPlayers(players) {
 /** Старт KotH: раунд 1 — все корты, по 2 ФИКС-пары на корт. Пары приходят готовыми
  *  (из pair_no), НЕ перемешиваем. pairs: [[idA,idB], …]. */
 export function buildKotHLadderStart(pairs) {
+  if (pairs.length % 2 !== 0) throw new Error("Нужно чётное число пар");
   const courts = Math.floor(pairs.length / 2);
   const matches = [];
   for (let c = 0; c < courts; c++) {

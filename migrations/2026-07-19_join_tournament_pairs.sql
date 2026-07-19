@@ -24,7 +24,9 @@ begin
   if not found then raise exception 'tournament_not_found'; end if;
   if v_t.status <> 'open' then raise exception 'tournament_closed'; end if;
 
-  v_is_pair := v_t.format = any(array['king_of_hill','round_robin','beat_the_box']);
+  -- beat_the_box НЕ здесь: его жеребьёвка (buildKotHStart) сама тасует команды,
+  -- pair_no игнорирует — значит запись в него идёт как solo (плоская).
+  v_is_pair := v_t.format = any(array['king_of_hill','round_robin']);
 
   if v_uid is not null then
     select * into v_me from profiles where user_id = v_uid;
@@ -79,6 +81,9 @@ begin
   -- (c) парный формат: создать пару или встать в пару N
   if v_is_pair then
     if p_pair_no is null then
+      -- Сериализуем выдачу номера пары по турниру: без этого два одновременных
+      -- «создать пару» посчитают одинаковый max+1 и слепятся в одну пару.
+      perform pg_advisory_xact_lock(hashtextextended(v_t.id::text, 0));
       select coalesce(max(pair_no), 0) + 1 into v_new_pair
         from tournament_players where tournament_id = v_t.id;
       insert into tournament_players (tournament_id, name, profile_id, pair_no)
