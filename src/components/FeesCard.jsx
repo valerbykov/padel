@@ -10,7 +10,7 @@
 //   getFee(id) → number|null · getPaid(id) → Set<key> · setFee(id, per)
 //   togglePaid(key) → bool · remind(id) → number
 // players: [{ key, profile_id, name }] — key = tournament_players.id / game_slots.id.
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Avatar from "./Avatar";
 import { showToast } from "./ui-dialogs";
 import { t as tr } from "../lib/i18n";
@@ -27,23 +27,40 @@ export default function FeesCard({ entityId, entityName = "", players = [], me, 
   const [remindBusy, setRemindBusy] = useState(false);
   const [cur, setCur] = useState(currency || defaultCurrency || "EUR");
   const [when, setWhen] = useState(timing || "end");
-  useEffect(() => { setCur(currency || defaultCurrency || "EUR"); setWhen(timing || "end"); }, [currency, timing, defaultCurrency, entityId]);
+  const curTouchedRef = useRef(false);
+  const [loadErr, setLoadErr] = useState(false);
+  // Сброс «трогал» при смене сущности.
+  useEffect(() => { curTouchedRef.current = false; }, [entityId]);
+  // Синхроним валюту/тайминг из пропов, ПОКА организатор не выбрал вручную —
+  // иначе поздно приехавший region-дефолт затирает уже выбранную валюту.
+  useEffect(() => { if (!curTouchedRef.current) { setCur(currency || defaultCurrency || "EUR"); setWhen(timing || "end"); } }, [currency, timing, defaultCurrency, entityId]);
 
   useEffect(() => {
     let alive = true;
     // Сброс на смену сущности: иначе на новой карточке мелькает сумма/оплаты
     // прошлой игры и остаётся открытой её форма редактирования.
-    setFee(undefined); setPaid(new Set()); setSetup(false); setAmount(""); setBusyKey(null);
-    // При reject не оставляем fee === undefined навсегда (иначе карточка молча
-    // исчезает — return null ниже): падаем в null (=«сбор не задан»).
+    setFee(undefined); setPaid(new Set()); setSetup(false); setAmount(""); setBusyKey(null); setLoadErr(false);
+    // При reject не подделываем данные (fee=null выглядит как «сбор не задан» и
+    // может спровоцировать перезапись organizer-настроек; paid=[] выглядит как
+    // «никто не платил» и заспамит пушем тех, кто уже скинулся) — вместо этого
+    // помечаем loadErr и показываем ретрай ниже.
     api.getFee(entityId).then((f) => { if (alive) setFee(f); })
-      .catch((e) => { if (alive) { console.error("FeesCard: getFee", entityId, e); setFee(null); } });
+      .catch((e) => { if (alive) { console.error("FeesCard: getFee", entityId, e); setLoadErr(true); } });
     api.getPaid(entityId).then((s) => { if (alive) setPaid(s); })
-      .catch((e) => { if (alive) { console.error("FeesCard: getPaid", entityId, e); } });
+      .catch((e) => { if (alive) { console.error("FeesCard: getPaid", entityId, e); setLoadErr(true); } });
     return () => { alive = false; };
   }, [entityId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (fee === undefined) return null;
+  if (loadErr && fee == null) {
+    return (
+      <div className={cardClass} style={{ marginBottom: 14, padding: 16 }}>
+        <div style={{ fontSize: 13, color: "var(--coral)", marginBottom: 8 }}>{tr("err_generic")}</div>
+        <button onClick={() => { setLoadErr(false); setFee(undefined); api.getFee(entityId).then((f) => setFee(f)).catch(() => setLoadErr(true)); api.getPaid(entityId).then((s) => setPaid(s)).catch(() => setLoadErr(true)); }}
+          style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--ink)", cursor: "pointer", fontFamily: "'Outfit',sans-serif" }}>↻</button>
+      </div>
+    );
+  }
   if (fee == null && !canManage) return null;
   if (readOnly && fee == null) return null;
 
@@ -75,6 +92,7 @@ export default function FeesCard({ entityId, entityName = "", players = [], me, 
   };
 
   const remindPush = async () => {
+    if (loadErr) { showToast(tr("err_generic")); return; }
     if (remindBusy) return;
     setRemindBusy(true);
     try {
@@ -126,13 +144,13 @@ export default function FeesCard({ entityId, entityName = "", players = [], me, 
           <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("fee_timing_label")}</div>
           <div style={{ display: "flex", gap: 4, background: "var(--surface2)", borderRadius: 10, padding: 3, marginBottom: 8 }}>
             {[["start", tr("fee_timing_start")], ["end", tr("fee_timing_end")]].map(([k, lbl]) => (
-              <button key={k} onClick={() => setWhen(k)} style={{ flex: 1, border: "none", borderRadius: 8, padding: "7px 0", cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontWeight: 700, fontSize: 12, background: when === k ? "var(--lime)" : "none", color: when === k ? "var(--lime-fg)" : "var(--mut)" }}>{lbl}</button>
+              <button key={k} onClick={() => { curTouchedRef.current = true; setWhen(k); }} style={{ flex: 1, border: "none", borderRadius: 8, padding: "7px 0", cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontWeight: 700, fontSize: 12, background: when === k ? "var(--lime)" : "none", color: when === k ? "var(--lime-fg)" : "var(--mut)" }}>{lbl}</button>
             ))}
           </div>
           <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("fee_currency_label")}</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
             {CURRENCIES.map((c) => (
-              <button key={c} onClick={() => setCur(c)} style={{ border: "1px solid var(--line)", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontWeight: 700, fontSize: 12, background: cur === c ? "var(--lime)" : "var(--surface2)", color: cur === c ? "var(--lime-fg)" : "var(--mut)" }}>{c}</button>
+              <button key={c} onClick={() => { curTouchedRef.current = true; setCur(c); }} style={{ border: "1px solid var(--line)", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontWeight: 700, fontSize: 12, background: cur === c ? "var(--lime)" : "var(--surface2)", color: cur === c ? "var(--lime-fg)" : "var(--mut)" }}>{c}</button>
             ))}
           </div>
           <div style={{ display: "flex", gap: 4, background: "var(--surface2)", borderRadius: 10, padding: 3, marginBottom: 8 }}>

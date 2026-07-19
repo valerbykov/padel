@@ -118,6 +118,7 @@ export function buildKotHLadderRound(matches) {
 export function buildRoundRobinPairs(pairs) {
   const N = pairs.length;
   if (N < 2) return [];
+  if (N % 2 !== 0) throw new Error("Нужно чётное число пар");
   const fixed = N - 1;
   let rot = [...Array(N - 1).keys()]; // крутящиеся индексы 0..N-2
   const matches = [];

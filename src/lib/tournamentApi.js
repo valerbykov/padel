@@ -173,11 +173,18 @@ export async function startTournament(tournamentId, players, format = "americano
   if (!claimed || claimed.length === 0) return; // уже запущен — ничего не вставляем
 
   let rawMatches;
-  if (isBtb) rawMatches = buildKotHStart(ids);
-  else if (isKoth) rawMatches = buildKotHLadderStart(pairsFromPlayers(players));
-  else if (format === "round_robin") rawMatches = buildRoundRobinPairs(pairsFromPlayers(players));
-  else if (format === "mexicano") rawMatches = buildFirstRound(ids);
-  else rawMatches = buildMatches(ids);
+  try {
+    if (isBtb) rawMatches = buildKotHStart(ids);
+    else if (isKoth) rawMatches = buildKotHLadderStart(pairsFromPlayers(players));
+    else if (format === "round_robin") rawMatches = buildRoundRobinPairs(pairsFromPlayers(players));
+    else if (format === "mexicano") rawMatches = buildFirstRound(ids);
+    else rawMatches = buildMatches(ids);
+  } catch (e) {
+    // Жеребьёвка бросила (напр. неполные пары) уже ПОСЛЕ claim open→active —
+    // откатываем статус, иначе турнир застрянет active без матчей.
+    await supabase.from("tournaments").update({ status: "open" }).eq("id", tournamentId);
+    throw e;
+  }
 
   const matches = rawMatches.map((m) => ({ ...m, tournament_id: tournamentId }));
   const { error: mErr } = await supabase.from("tournament_matches").insert(matches);

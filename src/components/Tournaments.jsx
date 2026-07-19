@@ -1000,7 +1000,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     return gp?.avatar_url || tp.avatar_url || tp.profile?.avatar_url || (tp.profile_id ? _dogAv(tp.profile_id) : null);
   };
 
-  const isPairFmt = fmt.category === "pair";
+  const isPairFmt = fmt.category === "pair" && !isBtb; // BtB тоже category:"pair", но без pair_no
   const playedForTable = trnData.matches.filter((m) => m.round_number > 0);
   const table = isPairFmt
     ? pairStandings(trnData.players, playedForTable)
@@ -1247,7 +1247,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
         <>
           <div className="tr-card" style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 8 }}>{tr("trn_participants")} {trnData.players.length}/{trnData.target_size}</div>
-            {fmt.category === "pair" ? (() => {
+            {(fmt.category === "pair" && !isBtb) ? (() => {
               const { pairs, pool } = groupPairs(trnData.players);
               const pairCap = Math.floor((trnData.target_size || 0) / 2);
               const done = pairs.filter((pr) => pr.members.length === 2).length;
@@ -1306,8 +1306,13 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                         disabled={trnData.players.length >= trnData.target_size}
                         onAdd={async (entry) => {
                           const pairNo = addingToPair === "new" ? nextPairNo(trnData.players) : addingToPair;
-                          await addTournamentPlayer(trnData.id, { ...entry, pairNo });
-                          setAddingToPair(null); load();
+                          try {
+                            await addTournamentPlayer(trnData.id, { ...entry, pairNo });
+                            await load(); setAddingToPair(null);   // await: следующий nextPairNo — по свежему списку
+                          } catch (e) {
+                            showToast(e?.message === "pair_full" ? tr("err_slot_taken") : (e?.message || tr("err_add_player")));
+                            await load();
+                          }
                         }} />
                     </div>
                   )}
@@ -1339,7 +1344,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                 {!readOnly && (
                   <AddPlayer players={players} existing={trnData.players} meId={currentProfileId}
                     disabled={trnData.players.length >= trnData.target_size}
-                    onAdd={async (entry) => { await addTournamentPlayer(trnData.id, entry); load(); }} />
+                    onAdd={async (entry) => { try { await addTournamentPlayer(trnData.id, entry); } catch (e) { showToast(e?.message || tr("err_add_player")); } load(); }} />
                 )}
               </>
             )}
