@@ -7,8 +7,8 @@ android {
         applicationId "app.padelpack"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 9
-        versionName "1.6"
+        versionCode 10
+        versionName "1.7"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         // Yandex ID SDK: манифест SDK подставляет ОБА placeholder'а в свои meta-data
         // (com.yandex.auth.CLIENT_ID / OAUTH_HOST) и redirect-activity (схема
