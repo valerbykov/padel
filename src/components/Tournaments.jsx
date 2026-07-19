@@ -281,8 +281,9 @@ export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null, 
           </button>
         )}
       </div>
-      {/* Лобби: аватары записавшихся + «Занять» одним тапом из списка */}
-      {trn.status === "open" && onTake && (
+      {/* Лобби: аватары записавшихся всегда видны у открытых турниров; «+» и «Занять»
+          — только пока можно записаться (записался → аватарки остаются, без «+»/кнопки). */}
+      {trn.status === "open" && (
         <div style={{ display: "flex", alignItems: "center", marginTop: 10 }}>
           <div style={{ display: "flex", paddingLeft: 10 }}>
             {(trn.players || []).slice(0, 6).map((p) => (
@@ -290,16 +291,18 @@ export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null, 
                 <Avatar name={p.name} url={avaOf(p)} id={p.id} size={28} />
               </span>
             ))}
-            {(trn.players || []).length < trn.target_size && (
+            {onTake && (trn.players || []).length < trn.target_size && (
               /* Свободное место: лаймовый «+» вместо тёмной дыры — рифмуется с «Занять» */
               <span style={{ width: 28, height: 28, borderRadius: "50%", border: "1.5px dashed color-mix(in srgb, var(--lime) 45%, var(--line))", background: "color-mix(in srgb, var(--lime) 8%, var(--surface2))", marginLeft: -10, boxSizing: "border-box", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, color: "var(--lime)", lineHeight: 1 }}>+</span>
             )}
           </div>
           <span style={{ fontSize: 11.5, color: "var(--mut)", marginLeft: 8 }}>{(trn.players || []).length}/{trn.target_size}</span>
-          <button onClick={(e) => { e.stopPropagation(); if (!takeBusy) onTake(); }} disabled={takeBusy}
-            style={{ marginLeft: "auto", flexShrink: 0, border: "none", borderRadius: 11, padding: "8px 14px", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 12.5, cursor: "pointer", background: "var(--lime)", color: "var(--lime-fg)", opacity: takeBusy ? .55 : 1 }}>
-            {takeBusy ? "…" : tr("pub_take_slot")}
-          </button>
+          {onTake && (
+            <button onClick={(e) => { e.stopPropagation(); if (!takeBusy) onTake(); }} disabled={takeBusy}
+              style={{ marginLeft: "auto", flexShrink: 0, border: "none", borderRadius: 11, padding: "8px 14px", fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 12.5, cursor: "pointer", background: "var(--lime)", color: "var(--lime-fg)", opacity: takeBusy ? .55 : 1 }}>
+              {takeBusy ? "…" : tr("pub_take_slot")}
+            </button>
+          )}
         </div>
       )}
     </div>
