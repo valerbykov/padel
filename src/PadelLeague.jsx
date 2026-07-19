@@ -30,6 +30,7 @@ import Avatar from "./components/Avatar";
 import LeagueLogo from "./components/LeagueLogo";
 import InviteCard from "./components/InviteCard";
 import Analytics from "./components/Analytics";
+import LevelBadges from "./components/LevelBadges";
 import { dogAvatar, playerAvatar, avatarFallback, DOG_COUNT , avatarBg, avatarOnLoad} from "./lib/avatar";
 
 // Текущая дата-время в формате datetime-local (YYYY-MM-DDTHH:MM) с учётом таймзоны.
@@ -988,6 +989,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
               </div>
               <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 7, fontSize: 12, color: "var(--mut)", marginTop: 2 }}>
                 <TierChip rating={p.rating} compact />
+                <LevelBadges levels={p.levels} compact />
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_games")}><Swords size={13} /> {gamesOf(p)}</span>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_tournaments")}><Trophy size={13} /> {toursOf(p)}</span>
@@ -1297,18 +1299,19 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user || !alive) return;
       supabase.from("profiles").select("id").eq("user_id", user.id).maybeSingle()
-        .then(({ data }) => { if (alive && data) setMyId(data.id); });
+        .then(({ data, error }) => { if (!alive) return; if (error) { console.error("PlayerDetail: myId", error); return; } if (data) setMyId(data.id); });
     });
 
     // Загружаем матчи группы для статистики
-    getStatMatches(groupId).then((data) => { if (alive) setAllMatches(data || []); });
+    getStatMatches(groupId).then((data) => { if (alive) setAllMatches(data || []); })
+      .catch((e) => { if (alive) { console.error("PlayerDetail: getStatMatches", e); setAllMatches([]); } });
 
     // Лиги игрока (RLS отдаёт только общие с текущим пользователем лиги; свои — все).
     // Лёгкий вариант: рейтинг и игры едут тем же запросом, место не считаем.
     supabase.from("group_members")
       .select("role, rating, matches_played, group:groups(id, name, logo_url)")
       .eq("profile_id", player.id)
-      .then(({ data }) => { if (alive) setPlayerLeagues((data || []).map((r) => ({
+      .then(({ data, error }) => { if (!alive) return; if (error) { console.error("PlayerDetail: leagues", error); return; } setPlayerLeagues((data || []).map((r) => ({
         id: r.group.id, name: r.group.name, logo: r.group.logo_url || null,
         role: r.role, rating: r.rating, matches: r.matches_played,
       }))); });
@@ -1729,6 +1732,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
               </div>
             )}
             <ContactLinks contacts={player.contacts} />
+            <LevelBadges levels={player.levels} />
           </div>
           <div style={{ textAlign: "right", flexShrink: 0 }}>
             <div className="pl-display" style={{ fontSize: 27, color: "var(--lime)", lineHeight: 1 }}>{player.rating}</div>
@@ -2097,7 +2101,7 @@ function MeBadge({ style }) {
 // Hero «Ближайшая игра»: обратный отсчёт, состав и действие в одной карточке
 // наверху вкладки — зеркало пуш-напоминаний, но всегда на виду.
 function GameHero({ g, me, onOpen, onTake }) {
-  useMinuteTick(!!g.starts_at && g.status !== "played");  // живой отсчёт до игры
+  useMinuteTick(!!g.starts_at && g.status !== "played" && new Date(g.starts_at) > Date.now());  // тикаем только пока идёт отсчёт ДО игры
   const slots = [...(g.slots || [])].sort((a, b) => ((a.team || "") + (a.position || "")).localeCompare((b.team || "") + (b.position || "")));
   const filled = slots.filter((s) => s.profile_id || s.guest_name).length;
   const meIn = meInGame(g, me);
