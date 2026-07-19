@@ -18,6 +18,7 @@ import Avatar from "./Avatar";
 import { t, setLang , dateLocale} from "../lib/i18n";
 import { saveNotifPrefs, registerPush, OFFSET_OPTIONS } from "../lib/notifications";
 import { cachePeek, bustCache } from "../lib/cache";
+import { LEVEL_SYSTEMS, LETTER_OPTIONS, sanitizeLevels } from "../lib/levels";
 
 // Иконка Telegram (фирменный самолётик) — вместо эмодзи-«самолёта» ✈️.
 const TgPlane = ({ size = 14 }) => (
@@ -107,6 +108,11 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
   const [profileId, setProfileId] = useState(profile?.id || null);
   const [whatsapp, setWhatsapp] = useState(profile?.contacts?.whatsapp || "");
   const [telegram, setTelegram] = useState(profile?.contacts?.telegram || "");
+  const [levels, setLevels] = useState(profile?.levels || []);
+  const [lvlSys, setLvlSys] = useState("pt");
+  const [lvlVal, setLvlVal] = useState("");
+  const [lvlLbl, setLvlLbl] = useState("");
+  const [lvlAdding, setLvlAdding] = useState(false);
   const [loading, setLoading] = useState(!profile);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState(null); // { ok, text }
@@ -172,6 +178,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
         // Вход через Telegram: @ник из метаданных подставляем, пока свой не задан
         // (сервер telegram-auth тоже пишет его в contacts при каждом входе).
         setTelegram(data.contacts?.telegram || (um.username ? "@" + um.username : ""));
+        setLevels(Array.isArray(data.levels) ? data.levels : []);
       }
       if (data) setProfileId(data.id);
       const p = prefQ.data;
@@ -224,6 +231,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
         // Телефон дублируем в contacts: чипы связи в статистике игрока (ContactLinks)
         // читают contacts, и без этого номер из кабинета никому не был виден.
         contacts: { whatsapp: whatsapp.trim() || undefined, telegram: telegram.trim() || undefined, phone: phone.trim() || undefined },
+        levels: sanitizeLevels(levels),
       }).eq("user_id", userId);
       if (error) throw error;
       dirtyRef.current = false;
@@ -245,7 +253,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
     saveTmRef.current = setTimeout(save, 800);
     return () => clearTimeout(saveTmRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firstName, lastName, phone, telegram, whatsapp, avatarUrl]);
+  }, [firstName, lastName, phone, telegram, whatsapp, avatarUrl, levels]);
   // Закрытие — не теряем хвост дебаунса.
   const handleClose = () => {
     clearTimeout(saveTmRef.current);
@@ -313,6 +321,15 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
     catch (e) { return null; }
   })() : null;
   const toggleRow = (r) => setEditRow((cur) => (cur === r ? null : r));
+  const addLevel = () => {
+    const val = lvlVal.trim();
+    if (!val) return;
+    const lvl = { sys: lvlSys, val };
+    if (lvlSys === "oth" && lvlLbl.trim()) lvl.lbl = lvlLbl.trim();
+    setLevels((ls) => [...ls, lvl]);
+    setLvlVal(""); setLvlLbl(""); setLvlAdding(false);
+  };
+  const removeLevel = (i) => setLevels((ls) => ls.filter((_, j) => j !== i));
   const Chevron = ({ open }) => open
     ? <ChevronDown size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />
     : <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />;
@@ -483,6 +500,48 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
                     )}
                   </div>
                 )}
+                {/* Мой уровень (самозаявленные бейджи) */}
+                <div style={{ padding: "12px 4px 4px", borderTop: "1px solid var(--line)" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>🎖️ {t("pc_my_level")}</div>
+                  <div style={{ fontSize: 11.5, color: "var(--mut)", marginBottom: 8 }}>{t("pc_level_hint")}</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 8 }}>
+                    {levels.map((l, i) => (
+                      <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 999, padding: "4px 6px 4px 11px", fontSize: 12.5, fontWeight: 700, background: "var(--surface2)", border: "1px solid var(--line)" }}>
+                        {l.sys === "pt" ? `Playtomic ${l.val}` : l.sys === "oth" ? `${(l.lbl || "").trim()} ${l.val}`.trim() : l.val}
+                        <button aria-label={t("delete_btn")} onClick={() => removeLevel(i)} style={{ border: "none", background: "none", color: "var(--mut)", cursor: "pointer", fontSize: 13, lineHeight: 1 }}>×</button>
+                      </span>
+                    ))}
+                    {!lvlAdding && (
+                      <button onClick={() => setLvlAdding(true)} style={{ display: "inline-flex", alignItems: "center", gap: 4, borderRadius: 999, padding: "4px 11px", fontSize: 12.5, fontWeight: 700, color: "var(--lime)", background: "none", border: "1.5px dashed var(--line)", cursor: "pointer" }}>＋ {t("pc_level_add")}</button>
+                    )}
+                  </div>
+                  {lvlAdding && (
+                    <div style={{ background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, padding: 12 }}>
+                      <div style={{ display: "flex", gap: 4, background: "var(--bg)", borderRadius: 10, padding: 3, marginBottom: 10 }}>
+                        {[["pt", "Playtomic"], ["ltr", t("pc_level_sys_ltr")], ["oth", t("pc_level_sys_oth")]].map(([k, lbl]) => (
+                          <button key={k} onClick={() => { setLvlSys(k); setLvlVal(""); }} style={{ flex: 1, border: "none", borderRadius: 8, padding: "7px 0", cursor: "pointer", fontWeight: 700, fontSize: 12, background: lvlSys === k ? "var(--lime)" : "none", color: lvlSys === k ? "var(--lime-fg)" : "var(--mut)" }}>{lbl}</button>
+                        ))}
+                      </div>
+                      {lvlSys === "pt" && (
+                        <input className="pc-input" type="number" min="0" max="7" step="0.1" value={lvlVal} onChange={(e) => setLvlVal(e.target.value)} placeholder="0 – 7" />
+                      )}
+                      {lvlSys === "ltr" && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          {LETTER_OPTIONS.map((L) => (
+                            <button key={L} onClick={() => setLvlVal(L)} style={{ border: "1px solid var(--line)", borderRadius: 8, padding: "7px 0", width: "calc((100% - 36px)/7)", fontWeight: 800, background: lvlVal === L ? "#7cc4e0" : "var(--bg)", color: lvlVal === L ? "#0a1612" : "var(--mut)" }}>{L}</button>
+                          ))}
+                        </div>
+                      )}
+                      {lvlSys === "oth" && (
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <input className="pc-input" value={lvlLbl} onChange={(e) => setLvlLbl(e.target.value)} placeholder={t("pc_level_sysname_ph")} />
+                          <input className="pc-input" value={lvlVal} onChange={(e) => setLvlVal(e.target.value)} placeholder={t("pc_level_val_ph")} style={{ maxWidth: 110 }} />
+                        </div>
+                      )}
+                      <button onClick={addLevel} disabled={!lvlVal.trim()} style={{ width: "100%", marginTop: 10, padding: 10, borderRadius: 10, border: "none", background: "var(--lime)", color: "var(--lime-fg)", fontWeight: 800, fontSize: 13, cursor: "pointer", opacity: lvlVal.trim() ? 1 : .5 }}>{t("pc_level_add_btn")}</button>
+                    </div>
+                  )}
+                </div>
                 <div className="pc-row pc-row-static" title={t("pc_email_locked")}>
                   <span className="pc-chip" style={{ background: "color-mix(in srgb, var(--mut) 15%, transparent)", color: "var(--mut)" }}><Mail size={15} /></span>
                   <span className="pc-rlabel">{t("pc_email")}</span>
