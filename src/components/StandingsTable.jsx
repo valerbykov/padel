@@ -1,14 +1,17 @@
 // components/StandingsTable.jsx
 // Таблица результатов: Игроки | Игры +/- | Очки +/- | δ.
 // Аватарка сверху, имя снизу под ней.
-// props: rows (из detailedStandings), highlightId?, avatarOf?(row)=>{url?,rating?}
+// props: rows (из detailedStandings), highlightId?, avatarOf?(row)=>{url?,rating?},
+//        championIds? — id игроков пары-чемпиона (парные форматы): 👑 + золотая строка,
+//        даже если по очкам они не первые (правило «удержал корт №1»).
 import React from "react";
 import Avatar from "./Avatar";
 import { t } from "../lib/i18n";
 
-export default function StandingsTable({ rows, highlightId, avatarOf }) {
+export default function StandingsTable({ rows, highlightId, avatarOf, championIds }) {
   const grid = "1fr 50px 66px 40px";
   const deltaColor = (d) => (d > 0 ? "#3ddc84" : d < 0 ? "var(--coral)" : "var(--mut)");
+  const champSet = new Set(championIds || []);
 
   return (
     <div style={{ fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", color: "var(--ink)", minWidth: 0, overflow: "hidden" }}>
@@ -22,16 +25,18 @@ export default function StandingsTable({ rows, highlightId, avatarOf }) {
       {rows.map((p, i) => {
         const av = avatarOf ? avatarOf(p) : {};
         const hl = highlightId && p.id === highlightId;
+        const champ = champSet.has(p.id);
+        const glow = champ ? "#f7d978" : hl ? "var(--lime)" : null; // золото — чемпион-пара, лайм — ты
         const medal = ["#ffd23f", "#cfd8d0", "#cd7f4d"][i];
 
         return (
           <div key={p.id} style={{
             display: "grid", gridTemplateColumns: grid, gap: 5, alignItems: "center",
             padding: "6px 8px",
-            borderBottom: hl ? "none" : "1px solid var(--line)",
-            border: hl ? "1px solid color-mix(in srgb, var(--lime) 55%, transparent)" : undefined,
-            background: hl ? "color-mix(in srgb, var(--lime) 12%, transparent)" : "transparent",
-            borderRadius: hl ? 10 : 0,
+            borderBottom: glow ? "none" : "1px solid var(--line)",
+            border: glow ? `1px solid color-mix(in srgb, ${glow} 55%, transparent)` : undefined,
+            background: glow ? `color-mix(in srgb, ${glow} 12%, transparent)` : "transparent",
+            borderRadius: glow ? 10 : 0,
           }}>
             {/* Номер + аватар + имя в строку (компактно) */}
             <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, overflow: "hidden" }}>
@@ -39,9 +44,10 @@ export default function StandingsTable({ rows, highlightId, avatarOf }) {
                 {i + 1}
               </span>
               <Avatar name={p.name} url={av.url} id={p.id} size={24} />
-              <span style={{ fontSize: 13, fontWeight: hl ? 700 : 500, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
+              <span style={{ fontSize: 13, fontWeight: (hl || champ) ? 700 : 500, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
                 {p.name}
               </span>
+              {champ && <span style={{ flexShrink: 0, fontSize: 12, lineHeight: 1 }}>👑</span>}
             </div>
 
             {/* В/Н/П */}

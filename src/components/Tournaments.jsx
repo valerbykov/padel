@@ -1449,7 +1449,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                 avatarOf={avatarOfTp}
                 api={{ getFee: getTournamentFee, getPaid: getFeePayments, setFee: setTournamentFee, togglePaid: toggleFeePaid, remind: remindFeeDebtors }} />
             )}
-            <StandingsTable rows={table} highlightId={(trnData.players || []).find((p) => p.profile_id === currentProfileId)?.id} avatarOf={(row) => ({ url: avatarOfTp(row.id) })} />
+            <StandingsTable rows={table} highlightId={(trnData.players || []).find((p) => p.profile_id === currentProfileId)?.id} avatarOf={(row) => ({ url: avatarOfTp(row.id) })} championIds={trnData.status === "finished" ? kothPair : null} />
           </div>
         </>
       )}
