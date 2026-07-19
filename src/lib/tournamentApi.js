@@ -54,7 +54,7 @@ export async function copyTournament(srcId, groupId, { name, withPlayers = true,
   if (withPlayers) {
     const players = [...(src.players || [])].sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
     for (const p of players) {
-      await addTournamentPlayer(trn.id, { profileId: p.profile_id || null, name: p.name });
+      await addTournamentPlayer(trn.id, { profileId: p.profile_id || null, name: p.name, pairNo: p.pair_no ?? null });
     }
   }
   bustCache();
