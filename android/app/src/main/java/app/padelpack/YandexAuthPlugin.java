@@ -22,6 +22,7 @@ import com.yandex.authsdk.YandexAuthOptions;
 import com.yandex.authsdk.YandexAuthResult;
 import com.yandex.authsdk.YandexAuthSdk;
 import com.yandex.authsdk.YandexAuthToken;
+import com.yandex.authsdk.internal.strategy.LoginType;
 
 @CapacitorPlugin(name = "YandexAuth")
 public class YandexAuthPlugin extends Plugin {
@@ -36,7 +37,10 @@ public class YandexAuthPlugin extends Plugin {
     @PluginMethod
     public void authorize(PluginCall call) {
         try {
-            Intent intent = sdk.getContract().createIntent(getContext(), new YandexAuthLoginOptions());
+            // loginType обязателен из Java (data class без @JvmOverloads). NATIVE =
+            // app-to-app через установленное приложение Яндекса (иначе SDK сам уводит
+            // в Chrome Tab / web). Это дефолт SDK, задаём явно для Java.
+            Intent intent = sdk.getContract().createIntent(getContext(), new YandexAuthLoginOptions(LoginType.NATIVE));
             startActivityForResult(call, intent, "yandexResult");
         } catch (Exception e) {
             call.reject("yandex_start_failed: " + e.getMessage());
