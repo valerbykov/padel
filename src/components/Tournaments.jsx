@@ -1111,6 +1111,13 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     try { if (navigator.share) { await navigator.share({ title: tr("tab_tournaments"), text, url }); return; } } catch (e) {}
     try { await navigator.clipboard.writeText(text); setToast(tr("copied")); setTimeout(() => setToast(""), 1500); } catch (e) {}
   };
+  const sharePairLink = async (pairNo) => {
+    const url = `${tournamentLink(trnData.invite_code)}?pair=${pairNo}`;
+    const Share = (typeof window !== "undefined" && window.Capacitor?.Plugins?.Share) || null;
+    if (Share) { try { await Share.share({ url }); return; } catch (e) { /* отмена — ок */ } }
+    try { await navigator.clipboard.writeText(url); showToast(tr("copied")); }
+    catch (e) { showToast(tr("copy_manual")); }
+  };
   const start = async () => {
     if (startingRef.current) return;
     // Старт с неполным набором разрешён (кратность соблюдена), но не молча:
@@ -1279,10 +1286,14 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                       <span style={{ color: "var(--mut)", fontWeight: 700 }}>&amp;</span>
                       {pr.members[1] ? member(pr.members[1]) : (
                         !readOnly ? (
-                          <button onClick={() => setAddingToPair(pr.pair_no)}
-                            style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1.5px dashed color-mix(in srgb, var(--lime) 45%, transparent)", background: "none", borderRadius: 999, padding: "5px 12px", color: "var(--lime)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-                            ＋ {tr("trn_choose_partner")}
-                          </button>
+                          <>
+                            <button onClick={() => setAddingToPair(pr.pair_no)}
+                              style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1.5px dashed color-mix(in srgb, var(--lime) 45%, transparent)", background: "none", borderRadius: 999, padding: "5px 12px", color: "var(--lime)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                              ＋ {tr("trn_choose_partner")}
+                            </button>
+                            <button onClick={() => sharePairLink(pr.pair_no)} aria-label={tr("trn_share_pair")}
+                              style={{ marginLeft: 6, border: "1px solid var(--line)", background: "var(--surface2)", borderRadius: 999, padding: "5px 10px", color: "var(--mut)", cursor: "pointer", fontSize: 12.5 }}>🔗</button>
+                          </>
                         ) : <span style={{ color: "var(--mut)", fontSize: 12.5 }}>{tr("trn_looking_partner")}</span>
                       )}
                     </div>
