@@ -11,11 +11,11 @@ const genCode = () => Array.from({ length: 6 }, () => CODE_CHARS[Math.floor(Math
 export const tournamentLink = (code) => `${WEB_BASE}/t/${code}`;
 
 const T_SELECT =
-  "id, invite_code, name, format, points_per_game, target_size, status, court_names, koth_champion_rule, created_by, created_at, starts_at, place, open_scoring, " +
-  "players:tournament_players(id, profile_id, name, created_at, profile:profiles(name, avatar_url)), " +
+  "id, invite_code, name, format, points_per_game, target_size, status, court_names, koth_champion_rule, created_by, created_at, starts_at, ends_at, place, description, contact_name, contact_link, open_scoring, " +
+  "players:tournament_players(id, profile_id, name, pair_no, created_at, profile:profiles(name, avatar_url)), " +
   "matches:tournament_matches(id, round_number, court, team_a, team_b, score_a, score_b)";
 
-export async function createTournament(groupId, { name, pointsPerGame = 32, targetSize = 8, createdBy, format = "americano", startsAt, place, kotHChampionRule, openScoring = false } = {}) {
+export async function createTournament(groupId, { name, pointsPerGame = 32, targetSize = 8, createdBy, format = "americano", startsAt, endsAt, place, description, contactName, contactLink, kotHChampionRule, openScoring = false } = {}) {
   let t = null;
   for (let i = 0; i < 5; i++) {
     const res = await supabase.from("tournaments").insert({
@@ -23,7 +23,9 @@ export async function createTournament(groupId, { name, pointsPerGame = 32, targ
       points_per_game: pointsPerGame, target_size: targetSize, created_by: createdBy || null,
       status: "open", format,
       koth_champion_rule: format === "king_of_hill" ? (kotHChampionRule || "court_1") : null,
-      starts_at: startsAt || null, place: place?.trim() || null,
+      starts_at: startsAt || null, ends_at: endsAt || null, place: place?.trim() || null,
+      description: description?.trim() || null,
+      contact_name: contactName?.trim() || null, contact_link: contactLink?.trim() || null,
       open_scoring: !!openScoring,
     }).select().single();
     if (!res.error) { t = res.data; break; }
@@ -94,7 +96,7 @@ export async function getTournament(id) {
   return withLiveNames(data);
 }
 
-export async function addTournamentPlayer(tournamentId, { profileId = null, name }) {
+export async function addTournamentPlayer(tournamentId, { profileId = null, name, pairNo = null }) {
   // Идемпотентность для зарегистрированных: двойной тап «Занять» не должен
   // добавлять игрока дважды (дубль ломает жеребьёвку).
   if (profileId) {
@@ -105,8 +107,9 @@ export async function addTournamentPlayer(tournamentId, { profileId = null, name
     if (dupErr) throw dupErr;
     if (dup && dup.length > 0) return;
   }
-  const { error } = await supabase.from("tournament_players")
-    .insert({ tournament_id: tournamentId, profile_id: profileId, name: name.trim() });
+  const row = { tournament_id: tournamentId, profile_id: profileId, name: name.trim() };
+  if (pairNo != null) row.pair_no = pairNo;
+  const { error } = await supabase.from("tournament_players").insert(row);
   if (error) throw error;
   bustCache();
 }
@@ -117,7 +120,7 @@ export async function removeTournamentPlayer(playerId) {
   bustCache();
 }
 
-export async function joinTournamentByCode(code, name) {
+export async function joinTournamentByCode(code, name, pairNo = null) {
   let profileId = null;
   const { data: { user } } = await supabase.auth.getUser();
   if (user) {
@@ -125,11 +128,11 @@ export async function joinTournamentByCode(code, name) {
     profileId = data?.id || null;
   }
   const { data, error } = await supabase.rpc("join_tournament", {
-    p_code: code, p_name: name.trim(), p_profile_id: profileId,
+    p_code: code, p_name: name.trim(), p_profile_id: profileId, p_pair_no: pairNo,
   });
   if (error) throw error;
   bustCache();
-  return data; // { ok, already?, linked? }
+  return data; // { ok, already?, linked?, pair_no? }
 }
 
 export async function getTournamentByCode(code) {
