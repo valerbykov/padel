@@ -50,7 +50,7 @@ export default {
     pc_upload_photo: 'Upload photo', pc_uploading: 'Uploading…',
     pc_or_pick: 'or pick an avatar:',
     pc_first_name: 'First name', pc_last_name: 'Last name', pc_phone: 'Phone', pc_email: 'Email',
-    pc_my_level: 'My level', pc_level_hint: 'Your self-assessment from external systems — visible to all', pc_level_add: 'Add level', pc_level_sys_ltr: 'Letters', pc_level_sys_oth: 'Other', pc_level_val_ph: 'Value', pc_level_sysname_ph: 'System (e.g. AJPP)', pc_level_add_btn: 'Add',
+    pc_my_level: 'My level', pc_level_hint: 'Your self-assessment from external systems — visible to all', pc_level_add: 'Add level', pc_level_sys_ltr: 'Lunda', pc_level_sys_oth: 'Other', pc_level_val_ph: 'Value', pc_level_sysname_ph: 'System (e.g. AJPP)', pc_level_add_btn: 'Add',
     pc_auth_method: 'Sign-in method', pc_auth_email: 'Email / password',
     pc_save: 'Save', pc_saving: 'Saving…', pc_saved: 'Saved',
     pc_delete_account: 'Delete account', pc_delete_title: 'Delete account?', pc_delete_warn: 'Your profile, contacts and avatar will be permanently deleted. Your match history will be anonymized.', pc_delete_confirm: 'Delete', pc_deleting: 'Deleting…', pc_delete_fail: 'Could not delete', pc_name_fallback: 'Player',
@@ -415,6 +415,6 @@ export default {
     trn_guest_add: '+ Guest: ',
     trn_loading_fail: 'Failed to load tournament.',
     trn_delete_confirm: 'Delete this tournament and all its data?',
-    games_loading: 'Loading…',
+    games_loading: 'Loading…', evt_level_multi_hint: 'Tap all levels that apply',
     evt_level_label: 'Level', evt_level_opt: 'optional', evt_level_range: 'Range', evt_level_to: 'to', dur_label: 'Duration', dur_h: 'h', dur_min: 'min', contact_pick_league: 'Contact from League', trn_share_pair_hint: 'Link for THIS pair — whoever opens it joins as the partner',
 };

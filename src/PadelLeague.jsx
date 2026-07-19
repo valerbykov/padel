@@ -2191,6 +2191,12 @@ export function GameRow({ g, color, onOpen, flush, bare, label, me = null, onTak
             {mine && showMeBadge && <MeBadge />}
           </div>
           {g.starts_at && <div style={{ fontSize: 12, color: "var(--mut)" }}>{fmtDate(g.starts_at)}</div>}
+          {(g.place || g.level) && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+              {g.place && <span style={{ fontSize: 11.5, color: "var(--mut)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 150 }}>📍 {g.place}</span>}
+              {g.level && <EventLevelBadge level={g.level} compact />}
+            </div>
+          )}
         </div>
         {/* У сыгранной с известной моей дельтой — бейдж ±N вместо галочки */}
         {played && delta != null ? (

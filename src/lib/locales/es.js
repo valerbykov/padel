@@ -50,7 +50,7 @@ export default {
     pc_upload_photo: 'Subir foto', pc_uploading: 'Subiendo…',
     pc_or_pick: 'o elige un avatar:',
     pc_first_name: 'Nombre', pc_last_name: 'Apellido', pc_phone: 'Teléfono', pc_email: 'Correo',
-    pc_my_level: 'Mi nivel', pc_level_hint: 'Tu autoevaluación de sistemas externos — visible para todos', pc_level_add: 'Añadir nivel', pc_level_sys_ltr: 'Letras', pc_level_sys_oth: 'Otro', pc_level_val_ph: 'Valor', pc_level_sysname_ph: 'Sistema (p.ej. AJPP)', pc_level_add_btn: 'Añadir',
+    pc_my_level: 'Mi nivel', pc_level_hint: 'Tu autoevaluación de sistemas externos — visible para todos', pc_level_add: 'Añadir nivel', pc_level_sys_ltr: 'Lunda', pc_level_sys_oth: 'Otro', pc_level_val_ph: 'Valor', pc_level_sysname_ph: 'Sistema (p.ej. AJPP)', pc_level_add_btn: 'Añadir',
     pc_auth_method: 'Método de acceso', pc_auth_email: 'Email / contraseña',
     pc_save: 'Guardar', pc_saving: 'Guardando…', pc_saved: 'Guardado',
     pc_delete_account: 'Eliminar cuenta', pc_delete_title: '¿Eliminar cuenta?', pc_delete_warn: 'Tu perfil, contactos y avatar se eliminarán de forma permanente. Tu historial de partidos se anonimizará.', pc_delete_confirm: 'Eliminar', pc_deleting: 'Eliminando…', pc_delete_fail: 'No se pudo eliminar', pc_name_fallback: 'Jugador',
@@ -415,6 +415,6 @@ export default {
     trn_guest_add: '+ Invitado: ',
     trn_loading_fail: 'No se pudo cargar el torneo.',
     trn_delete_confirm: '¿Eliminar el torneo y todos sus datos?',
-    games_loading: 'Cargando…',
+    games_loading: 'Cargando…', evt_level_multi_hint: 'Marca todos los niveles que apliquen',
     evt_level_label: 'Nivel', evt_level_opt: 'opcional', evt_level_range: 'Rango', evt_level_to: 'a', dur_label: 'Duración', dur_h: 'h', dur_min: 'min', contact_pick_league: 'Contacto de la Liga', trn_share_pair_hint: 'Enlace para ESTA pareja — quien lo abra se une como compañero',
 };

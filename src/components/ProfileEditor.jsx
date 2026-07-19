@@ -516,7 +516,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
                     {levels.map((l, i) => (
                       <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 999, padding: "4px 6px 4px 11px", fontSize: 12.5, fontWeight: 700, background: "var(--surface2)", border: "1px solid var(--line)" }}>
                         {(l.sys === "pt" || l.sys === "ltr") && <img src={l.sys === "pt" ? ptIcon : lundaIcon} alt="" width={15} height={15} style={{ borderRadius: 3, flexShrink: 0 }} />}
-                        {l.sys === "pt" ? `Playtomic ${l.val}` : l.sys === "oth" ? `${(l.lbl || "").trim()} ${l.val}`.trim() : l.val}
+                        {l.sys === "pt" ? `Playtomic ${l.val}` : l.sys === "oth" ? `${(l.lbl || "").trim()} ${l.val}`.trim() : `Lunda ${l.val}`}
                         <button aria-label={t("delete_btn")} onClick={() => removeLevel(i)} style={{ border: "none", background: "none", color: "var(--mut)", cursor: "pointer", fontSize: 13, lineHeight: 1 }}>×</button>
                       </span>
                     ))}

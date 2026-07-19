@@ -50,7 +50,7 @@ export default {
     pc_upload_photo: 'Загрузить фото', pc_uploading: 'Загрузка…',
     pc_or_pick: 'или выбери аватар:',
     pc_first_name: 'Имя', pc_last_name: 'Фамилия', pc_phone: 'Телефон', pc_email: 'Почта',
-    pc_my_level: 'Мой уровень', pc_level_hint: 'Твоя самооценка из внешних систем — видна всем', pc_level_add: 'Добавить уровень', pc_level_sys_ltr: 'Буквы', pc_level_sys_oth: 'Другое', pc_level_val_ph: 'Значение', pc_level_sysname_ph: 'Система (напр. AJPP)', pc_level_add_btn: 'Добавить',
+    pc_my_level: 'Мой уровень', pc_level_hint: 'Твоя самооценка из внешних систем — видна всем', pc_level_add: 'Добавить уровень', pc_level_sys_ltr: 'Lunda', pc_level_sys_oth: 'Другое', pc_level_val_ph: 'Значение', pc_level_sysname_ph: 'Система (напр. AJPP)', pc_level_add_btn: 'Добавить',
     pc_auth_method: 'Способ входа', pc_auth_email: 'Email / пароль',
     pc_save: 'Сохранить', pc_saving: 'Сохраняю…', pc_saved: 'Сохранено',
     pc_delete_account: 'Удалить аккаунт', pc_delete_title: 'Удалить аккаунт?', pc_delete_warn: 'Профиль, контакты и аватар будут удалены без возможности восстановления. История матчей станет анонимной.', pc_delete_confirm: 'Удалить', pc_deleting: 'Удаляю…', pc_delete_fail: 'Не удалось удалить', pc_name_fallback: 'Игрок',
@@ -415,6 +415,6 @@ export default {
     trn_guest_add: '+ Гость: ',
     trn_loading_fail: 'Не удалось загрузить турнир.',
     trn_delete_confirm: 'Удалить турнир и все его данные?',
-    games_loading: 'Загрузка…',
+    games_loading: 'Загрузка…', evt_level_multi_hint: 'Отметь все подходящие уровни',
     evt_level_label: 'Уровень', evt_level_opt: 'необязательно', evt_level_range: 'Диапазон', evt_level_to: 'до', dur_label: 'Длительность', dur_h: 'ч', dur_min: 'мин', contact_pick_league: 'Контакт из Лиги', trn_share_pair_hint: 'Ссылка именно для этой пары — кто её откроет, встанет вторым к этому игроку',
 };

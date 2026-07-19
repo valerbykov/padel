@@ -1,49 +1,45 @@
 // components/LevelPicker.jsx
-// Событийный уровень (турнир/игра): как выбор уровня в ProfileEditor, но с
-// опциональным диапазоном (val2 — верхняя граница). Ввод — «сырые» строки;
-// родитель санитайзит через lib/levels.sanitizeEventLevel перед сохранением.
-import React, { useState } from "react";
+// Событийный уровень (турнир/игра): МНОЖЕСТВЕННЫЙ выбор принимаемых уровней —
+// тапаешь чипы, каждый добавляет/убирает значение. Ввод «сырой»; родитель
+// санитайзит через lib/levels.sanitizeEventLevel перед сохранением.
+import React, { useState, useRef } from "react";
 import { t } from "../lib/i18n";
 import { LETTER_OPTIONS } from "../lib/levels";
 
+const PT_OPTIONS = ["1.0", "1.5", "2.0", "2.5", "3.0", "3.5", "4.0", "4.5", "5.0", "5.5", "6.0", "6.5", "7.0"];
+
 export default function LevelPicker({ value, onChange }) {
   const [sys, setSys] = useState(value?.sys || "pt");
-  const [val, setVal] = useState(value?.val != null ? String(value.val) : "");
-  const [val2, setVal2] = useState(value?.val2 != null ? String(value.val2) : "");
+  const [vals, setVals] = useState(
+    Array.isArray(value?.vals) ? value.vals.map(String) : value?.val != null ? [String(value.val)] : []
+  );
   const [lbl, setLbl] = useState(value?.lbl || "");
-  const [range, setRange] = useState(!!value?.val2);
+  // ref всегда держит актуальный vals — чтобы быстрые последовательные тапы по
+  // чипам копились (без него замыкание vals было бы устаревшим до ре-рендера).
+  const valsRef = useRef(vals);
+  valsRef.current = vals;
 
-  const emit = (next) => {
-    const v = next.val ?? val;
-    if (!String(v || "").trim()) { onChange(null); return; }
-    onChange({ sys: next.sys ?? sys, val: v, val2: next.range ?? range ? (next.val2 ?? val2) : "", lbl: next.lbl ?? lbl });
+  const push = (nextVals, nextLbl) => {
+    const vv = (nextVals ?? vals).map((x) => String(x).trim()).filter(Boolean);
+    if (!vv.length) { onChange(null); return; }
+    onChange({ sys, vals: vv, lbl: nextLbl ?? lbl });
   };
+  const pickSys = (k) => { setSys(k); setVals([]); valsRef.current = []; setLbl(""); onChange(null); };
+  const toggle = (v) => {
+    const prev = valsRef.current;
+    const next = prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v];
+    valsRef.current = next; setVals(next); push(next);
+  };
+  const setOth = (v) => { const nv = v.trim() ? [v] : []; setVals(nv); push(nv); };
 
-  const pickSys = (k) => { setSys(k); setVal(""); setVal2(""); setLbl(""); onChange(null); };
-  const setValAnd = (v) => { setVal(v); emit({ val: v }); };
-  const setVal2And = (v) => { setVal2(v); emit({ val2: v }); };
-  const toggleRange = () => {
-    const nextRange = !range;
-    setRange(nextRange);
-    if (!nextRange) { setVal2(""); emit({ range: false, val2: "" }); }
-    else emit({ range: true });
-  };
-
-  const valueInput = (v, onSet, ph) => {
-    if (sys === "pt") return (
-      <input type="number" min="0" max="7" step="0.5" value={v} onChange={(e) => onSet(e.target.value)} placeholder={ph}
-        style={inputStyle} />
-    );
-    if (sys === "ltr") return (
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        {LETTER_OPTIONS.map((L) => (
-          <button key={L} type="button" onClick={() => onSet(L)} style={{ border: "1px solid var(--line)", borderRadius: 8, padding: "7px 0", width: "calc((100% - 36px)/7)", fontWeight: 800, cursor: "pointer", background: v === L ? "#7cc4e0" : "var(--bg)", color: v === L ? "#0a1612" : "var(--mut)" }}>{L}</button>
-        ))}
-      </div>
-    );
-    // oth
-    return <input value={v} onChange={(e) => onSet(e.target.value)} placeholder={t("pc_level_val_ph")} style={inputStyle} />;
-  };
+  const accent = sys === "pt" ? "var(--lime)" : "#7cc4e0";
+  const accentFg = sys === "pt" ? "var(--lime-fg)" : "#0a1612";
+  const chip = (on) => ({
+    flexShrink: 0, border: "1px solid var(--line)", borderRadius: 8, padding: "7px 12px",
+    fontWeight: 800, fontSize: 13, cursor: "pointer",
+    background: on ? accent : "var(--bg)", color: on ? accentFg : "var(--mut)",
+    borderColor: on ? accent : "var(--line)",
+  });
 
   return (
     <div style={{ background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, padding: 12 }}>
@@ -56,24 +52,21 @@ export default function LevelPicker({ value, onChange }) {
         ))}
       </div>
 
-      {sys === "oth" && (
-        <input value={lbl} onChange={(e) => { setLbl(e.target.value); emit({ lbl: e.target.value }); }} placeholder={t("pc_level_sysname_ph")} style={{ ...inputStyle, marginBottom: 8 }} />
+      {sys === "oth" ? (
+        <div style={{ display: "flex", gap: 8 }}>
+          <input value={lbl} onChange={(e) => { setLbl(e.target.value); push(vals, e.target.value); }} placeholder={t("pc_level_sysname_ph")} style={inputStyle} />
+          <input value={vals[0] || ""} onChange={(e) => setOth(e.target.value)} placeholder={t("pc_level_val_ph")} style={{ ...inputStyle, maxWidth: 120 }} />
+        </div>
+      ) : (
+        <>
+          <div style={{ fontSize: 11.5, color: "var(--mut)", marginBottom: 7 }}>{t("evt_level_multi_hint")}</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {(sys === "pt" ? PT_OPTIONS : LETTER_OPTIONS).map((v) => (
+              <button key={v} type="button" onClick={() => toggle(v)} style={chip(vals.includes(v))}>{v}</button>
+            ))}
+          </div>
+        </>
       )}
-
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div style={{ flex: 1 }}>{valueInput(val, setValAnd, sys === "pt" ? "0 – 7" : t("pc_level_val_ph"))}</div>
-        {range && (
-          <>
-            <span style={{ fontSize: 11.5, color: "var(--mut)", flexShrink: 0 }}>{t("evt_level_to")}</span>
-            <div style={{ flex: 1 }}>{valueInput(val2, setVal2And, sys === "pt" ? "0 – 7" : t("pc_level_val_ph"))}</div>
-          </>
-        )}
-      </div>
-
-      <label style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, fontSize: 12, fontWeight: 600, color: "var(--mut)", cursor: "pointer" }}>
-        <input type="checkbox" checked={range} onChange={toggleRange} style={{ accentColor: "var(--lime)" }} />
-        {t("evt_level_range")}
-      </label>
     </div>
   );
 }

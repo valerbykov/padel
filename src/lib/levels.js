@@ -6,37 +6,45 @@
 export const LEVEL_SYSTEMS = ["pt", "ltr", "oth"];
 export const LETTER_OPTIONS = ["E", "D", "D+", "C", "C+", "B", "A"];
 
-// Строка для бейджа. Playtomic — бренд, не переводим.
+// Префикс системы в бейдже. Playtomic и Lunda — бренды, не переводим.
+function sysPrefix(sys, lbl) {
+  if (sys === "pt") return "Playtomic";
+  if (sys === "ltr") return "Lunda";
+  return (lbl || "").trim(); // oth
+}
+
+// Строка для бейджа уровня игрока (одно значение).
 export function formatLevel(lvl) {
   if (!lvl || typeof lvl !== "object") return "";
   const val = (lvl.val == null ? "" : String(lvl.val)).trim();
   if (!val) return "";
-  if (lvl.sys === "pt") return `Playtomic ${val}`;
-  if (lvl.sys === "oth") return `${(lvl.lbl || "").trim()} ${val}`.trim();
-  return val; // ltr
+  return `${sysPrefix(lvl.sys, lvl.lbl)} ${val}`.trim();
 }
 
-// Событийный уровень (для турнира/игры): как formatLevel, но с диапазоном val2.
+// Значения событийного уровня: новый мультивыбор (vals[]) ИЛИ легаси val/val2.
+function eventVals(lvl) {
+  let vals = Array.isArray(lvl.vals) ? lvl.vals : [];
+  if (!vals.length) vals = [lvl.val, lvl.val2];
+  return [...new Set(vals.map((x) => String(x == null ? "" : x).trim()).filter(Boolean))];
+}
+
+// Событийный уровень (турнир/игра): множественный выбор принимаемых уровней.
 export function formatEventLevel(lvl) {
   if (!lvl || typeof lvl !== "object") return "";
-  const v = (lvl.val == null ? "" : String(lvl.val)).trim();
-  if (!v) return "";
-  const v2 = (lvl.val2 == null ? "" : String(lvl.val2)).trim();
-  const range = v2 && v2 !== v ? `${v}–${v2}` : v; // en-dash
-  if (lvl.sys === "pt") return `Playtomic ${range}`;
-  if (lvl.sys === "oth") return `${(lvl.lbl || "").trim()} ${range}`.trim();
-  return range; // ltr
+  const vals = eventVals(lvl);
+  if (!vals.length) return "";
+  return `${sysPrefix(lvl.sys, lvl.lbl)} ${vals.join(", ")}`.trim();
 }
 
-// Санитайзер событийного уровня (с опциональным val2 — верхней границей диапазона).
+// Санитайзер событийного уровня: канонизирует vals (уник, порядок по «лестнице»).
 export function sanitizeEventLevel(lvl) {
   if (!lvl || typeof lvl !== "object") return null;
   if (!LEVEL_SYSTEMS.includes(lvl.sys)) return null;
-  const val = String(lvl.val || "").trim();
-  if (!val) return null;
-  const out = { sys: lvl.sys, val };
-  const val2 = String(lvl.val2 || "").trim();
-  if (val2 && val2 !== val) out.val2 = val2;
+  let vals = eventVals(lvl);
+  if (!vals.length) return null;
+  if (lvl.sys === "ltr") vals.sort((a, b) => LETTER_OPTIONS.indexOf(a) - LETTER_OPTIONS.indexOf(b));
+  else if (lvl.sys === "pt") vals.sort((a, b) => parseFloat(a) - parseFloat(b));
+  const out = { sys: lvl.sys, vals };
   if (lvl.sys === "oth" && String(lvl.lbl || "").trim()) out.lbl = String(lvl.lbl).trim();
   return out;
 }
