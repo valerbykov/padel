@@ -201,7 +201,7 @@ export async function getRatingHistory(groupId, profileId) {
    ===================================================================== */
 
 const GAME_SELECT =
-  "id, invite_code, title, starts_at, started_at, place, status, host_id, created_at, mix_group_id, court_name, " +
+  "id, invite_code, title, starts_at, started_at, place, status, host_id, created_at, mix_group_id, court_name, fee_per_player, fee_currency, fee_timing, " +
   "slots:game_slots(id, team, position, profile_id, guest_name, profile:profiles(name, avatar_url))," +
   "matches(id, sets_a, sets_b, score_detail, played_at)";
 
@@ -666,8 +666,8 @@ export async function getGameFeePayments(gameId) {
     return new Set((data || []).map((r) => (typeof r === "string" ? r : r?.get_game_fee_payments || r?.slot_id)).filter(Boolean));
   } catch (e) { return new Set(); }
 }
-export async function setGameFee(gameId, perPlayer) {
-  const { error } = await supabase.rpc("set_game_fee", { p_game_id: gameId, p_per_player: perPlayer });
+export async function setGameFee(gameId, perPlayer, currency = null, timing = "end") {
+  const { error } = await supabase.rpc("set_game_fee", { p_game_id: gameId, p_per_player: perPlayer, p_currency: currency || "", p_timing: timing || "end" });
   if (error) throw error;
 }
 export async function toggleGameFeePaid(slotId) {
