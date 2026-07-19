@@ -1171,8 +1171,16 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
         )}
         {(trnData.starts_at || trnData.place) && (
           <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 4, display: "flex", gap: 12, flexWrap: "wrap" }}>
-            {trnData.starts_at && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={12} />{(() => { try { return new Date(trnData.starts_at).toLocaleString(dateLocale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } })()}</span>}
+            {trnData.starts_at && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={12} />{(() => { try { const s = new Date(trnData.starts_at).toLocaleString(dateLocale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); const e = trnData.ends_at ? new Date(trnData.ends_at).toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit" }) : null; return e ? `${s} – ${e}` : s; } catch (e) { return ""; } })()}</span>}
             {trnData.place && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><MapPin size={12} />{trnData.place}</span>}
+          </div>
+        )}
+        {trnData.description && (
+          <div style={{ fontSize: 12.5, color: "var(--ink)", marginTop: 8, whiteSpace: "pre-wrap", lineHeight: 1.45 }}>{trnData.description}</div>
+        )}
+        {trnData.contact_name && (
+          <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 6 }}>
+            {tr("trn_contact_name_label")}: <span style={{ color: "var(--ink)", fontWeight: 600 }}>{trnData.contact_name}</span>{trnData.contact_link && <span> · {trnData.contact_link}</span>}
           </div>
         )}
       </div>
