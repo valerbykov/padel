@@ -10,7 +10,7 @@ import {
   generateMexicanoRound, generateKotHRound, generateKotHLadderRound, setCourtName, setScorePin, checkScorePin,
   getTournamentFee, getFeePayments, setTournamentFee, toggleFeePaid, remindFeeDebtors,
 } from "../lib/tournamentApi";
-import { standings, detailedStandings, allMatchesPlayed } from "../lib/americano";
+import { standings, detailedStandings, allMatchesPlayed, pairStandings } from "../lib/americano";
 import { dogAvatar } from "../lib/avatar";
 import Fab from "./Fab";
 import { CardSkeleton } from "./Skeleton";
@@ -992,7 +992,11 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     return gp?.avatar_url || tp.avatar_url || tp.profile?.avatar_url || (tp.profile_id ? _dogAv(tp.profile_id) : null);
   };
 
-  const table = detailedStandings(trnData.players.map((p) => ({ id: p.id, name: p.name })), trnData.matches.filter((m) => m.round_number > 0));
+  const isPairFmt = fmt.category === "pair";
+  const playedForTable = trnData.matches.filter((m) => m.round_number > 0);
+  const table = isPairFmt
+    ? pairStandings(trnData.players, playedForTable)
+    : detailedStandings(trnData.players.map((p) => ({ id: p.id, name: p.name })), playedForTable);
 
   // Карточка-подиум для шаринга: топ-3 из standings, canvas → PNG → шеринг.
   const sharePodium = async () => {
@@ -1016,17 +1020,16 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   };
 
   // Победитель финального экрана: для KotH — пара по выбранному правилу, иначе — лидер таблицы.
+  // Чемпион парного формата — строка-ПАРА в table (по pair_no игрока-чемпиона из
+  // kothChampionPair); иначе (solo) — лидер таблицы.
   const kothPair = isKoth && trnData.status === "finished" ? kothChampionPair(trnData) : null;
-  const champ = kothPair
-    ? (() => {
-        const rows = kothPair.map((pid) => table.find((r) => r.id === pid)).filter(Boolean);
-        return {
-          name: `${nameOf(kothPair[0])} & ${nameOf(kothPair[1])}`,
-          points: rows.reduce((s, r) => s + (r.points || 0), 0),
-          delta: rows.reduce((s, r) => s + (r.delta || 0), 0),
-        };
-      })()
+  const champPairNo = kothPair
+    ? (trnData.players.find((p) => kothPair.includes(p.id))?.pair_no ?? null)
+    : null;
+  const champ = isPairFmt
+    ? (champPairNo != null ? table.find((r) => r.pair_no === champPairNo) : table[0])
     : table[0];
+  const champRowId = champ?.id || null; // для подсветки строки-пары
   const done = allMatchesPlayed(displayMatches);
   const rmap = groupRounds(displayMatches);
   const roundNums = Object.keys(rmap).map(Number).sort((a, b) => a - b);
@@ -1560,7 +1563,12 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                 avatarOf={avatarOfTp}
                 api={{ getFee: getTournamentFee, getPaid: getFeePayments, setFee: setTournamentFee, togglePaid: toggleFeePaid, remind: remindFeeDebtors }} />
             )}
-            <StandingsTable rows={table} highlightId={(trnData.players || []).find((p) => p.profile_id === currentProfileId)?.id} avatarOf={(row) => ({ url: avatarOfTp(row.id) })} championIds={trnData.status === "finished" ? kothPair : null} />
+            <StandingsTable rows={table}
+              highlightId={isPairFmt
+                ? (() => { const me = (trnData.players || []).find((p) => p.profile_id === currentProfileId); return me?.pair_no != null ? `pair-${me.pair_no}` : null; })()
+                : (trnData.players || []).find((p) => p.profile_id === currentProfileId)?.id}
+              avatarOf={(row) => ({ url: isPairFmt ? null : avatarOfTp(row.id) })}
+              championIds={trnData.status === "finished" && champRowId ? [champRowId] : null} />
           </div>
         </>
       )}
