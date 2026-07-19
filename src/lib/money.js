@@ -4,7 +4,7 @@
 
 export const CURRENCIES = ["RUB", "EUR", "USD", "GBP", "ARS", "MXN", "BRL", "AED"];
 
-const SYMBOLS = { RUB: "₽", EUR: "€", USD: "$", GBP: "£", ARS: "$", MXN: "$", BRL: "R$", AED: "AED" };
+const SYMBOLS = { RUB: "₽", EUR: "€", USD: "$", GBP: "£", ARS: "AR$", MXN: "MX$", BRL: "R$", AED: "AED" };
 
 export function currencySymbol(cur) {
   return SYMBOLS[cur] || cur || "";

@@ -1268,7 +1268,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                       <span style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{p.name}</span>
                     </span>
                     {!readOnly && (
-                      <button aria-label={tr("delete_btn")} onClick={async () => { try { await removeTournamentPlayer(p.id); } catch (e) {} setAddingToPair(null); load(); }}
+                      <button aria-label={tr("delete_btn")} onClick={async () => { try { await removeTournamentPlayer(p.id); } catch (e) {} load(); }}
                         style={{ flexShrink: 0, width: 20, height: 20, borderRadius: "50%", border: "none", background: "color-mix(in srgb, var(--coral) 16%, transparent)", color: "var(--coral)", display: "grid", placeItems: "center", cursor: "pointer" }}>
                         <X size={12} />
                       </button>
