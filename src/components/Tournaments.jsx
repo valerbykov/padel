@@ -54,6 +54,8 @@ import { groupPairs, nextPairNo, allPaired } from "../lib/pairs";
 import Avatar from "./Avatar";
 import FeesCard from "./FeesCard";
 import EmptyState from "./EmptyState";
+import { formatMoney } from "../lib/money";
+import { defaultCurrency } from "../lib/region";
 import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Share2, Trash2, Plus, Check, Calendar, MapPin } from "lucide-react";
 import { t as tr , dateLocale} from "../lib/i18n";
 import DateTimePicker from "./DateTimePicker";
@@ -930,6 +932,8 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   const startingRef = useRef(false);
   const [burst, setBurst] = useState(0);
   const [cardBusy, setCardBusy] = useState(false); // готовим карточку-подиум
+  const [defCur, setDefCur] = useState("EUR");
+  useEffect(() => { defaultCurrency().then(setDefCur).catch(() => {}); }, []);
   const firedRef = useRef(false);
   useEffect(() => {
     if (trnData && trnData.status === "finished" && !firedRef.current) { firedRef.current = true; setBurst((b) => b + 1); }
@@ -1190,6 +1194,13 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
         {trnData.contact_name && (
           <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 6 }}>
             {tr("trn_contact_name_label")}: <span style={{ color: "var(--ink)", fontWeight: 600 }}>{trnData.contact_name}</span>{trnData.contact_link && <span> · {trnData.contact_link}</span>}
+          </div>
+        )}
+        {trnData.fee_per_player > 0 && (
+          <div style={{ marginTop: 6 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: "var(--lime)", background: "color-mix(in srgb, var(--lime) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", borderRadius: 999, padding: "3px 10px" }}>
+              💸 {formatMoney(trnData.fee_per_player, trnData.fee_currency)}
+            </span>
           </div>
         )}
       </div>
@@ -1554,13 +1565,16 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
               </div>
             )}
             {trnData.status === "finished" && <Confetti burst={burst} />}
-            {/* Взносы за организацию: только завершённый турнир, не для зрителей */}
-            {trnData.status === "finished" && !spectatorMode && (
+            {/* Взносы: доступны на любом этапе (не только finished), не для зрителей.
+                Тайминг (fee_timing) — только подсказка; карточка сама скрывается,
+                пока сумма не задана и ты не организатор. */}
+            {!spectatorMode && (
               <FeesCard entityId={trnData.id} entityName={trnData.name}
                 players={(trnData.players || []).map((p) => ({ key: p.id, profile_id: p.profile_id, name: p.name }))}
                 me={currentProfileId} readOnly={readOnly}
                 canManage={isAdmin || trnData.created_by === currentProfileId}
                 avatarOf={avatarOfTp}
+                currency={trnData.fee_currency} timing={trnData.fee_timing} defaultCurrency={defCur}
                 api={{ getFee: getTournamentFee, getPaid: getFeePayments, setFee: setTournamentFee, togglePaid: toggleFeePaid, remind: remindFeeDebtors }} />
             )}
             <StandingsTable rows={table}
