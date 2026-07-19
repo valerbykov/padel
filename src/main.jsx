@@ -5,6 +5,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import Root from "./Root";
 import { isNativeApp } from "./lib/platform";
+import { initI18n } from "./lib/i18n";
 import "./index.css";
 
 // Только в нативе (Capacitor) отключаем зум webview: в WKWebView пинч-зум
@@ -58,8 +59,19 @@ window.addEventListener("vite:preloadError", (e) => { try { e.preventDefault(); 
 window.addEventListener("unhandledrejection", (e) => { if (isChunkLoadError(e && e.reason)) reloadForStaleChunk((e.reason && e.reason.message) || String(e && e.reason)); });
 
 // Root — тонкий гейт: гостю показывает Landing без supabase/App, остальное грузит лениво.
-createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <Root />
-  </React.StrictMode>
-);
+function renderApp() {
+  createRoot(document.getElementById("root")).render(
+    <React.StrictMode>
+      <Root />
+    </React.StrictMode>
+  );
+}
+
+// Активную локаль (+ ru как фолбэк) грузим ДО первого рендера: t() синхронная, к
+// моменту рендера словарь должен быть на месте. Локали — отдельные чанки, поэтому
+// в стартовый бандл входит только нужный язык, а не все три. Если чанк локали не
+// подтянулся (стухший деплой), даём стухшему-чанку перезагрузить; иначе всё равно
+// рендерим (t() отдаст ru-фолбэк/ключи — не белый экран).
+initI18n()
+  .catch((e) => { if (isChunkLoadError(e)) reloadForStaleChunk((e && e.message) || "i18n chunk"); })
+  .finally(renderApp);

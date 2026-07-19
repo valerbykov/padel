@@ -88,7 +88,7 @@ export default function App({ initialShowLogin = false }) {
     applyLang(g); // активируем guess для первого рендера, без записи (гео уточнит ниже)
     return g;
   });
-  const handleLangChange = useCallback((l) => { setLang(l); setLangState(l); updateNotifLang(l); }, []);
+  const handleLangChange = useCallback(async (l) => { await setLang(l); setLangState(l); updateNotifLang(l); }, []);
 
   // Первый заход (язык ещё не выбран): определяем по стране через гео-API и сохраняем.
   // RU/СНГ-ru → ru, Испания/ЛатАм → es, остальное → en. Возвращающиеся юзеры (plLang

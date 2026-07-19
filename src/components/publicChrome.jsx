@@ -15,7 +15,7 @@ export function usePublicChrome() {
   const [theme, setTheme] = useState(() => localStorage.getItem("plTheme") || "dark");
   const [lang, setLangState] = useState(() => currentLang);
   const toggleTheme = () => { const n = theme === "dark" ? "light" : "dark"; setTheme(n); localStorage.setItem("plTheme", n); };
-  const cycleLang = () => { const idx = LANGS.indexOf(lang); const n = LANGS[(idx + 1) % LANGS.length]; setLang(n); setLangState(n); };
+  const cycleLang = async () => { const idx = LANGS.indexOf(lang); const n = LANGS[(idx + 1) % LANGS.length]; await setLang(n); setLangState(n); };
   return { theme, lang, vars: PUBLIC_VARS[theme] || PUBLIC_VARS.dark, toggleTheme, cycleLang };
 }
 

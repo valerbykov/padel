@@ -96,7 +96,7 @@ const css = `
 `;
 
 export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpenStats, lang = "ru", onThemeToggle, onLangChange, profile = null, activeLeague = null, leagueCount = 0 }) {
-  const pickLang = (l) => { setLang(l); onLangChange?.(l); };
+  const pickLang = async (l) => { await setLang(l); onLangChange?.(l); };
   // Мгновенная гидратация из props.profile (кэш бутстрапа): первый кадр — без сети.
   const [userId, setUserId] = useState(null);
   const [email, setEmail] = useState("");

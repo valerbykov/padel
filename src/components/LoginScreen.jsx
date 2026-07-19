@@ -69,7 +69,7 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
 
   const reset = () => { setMsg({ kind: "", text: "" }); };
 
-  const handleLang = (l) => { setLang(l); onLangChange?.(l); };
+  const handleLang = async (l) => { await setLang(l); onLangChange?.(l); };
 
   // ----- Google OAuth -----
   const signInGoogle = async () => {
