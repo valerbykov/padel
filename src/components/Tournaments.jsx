@@ -94,16 +94,18 @@ const FORMAT_META = {
 
 function getFormats() {
   return [
-    { id: "americano",    ...FORMAT_META.americano,
+    // category: 'solo' (партнёры меняются, личный зачёт) | 'pair' (фикс-пара, зачёт пары).
+    // hidden: не показывать при создании (оставлен для рендера уже созданных турниров).
+    { id: "americano",    ...FORMAT_META.americano, category: "solo",
       name: tr("fmt_americano_name"), tagline: tr("fmt_americano_tagline"), desc: tr("fmt_americano_desc"),
       tags: [tr("fmt_americano_t1"), tr("fmt_americano_t2"), tr("fmt_americano_t3")] },
-    { id: "mexicano",     ...FORMAT_META.mexicano,
+    { id: "mexicano",     ...FORMAT_META.mexicano, category: "solo",
       name: tr("fmt_mexicano_name"), tagline: tr("fmt_mexicano_tagline"), desc: tr("fmt_mexicano_desc"),
       tags: [tr("fmt_mexicano_t1"), tr("fmt_mexicano_t2"), tr("fmt_mexicano_t3")] },
-    { id: "king_of_hill", ...FORMAT_META.king_of_hill,
+    { id: "king_of_hill", ...FORMAT_META.king_of_hill, category: "pair",
       name: tr("fmt_koth_name"), tagline: tr("fmt_koth_tagline"), desc: tr("fmt_koth_desc"),
       tags: [tr("fmt_koth_t1"), tr("fmt_koth_t2"), tr("fmt_koth_t3")] },
-    { id: "beat_the_box", ...FORMAT_META.beat_the_box,
+    { id: "beat_the_box", ...FORMAT_META.beat_the_box, category: "pair", hidden: true,
       name: tr("fmt_btb_name"), tagline: tr("fmt_btb_tagline"), desc: tr("fmt_btb_desc"),
       tags: [tr("fmt_btb_t1"), tr("fmt_btb_t2"), tr("fmt_btb_t3")] },
   ];
@@ -447,11 +449,16 @@ export function CopyDialog({ src, groupId, profileId, onClose, onCopied }) {
 // ─── FormatPicker ──────────────────────────────────────────────────────────────
 
 function FormatPicker({ selected, onSelect }) {
-  return (
-    <div>
-      {getFormats().map((f) => {
-        const isSelected = selected === f.id;
-        return (
+  // Две секции: solo (партнёры меняются) и pair (фикс-пара). Скрытые (beat_the_box)
+  // не показываем при создании, но fmtById их ещё резолвит для старых турниров.
+  const all = getFormats().filter((f) => !f.hidden);
+  const cats = [
+    { id: "solo", label: tr("fmt_cat_solo"), sub: tr("fmt_cat_solo_sub"), color: "var(--lime)" },
+    { id: "pair", label: tr("fmt_cat_pair"), sub: tr("fmt_cat_pair_sub"), color: "#7fd0ff" },
+  ];
+  const card = (f) => {
+    const isSelected = selected === f.id;
+    return (
           <div
             key={f.id}
             onClick={() => onSelect(f.id)}
@@ -501,6 +508,22 @@ function FormatPicker({ selected, onSelect }) {
                 }}>{tag}</span>
               ))}
             </div>
+          </div>
+    );
+  };
+  return (
+    <div>
+      {cats.map((c) => {
+        const items = all.filter((f) => (f.category || "solo") === c.id);
+        if (!items.length) return null;
+        return (
+          <div key={c.id}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "12px 2px 8px" }}>
+              <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", color: c.color }}>{c.label}</span>
+              <span style={{ fontSize: 11.5, color: "var(--mut)" }}>{c.sub}</span>
+              <span style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            </div>
+            {items.map(card)}
           </div>
         );
       })}
@@ -1242,6 +1265,15 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                   {roundLabel}
                   {roundSub && <span style={{ color: "var(--mut)", fontSize: 13 }}>{roundSub}</span>}
                 </div>
+                {/* KotH: правило чемпиона видно ПО ХОДУ турнира, а не только в финале */}
+                {isKoth && (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    margin: "8px auto 0", maxWidth: 340, fontSize: 11.5, fontWeight: 700, color: "#e6b93f", textAlign: "center",
+                    background: "color-mix(in srgb, #f7d978 9%, transparent)", border: "1px solid color-mix(in srgb, #f7d978 30%, transparent)",
+                    borderRadius: 10, padding: "6px 11px" }}>
+                    🏆 {tr("trn_koth_rule_prefix")} {(trnData.koth_champion_rule || "court_1") === "points" ? tr("trn_koth_champion_points") : tr("trn_koth_champion_court1")}
+                  </div>
+                )}
               </div>
 
               {/* Role labels for Beat the Box (защитник/претендент) */}
