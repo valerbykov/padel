@@ -111,3 +111,40 @@ export function detailedStandings(players, matches) {
     .map((p) => ({ ...p, ...acc[p.id], delta: acc[p.id].points - acc[p.id].against }))
     .sort((a, b) => b.points - a.points || b.delta - a.delta);
 }
+
+// Итоговая таблица ПО ПАРАМ (парные форматы, напр. King of the Court). Очки
+// начисляем по КОМАНДЕ через pair_no первого игрока команды — партнёры на одной
+// стороне, поэтому суммировать двоих нельзя (задвоит). players: [{id,name,pair_no}].
+export function pairStandings(players, matches) {
+  const groups = {}; // pair_no -> { ids:[], names:[] }
+  const pairOf = {}; // player id -> pair_no
+  players.forEach((p) => {
+    if (p.pair_no == null) return;
+    const g = groups[p.pair_no] || (groups[p.pair_no] = { ids: [], names: [] });
+    g.ids.push(p.id); g.names.push(p.name);
+    pairOf[p.id] = p.pair_no;
+  });
+  const acc = {};
+  Object.keys(groups).forEach((pn) => { acc[pn] = { points: 0, against: 0, wins: 0, draws: 0, losses: 0, played: 0 }; });
+  for (const m of matches) {
+    if (m.score_a == null || m.score_b == null) continue;
+    const pa = pairOf[(m.team_a || [])[0]];
+    const pb = pairOf[(m.team_b || [])[0]];
+    const aWin = m.score_a > m.score_b, draw = m.score_a === m.score_b;
+    if (pa != null && acc[pa]) {
+      const s = acc[pa]; s.points += m.score_a; s.against += m.score_b; s.played++;
+      if (draw) s.draws++; else if (aWin) s.wins++; else s.losses++;
+    }
+    if (pb != null && acc[pb]) {
+      const s = acc[pb]; s.points += m.score_b; s.against += m.score_a; s.played++;
+      if (draw) s.draws++; else if (!aWin) s.wins++; else s.losses++;
+    }
+  }
+  return Object.keys(groups)
+    .map((pn) => ({
+      id: `pair-${pn}`, pair_no: Number(pn), ids: groups[pn].ids,
+      name: groups[pn].names.join(" & "),
+      ...acc[pn], delta: acc[pn].points - acc[pn].against,
+    }))
+    .sort((a, b) => b.points - a.points || b.delta - a.delta);
+}
