@@ -30,8 +30,12 @@ export default function FeesCard({ entityId, entityName = "", players = [], me, 
     // Сброс на смену сущности: иначе на новой карточке мелькает сумма/оплаты
     // прошлой игры и остаётся открытой её форма редактирования.
     setFee(undefined); setPaid(new Set()); setSetup(false); setAmount(""); setBusyKey(null);
-    api.getFee(entityId).then((f) => { if (alive) setFee(f); });
-    api.getPaid(entityId).then((s) => { if (alive) setPaid(s); });
+    // При reject не оставляем fee === undefined навсегда (иначе карточка молча
+    // исчезает — return null ниже): падаем в null (=«сбор не задан»).
+    api.getFee(entityId).then((f) => { if (alive) setFee(f); })
+      .catch((e) => { if (alive) { console.error("FeesCard: getFee", entityId, e); setFee(null); } });
+    api.getPaid(entityId).then((s) => { if (alive) setPaid(s); })
+      .catch((e) => { if (alive) { console.error("FeesCard: getPaid", entityId, e); } });
     return () => { alive = false; };
   }, [entityId]); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -40,11 +40,14 @@ export function swr(key, fn) {
   const epoch = EPOCH;
   const p = Promise.resolve().then(fn).then(
     (v) => {
-      INFLIGHT.delete(key);
+      // Удаляем из INFLIGHT только свой промис: после bustKey стартует новый
+      // запрос p2, и если старый p доедет позже — он не должен выселить p2 из
+      // мапы (иначе следующий swr не увидит p2 и заведёт дубль-фетч).
+      if (INFLIGHT.get(key) === p) INFLIGHT.delete(key);
       if ((GEN.get(key) || 0) === gen && EPOCH === epoch) { MEM.set(key, { v, t: Date.now() }); lsSet(key, v); }
       return v;
     },
-    (e) => { INFLIGHT.delete(key); throw e; }
+    (e) => { if (INFLIGHT.get(key) === p) INFLIGHT.delete(key); throw e; }
   );
   INFLIGHT.set(key, p);
 

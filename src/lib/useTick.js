@@ -11,7 +11,7 @@ let timer = null;
 
 function ensure() {
   if (timer) return;
-  timer = setInterval(() => { subs.forEach((fn) => { try { fn(); } catch (_) {} }); }, 30000);
+  timer = setInterval(() => { subs.forEach((fn) => { try { fn(); } catch (e) { console.error("useMinuteTick: подписчик упал", e); } }); }, 30000);
 }
 function maybeStop() {
   if (timer && subs.size === 0) { clearInterval(timer); timer = null; }

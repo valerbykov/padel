@@ -55,19 +55,25 @@ export default function TournamentJoin({ code, botName }) {
   const [profileName, setProfileName] = useState("");
   const [profileId, setProfileId] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
+  const [loadErr, setLoadErr] = useState(false);
   const { theme, lang, vars, toggleTheme, cycleLang } = usePublicChrome();
 
   const load = useCallback(async () => {
     try {
       const base = await getTournamentByCode(code);
-      if (!base) { setT(null); return; }
+      if (!base) { setT(null); setLoadErr(false); return; }  // реально не найден
       // Обогащаем счётами через прямой запрос (getTournamentByCode — RPC без
       // score_a/score_b) ТОЛЬКО авторизованным: у анонима RLS рубит прямой
       // select турнира в 406 (спам в консоли + бесполезный запрос). Гостю
       // хватает данных из RPC.
       const rich = session ? await getTournament(base.id).catch(() => null) : null;
-      setT(rich || base);
-    } catch (e) { setT(null); }
+      setT(rich || base); setLoadErr(false);
+    } catch (e) {
+      // Сетевой/серверный сбой — это НЕ «турнир не найден». Логируем и показываем
+      // отдельное сообщение, иначе аутаж выглядит как неверный код.
+      console.warn("[TournamentJoin] загрузка турнира не удалась", code, e);
+      setLoadErr(true);
+    }
   }, [code, session]);
   useEffect(() => { load(); }, [load]);
 
@@ -146,8 +152,15 @@ export default function TournamentJoin({ code, botName }) {
           </div>
         )}
 
-        {t === undefined && (
+        {t === undefined && !loadErr && (
           <div className="tj-card" style={{ textAlign: "center", color: "var(--mut)" }}>{tr("pub_loading")}</div>
+        )}
+
+        {t === undefined && loadErr && (
+          <div className="tj-card" style={{ color: "var(--coral)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 8 }}><AlertCircle size={16} /> {tr("err_generic")}</span>
+            <button className="tj-ghost" style={{ fontSize: 12 }} onClick={() => { setLoadErr(false); load(); }}>↻</button>
+          </div>
         )}
 
         {t === null && (

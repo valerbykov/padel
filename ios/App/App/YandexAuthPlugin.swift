@@ -25,6 +25,13 @@ public class YandexAuthPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func authorize(_ call: CAPPluginCall) {
+        // Защита от повторного входа: второй тап по «Yandex», пока первый вызов
+        // ещё в полёте, не должен перезатирать pendingCall — иначе промис первого
+        // вызова в JS зависнет навсегда. Отклоняем дубль, первый доигрывает сам.
+        if pendingCall != nil {
+            call.reject("busy")
+            return
+        }
         pendingCall = call
         DispatchQueue.main.async {
             guard let vc = self.bridge?.viewController else {
