@@ -1094,24 +1094,26 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                 <>
                   <div style={{ fontSize: 12, color: "var(--mut)", fontWeight: 700, marginBottom: 8 }}>{tr("trn_pairs")} {done}/{pairCap}</div>
                   {pairs.map((pr) => (
-                    <div key={pr.pair_no} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap", padding: "9px 4px", borderBottom: "1px solid var(--line)" }}>
-                      <span style={{ width: 16, flexShrink: 0, fontWeight: 800, color: "var(--mut)", fontSize: 13, textAlign: "center" }}>{pr.pair_no}</span>
-                      {member(pr.members[0])}
-                      <span style={{ color: "var(--mut)", fontWeight: 700, flexShrink: 0 }}>&amp;</span>
-                      {pr.members[1] ? member(pr.members[1]) : (
-                        !readOnly ? (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 3, flex: "1 1 0", minWidth: 0 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div key={pr.pair_no} style={{ padding: "9px 4px", borderBottom: "1px solid var(--line)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap" }}>
+                        <span style={{ width: 16, flexShrink: 0, fontWeight: 800, color: "var(--mut)", fontSize: 13, textAlign: "center" }}>{pr.pair_no}</span>
+                        {member(pr.members[0])}
+                        <span style={{ color: "var(--mut)", fontWeight: 700, flexShrink: 0 }}>&amp;</span>
+                        {pr.members[1] ? member(pr.members[1]) : (
+                          !readOnly ? (
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, flex: "1 1 0", minWidth: 0 }}>
                               <button onClick={() => setAddingToPair(pr.pair_no)}
-                                style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1.5px dashed color-mix(in srgb, var(--lime) 45%, transparent)", background: "none", borderRadius: 999, padding: "5px 12px", color: "var(--lime)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                                style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1.5px dashed color-mix(in srgb, var(--lime) 45%, transparent)", background: "none", borderRadius: 999, padding: "5px 12px", color: "var(--lime)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
                                 ＋ {tr("trn_choose_partner")}
                               </button>
                               <button onClick={() => sharePairLink(pr.pair_no)} aria-label={tr("trn_share_pair")}
-                                style={{ marginLeft: 6, border: "1px solid var(--line)", background: "var(--surface2)", borderRadius: 999, padding: "5px 10px", color: "var(--mut)", cursor: "pointer", fontSize: 12.5 }}>🔗</button>
+                                style={{ border: "1px solid var(--line)", background: "var(--surface2)", borderRadius: 999, padding: "5px 10px", color: "var(--mut)", cursor: "pointer", fontSize: 12.5, flexShrink: 0 }}>🔗</button>
                             </div>
-                            <div style={{ fontSize: 10.5, color: "var(--mut)", lineHeight: 1.3 }}>{tr("trn_share_pair_hint")}</div>
-                          </div>
-                        ) : <span style={{ color: "var(--mut)", fontSize: 12.5 }}>{tr("trn_looking_partner")}</span>
+                          ) : <span style={{ color: "var(--mut)", fontSize: 12.5 }}>{tr("trn_looking_partner")}</span>
+                        )}
+                      </div>
+                      {!pr.members[1] && !readOnly && (
+                        <div style={{ fontSize: 10.5, color: "var(--mut)", lineHeight: 1.3, marginTop: 5, marginLeft: 24 }}>{tr("trn_share_pair_hint")}</div>
                       )}
                     </div>
                   ))}
