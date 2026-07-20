@@ -796,7 +796,11 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
       const { renderTournamentCard, shareCanvas } = await import("../lib/shareCard");
       const canvas = await renderTournamentCard({
         name: trnData.name || fmt.name, dateStr, metaStr,
-        top3: table.slice(0, 3).map((row) => ({ name: row.name, avatar_url: avatarOfTp(row.id), id: row.id, points: row.points })),
+        top3: table.slice(0, 3).map((row) => ({
+          name: row.name, avatar_url: avatarOfTp(row.id), id: row.id, points: row.points,
+          avatars: Array.isArray(row.ids) && row.ids.length > 1 ? row.ids.map((pid) => avatarOfTp(pid)) : null,
+          names: row.names || null,
+        })),
       });
       await shareCanvas(canvas, "padelpack-podium.png");
     } catch (e) { /* отменили шеринг — молча */ }
@@ -1394,7 +1398,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
               highlightId={isPairFmt
                 ? (() => { const me = (trnData.players || []).find((p) => p.profile_id === currentProfileId); return me?.pair_no != null ? `pair-${me.pair_no}` : null; })()
                 : (trnData.players || []).find((p) => p.profile_id === currentProfileId)?.id}
-              avatarOf={(row) => ({ url: isPairFmt ? null : avatarOfTp(row.id) })}
+              avatarUrlOf={avatarOfTp}
               championIds={trnData.status === "finished" && isPairFmt && champRowId ? [champRowId] : null} />
           </div>
 

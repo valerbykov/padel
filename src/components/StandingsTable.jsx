@@ -8,7 +8,7 @@ import React from "react";
 import Avatar from "./Avatar";
 import { t } from "../lib/i18n";
 
-export default function StandingsTable({ rows, highlightId, avatarOf, championIds }) {
+export default function StandingsTable({ rows, highlightId, avatarOf, avatarUrlOf, championIds }) {
   const grid = "1fr 50px 66px 40px";
   const deltaColor = (d) => (d > 0 ? "#3ddc84" : d < 0 ? "var(--coral)" : "var(--mut)");
   const champSet = new Set(championIds || []);
@@ -43,11 +43,23 @@ export default function StandingsTable({ rows, highlightId, avatarOf, championId
               <span style={{ fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", fontWeight: 800, width: 14, flexShrink: 0, color: medal || "var(--mut)", fontSize: 13, lineHeight: 1, textAlign: "center" }}>
                 {i + 1}
               </span>
-              <Avatar name={p.name} url={av.url} id={p.id} size={24} />
+              {Array.isArray(p.ids) && p.ids.length > 1 ? (
+                // Пара — две аватарки внахлёст (обе, а не одна общая).
+                <div style={{ display: "flex", flexShrink: 0 }}>
+                  {p.ids.slice(0, 2).map((pid, k) => (
+                    <span key={pid} style={{ marginLeft: k ? -9 : 0, zIndex: 2 - k, borderRadius: "50%", boxShadow: "0 0 0 1.5px var(--surface)", display: "inline-flex" }}>
+                      <Avatar name={(p.names || [])[k] || p.name} url={avatarUrlOf ? avatarUrlOf(pid) : undefined} id={pid} size={22} />
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <Avatar name={p.name} url={avatarUrlOf ? avatarUrlOf(p.id) : (av.url)} id={p.id} size={24} />
+              )}
               <span style={{ fontSize: 13, fontWeight: (hl || champ) ? 700 : 500, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
                 {p.name}
               </span>
-              {champ && <span style={{ flexShrink: 0, fontSize: 12, lineHeight: 1 }}>🏆</span>}
+              {/* Иконку чемпиона в таблице убрали: чемпион виден по золотой строке +
+                  в карточке «ЧЕМПИОН» выше. 🏆 в таблице был преждевременным/дублем. */}
             </div>
 
             {/* В/Н/П */}

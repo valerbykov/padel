@@ -142,7 +142,7 @@ export function pairStandings(players, matches) {
   }
   return Object.keys(groups)
     .map((pn) => ({
-      id: `pair-${pn}`, pair_no: Number(pn), ids: groups[pn].ids,
+      id: `pair-${pn}`, pair_no: Number(pn), ids: groups[pn].ids, names: groups[pn].names,
       name: groups[pn].names.join(" & "),
       ...acc[pn], delta: acc[pn].points - acc[pn].against,
     }))

@@ -223,14 +223,19 @@ export async function renderTournamentCard({ name, dateStr, metaStr, top3 }) {
     ctx.fillText(metaStr, W / 2, 306);
   }
 
-  const imgs = await Promise.all(top3.map((p) => avatarImg(p.avatar_url, p.id || p.name)));
+  // Пары: у места две аватарки; соло — одна. imgSets[i] = массив из 1 или 2 картинок.
+  const imgSets = await Promise.all(top3.map((p) =>
+    Array.isArray(p.avatars) && p.avatars.length > 1
+      ? Promise.all(p.avatars.slice(0, 2).map((u, k) => avatarImg(u, (p.names || [])[k] || p.name)))
+      : avatarImg(p.avatar_url, p.id || p.name).then((im) => [im])
+  ));
   const baseY = H - 200;                       // низ пьедесталов (над футером)
   const cols = [
-    { p: top3[1], im: imgs[1], cx: W / 2 - 300, d: 170, ped: 220, color: C.silver, rank: 2 },
-    { p: top3[0], im: imgs[0], cx: W / 2,       d: 220, ped: 320, color: C.yellow, rank: 1 },
-    { p: top3[2], im: imgs[2], cx: W / 2 + 300, d: 170, ped: 150, color: C.bronze, rank: 3 },
+    { p: top3[1], ims: imgSets[1], cx: W / 2 - 300, d: 170, ped: 220, color: C.silver, rank: 2 },
+    { p: top3[0], ims: imgSets[0], cx: W / 2,       d: 220, ped: 320, color: C.yellow, rank: 1 },
+    { p: top3[2], ims: imgSets[2], cx: W / 2 + 300, d: 170, ped: 150, color: C.bronze, rank: 3 },
   ];
-  cols.forEach(({ p, im, cx, d, ped, color, rank }) => {
+  cols.forEach(({ p, ims, cx, d, ped, color, rank }) => {
     if (!p) return;
     const pedTop = baseY - ped;
     rr(ctx, cx - 130, pedTop, 260, ped, 16);
@@ -239,9 +244,16 @@ export async function renderTournamentCard({ name, dateStr, metaStr, top3 }) {
     ctx.textAlign = "center"; ctx.fillStyle = color;
     ctx.fillText(String(rank), cx, pedTop + (rank === 1 ? 110 : 88));
     const nameY = pedTop - (p.points != null ? 96 : 56);
-    circleAvatar(ctx, im, cx, nameY - (rank === 1 ? 90 : 60) - d / 2 + 10, d, color);
+    const avCy = nameY - (rank === 1 ? 90 : 60) - d / 2 + 10;
+    if (ims && ims.length > 1) {
+      const dd = d * 0.82;                       // две аватарки внахлёст
+      circleAvatar(ctx, ims[1], cx + dd * 0.34, avCy, dd, color);
+      circleAvatar(ctx, ims[0], cx - dd * 0.34, avCy, dd, color);
+    } else {
+      circleAvatar(ctx, (ims || [])[0], cx, avCy, d, color);
+    }
     ctx.font = F(rank === 1 ? 800 : 700, rank === 1 ? 40 : 34); ctx.fillStyle = C.ink;
-    ctx.fillText(`${p.name.slice(0, 14)}${rank === 1 ? " 👑" : ""}`, cx, nameY);
+    ctx.fillText(`${p.name.slice(0, 16)}${rank === 1 ? " 🏆" : ""}`, cx, nameY);
     if (p.points != null) {
       ctx.font = F(700, 30); ctx.fillStyle = rank === 1 ? C.yellow : C.mut;
       ctx.fillText(`${p.points} ${t("trn_hero_pts")}`, cx, nameY + 42);
