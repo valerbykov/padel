@@ -1335,8 +1335,8 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
             <style>{`
               .trp-poster{border-radius:20px;padding:20px 18px 18px;overflow:hidden;position:relative;background:linear-gradient(160deg,#153a2a 0%,#112a20 55%,#0e2018 100%);border:1px solid var(--line);margin-bottom:12px;}
               .trp-trophy{position:absolute;right:-8px;bottom:-14px;font-size:96px;opacity:.14;transform:rotate(-8deg);pointer-events:none;line-height:1;}
-              .trp-eyebrow{color:var(--lime);font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;position:relative;padding-right:120px;}
-              .trp-title{font-family:'Anton',sans-serif;font-size:26px;line-height:1.02;margin:0 0 12px;color:#fff;position:relative;padding-right:120px;}
+              .trp-eyebrow{color:var(--lime);font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;position:relative;}
+              .trp-title{font-family:'Anton',sans-serif;font-size:26px;line-height:1.02;margin:0 0 12px;color:#fff;position:relative;text-wrap:balance;}
               .trp-meta{display:flex;flex-direction:column;gap:9px;position:relative;}
               .trp-row{display:flex;align-items:center;gap:10px;font-size:14px;color:#e8f0ea;}
               .trp-ic{width:19px;text-align:center;flex-shrink:0;}
@@ -1347,7 +1347,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
               .trp-avatar{flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--lime);color:#0e2018;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;}
               .trp-contact-label{font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--mut);}
               .trp-contact-name{font-size:13.5px;font-weight:600;color:var(--ink);}
-              .trp-actions{position:absolute;top:14px;right:14px;display:flex;gap:6px;z-index:2;}
+              .trp-actions{display:flex;justify-content:flex-end;gap:6px;margin-bottom:12px;position:relative;z-index:2;}
               .trp-act{display:flex;align-items:center;gap:6px;padding:8px;border-radius:10px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.15);color:var(--ink);cursor:pointer;font-size:13px;font-weight:600;}
               .trp-act:hover{background:rgba(0,0,0,.4);}
             `}</style>
