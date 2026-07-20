@@ -2159,7 +2159,16 @@ function MixGroupCard({ games, color, onOpenGame, me = null, delta = null, showM
 
 function Games({ groupId, players, profileId, reloadLeaderboard, session, archiveNonce, bumpArchive, onLogin, isAdmin = false, canCreate = false, openReq = null, theme = "dark" }) {
   const [games, setGames] = useState([]);
-  const [mode, setMode] = useState("list");
+  const GAME_DRAFT_KEY = `pp_game_draft_${groupId}`;
+  // Черновик создания игры переживает уход на другую вкладку/профиль (как у турниров):
+  // если есть непустой черновик — сразу возвращаемся в форму. openReq (пуш) важнее.
+  const [mode, setMode] = useState(() => {
+    if (openReq?.id) return "list";
+    try {
+      const d = JSON.parse(sessionStorage.getItem(GAME_DRAFT_KEY) || "{}");
+      return (d.title || d.place || d.level || d.titleEdited) ? "create" : "list";
+    } catch (e) { return "list"; }
+  });
   const [selId, setSelId] = useState(null);
   // Стабильная ссылка на back — иначе новый arrow на каждый ре-рендер заставляет
   // GameCard перерегистрировать back-хэндлер и рушит порядок стека «Назад».
@@ -2186,7 +2195,8 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
   }, [openReq, loading, games]);
 
   if (mode === "create")
-    return <CreateGame groupId={groupId} players={players} profileId={profileId} back={() => setMode("list")}
+    return <CreateGame groupId={groupId} players={players} profileId={profileId}
+      back={() => { try { sessionStorage.removeItem(GAME_DRAFT_KEY); } catch (e) {} setMode("list"); }}
       done={async (g) => { await loadGames(); if (g?.id) { setSelId(g.id); setMode("view"); } else setMode("list"); }} />;
 
   if (mode === "view") {
@@ -2257,16 +2267,27 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
 }
 
 function CreateGame({ groupId, profileId, back, done }) {
-  const [title, setTitle] = useState("");
-  const [titleEdited, setTitleEdited] = useState(false);
-  const [day, setDay] = useState(() => nowLocalDT().slice(0, 10));
-  const [time, setTime] = useState(() => nowLocalDT().slice(11, 16));
+  // Черновик — переживает уход со вкладки (восстанавливаем на маунте, чистим на создании).
+  const DRAFT_KEY = `pp_game_draft_${groupId}`;
+  const draftRef = useRef(null);
+  if (draftRef.current === null) { try { draftRef.current = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || "{}"); } catch (e) { draftRef.current = {}; } }
+  const d0 = draftRef.current;
+  const [title, setTitle] = useState(() => d0.title || "");
+  const [titleEdited, setTitleEdited] = useState(() => !!d0.titleEdited);
+  const [day, setDay] = useState(() => d0.day || nowLocalDT().slice(0, 10));
+  const [time, setTime] = useState(() => d0.time || nowLocalDT().slice(11, 16));
   const date = day ? `${day}T${time || "00:00"}` : "";
-  const [place, setPlace] = useState("");
+  const [place, setPlace] = useState(() => d0.place || "");
   const [slots] = useState([null, null, null, null]);
-  const [durMin, setDurMin] = useState(60);
-  const [level, setLevel] = useState(null);
+  const [durMin, setDurMin] = useState(() => d0.durMin || 60);
+  const [level, setLevel] = useState(() => d0.level ?? null);
   const [busy, setBusy] = useState(false);
+
+  // Сохраняем черновик при любом изменении полей.
+  useEffect(() => {
+    const draft = { title, titleEdited, day, time, place, durMin, level };
+    try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch (e) {}
+  }, [title, titleEdited, day, time, place, durMin, level]);
 
   // Автоназвание = место (если указано) или пусто. Дата/время НЕ дублируются
   // в названии — они и так показываются отдельной строкой в плашке/карточке.
@@ -2284,7 +2305,7 @@ function CreateGame({ groupId, profileId, back, done }) {
     let startsAtIso = null;
     try { if (date) startsAtIso = new Date(date).toISOString(); } catch (e) { startsAtIso = null; }
     const endsAt = startsAtIso ? new Date(new Date(startsAtIso).getTime() + durMin * 60000).toISOString() : null;
-    try { const g = await createGame(groupId, { title: title.trim() || null, startsAt: startsAtIso, endsAt, level: sanitizeEventLevel(level), place, slots, hostId: profileId || null }); notifyGameCreated(g?.id); creatingRef.current = false; done(g); }
+    try { const g = await createGame(groupId, { title: title.trim() || null, startsAt: startsAtIso, endsAt, level: sanitizeEventLevel(level), place, slots, hostId: profileId || null }); try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) {} notifyGameCreated(g?.id); creatingRef.current = false; done(g); }
     catch (e) { showToast(t("err_create_game")); setBusy(false); creatingRef.current = false; }
   };
 

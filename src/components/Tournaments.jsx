@@ -136,7 +136,17 @@ const statusLabel = (s) => ({ open: tr("trn_sec_open"), active: tr("trn_sec_acti
 // ─── Root ──────────────────────────────────────────────────────────────────────
 
 export default function Tournaments({ groupId, players, profileId, bumpArchive, session, onLogin, isAdmin = false, canCreate = false, membersCanCreate = false, openReq = null, onOpenPlayer = null }) {
-  const [mode, setMode] = useState("list");
+  const DRAFT_KEY = `pp_trn_draft_${groupId}`;
+  // При смене вкладки Tournaments размонтируется (гейт tab===). Чтобы черновик
+  // создания пережил уход/возврат, стартуем сразу в форме, если есть непустой
+  // черновик (выбран формат или заполнено поле). Открытие по ссылке (openReq) важнее.
+  const [mode, setMode] = useState(() => {
+    if (openReq?.id) return "list";
+    try {
+      const d = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || "{}");
+      return (d.format || d.name || d.place || d.description || d.contactName) ? "create" : "list";
+    } catch (e) { return "list"; }
+  });
   const [activeId, setActiveId] = useState(null);
   // Открытие конкретного турнира из уведомления (TournamentView сам грузит по id).
   // Эффект ДО ранних return — хуки должны вызываться безусловно.
@@ -146,7 +156,10 @@ export default function Tournaments({ groupId, players, profileId, bumpArchive, 
     openedReqRef.current = openReq.nonce;
     setActiveId(openReq.id); setMode("view");
   }, [openReq]);
-  if (mode === "create") return <Suspense fallback={<div style={{ minHeight: "60vh" }} />}><Create key={groupId} groupId={groupId} profileId={profileId} players={players} back={() => setMode("list")} open={(id) => { setActiveId(id); setMode("view"); }} /></Suspense>;
+  // Явный выход из формы (BackButton) = отмена: чистим черновик, иначе он бы
+  // снова затянул нас в форму при следующем открытии вкладки.
+  const cancelCreate = () => { try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) {} setMode("list"); };
+  if (mode === "create") return <Suspense fallback={<div style={{ minHeight: "60vh" }} />}><Create key={groupId} groupId={groupId} profileId={profileId} players={players} back={cancelCreate} open={(id) => { setActiveId(id); setMode("view"); }} /></Suspense>;
   if (mode === "view") return <TournamentView id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} onArchiveChange={bumpArchive} isAdmin={isAdmin} membersCanCreate={membersCanCreate} onOpenPlayer={onOpenPlayer} />;
   return <List groupId={groupId} profileId={profileId} players={players} session={session} onLogin={onLogin} canCreate={canCreate} isAdmin={isAdmin} membersCanCreate={membersCanCreate} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
 }
