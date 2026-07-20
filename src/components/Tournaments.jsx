@@ -989,7 +989,12 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
         {trnData.level && (
           <div className="trp-row"><span className="trp-ic">🎖️</span><EventLevelBadge level={trnData.level} compact /></div>
         )}
-        <div className="trp-row"><span className="trp-ic">🎾</span><span>{fmt.emoji} {fmt.name} · {trnData.points_per_game} {tr("trn_winner_points")}</span></div>
+        <div className="trp-row"><span className="trp-ic">{fmt.emoji}</span><span>{fmt.name} · {trnData.points_per_game} {tr("trn_winner_points")}</span></div>
+        {isKoth && (
+          <div className="trp-row"><span className="trp-ic">🏆</span>
+            <span>{tr("trn_koth_rule_prefix")} {(trnData.koth_champion_rule || "court_1") === "points" ? tr("trn_koth_champion_points") : tr("trn_koth_champion_court1")}</span>
+          </div>
+        )}
         {trnData.fee_per_player > 0 && (
           <div className="trp-row"><span className="trp-ic">💸</span><span className="trp-chip trp-chip-fee">{formatMoney(trnData.fee_per_player, trnData.fee_currency)}</span></div>
         )}
@@ -1218,15 +1223,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                   {roundLabel}
                   {roundSub && <span style={{ color: "var(--mut)", fontSize: 13 }}>{roundSub}</span>}
                 </div>
-                {/* KotH: правило чемпиона видно ПО ХОДУ турнира, а не только в финале */}
-                {isKoth && (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                    margin: "8px auto 0", maxWidth: 340, fontSize: 11.5, fontWeight: 700, color: "#e6b93f", textAlign: "center",
-                    background: "color-mix(in srgb, #f7d978 9%, transparent)", border: "1px solid color-mix(in srgb, #f7d978 30%, transparent)",
-                    borderRadius: 10, padding: "6px 11px" }}>
-                    🏆 {tr("trn_koth_rule_prefix")} {(trnData.koth_champion_rule || "court_1") === "points" ? tr("trn_koth_champion_points") : tr("trn_koth_champion_court1")}
-                  </div>
-                )}
+                {/* Правило чемпиона KotH теперь в афише (шапке), не дублируем среди раундов */}
               </div>
 
               {/* Role labels for Beat the Box (защитник/претендент) */}

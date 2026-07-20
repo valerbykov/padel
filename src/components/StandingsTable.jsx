@@ -2,7 +2,7 @@
 // Таблица результатов: Игроки | Игры +/- | Очки +/- | δ.
 // Аватарка сверху, имя снизу под ней.
 // props: rows (из detailedStandings), highlightId?, avatarOf?(row)=>{url?,rating?},
-//        championIds? — id игроков пары-чемпиона (парные форматы): 👑 + золотая строка,
+//        championIds? — id игроков пары-чемпиона (парные форматы): 🏆 + золотая строка,
 //        даже если по очкам они не первые (правило «удержал корт №1»).
 import React from "react";
 import Avatar from "./Avatar";
@@ -47,7 +47,7 @@ export default function StandingsTable({ rows, highlightId, avatarOf, championId
               <span style={{ fontSize: 13, fontWeight: (hl || champ) ? 700 : 500, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
                 {p.name}
               </span>
-              {champ && <span style={{ flexShrink: 0, fontSize: 12, lineHeight: 1 }}>👑</span>}
+              {champ && <span style={{ flexShrink: 0, fontSize: 12, lineHeight: 1 }}>🏆</span>}
             </div>
 
             {/* В/Н/П */}
