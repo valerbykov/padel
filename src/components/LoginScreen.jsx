@@ -56,7 +56,7 @@ const mkCss = (isLight) => `
 const emailOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
 export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark", lang = "ru", onThemeToggle, onLangChange }) {
-  const [method, setMethod] = useState("email"); // telegram | email | sms — по умолчанию email
+  const [method, setMethod] = useState("email"); // telegram | email — по умолчанию email
   const [isRF, setIsRF] = useState(isRussiaSync()); // РФ → скрываем Google (закон об авторизации)
   const isIOS = typeof window !== "undefined" && window.Capacitor?.getPlatform?.() === "ios"; // Sign in with Apple — только iOS
   useEffect(() => { detectRegion().then(setIsRF); }, []);
@@ -226,8 +226,7 @@ export default function LoginScreen({ botName, onSuccess, onBack, theme = "dark"
         </div>
       </div>
 
-      {/* Реквизиты владельца — публичный минимум для согласования имени отправителя SMS.
-          Паспорт/адрес/ДР НЕ публикуем. */}
+      {/* Публичный контакт поддержки (сторы/пользователи). Паспорт/адрес/ДР НЕ публикуем. */}
       <div style={{ padding: "14px 20px 22px", textAlign: "center", color: "var(--mut)", fontSize: 11.5, lineHeight: 1.6 }}>
         SUPPORT · <a href="mailto:info@padelpack.app" style={{ color: "inherit", textDecoration: "underline" }}>info@padelpack.app</a>
       </div>
