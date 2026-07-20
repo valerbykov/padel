@@ -2720,6 +2720,36 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
           <GameCourtBlock key={g.id} game={g} index={i} total={list.length} groupId={groupId}
             reloadSession={reloadSession} reloadLeaderboard={reloadLeaderboard} bumpArchive={bumpArchive} onOpenPlayer={onOpenPlayer} />
         ))}
+        {/* Действия сессии — ВЫШЕ «Поделиться карточкой». «Сыграть ещё» и
+            «Завершить сессию» одинаково заметны (лаймовые). */}
+        {(canMix || (list.length > 1 && !list.some((g) => g.mix_ended_at))) && (
+          <div className="pl-card" style={{ padding: 14, marginTop: 4, display: "flex", flexDirection: "column", gap: 10 }}>
+            {canMix && (!mix ? (
+              <button className="pl-ghost" style={{ width: "100%", padding: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--lime)", borderColor: "color-mix(in srgb, var(--lime) 35%, transparent)", fontWeight: 600 }} onClick={() => setMix(true)}>
+                <Shuffle size={16} /> {t("mix_again")}
+              </button>
+            ) : (
+              <RematchMix
+                players={lastSlots.map((s) => ({ name: nameOf(s), profile_id: s.profile_id, guest_name: s.guest_name, avatar_url: s.profile?.avatar_url }))}
+                busy={mixBusy}
+                onCancel={() => setMix(false)}
+                onCreate={createMix} />
+            ))}
+            {!mix && list.length > 1 && !list.some((g) => g.mix_ended_at) && (
+              <button className="pl-ghost" disabled={finishBusy}
+                style={{ width: "100%", padding: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--lime)", borderColor: "color-mix(in srgb, var(--lime) 35%, transparent)", fontWeight: 600, opacity: finishBusy ? .6 : 1 }}
+                onClick={async () => {
+                  if (finishBusy) return;
+                  if (!(await confirmDialog({ title: t("mix_finish_confirm_title"), message: t("mix_finish_confirm_msg"), confirmLabel: t("mix_finish_btn") }))) return;
+                  setFinishBusy(true);
+                  try { await finishMixSession(mixKey); bumpArchive && bumpArchive(); reloadGames && reloadGames(); back && back(); }
+                  catch (e) { showToast(t("err_generic")); setFinishBusy(false); }
+                }}>
+                <Check size={16} /> {t("mix_finish_btn")}
+              </button>
+            )}
+          </div>
+        )}
         {last.status === "played" && lastFilled === 4 && (last.matches || [])[0] && (
           <button className="pl-btn" disabled={cardBusy} onClick={() => list.length > 1 ? shareMixCard(list) : shareResultCard(last)}
             style={{ width: "100%", padding: 13, fontSize: 14.5, marginTop: 4, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
@@ -2747,39 +2777,9 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
               avatarOf={(key) => { const u = uniq.find((x) => x.key === key); return u?.profile_id ? playerAvatar(u.avatar_url, u.profile_id) : null; }}
               api={{ getFee: getGameFee, getPaid: getGameFeePayments, setFee: setGameFee, togglePaid: toggleGameFeePaid, remind: remindGameFeeDebtors }}
               currency={anchor.fee_currency} timing={anchor.fee_timing} defaultCurrency={defCur}
-              cardClass="pl-card" />
+              cardClass="pl-card" collapsible />
           );
         })()}
-        {canMix && (
-          <div className="pl-card" style={{ padding: 14, marginTop: 4 }}>
-            {!mix ? (
-              <button className="pl-ghost" style={{ width: "100%", padding: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--lime)", borderColor: "color-mix(in srgb, var(--lime) 35%, transparent)", fontWeight: 600 }} onClick={() => setMix(true)}>
-                <Shuffle size={16} /> {t("mix_again")}
-              </button>
-            ) : (
-              <RematchMix
-                players={lastSlots.map((s) => ({ name: nameOf(s), profile_id: s.profile_id, guest_name: s.guest_name, avatar_url: s.profile?.avatar_url }))}
-                busy={mixBusy}
-                onCancel={() => setMix(false)}
-                onCreate={createMix} />
-            )}
-          </div>
-        )}
-        {/* Явное завершение микс-сессии: пока не нажали — сессия висит активной
-            во вкладке «Игры»; после — уходит в «Историю» одной записью. */}
-        {list.length > 1 && !list.some((g) => g.mix_ended_at) && (
-          <button className="pl-ghost" disabled={finishBusy}
-            style={{ width: "100%", padding: 12, marginTop: 4, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--mut)", opacity: finishBusy ? .6 : 1 }}
-            onClick={async () => {
-              if (finishBusy) return;
-              if (!(await confirmDialog({ title: t("mix_finish_confirm_title"), message: t("mix_finish_confirm_msg"), confirmLabel: t("mix_finish_btn") }))) return;
-              setFinishBusy(true);
-              try { await finishMixSession(mixKey); bumpArchive && bumpArchive(); reloadGames && reloadGames(); back && back(); }
-              catch (e) { showToast(t("err_generic")); setFinishBusy(false); }
-            }}>
-            <Check size={16} /> {t("mix_finish_btn")}
-          </button>
-        )}
       </div>
     );
   }
@@ -2919,7 +2919,7 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
             avatarOf={(key) => { const u = uniq.find((x) => x.key === key); return u?.profile_id ? playerAvatar(u.avatar_url, u.profile_id) : null; }}
             api={{ getFee: getGameFee, getPaid: getGameFeePayments, setFee: setGameFee, togglePaid: toggleGameFeePaid, remind: remindGameFeeDebtors }}
             currency={game.fee_currency} timing={game.fee_timing} defaultCurrency={defCur}
-            cardClass="pl-card" />
+            cardClass="pl-card" collapsible />
         );
       })()}
     </div>
