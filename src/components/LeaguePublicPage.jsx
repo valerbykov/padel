@@ -51,10 +51,25 @@ export default function LeaguePublicPage({ code }) {
   const [err,    setErr]    = useState(null);
   const { theme, lang, vars, toggleTheme, cycleLang } = usePublicChrome();
 
+  // Публичный фетч по коду с РЕТРАЯМИ: свежесозданную лигу открывают по ссылке в
+  // ту же секунду, а разовый таймаут/сбой сети (особенно через RU-прокси, где
+  // rpc-POST не ретраится кастомным fetch) без ретрая оставлял «Лига не найдена»
+  // до ручного релоада — отсюда «появилась только через пару минут». Пробуем
+  // несколько раз (пока держим экран загрузки), потом уже показываем ошибку.
   useEffect(() => {
-    getPublicLeague(code)
-      .then(setLeague)
-      .catch(() => { setErr(t("err_league_not_found")); setLeague(null); });
+    let alive = true;
+    let attempt = 0;
+    const run = () => {
+      getPublicLeague(code)
+        .then((l) => { if (alive) setLeague(l); })
+        .catch(() => {
+          if (!alive) return;
+          if (attempt < 4) { attempt += 1; setTimeout(run, 1200); return; }
+          setErr(t("err_league_not_found")); setLeague(null);
+        });
+    };
+    run();
+    return () => { alive = false; };
   }, [code]);
 
   const joinUrl   = `${window.location.origin}/?join=${code}`;
