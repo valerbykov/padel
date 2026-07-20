@@ -31,14 +31,25 @@ function guessLangSync() {
 
 // Ленивые чанки: тяжёлые и маршрутные экраны грузятся по требованию.
 const PadelLeague      = lazy(() => import("./PadelLeague"));
-// Тёплый старт: тяжёлый чанк лиги начинаем качать СРАЗУ, параллельно с auth и
-// данными (иначе загрузка стартует только после ответа profiles+лиг — это
-// заметная доля «разогрева» до списка друзей). Vite дедупит динамический
-// импорт — lazy() выше получит уже скачанный модуль.
-if (typeof window !== "undefined") setTimeout(() => { import("./PadelLeague").catch(() => {}); }, 0);
-// ЛК открывают часто — греем его чанк на холостом ходу (после критического пути),
-// чтобы первое открытие не платило RTT за JS.
-if (typeof window !== "undefined") setTimeout(() => { import("./components/ProfileEditor").catch(() => {}); }, 3500);
+// Есть ли сохранённая сессия Supabase (ключ sb-<ref>-auth-token). Греем тяжёлые
+// чанки ТОЛЬКО залогиненному: гостю на лендинге PadelLeague/Tournaments не нужны,
+// а их парс зря грузит главный поток (бил Lighthouse TBT ~59K unused JS у гостя).
+function hasStoredSession() {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith("sb-") && k.endsWith("-auth-token") && localStorage.getItem(k)) return true;
+    }
+  } catch (e) { /* приват-режим */ }
+  return false;
+}
+const _warm = typeof window !== "undefined" && hasStoredSession();
+// Тёплый старт для ЗАЛОГИНЕННОГО: тяжёлый чанк лиги качаем СРАЗУ, параллельно с auth
+// и данными (иначе загрузка стартует только после profiles+лиг). Vite дедупит
+// динамический импорт — lazy() выше получит уже скачанный модуль.
+if (_warm) setTimeout(() => { import("./PadelLeague").catch(() => {}); }, 0);
+// ЛК открывают часто — греем его чанк на холостом ходу (после критического пути).
+if (_warm) setTimeout(() => { import("./components/ProfileEditor").catch(() => {}); }, 3500);
 const LoginScreen      = lazy(() => import("./components/LoginScreen"));
 const ProfileEditor    = lazy(() => import("./components/ProfileEditor"));
 const LeagueSetup      = lazy(() => import("./components/LeagueSetup"));
