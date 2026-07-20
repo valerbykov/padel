@@ -59,17 +59,19 @@ export default function LeaguePublicPage({ code }) {
   useEffect(() => {
     let alive = true;
     let attempt = 0;
+    let timer = null;
     const run = () => {
+      if (!alive) return;
       getPublicLeague(code)
         .then((l) => { if (alive) setLeague(l); })
         .catch(() => {
           if (!alive) return;
-          if (attempt < 4) { attempt += 1; setTimeout(run, 1200); return; }
+          if (attempt < 4) { attempt += 1; timer = setTimeout(run, 1200); return; }
           setErr(t("err_league_not_found")); setLeague(null);
         });
     };
     run();
-    return () => { alive = false; };
+    return () => { alive = false; if (timer) clearTimeout(timer); };
   }, [code]);
 
   const joinUrl   = `${window.location.origin}/?join=${code}`;

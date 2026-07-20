@@ -147,7 +147,7 @@ export default function Tournaments({ groupId, players, profileId, bumpArchive, 
     openedReqRef.current = openReq.nonce;
     setActiveId(openReq.id); setMode("view");
   }, [openReq]);
-  if (mode === "create") return <Create groupId={groupId} profileId={profileId} players={players} back={() => setMode("list")} open={(id) => { setActiveId(id); setMode("view"); }} />;
+  if (mode === "create") return <Create key={groupId} groupId={groupId} profileId={profileId} players={players} back={() => setMode("list")} open={(id) => { setActiveId(id); setMode("view"); }} />;
   if (mode === "view") return <TournamentView id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} onArchiveChange={bumpArchive} isAdmin={isAdmin} membersCanCreate={membersCanCreate} onOpenPlayer={onOpenPlayer} />;
   return <List groupId={groupId} profileId={profileId} players={players} session={session} onLogin={onLogin} canCreate={canCreate} isAdmin={isAdmin} membersCanCreate={membersCanCreate} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
 }
@@ -1353,7 +1353,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
             `}</style>
             <span className="trp-trophy">🏆</span>
             <div className="trp-actions">
-              <button className="trp-act" onClick={load}><RefreshCw size={15} /></button>
+              <button className="trp-act" aria-label={tr("refresh")} onClick={load}><RefreshCw size={15} /></button>
               {!readOnly && (
                 <button className="trp-act" style={{ padding: "8px 12px" }} onClick={share}>
                   <Share2 size={14} /> {toast || tr("share_btn")}

@@ -32,7 +32,7 @@ export default function LevelBadges({ levels, compact = false }) {
   );
 }
 
-// Бейдж событийного уровня (турнир/игра) — с диапазоном val2, см. lib/levels.js.
+// Бейдж событийного уровня (турнир/игра) — мультивыбор vals, см. lib/levels.js.
 export function EventLevelBadge({ level, compact = false }) {
   const label = formatEventLevel(level);
   if (!label) return null;

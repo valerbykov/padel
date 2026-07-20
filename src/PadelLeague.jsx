@@ -604,15 +604,20 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
     catch (e) { setHiddenIds((prev) => { const n = new Set(prev); n.delete(p.id); return n; }); }
   };
 
-  // «Моя статистика» из кабинета: ОДНОРАЗОВЫЙ запрос от родителя. Ждём загрузки
-  // ростера, открываем свою карточку и ГАСИМ запрос (onSelfStatsSeen) — поэтому
-  // ре-монт Board (та же вкладка/смена лиги/удаление) её больше не переоткрывает.
+  // «Моя статистика» из кабинета. Как только приходит запрос — СРАЗУ гасим его в
+  // родителе (иначе ре-монт Board до загрузки ростера оставил бы флаг true, и
+  // обычный тап «Друзья» позже переоткрыл бы статистику) и запоминаем намерение
+  // локально; свою карточку открываем, когда ростер готов.
+  const [wantSelf, setWantSelf] = useState(false);
   useEffect(() => {
-    if (!selfStatsReq || !players.length) return;
+    if (selfStatsReq) { setWantSelf(true); onSelfStatsSeen?.(); }
+  }, [selfStatsReq]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!wantSelf || !players.length) return;
     const self = players.find((p) => p.id === profileId);
     if (self) setSelected(self);
-    onSelfStatsSeen?.();
-  }, [selfStatsReq, players, profileId]); // eslint-disable-line react-hooks/exhaustive-deps
+    setWantSelf(false);
+  }, [wantSelf, players, profileId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!analyticsReq) return;

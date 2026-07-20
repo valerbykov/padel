@@ -31,6 +31,13 @@ function eventVals(lvl) {
 // Событийный уровень (турнир/игра): множественный выбор принимаемых уровней.
 export function formatEventLevel(lvl) {
   if (!lvl || typeof lvl !== "object") return "";
+  // Легаси-диапазон {val,val2} (без vals) рендерим как «val–val2»; новый
+  // мультивыбор {vals} — списком «a, b, c».
+  if (!Array.isArray(lvl.vals)) {
+    const v = String(lvl.val == null ? "" : lvl.val).trim();
+    const v2 = String(lvl.val2 == null ? "" : lvl.val2).trim();
+    if (v && v2 && v2 !== v) return `${sysPrefix(lvl.sys, lvl.lbl)} ${v}–${v2}`.trim();
+  }
   const vals = eventVals(lvl);
   if (!vals.length) return "";
   return `${sysPrefix(lvl.sys, lvl.lbl)} ${vals.join(", ")}`.trim();
