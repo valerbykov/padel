@@ -144,17 +144,6 @@ export async function getTournamentByCode(code) {
   return data;
 }
 
-// Найти турнир по коду СРЕДИ доступных пользователю: RLS вернёт строку только
-// участнику лиги. Для роутинга /t/CODE — залогиненного участника ведём в ин-апп
-// вьюху (как тап из Истории), а не на публичную страницу. null = нет доступа/не найден.
-export async function findMyTournamentByCode(code) {
-  try {
-    const { data, error } = await supabase.from("tournaments")
-      .select("id, group_id").eq("invite_code", code.trim().toUpperCase()).maybeSingle();
-    if (error || !data) return null;
-    return data;
-  } catch (e) { return null; }
-}
 
 /**
  * Старт турнира: жеребьёвка + запись матчей + статус active.

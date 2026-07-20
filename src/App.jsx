@@ -13,8 +13,7 @@ import LeagueSwitcher from "./components/LeagueSwitcher"; // глобальны�
 import NotificationBell from "./components/NotificationBell"; // колокольчик уведомлений (новые игры/турниры лиг)
 import { LogIn, Sun, Moon } from "lucide-react";
 import { getMyLeagues, refreshMyLeagues, bootstrapApp, joinLeague } from "./lib/padelApi";
-import { findMyTournamentByCode } from "./lib/tournamentApi";
-import { findMyGameByCode } from "./lib/padelApi";
+import { findMyTournamentByCode, findMyGameByCode } from "./lib/routeResolvers";
 import { t, setLang, applyLang } from "./lib/i18n";
 import { detectCountry, langFromCountry } from "./lib/region";
 import { getNotifPrefs, registerPush, updateNotifLang } from "./lib/notifications";

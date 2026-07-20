@@ -654,20 +654,6 @@ export async function getPublicLeague(code) {
   return data;
 }
 
-// Найти игру по коду СРЕДИ доступных пользователю: RLS вернёт строку только
-// участнику лиги. Для роутинга /j/CODE — залогиненного участника ведём в ин-апп
-// вид игры (как тап из «Игр»), а не на гостевую страницу. null = нет доступа.
-export async function findMyGameByCode(code) {
-  try {
-    // ilike — регистронезависимо: реальные игры дают код в верхнем регистре, а
-    // демо-игры в нижнем; /j/-обработчик код аплокейсит, поэтому eq() не совпал бы.
-    const { data, error } = await supabase.from("games")
-      .select("id, group_id").ilike("invite_code", code.trim()).maybeSingle();
-    if (error || !data) return null;
-    return data;
-  } catch (e) { return null; }
-}
-
 /* ---------- Взносы за игру (аналог турнирных, ключ — game_slots.id) --------- */
 export async function getGameFee(gameId) {
   try {
