@@ -56,6 +56,7 @@ export async function bootstrapApp(savedGroupId = null) {
       contacts: r.profile.contacts || {},
       rating: r.rating, matches: r.matches_played, wins: r.wins,
       user_id: r.profile.user_id || null, role: r.role,
+      levels: r.profile.levels, // без этого борд из прайма показывал без уровней (RPC их отдаёт)
     })));
     if (data.counts) cacheSet("counts:" + gid, { games: data.counts.games || {}, tours: data.counts.tours || {} });
     // Стрики и «не-участники» — Board пропустит тяжёлые listTournaments/getBoardMatches.
