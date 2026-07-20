@@ -852,7 +852,7 @@ function Board({ groupId, players, loading = false, reload, profileId, isAdmin, 
             <img src={playerAvatar(p.avatar_url, p.id)} onError={avatarFallback(p.id)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(p.id), width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 600, fontSize: 15, display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
                 {p.role === "owner"
                   ? <Star size={14} style={{ color: "var(--yellow)", flexShrink: 0 }} aria-label={t("role_owner")} />
                   : p.role === "admin"
@@ -861,6 +861,10 @@ function Board({ groupId, players, loading = false, reload, profileId, isAdmin, 
                       ? <UserCheck size={14} style={{ color: "var(--lime)", flexShrink: 0 }} aria-label={t("account_badge")} />
                       : <User size={13} style={{ color: "var(--mut)", flexShrink: 0 }} aria-label={t("guest_tag")} />}
                 {p.id === profileId && <span style={{ fontSize: 9.5, color: "var(--lime-fg)", background: "var(--lime)", borderRadius: 6, padding: "1px 6px", fontWeight: 800, flexShrink: 0 }}>{t("fr_you")}</span>}
+                {/* Уровень — компактно (иконка+значение) прямо в строке имени, без 3-й строки */}
+                {Array.isArray(p.levels) && p.levels.length > 0 && (
+                  <span style={{ flexShrink: 0, display: "inline-flex" }}><LevelBadges levels={p.levels} compact /></span>
+                )}
               </div>
               <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 7, fontSize: 12, color: "var(--mut)", marginTop: 2 }}>
                 <TierChip rating={p.rating} compact />
@@ -870,10 +874,6 @@ function Board({ groupId, players, loading = false, reload, profileId, isAdmin, 
                 </span>
                 {badges.length > 0 && <span style={{ letterSpacing: 1, marginLeft: "auto" }}>{badges.join(" ")}</span>}
               </div>
-              {/* Уровень — отдельной 3-й строкой (только если задан) */}
-              {Array.isArray(p.levels) && p.levels.length > 0 && (
-                <div style={{ marginTop: 4 }}><LevelBadges levels={p.levels} compact /></div>
-              )}
             </div>
             {/* Рейтинг + недельный тренд вместо шеврона: главный сюжет таблицы */}
             <div style={{ textAlign: "right", flexShrink: 0 }}>
