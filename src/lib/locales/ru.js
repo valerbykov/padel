@@ -416,5 +416,5 @@ export default {
     trn_loading_fail: 'Не удалось загрузить турнир.',
     trn_delete_confirm: 'Удалить турнир и все его данные?',
     games_loading: 'Загрузка…', evt_level_multi_hint: 'Отметь все подходящие уровни',
-    evt_level_label: 'Уровень', evt_level_opt: 'необязательно', evt_level_range: 'Диапазон', evt_level_to: 'до', dur_label: 'Длительность', dur_h: 'ч', dur_min: 'мин', contact_pick_league: 'Контакт из Лиги', trn_share_pair_hint: 'Ссылка именно для этой пары — кто её откроет, встанет вторым к этому игроку',
+    evt_level_label: 'Уровень', evt_level_opt: 'необязательно', evt_level_range: 'Диапазон', evt_level_to: 'до', dur_label: 'Длительность', dur_h: 'ч', dur_min: 'мин', contact_pick_league: 'Выбрать из Лиги', trn_contact_org: 'Контакт организатора', trn_contact_org_hint: 'Кого спросить по турниру — увидят участники на приглашении', trn_share_pair_hint: 'Ссылка именно для этой пары — кто её откроет, встанет вторым к этому игроку',
 };

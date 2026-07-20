@@ -797,10 +797,14 @@ function Create({ groupId, profileId, players = [], back, open }) {
         {/* Уровень турнира (опционально) */}
         <LevelPicker value={level} onChange={setLevel} />
 
-        {/* Ответственный / контакт: из Лиги (по умолчанию) или вручную.
-            Пустой ростер (лига не загружена / новая) → всегда ручной ввод. */}
+        {/* Контакт ОРГАНИЗАТОРА (кого спросить по турниру — виден участникам).
+            «Выбрать из Лиги» — быстрый способ заполнить поля из друга/себя; сами
+            поля Имя+контакт показываем ВСЕГДА, чтобы автор видел, что увидят игроки. */}
         <div>
-          {/* Тумблер «из Лиги» скрываем, если участников нет — переключать не на что */}
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>{tr("trn_contact_org")}</div>
+          <div style={{ fontSize: 11.5, color: "var(--mut)", marginBottom: 10 }}>{tr("trn_contact_org_hint")}</div>
+
+          {/* Тумблер «Выбрать из Лиги» скрываем, если участников нет — выбирать не из кого */}
           {contactMembers.length > 0 && (
             <div onClick={() => setContactFromLeague((v) => !v)}
               style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 10, cursor: "pointer" }}>
@@ -811,8 +815,10 @@ function Create({ groupId, profileId, players = [], back, open }) {
               <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{tr("contact_pick_league")}</span>
             </div>
           )}
-          {(contactFromLeague && contactMembers.length > 0) ? (
-            <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none", WebkitOverflowScrolling: "touch", WebkitMaskImage: "linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)", maskImage: "linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)" }}>
+
+          {/* Карусель друзей/себя — только когда включён выбор из Лиги; заполняет поля ниже */}
+          {contactFromLeague && contactMembers.length > 0 && (
+            <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, marginBottom: 10, scrollbarWidth: "none", WebkitOverflowScrolling: "touch", WebkitMaskImage: "linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)", maskImage: "linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)" }}>
               {contactMembers.map((p) => {
                 const isMe = p.id === profileId;
                 const active = !!contactName && contactName === p.name;
@@ -826,13 +832,13 @@ function Create({ groupId, profileId, players = [], back, open }) {
                 );
               })}
             </div>
-          ) : (
-            <>
-              <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_contact_name_label")}</div>
-              <input className="tr-input" placeholder={tr("trn_contact_name_ph")} value={contactName} onChange={(e) => setContactName(e.target.value)} style={{ marginBottom: 6 }} />
-              <input className="tr-input" placeholder={tr("trn_contact_link_ph")} value={contactLink} onChange={(e) => setContactLink(e.target.value)} />
-            </>
           )}
+
+          {/* Поля Имя + контакт — ВСЕГДА видны (превью «как увидят участники»);
+              при выборе из Лиги подставляются, но остаются редактируемыми. */}
+          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_contact_name_label")}</div>
+          <input className="tr-input" placeholder={tr("trn_contact_name_ph")} value={contactName} onChange={(e) => setContactName(e.target.value)} style={{ marginBottom: 6 }} />
+          <input className="tr-input" placeholder={tr("trn_contact_link_ph")} value={contactLink} onChange={(e) => setContactLink(e.target.value)} />
         </div>
 
         {/* Превью: что получится из настроек */}
