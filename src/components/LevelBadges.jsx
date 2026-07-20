@@ -1,7 +1,7 @@
 // components/LevelBadges.jsx
 // Бейджи самозаявленного уровня игрока (см. lib/levels.js). Пусто → ничего.
 import React from "react";
-import { formatLevel, formatEventLevel, formatEventVals } from "../lib/levels";
+import { formatLevel, formatEventLevel, eventVals } from "../lib/levels";
 import ptIcon from "../assets/levels/playtomic.png";
 import lundaIcon from "../assets/levels/lunda.png";
 
@@ -40,15 +40,22 @@ export default function LevelBadges({ levels, compact = false }) {
 export function EventLevelBadge({ level, compact = false }) {
   if (!level || typeof level !== "object") return null;
   const icon = sysIcon(level.sys);
-  // С иконкой префикс системы избыточен — иконка + значения в одну строку.
-  // Без иконки ("oth") ведём полную подпись (свой lbl + значения).
-  const label = icon ? formatEventVals(level) : formatEventLevel(level);
-  if (!label) return null;
   const c = level.sys === "pt" ? "var(--lime)" : level.sys === "ltr" ? "#7cc4e0" : "var(--mut)";
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, borderRadius: 999, whiteSpace: "nowrap", padding: compact ? "1px 8px 1px 6px" : "3px 10px 3px 7px", fontSize: compact ? 11 : 12.5, fontWeight: 700, color: c, background: `color-mix(in srgb, ${c} 14%, transparent)`, border: `1px solid color-mix(in srgb, ${c} 40%, transparent)` }}>
+  const pill = (content, key) => (
+    <span key={key} style={{ display: "inline-flex", alignItems: "center", gap: 4, borderRadius: 999, whiteSpace: "nowrap", padding: compact ? "1px 8px 1px 6px" : "3px 10px 3px 7px", fontSize: compact ? 11 : 12.5, fontWeight: 700, color: c, background: `color-mix(in srgb, ${c} 14%, transparent)`, border: `1px solid color-mix(in srgb, ${c} 40%, transparent)` }}>
       {icon && <img src={icon} alt="" width={compact ? 12 : 14} height={compact ? 12 : 14} style={{ borderRadius: 3, flexShrink: 0 }} />}
-      {label}
+      {content}
     </span>
   );
+  // С иконкой: каждое значение — отдельной таблеткой (иконка несёт систему,
+  // «2.0» и «2.5» вместо слитного «2.0, 2.5»).
+  if (icon) {
+    const vals = eventVals(level);
+    if (!vals.length) return null;
+    return <span style={{ display: "inline-flex", alignItems: "center", flexWrap: "wrap", gap: 6, verticalAlign: "middle" }}>{vals.map((v, i) => pill(v, i))}</span>;
+  }
+  // Без иконки ("oth") — одна таблетка с полной подписью (свой lbl + значения).
+  const label = formatEventLevel(level);
+  if (!label) return null;
+  return pill(label, 0);
 }

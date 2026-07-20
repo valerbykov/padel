@@ -15,7 +15,7 @@ const T_SELECT =
   "players:tournament_players(id, profile_id, name, pair_no, created_at, profile:profiles(name, avatar_url)), " +
   "matches:tournament_matches(id, round_number, court, team_a, team_b, score_a, score_b)";
 
-export async function createTournament(groupId, { name, pointsPerGame = 32, targetSize = 8, createdBy, format = "americano", startsAt, endsAt, place, description, contactName, contactLink, kotHChampionRule, openScoring = false, level } = {}) {
+export async function createTournament(groupId, { name, pointsPerGame = 32, targetSize = 8, createdBy, format = "americano", startsAt, endsAt, place, description, contactName, contactLink, kotHChampionRule, openScoring = false, level, feePerPlayer = null, feeCurrency = null, feeTiming = null } = {}) {
   let t = null;
   for (let i = 0; i < 5; i++) {
     const res = await supabase.from("tournaments").insert({
@@ -27,6 +27,9 @@ export async function createTournament(groupId, { name, pointsPerGame = 32, targ
       description: description?.trim() || null,
       contact_name: contactName?.trim() || null, contact_link: contactLink?.trim() || null,
       open_scoring: !!openScoring, level: level || null,
+      fee_per_player: feePerPlayer && feePerPlayer > 0 ? feePerPlayer : null,
+      fee_currency: feePerPlayer && feePerPlayer > 0 ? (feeCurrency || null) : null,
+      fee_timing: feePerPlayer && feePerPlayer > 0 ? (feeTiming || null) : null,
     }).select().single();
     if (!res.error) { t = res.data; break; }
     if (res.error.code !== "23505") throw res.error;

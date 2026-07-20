@@ -4,6 +4,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createTournament } from "../lib/tournamentApi";
 import { sanitizeEventLevel } from "../lib/levels";
+import { defaultCurrency } from "../lib/region";
+import { currencySymbol } from "../lib/money";
 import { t as tr } from "../lib/i18n";
 import DateTimePicker from "./DateTimePicker";
 import DurationPicker from "./DurationPicker";
@@ -37,6 +39,9 @@ export default function Create({ groupId, profileId, players = [], back, open })
   const [contactLink, setContactLink] = useState(() => d0.contactLink || "");
   const [level, setLevel] = useState(() => d0.level ?? null);
   const [contactFromLeague, setContactFromLeague] = useState(() => d0.contactFromLeague !== false); // по умолчанию — из Лиги
+  const [feeAmount, setFeeAmount] = useState(() => d0.feeAmount || ""); // взнос с игрока (пусто = без взноса)
+  const [feeTiming, setFeeTiming] = useState(() => d0.feeTiming || "start"); // когда собирать: до старта / после
+  const [feeCur, setFeeCur] = useState(() => d0.feeCur || "");
   const [busy, setBusy] = useState(false);
   // Восстановленное из черновика название не должно затираться авто-именем при
   // первом же прогоне эффекта (format уже truthy на восстановлении).
@@ -45,9 +50,12 @@ export default function Create({ groupId, profileId, players = [], back, open })
   // Сохраняем черновик при любом изменении полей — переживает уход со вкладки
   // (включая выбранный формат и шаг мастера, чтобы вернуться на тот же экран).
   useEffect(() => {
-    const draft = { step, format, courts, playerCount, points, openScoring, kotHChampionRule, day, time, place, name, durMin, description, contactName, contactLink, level, contactFromLeague };
+    const draft = { step, format, courts, playerCount, points, openScoring, kotHChampionRule, day, time, place, name, durMin, description, contactName, contactLink, level, contactFromLeague, feeAmount, feeTiming, feeCur };
     try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch (e) {}
-  }, [step, format, courts, playerCount, points, openScoring, kotHChampionRule, day, time, place, name, durMin, description, contactName, contactLink, level, contactFromLeague]);
+  }, [step, format, courts, playerCount, points, openScoring, kotHChampionRule, day, time, place, name, durMin, description, contactName, contactLink, level, contactFromLeague, feeAmount, feeTiming, feeCur]);
+
+  // Валюта взноса по региону (async) — только если не восстановлена из черновика.
+  useEffect(() => { if (!feeCur) defaultCurrency().then((c) => setFeeCur(c || "EUR")).catch(() => setFeeCur("EUR")); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fmt = format ? fmtById(format) : null;
   const isBtb = format === "beat_the_box";     // единственный формат «один корт + очередь»
@@ -102,7 +110,7 @@ export default function Create({ groupId, profileId, players = [], back, open })
       // Окончание = начало + выбранная длительность.
       let endsAtIso = null;
       try { endsAtIso = new Date(new Date(`${day}T${time}`).getTime() + durMin * 60000).toISOString(); } catch (e) { endsAtIso = null; }
-      const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format, createdBy: profileId, startsAt: startsAtIso, endsAt: endsAtIso, place, description: description.trim() || null, contactName: contactName.trim() || null, contactLink: contactLink.trim() || null, kotHChampionRule: isKoth ? kotHChampionRule : undefined, openScoring, level: sanitizeEventLevel(level) });
+      const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format, createdBy: profileId, startsAt: startsAtIso, endsAt: endsAtIso, place, description: description.trim() || null, contactName: contactName.trim() || null, contactLink: contactLink.trim() || null, kotHChampionRule: isKoth ? kotHChampionRule : undefined, openScoring, level: sanitizeEventLevel(level), feePerPlayer: Number(feeAmount) || null, feeCurrency: feeCur, feeTiming });
       try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) {}
       open(trn.id);
     } catch (e) { showToast(tr("err_create_tour")); setBusy(false); }
@@ -244,6 +252,26 @@ export default function Create({ groupId, profileId, players = [], back, open })
 
         {/* Длительность (заменяет ручное время окончания) */}
         <DurationPicker value={durMin} onChange={setDurMin} />
+
+        {/* Взнос с игрока (опционально). Задаётся сразу; потом можно менять и запускать
+            сбор в карточке взносов внутри турнира. Пусто = без взноса. */}
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>{tr("fee_title")}</div>
+          <div style={{ fontSize: 11.5, color: "var(--mut)", marginBottom: 10 }}>{tr("fee_setup_hint")}</div>
+          <div style={{ position: "relative" }}>
+            <input className="tr-input" type="number" inputMode="decimal" min="0" placeholder={tr("fee_ph_each")} value={feeAmount} onChange={(e) => setFeeAmount(e.target.value)} style={{ paddingRight: 52 }} />
+            <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", color: "var(--mut)", fontSize: 14, fontWeight: 800, pointerEvents: "none" }}>{currencySymbol(feeCur)}</span>
+          </div>
+          {Number(feeAmount) > 0 && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 6 }}>{tr("fee_timing_label")}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <button style={chip(feeTiming === "start")} onClick={() => setFeeTiming("start")}>{tr("fee_timing_start")}</button>
+                <button style={chip(feeTiming === "end")} onClick={() => setFeeTiming("end")}>{tr("fee_timing_end")}</button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Описание */}
         <div>

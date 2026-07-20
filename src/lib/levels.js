@@ -22,7 +22,7 @@ export function formatLevel(lvl) {
 }
 
 // Значения событийного уровня: новый мультивыбор (vals[]) ИЛИ легаси val/val2.
-function eventVals(lvl) {
+export function eventVals(lvl) {
   let vals = Array.isArray(lvl.vals) ? lvl.vals : [];
   if (!vals.length) vals = [lvl.val, lvl.val2];
   return [...new Set(vals.map((x) => String(x == null ? "" : x).trim()).filter(Boolean))];
