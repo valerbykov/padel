@@ -27,7 +27,7 @@ export default function Create({ groupId, profileId, players = [], back, open })
   const [playerCount, setPlayerCount] = useState(() => d0.playerCount ?? 8);
   const [kotHChampionRule, setKotHChampionRule] = useState(() => d0.kotHChampionRule || "court_1"); // #4: правило чемпиона KotH
   const [points, setPoints] = useState(() => d0.points ?? 32);
-  const [openScoring, setOpenScoring] = useState(() => d0.openScoring ?? false); // счёт: по PIN (как раньше) или свободный
+  const [openScoring, setOpenScoring] = useState(() => d0.openScoring ?? true); // счёт: по умолчанию свободный (любой участник вводит); можно переключить на PIN
   const [day, setDay] = useState(() => d0.day || nowLocalDT().slice(0, 10));
   const [time, setTime] = useState(() => d0.time || nowLocalDT().slice(11, 16));
   const date = day ? `${day}T${time || "00:00"}` : "";

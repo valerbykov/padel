@@ -335,7 +335,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
         {tab === "history" && (session ? <HistoryView key={navNonce} groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} isAdmin={isAdmin} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onOpenPlayer={openTourPlayer} /> : <GateScreen />)}
       </div>
 
-      <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--topbar-bg)", borderTop: "1px solid var(--line)", backdropFilter: "blur(8px)", paddingBottom: "env(safe-area-inset-bottom)" }}>
+      <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50, background: "var(--topbar-bg)", borderTop: "1px solid var(--line)", backdropFilter: "blur(8px)", paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div style={{ maxWidth: 460, margin: "0 auto", display: "flex" }}>
           {session && <button className={`pl-tab ${tab === "board" ? "on" : ""}`} onClick={() => goTab("board")}><Users size={20} strokeWidth={tab === "board" ? 2.6 : 2} />{t("tab_friends")}</button>}
           <button className={`pl-tab ${tab === "games" ? "on" : ""}`} onClick={() => goTab("games")}><Swords size={20} strokeWidth={tab === "games" ? 2.6 : 2} />{t("tab_games")}</button>
