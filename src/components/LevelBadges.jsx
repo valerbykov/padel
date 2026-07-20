@@ -19,8 +19,9 @@ export default function LevelBadges({ levels, compact = false }) {
         const full = formatLevel(l);
         if (!full) return null;
         const icon = sysIcon(l.sys);
-        // С иконкой префикс системы (Playtomic/Lunda) избыточен — только значение.
-        const label = icon ? String(l.val == null ? "" : l.val).trim() : full;
+        // Компактно (борд/подиум) с иконкой — только значение (иконка несёт систему).
+        // Не-компактно (карточка игрока) — полное имя «Playtomic 3.5»: место позволяет.
+        const label = (icon && compact) ? String(l.val == null ? "" : l.val).trim() : full;
         const c = color(l.sys);
         return (
           <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4, borderRadius: 999, whiteSpace: "nowrap",
