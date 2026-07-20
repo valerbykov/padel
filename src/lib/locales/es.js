@@ -254,7 +254,7 @@ export default {
     creating: 'Creando…', creating_game: 'Creando…',
     game_played_label: 'jugada',
     share_btn: 'Enlace',
-    created_by_label: 'Creado por',
+    created_by_label: 'Creado por', game_eyebrow: 'Partido de pádel',
     bell_title: 'Notificaciones',
     bell_empty: 'Aún no hay notificaciones. Aquí aparecerán las nuevas partidas y torneos de tus ligas.',
     bell_new_game: 'Nueva partida',

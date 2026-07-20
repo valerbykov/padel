@@ -2741,41 +2741,35 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
 
   return (
     <div className="pl-pop">
+      <style>{trCss}</style>
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         {back && <BackButton onClick={back} label={t("to_list")} />}
-        <button className="pl-ghost" style={{ padding: "6px 10px", color: "var(--coral)", border: "1px solid rgba(255,106,82,.3)", marginLeft: "auto" }} onClick={async () => { if (!(await confirmDialog({ title: t("delete_game_confirm"), message: t("delete_game_msg"), confirmLabel: t("delete_btn") }))) return; await deleteGame(game.id); bumpArchive && bumpArchive(); reloadGames && reloadGames(); back && back(); }} title={t("delete_btn")}><Trash2 size={14} /></button>
+      </div>
+      {/* Афиша игры — постер как у турнира (⚔️ вместо 🏆, свои поля) */}
+      <div className="trp-poster">
+        <span className="trp-trophy">⚔️</span>
+        <div className="trp-topbar">
+          <div className="trp-eyebrow">
+            {game.status === "live"
+              ? <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "var(--coral)" }}><span className="pp-live-dot" style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--coral)" }} /> LIVE{game.started_at ? ` · ${t("game_live_min").replace("{n}", String(liveMin))}` : ""}</span>
+              : <>⚔️ {t("game_eyebrow")}</>}
+          </div>
+          <div className="trp-actions">
+            <button className="trp-act" onClick={share}><Share2 size={14} /> {toast || t("share_btn")}</button>
+            <button className="trp-act" style={{ color: "var(--coral)", borderColor: "rgba(255,106,82,.4)" }} title={t("delete_btn")}
+              onClick={async () => { if (!(await confirmDialog({ title: t("delete_game_confirm"), message: t("delete_game_msg"), confirmLabel: t("delete_btn") }))) return; await deleteGame(game.id); bumpArchive && bumpArchive(); reloadGames && reloadGames(); back && back(); }}><Trash2 size={15} /></button>
+          </div>
+        </div>
+        <div className="trp-title">{game.title || "PadelPack"}</div>
+        <div className="trp-meta">
+          {game.starts_at && <div className="trp-row"><span className="trp-ic">🗓️</span><span>{fmtDate(game.starts_at)}{game.ends_at ? ` – ${new Date(game.ends_at).toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit" })}` : ""}</span></div>}
+          {game.place && <div className="trp-row"><span className="trp-ic">📍</span><span>{game.place}</span></div>}
+          {game.level && <div className="trp-row"><span className="trp-ic">🎖️</span><EventLevelBadge level={game.level} compact /></div>}
+          {creatorName && <div className="trp-row"><span className="trp-ic">👤</span><span>{t("created_by_label")}: <span style={{ color: "#fff", fontWeight: 700 }}>{creatorName}</span></span></div>}
+        </div>
       </div>
       <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-            {game.status === "live" && (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 999, background: "color-mix(in srgb, var(--coral) 15%, transparent)", border: "1px solid color-mix(in srgb, var(--coral) 40%, transparent)", color: "var(--coral)", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
-                <span className="pp-live-dot" style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--coral)" }} /> LIVE
-              </span>
-            )}
-            <div className="pl-display" style={{ fontSize: 18, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{game.title || "PadelPack"}</div>
-            {game.level && <EventLevelBadge level={game.level} compact />}
-          </div>
-          {game.status === "live" && game.started_at && (
-            <div style={{ fontSize: 12, color: "var(--coral)", fontWeight: 700, marginTop: 2 }}>{t("game_live_min").replace("{n}", String(liveMin))}</div>
-          )}
-          {(game.starts_at || game.place) && (
-            <div style={{ fontSize: 12, color: "var(--mut)", display: "flex", gap: 10, marginTop: 2, flexWrap: "wrap" }}>
-              {game.starts_at && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={12} />{fmtDate(game.starts_at)}{game.ends_at ? ` – ${new Date(game.ends_at).toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit" })}` : ""}</span>}
-              {game.place && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><MapPin size={12} />{game.place}</span>}
-            </div>
-          )}
-          {creatorName && (
-            <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 4 }}>
-              {t("created_by_label")}: <span style={{ color: "var(--ink)", fontWeight: 600 }}>{creatorName}</span>
-            </div>
-          )}
-        </div>
-        <button className="pl-btn" style={{ padding: "8px 12px", display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }} onClick={share}><Share2 size={15} /> {toast || t("share_btn")}</button>
-      </div>
-
-      <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {slots.map((s, i) => {
           const free = !nameOf(s);
           const picking = pickSlot && (pickSlot.id ? pickSlot.id === s.id : pickSlot === s);

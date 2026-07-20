@@ -254,7 +254,7 @@ export default {
     creating: 'Создаю…', creating_game: 'Создаю…',
     game_played_label: 'сыграна',
     share_btn: 'Ссылка',
-    created_by_label: 'Создал',
+    created_by_label: 'Создал', game_eyebrow: 'Игра в падел',
     bell_title: 'Уведомления',
     bell_empty: 'Пока нет уведомлений. Здесь появятся новые игры и турниры твоих лиг.',
     bell_new_game: 'Новая игра',
