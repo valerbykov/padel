@@ -216,6 +216,8 @@ function ContactLinks({ contacts = {} }) {
 
 export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin, onOpenLanding, onEditProfile, openSelfStatsNonce = 0, openAnalyticsNonce = 0, openEvent = null, profileNonce = 0 }) {
   const [tab, setTab] = useState(session ? "board" : "welcome");
+  const [pendingSelfStats, setPendingSelfStats] = useState(false);   // одноразовый запрос «моя статистика»
+  const [pendingAnalytics, setPendingAnalytics] = useState(false);   // одноразовый запрос «аналитика лиги»
   // Повторный тап по активной вкладке должен возвращать к её корню (закрыть
   // открытую детализацию). Меняем navNonce → key вкладки → ремоунт → сброс.
   const [navNonce, setNavNonce] = useState(0);
@@ -301,9 +303,13 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
   // обрезается остаточной прокруткой прошлой вкладки).
   useEffect(() => { window.scrollTo({ top: 0, left: 0 }); }, [tab]);
 
-  // «Моя статистика» из кабинета → вкладка «Друзья» (Board сам выберет себя).
-  useEffect(() => { if (openSelfStatsNonce > 0) setTab("board"); }, [openSelfStatsNonce]);
-  useEffect(() => { if (openAnalyticsNonce > 0) setTab("board"); }, [openAnalyticsNonce]);
+  // «Моя статистика»/«Аналитика» из кабинета. nonce МЕНЯЕТСЯ только по реальному
+  // клику (PadelLeague не ремонтируется от смены вкладки/лиги), поэтому здесь
+  // взводим ОДНОРАЗОВЫЙ pending-флаг; Board его гасит, открыв нужный экран. Так
+  // ре-монт Board (клик по той же вкладке/смена лиги/удаление лиги) больше не
+  // переоткрывает личную статистику по «застрявшему» nonce.
+  useEffect(() => { if (openSelfStatsNonce > 0) { setTab("board"); setPendingSelfStats(true); } }, [openSelfStatsNonce]);
+  useEffect(() => { if (openAnalyticsNonce > 0) { setTab("board"); setPendingAnalytics(true); } }, [openAnalyticsNonce]);
   // Открытие игры/турнира из уведомления (колокольчик): переключаем вкладку,
   // сам объект открывает Games/Tournaments через проп openReq.
   useEffect(() => {
@@ -327,7 +333,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
         )}
 
         {tab === "welcome" && !session && <WelcomeScreen onLogin={onLogin} onBrowseGames={() => goTab("games")} onBrowseTournaments={() => goTab("tournaments")} onOpenLanding={onOpenLanding} theme={theme} lang={lang} onThemeToggle={onThemeToggle} onLangChange={onLangChange} />}
-        {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} loading={!lbLoaded} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} leaguesReady={leaguesReady} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsNonce={openSelfStatsNonce} analyticsNonce={openAnalyticsNonce} /> : <GateScreen />)}
+        {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} loading={!lbLoaded} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} leaguesReady={leaguesReady} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsReq={pendingSelfStats} onSelfStatsSeen={() => setPendingSelfStats(false)} analyticsReq={pendingAnalytics} onAnalyticsSeen={() => setPendingAnalytics(false)} /> : <GateScreen />)}
         {tab === "games" && <Games key={navNonce} groupId={groupId} players={players} profileId={profileId} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} openReq={openEvent?.kind === "game" ? openEvent : null} theme={theme} />}
         {tab === "tournaments" && <Tournaments key={navNonce} groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} membersCanCreate={!!activeLeague?.members_can_create} openReq={openEvent?.kind === "tour" ? openEvent : null} onOpenPlayer={openTourPlayer} />}
         {tab === "history" && (session ? <HistoryView key={navNonce} groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} isAdmin={isAdmin} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onOpenPlayer={openTourPlayer} /> : <GateScreen />)}
@@ -540,7 +546,7 @@ function PlayerRowSkeleton({ count = 5 }) {
   );
 }
 
-function Board({ groupId, players, loading = false, reload, profileId, bumpArchive, isAdmin, leagues, leaguesReady = true, activeLeague, onLeagueChange, onLeagueCreated, onEditProfile, selfStatsNonce = 0, analyticsNonce = 0 }) {
+function Board({ groupId, players, loading = false, reload, profileId, bumpArchive, isAdmin, leagues, leaguesReady = true, activeLeague, onLeagueChange, onLeagueCreated, onEditProfile, selfStatsReq = false, onSelfStatsSeen, analyticsReq = false, onAnalyticsSeen }) {
   const [open, setOpen] = useState(false);
   const [showStats, setShowStats] = useState(false);  // дашборд аналитики лиги
   const [query, setQuery] = useState("");
@@ -598,21 +604,21 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
     catch (e) { setHiddenIds((prev) => { const n = new Set(prev); n.delete(p.id); return n; }); }
   };
 
-  // «Моя статистика» из кабинета: открываем карточку текущего игрока, когда счётчик меняется.
-  const lastStatsNonce = useRef(0);
+  // «Моя статистика» из кабинета: ОДНОРАЗОВЫЙ запрос от родителя. Ждём загрузки
+  // ростера, открываем свою карточку и ГАСИМ запрос (onSelfStatsSeen) — поэтому
+  // ре-монт Board (та же вкладка/смена лиги/удаление) её больше не переоткрывает.
   useEffect(() => {
-    if (selfStatsNonce > 0 && selfStatsNonce !== lastStatsNonce.current && players.length) {
-      const self = players.find((p) => p.id === profileId);
-      if (self) { lastStatsNonce.current = selfStatsNonce; setSelected(self); }
-    }
-  }, [selfStatsNonce, players, profileId]);
+    if (!selfStatsReq || !players.length) return;
+    const self = players.find((p) => p.id === profileId);
+    if (self) setSelected(self);
+    onSelfStatsSeen?.();
+  }, [selfStatsReq, players, profileId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const lastAnalyticsNonce = useRef(0);
   useEffect(() => {
-    if (analyticsNonce > 0 && analyticsNonce !== lastAnalyticsNonce.current) {
-      lastAnalyticsNonce.current = analyticsNonce; setShowStats(true);
-    }
-  }, [analyticsNonce]);
+    if (!analyticsReq) return;
+    setShowStats(true);
+    onAnalyticsSeen?.();
+  }, [analyticsReq]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const gamesOf = (p) => srv ? (srv.games[p.id] ?? 0) : (matchCounts[p.id] || p.matches || 0);
   const toursOf = (p) => srv ? (srv.tours[p.id] ?? 0) : (tourCounts[p.id] || tourCountsByName[(p.name || "").trim().toLowerCase()] || 0);
@@ -993,13 +999,16 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
               </div>
               <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 7, fontSize: 12, color: "var(--mut)", marginTop: 2 }}>
                 <TierChip rating={p.rating} compact />
-                <LevelBadges levels={p.levels} compact />
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_games")}><Swords size={13} /> {gamesOf(p)}</span>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} title={t("tab_tournaments")}><Trophy size={13} /> {toursOf(p)}</span>
                 </span>
                 {badges.length > 0 && <span style={{ letterSpacing: 1, marginLeft: "auto" }}>{badges.join(" ")}</span>}
               </div>
+              {/* Уровень — отдельной 3-й строкой (только если задан) */}
+              {Array.isArray(p.levels) && p.levels.length > 0 && (
+                <div style={{ marginTop: 4 }}><LevelBadges levels={p.levels} compact /></div>
+              )}
             </div>
             {/* Рейтинг + недельный тренд вместо шеврона: главный сюжет таблицы */}
             <div style={{ textAlign: "right", flexShrink: 0 }}>
