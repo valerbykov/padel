@@ -67,7 +67,7 @@ export default function WelcomeScreen({ onLogin, onOpenLanding, theme = "dark", 
                 { n: 3, img: podDogs[2], nm: t("w_pn3"), size: 42, pad: 6, col: "#cd7f4d" },
               ].map((c) => (
                 <div key={c.n} style={{ textAlign: "center", minWidth: 0 }}>
-                  <img src={`/avatars/${c.img}.webp`} alt="" loading="lazy" decoding="async"
+                  <img src={`/avatars/${c.img}-sm.webp`} alt="" decoding="async" fetchPriority={c.n === 1 ? "high" : undefined}
                     style={{ width: c.size, height: c.size, borderRadius: "50%", objectFit: "cover", border: `3px solid ${c.col}`, background: "var(--surface)" }} />
                   <div style={{ fontSize: c.n === 1 ? 12 : 11, fontWeight: c.n === 1 ? 700 : 600, marginTop: 3 }}>{c.nm}{c.n === 1 ? " · 1204" : ""}</div>
                   {c.n === 1 && (
