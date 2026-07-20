@@ -2828,6 +2828,10 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
         </div>
       </div>
       <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
+      {/* Ростер-список нужен только пока игра открыта (добор/удаление состава).
+          После «Начать игру» состав зафиксирован и его показывает табло корта —
+          список дублирует и не несёт пользы, поэтому прячем. */}
+      {game.status === "open" && (
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {slots.map((s, i) => {
           const free = !nameOf(s);
@@ -2863,6 +2867,7 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
         })}
         {joinErr && <div style={{ fontSize: 12, color: "var(--coral)", textAlign: "center" }}>{joinErr}</div>}
       </div>
+      )}
 
       {/* Фиксация момента старта: кнопка видна всегда, активируется при 4/4 */}
       {mayStart && (
