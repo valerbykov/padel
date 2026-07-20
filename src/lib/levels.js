@@ -43,6 +43,18 @@ export function formatEventLevel(lvl) {
   return `${sysPrefix(lvl.sys, lvl.lbl)} ${vals.join(", ")}`.trim();
 }
 
+// Значения событийного уровня БЕЗ префикса системы (для бейджа с иконкой):
+// «2.0, 2.5» (мультивыбор) или «2.0–2.5» (легаси-диапазон). Иконка несёт систему.
+export function formatEventVals(lvl) {
+  if (!lvl || typeof lvl !== "object") return "";
+  if (!Array.isArray(lvl.vals)) {
+    const v = String(lvl.val == null ? "" : lvl.val).trim();
+    const v2 = String(lvl.val2 == null ? "" : lvl.val2).trim();
+    if (v && v2 && v2 !== v) return `${v}–${v2}`;
+  }
+  return eventVals(lvl).join(", ");
+}
+
 // Санитайзер событийного уровня: канонизирует vals (уник, порядок по «лестнице»).
 export function sanitizeEventLevel(lvl) {
   if (!lvl || typeof lvl !== "object") return null;
