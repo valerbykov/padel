@@ -67,9 +67,9 @@ function frame(ctx, { glow, rightText }) {
     ctx.fillText(rightText, W - 64, 104);
   }
 
-  ctx.fillStyle = C.lime; ctx.fillRect(0, H - 96, W, 96);
-  ctx.font = F(800, 38); ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillStyle = C.limeFg; ctx.fillText(`padelpack.app — ${t("sc_footer")}`, W / 2, H - 46);
+  // Низ: без лаймового баннера и слогана — только приглушённый URL (современнее).
+  ctx.font = F(700, 30); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillStyle = C.mut; ctx.fillText("padelpack.app", W / 2, H - 40);
   ctx.textBaseline = "alphabetic";
 }
 
@@ -252,8 +252,13 @@ export async function renderTournamentCard({ name, dateStr, metaStr, top3 }) {
     } else {
       circleAvatar(ctx, (ims || [])[0], cx, avCy, d, color);
     }
-    ctx.font = F(rank === 1 ? 800 : 700, rank === 1 ? 40 : 34); ctx.fillStyle = C.ink;
-    ctx.fillText(`${p.name.slice(0, 16)}${rank === 1 ? " 🏆" : ""}`, cx, nameY);
+    // Имя целиком, но ужимаем шрифт под ширину пьедестала (длинные пары-имена влезают).
+    const nmText = `${p.name}${rank === 1 ? " 🏆" : ""}`;
+    let fs = rank === 1 ? 40 : 34; const fw = rank === 1 ? 800 : 700;
+    ctx.font = F(fw, fs);
+    while (ctx.measureText(nmText).width > 250 && fs > 22) { fs -= 2; ctx.font = F(fw, fs); }
+    ctx.fillStyle = C.ink;
+    ctx.fillText(nmText, cx, nameY);
     if (p.points != null) {
       ctx.font = F(700, 30); ctx.fillStyle = rank === 1 ? C.yellow : C.mut;
       ctx.fillText(`${p.points} ${t("trn_hero_pts")}`, cx, nameY + 42);
