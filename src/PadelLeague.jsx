@@ -329,7 +329,6 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
           </div>
         )}
 
-        {tab === "welcome" && !session && <WelcomeScreen onLogin={onLogin} onBrowseGames={() => goTab("games")} onBrowseTournaments={() => goTab("tournaments")} onOpenLanding={onOpenLanding} theme={theme} lang={lang} onThemeToggle={onThemeToggle} onLangChange={onLangChange} />}
         {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} loading={!lbLoaded} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} leaguesReady={leaguesReady} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsReq={pendingSelfStats} onSelfStatsSeen={() => setPendingSelfStats(false)} analyticsReq={pendingAnalytics} onAnalyticsSeen={() => setPendingAnalytics(false)} /> : <GateScreen />)}
         {tab === "games" && <Games key={navNonce} groupId={groupId} players={players} profileId={profileId} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} openReq={openEvent?.kind === "game" ? openEvent : null} theme={theme} />}
         {tab === "tournaments" && <Tournaments key={navNonce} groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} membersCanCreate={!!activeLeague?.members_can_create} openReq={openEvent?.kind === "tour" ? openEvent : null} onOpenPlayer={openTourPlayer} />}
@@ -338,7 +337,6 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
 
       <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--topbar-bg)", borderTop: "1px solid var(--line)", backdropFilter: "blur(8px)", paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div style={{ maxWidth: 460, margin: "0 auto", display: "flex" }}>
-          {!session && <button className={`pl-tab ${tab === "welcome" ? "on" : ""}`} onClick={() => goTab("welcome")}><LogIn size={20} strokeWidth={tab === "welcome" ? 2.6 : 2} />{t("tab_start")}</button>}
           {session && <button className={`pl-tab ${tab === "board" ? "on" : ""}`} onClick={() => goTab("board")}><Users size={20} strokeWidth={tab === "board" ? 2.6 : 2} />{t("tab_friends")}</button>}
           <button className={`pl-tab ${tab === "games" ? "on" : ""}`} onClick={() => goTab("games")}><Swords size={20} strokeWidth={tab === "games" ? 2.6 : 2} />{t("tab_games")}</button>
           <button className={`pl-tab ${tab === "tournaments" ? "on" : ""}`} onClick={() => goTab("tournaments")}><Trophy size={20} strokeWidth={tab === "tournaments" ? 2.6 : 2} />{t("tab_tournaments")}</button>
@@ -364,109 +362,6 @@ function GateScreen() {
       <div className="pl-display" style={{ fontSize: 20, marginBottom: 8 }}>{t("gate_title")}</div>
       <div style={{ color: "var(--mut)", fontSize: 14, lineHeight: 1.5, maxWidth: 280, margin: "0 auto" }}>
         {t("gate_sub")}
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------ WelcomeScreen ----------------------------- */
-function WelcomeScreen({ onLogin, onOpenLanding, theme = "dark", lang = "ru", onThemeToggle, onLangChange }) {
-  // Собаки подиума — случайные из 15 при каждом заходе (как раньше верхний ряд);
-  // выбор один раз на маунт, чтобы не мигали при ререндерах.
-  const [podDogs] = useState(() => {
-    const nums = Array.from({ length: DOG_COUNT }, (_, i) => i + 1);
-    for (let i = nums.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [nums[i], nums[j]] = [nums[j], nums[i]]; }
-    return nums.slice(0, 3).map((n) => `dog-${String(n).padStart(2, "0")}`);
-  });
-  // Три ёмкие карточки: демо теперь продаёт живой подиум ниже, а не текст.
-  const features = [
-    { icon: "🏆", title: t("w_f1_t"), sub: t("w_f1_d") },   // создай/вступи
-    { icon: "🔗", title: t("w_f2_t"), sub: t("w_f2_d") },   // ссылки, LIVE, напоминания
-    { icon: "📸", title: t("w_f3_t"), sub: t("w_f3_d") },   // рейтинг, звания, карточки
-  ];
-  return (
-    <div className="pl-pop">
-      {/* Hero — слоган сразу сверху; «стаю» показывает подиум ниже (вариант A). */}
-      <div style={{ textAlign: "center", padding: "24px 0 18px" }}>
-        {(() => {
-          const [a, b] = t("tagline").split(" · ");
-          const cap = (s = "") => s.charAt(0).toUpperCase() + s.slice(1);
-          return (
-            <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 30, lineHeight: 1.18, letterSpacing: "-0.5px", maxWidth: 340, margin: "0 auto" }}>
-              <span style={{ color: "var(--lime)" }}>{cap(a)}</span>
-              {b && <><span style={{ color: "var(--mut)", fontWeight: 500 }}> ·</span><span style={{ color: "var(--ink)", display: "block" }}>{cap(b)}</span></>}
-            </div>
-          );
-        })()}
-        <div style={{ fontSize: 14, color: "var(--mut)", lineHeight: 1.6, maxWidth: 270, margin: "14px auto 0" }}>
-          {t("welcome_tagline")}
-        </div>
-      </div>
-
-      {/* Живой мини-подиум: продукт виден до входа; собаки — те же, что в демо-стае */}
-      <div className="pl-card" style={{ padding: "14px 12px 0", marginBottom: 8 }}>
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 12 }}>
-          {[
-            { n: 2, img: podDogs[1], nm: t("w_pn2"), size: 42, pad: 10, col: "#cfd8d0" },
-            { n: 1, img: podDogs[0], nm: t("w_pn1"), size: 52, pad: 15, col: "var(--yellow)" },
-            { n: 3, img: podDogs[2], nm: t("w_pn3"), size: 42, pad: 6, col: "#cd7f4d" },
-          ].map((c) => (
-            <div key={c.n} style={{ textAlign: "center", minWidth: 0 }}>
-              <img src={`/avatars/${c.img}.webp`} alt="" loading="lazy" decoding="async"
-                style={{ width: c.size, height: c.size, borderRadius: "50%", objectFit: "cover", border: `3px solid ${c.col}`, background: "var(--surface)" }} />
-              <div style={{ fontSize: c.n === 1 ? 12 : 11, fontWeight: c.n === 1 ? 700 : 600, marginTop: 3 }}>{c.nm}{c.n === 1 ? " · 1204" : ""}</div>
-              {c.n === 1 && (
-                <div style={{ fontSize: 9.5, fontWeight: 800, padding: "2px 7px", borderRadius: 20, background: "color-mix(in srgb, #ff9f2d 18%, transparent)", color: "#ff9f2d", display: "inline-block", marginTop: 2 }}>{t("tier_leader")}</div>
-              )}
-              <div style={{ background: c.n === 1 ? "color-mix(in srgb, var(--yellow) 18%, var(--surface2))" : "var(--surface2)", borderRadius: "8px 8px 0 0", padding: `${c.pad}px 16px`, fontWeight: 800, color: c.col, marginTop: 4 }}>{c.n}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div style={{ textAlign: "center", fontSize: 11.5, color: "var(--mut)", marginBottom: 14 }}>{t("w_pod_hint")}</div>
-
-      {/* Feature cards */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 22 }}>
-        {features.map(({ icon, title, sub }) => (
-          <div key={title} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px" }}>
-            <div style={{ fontSize: 24, flexShrink: 0, width: 32, textAlign: "center" }}>{icon}</div>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>{title}</div>
-              <div style={{ fontSize: 12, color: "var(--mut)", marginTop: 2 }}>{sub}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* CTA */}
-      <button className="pl-btn" style={{ width: "100%", padding: 15, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={onLogin}>
-        {t("welcome_cta")}
-      </button>
-      <div style={{ textAlign: "center", marginTop: 12, fontSize: 12, color: "var(--mut)" }}>
-        {t("welcome_code_hint")}
-      </div>
-
-      {onOpenLanding && (
-        <div style={{ textAlign: "center", marginTop: 14 }}>
-          <button onClick={onOpenLanding} style={{ background: "none", border: "none", color: "var(--lime)", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif" }}>
-            {t("lp_about")}
-          </button>
-        </div>
-      )}
-
-      {/* Lang + theme controls */}
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 6, marginTop: 18, flexWrap: "wrap" }}>
-        <button onClick={() => { const o = ["ru", "en", "es"]; onLangChange?.(o[(o.indexOf(lang) + 1) % o.length]); }} style={{
-          border: "1px solid var(--line)", borderRadius: 10, padding: "5px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer",
-          background: "var(--surface2)", color: "var(--ink)", fontFamily: "'Outfit',sans-serif", display: "flex", alignItems: "center", gap: 6,
-        }}>{lang.toUpperCase()} <span style={{ color: "var(--mut)", fontWeight: 400 }}>↻</span></button>
-        <button onClick={onThemeToggle} style={{
-          border: "1px solid var(--line)", borderRadius: 10, padding: "5px 9px",
-          background: "var(--surface2)", color: "var(--mut)", cursor: "pointer",
-          display: "flex", alignItems: "center", fontFamily: "'Outfit',sans-serif",
-        }}>
-          {theme === "dark" ? "☀️" : "🌙"}
-        </button>
       </div>
     </div>
   );

@@ -50,6 +50,7 @@ const _warm = typeof window !== "undefined" && hasStoredSession();
 if (_warm) setTimeout(() => { import("./PadelLeague").catch(() => {}); }, 0);
 // ЛК открывают часто — греем его чанк на холостом ходу (после критического пути).
 if (_warm) setTimeout(() => { import("./components/ProfileEditor").catch(() => {}); }, 3500);
+const WelcomeScreen    = lazy(() => import("./components/WelcomeScreen"));
 const LoginScreen      = lazy(() => import("./components/LoginScreen"));
 const ProfileEditor    = lazy(() => import("./components/ProfileEditor"));
 const LeagueSetup      = lazy(() => import("./components/LeagueSetup"));
@@ -634,6 +635,21 @@ export default function App({ initialShowLogin = false }) {
       </div>
     );
   }
+
+  // Гость (без сессии): лёгкий экран «Начало» БЕЗ TopBar/PadelLeague/Tournaments —
+  // весь тяжёлый чанк лиги грузится только после входа. Публичные маршруты и
+  // экран входа обработаны выше ранними return'ами.
+  if (!session)
+    return (
+      <WelcomeScreen
+        onLogin={() => setShowLogin(true)}
+        onOpenLanding={openLanding}
+        theme={theme}
+        lang={lang}
+        onThemeToggle={toggleTheme}
+        onLangChange={handleLangChange}
+      />
+    );
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
