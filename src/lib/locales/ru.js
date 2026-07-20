@@ -410,7 +410,7 @@ export default {
     trn_collapse: 'свернуть',
     trn_winner: 'Победитель', trn_diff: 'разница',
     trn_to_list: 'К списку',
-    trn_share_text: 'Турнир по паделю',
+    trn_share_text: 'Турнир по паделу',
     trn_winner_points: 'очк.',
     trn_guest_add: '+ Гость: ',
     trn_loading_fail: 'Не удалось загрузить турнир.',
