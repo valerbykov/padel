@@ -2766,6 +2766,19 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
           {game.place && <div className="trp-row"><span className="trp-ic">📍</span><span>{game.place}</span></div>}
           {game.level && <div className="trp-row"><span className="trp-ic">🎖️</span><EventLevelBadge level={game.level} compact /></div>}
           {creatorName && <div className="trp-row"><span className="trp-ic">👤</span><span>{t("created_by_label")}: <span style={{ color: "#fff", fontWeight: 700 }}>{creatorName}</span></span></div>}
+          <div className="trp-row"><span className="trp-ic">👥</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+              {filled > 0 && (
+                <span style={{ display: "inline-flex", flexShrink: 0 }}>
+                  {slots.filter((s) => nameOf(s)).map((s, k) => (
+                    <img key={s.id} src={playerAvatar(s.profile?.avatar_url, s.profile_id || nameOf(s))} onError={avatarFallback(s.profile_id || nameOf(s))} onLoad={avatarOnLoad} alt=""
+                      style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", marginLeft: k ? -8 : 0, boxShadow: "0 0 0 2px #10241d", ...avatarBg(s.profile_id || nameOf(s)) }} />
+                  ))}
+                </span>
+              )}
+              <span>{filled}/4{filled < 4 ? ` · ${t("pub_spots_left").replace("{n}", String(4 - filled))}` : ""}</span>
+            </span>
+          </div>
         </div>
       </div>
       <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>

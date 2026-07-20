@@ -1003,7 +1003,18 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
           <div className="trp-row"><span className="trp-ic">💸</span><span className="trp-chip trp-chip-fee">{formatMoney(trnData.fee_per_player, trnData.fee_currency)}</span></div>
         )}
         <div className="trp-row"><span className="trp-ic">👥</span>
-          <span>{trnData.players.length}/{trnData.target_size} {tr("trn_players_label").toLowerCase()}{(fmt.category === "pair" && !isBtb) && trnData.target_size ? ` · ${Math.floor(trnData.target_size / 2)} ${tr("trn_pairs").toLowerCase()}` : ""}</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+            {(trnData.players || []).length > 0 && (
+              <span style={{ display: "inline-flex", flexShrink: 0 }}>
+                {trnData.players.slice(0, 5).map((p, k) => (
+                  <img key={p.id} src={avatarOfTp(p.id) || dogAvatar(p.profile_id || p.name)} alt=""
+                    style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", marginLeft: k ? -8 : 0, boxShadow: "0 0 0 2px #112a20", background: "var(--surface2)" }} />
+                ))}
+                {trnData.players.length > 5 && <span style={{ marginLeft: -8, width: 24, height: 24, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "var(--mut)", boxShadow: "0 0 0 2px #112a20" }}>+{trnData.players.length - 5}</span>}
+              </span>
+            )}
+            <span>{trnData.players.length}/{trnData.target_size} {tr("trn_players_label").toLowerCase()}{(fmt.category === "pair" && !isBtb) && trnData.target_size ? ` · ${Math.floor(trnData.target_size / 2)} ${tr("trn_pairs").toLowerCase()}` : ""}</span>
+          </span>
         </div>
       </div>
       {trnData.description && (
