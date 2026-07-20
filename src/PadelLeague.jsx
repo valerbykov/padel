@@ -732,7 +732,7 @@ function Board({ groupId, players, loading = false, reload, profileId, isAdmin, 
           <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}>{t("onboarding_title")}</div>
           {[
             { n: 1, icon: "👤", text: t("onboarding_1_text"), sub: isAdmin ? t("onboarding_1_sub_admin") : t("onboarding_1_sub_member") },
-            { n: 2, icon: "⚔️", text: t("onboarding_2_text"), sub: t("onboarding_2_sub") },
+            { n: 2, icon: <Swords size={15} style={{ verticalAlign: -2 }} />, text: t("onboarding_2_text"), sub: t("onboarding_2_sub") },
             { n: 3, icon: "📣", text: t("onboarding_3_text"), sub: (activeLeague?.invite_code && (isAdmin || activeLeague?.members_can_add)) ? t("onboarding_3_sub_code").replace("{code}", activeLeague.invite_code) : t("onboarding_3_sub_no_code") },
           ].map(({ n, icon, text, sub }) => (
             <div key={n} style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 12 }}>

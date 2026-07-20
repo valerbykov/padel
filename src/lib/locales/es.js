@@ -391,7 +391,7 @@ export default {
     trn_need_mult4: 'Se necesita un múltiplo de 4 jugadores',
     trn_match_label: 'Partido', trn_round_label: 'Ronda',
     trn_defender_koth: '👑 Rey', trn_defender_btb: '📦 Box',
-    trn_challenger: '⚔️ Retador',
+    trn_challenger: 'Retador',
     trn_queue_label: 'EN COLA',
     trn_enter_score: 'Introduce el marcador del partido.',
     trn_enter_all_scores: 'Rellena los marcadores de todas las pistas para pasar a la siguiente ronda.',

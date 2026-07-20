@@ -391,7 +391,7 @@ export default {
     trn_need_mult4: 'Need a multiple of 4 players',
     trn_match_label: 'Match', trn_round_label: 'Round',
     trn_defender_koth: '👑 King', trn_defender_btb: '📦 Box',
-    trn_challenger: '⚔️ Challenger',
+    trn_challenger: 'Challenger',
     trn_queue_label: 'IN QUEUE',
     trn_enter_score: 'Enter match score.',
     trn_enter_all_scores: 'Fill in all court scores to proceed to the next round.',

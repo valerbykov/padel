@@ -391,7 +391,7 @@ export default {
     trn_need_mult4: 'Нужно число игроков, кратное 4',
     trn_match_label: 'Матч', trn_round_label: 'Раунд',
     trn_defender_koth: '👑 Король', trn_defender_btb: '📦 Box',
-    trn_challenger: '⚔️ Претендент',
+    trn_challenger: 'Претендент',
     trn_queue_label: 'В ОЧЕРЕДИ',
     trn_enter_score: 'Введи счёт матча.',
     trn_enter_all_scores: 'Заполни счёт всех кортов, чтобы перейти к следующему раунду.',
