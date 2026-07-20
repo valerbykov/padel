@@ -232,6 +232,7 @@ export default {
     swipe_hint: 'Swipe left to delete, right to copy',
     mix_again: 'Play again (mix)', mix_create: 'Create game', mix_hint: 'Drag a player to swap teams',
     mix_session_title: 'Mix session', you_badge: 'You', mix_game_label: 'Game', mix_delete_confirm: 'Delete the whole mix session ({n} games)?',
+    mix_active_section: 'Mix sessions', mix_finish_btn: 'Finish session', mix_finish_confirm_title: 'Finish mix session?', mix_finish_confirm_msg: 'The session will move to History. You won\'t be able to add more games to it afterwards.',
     games_empty_session: 'No games yet. Create a game and share the link with friends.',
     games_empty_guest: 'Your league games will appear here. Sign in and join a league.',
     slot_free: '🔗 free — waiting via link',

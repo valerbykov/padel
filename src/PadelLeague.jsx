@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { registerBack } from "./lib/backstack";
 import { supabase } from "./lib/supabase";
 import BackButton from "./components/BackButton";
-import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createDemoLeague, joinSlot, clearGameSlot, startGame, getGroupCounts, getGroupProfiles, listMyGames, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames, getMyDeltas, getGameFee, getGameFeePayments, setGameFee, toggleGameFeePaid, remindGameFeeDebtors } from "./lib/padelApi";
+import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createDemoLeague, joinSlot, clearGameSlot, startGame, getGroupCounts, getGroupProfiles, listMyGames, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames, getMyDeltas, getGameFee, getGameFeePayments, setGameFee, toggleGameFeePaid, remindGameFeeDebtors, finishMixSession } from "./lib/padelApi";
 import { WEB_BASE } from "./lib/platform";
 import { CardSkeleton } from "./components/Skeleton";
 import { bustCache, cachePeek } from "./lib/cache";
@@ -15,7 +15,7 @@ import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
 import { t, nGames, currentLang , dateLocale, isDeletedPlayer} from "./lib/i18n";
 import { detailedStandings } from "./lib/americano";
 import Fab from "./components/Fab";
-import { Trophy, Swords, History, Users, UserPlus, Share2, X, Copy, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Phone, Mail, Trash2, Shuffle, HelpCircle, UserCheck, ShieldCheck, EyeOff, Star, User, Search, Pencil, Send, MessageCircle, QrCode } from "lucide-react";
+import { Trophy, Swords, History, Users, UserPlus, Share2, X, Copy, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Phone, Mail, Trash2, Shuffle, HelpCircle, UserCheck, ShieldCheck, EyeOff, Star, User, Search, Pencil, Send, MessageCircle, QrCode, Check } from "lucide-react";
 import { shareUrl } from "./lib/shareLink";
 import Tournaments, { TournamentView, TournamentCard, CopyDialog, css as trCss } from "./components/Tournaments";
 import DateTimePicker from "./components/DateTimePicker";
@@ -2221,10 +2221,28 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
       {loading && <CardSkeleton count={4} />}
       {!loading && games.length === 0 && <EmptyState variant="run" theme={theme} text={!session ? t("games_empty_guest") : (groupId ? t("games_empty_session") : t("solo_games_empty"))} />}
       {!loading && (() => {
-        const upcoming = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length < 4);
-        const active   = games.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length === 4);
-        const liveNow  = games.filter(g => g.status === "live");
-        const played   = games.filter(g => g.status === "played");
+        // Микс-сессии: группируем под-игры по mixKey. Активная сессия (≥2 игр и
+        // ещё не завершена явно) показывается ОДНОЙ карточкой; её под-игры не
+        // раскидываем по обычным секциям. Завершённые миксы (mix_ended_at) —
+        // только в «Истории», поэтому из «Игр» их тоже убираем.
+        const mixKeyOf = (g) => g.mix_group_id || g.id;
+        const byMix = new Map();
+        games.forEach((g) => { const k = mixKeyOf(g); const a = byMix.get(k) || []; a.push(g); byMix.set(k, a); });
+        const memberOfMix = new Set();   // id всех игр, входящих в сессию ≥2 (активную или завершённую)
+        const activeMixKeys = [];
+        byMix.forEach((arr, k) => {
+          if (arr.length < 2) return;
+          arr.forEach((g) => memberOfMix.add(g.id));
+          if (arr.every((g) => !g.mix_ended_at)) activeMixKeys.push(k);
+        });
+        const activeMixSessions = activeMixKeys.map((k) => [...byMix.get(k)]
+          .sort((a, b) => new Date(a.created_at || a.starts_at || 0) - new Date(b.created_at || b.starts_at || 0)));
+        // Одиночные игры (не входят ни в одну микс-сессию) — по ним и строим секции.
+        const solo = games.filter((g) => !memberOfMix.has(g.id));
+        const upcoming = solo.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length < 4);
+        const active   = solo.filter(g => g.status === "open" && (g.slots||[]).filter(s=>s.profile_id||s.guest_name).length === 4);
+        const liveNow  = solo.filter(g => g.status === "live");
+        const played   = solo.filter(g => g.status === "played");
         // «Занять» одним тапом из списка/hero: первый свободный слот — себе.
         const takeFirstFree = async (g) => {
           const free = (g.slots || []).find((s) => !s.profile_id && !s.guest_name);
@@ -2252,8 +2270,19 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
           </div>
         );
         return [
-          (games.length > 0 && upcoming.length === 0 && active.length === 0 && liveNow.length === 0) ? <EmptyState key="na" variant="run" theme={theme} text={t("games_no_active")} /> : null,
+          (games.length > 0 && upcoming.length === 0 && active.length === 0 && liveNow.length === 0 && activeMixSessions.length === 0) ? <EmptyState key="na" variant="run" theme={theme} text={t("games_no_active")} /> : null,
           hero && <GameHero key="hero" g={hero} me={profileId} onOpen={() => { setSelId(hero.id); setMode("view"); }} onTake={() => takeFirstFree(hero)} />,
+          // Активные микс-сессии — одной карточкой каждая (открывает страницу сессии).
+          activeMixSessions.length > 0 && (
+            <div key="mix-active">
+              <div style={{ fontSize: 12, color: "var(--mut)", fontFamily: "'Anton',sans-serif", textTransform: "uppercase", letterSpacing: 1, margin: "12px 2px 6px" }}>{t("mix_active_section")}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {activeMixSessions.map((grp) => (
+                  <MixGroupCard key={mixKeyOf(grp[0])} games={grp} color="var(--lime)" me={profileId} onOpenGame={(g) => { setSelId(g.id); setMode("view"); }} />
+                ))}
+              </div>
+            </div>
+          ),
           section(t("live_section"), "var(--coral)", liveNow, false, false),
           section(t("upcoming_section"), "var(--mut)", upcoming.filter((g) => g !== hero), canCreate, true),
           section(t("active_section"), "var(--lime)", active.filter((g) => g !== hero), canCreate, false),
@@ -2520,6 +2549,7 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
   useEffect(() => { if (prof) return registerBack(() => setProf(null)); }, [prof]);   // «назад» → закрыть карточку игрока
   useEffect(() => { if (back) return registerBack(back); }, [back]);                   // «назад» → к списку игр
   const [mixBusy, setMixBusy] = useState(false);
+  const [finishBusy, setFinishBusy] = useState(false);
   const [toast, setToast] = useState("");
   const [defCur, setDefCur] = useState("EUR");
   useEffect(() => { defaultCurrency().then(setDefCur).catch(() => {}); }, []);
@@ -2534,7 +2564,7 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
       setSession(grp);
     } catch (e) { setSession([game]); }
   }, [groupId, mixKey, game]);
-  useEffect(() => { if (game.status === "played") loadSession(); }, [loadSession, game.status]);
+  useEffect(() => { if (game.status === "played" || game.mix_group_id) loadSession(); }, [loadSession, game.status, game.mix_group_id]);
   // Если из сессии удалили все игры — выходим назад (к списку/Истории).
   useEffect(() => { if (session && session.length === 0) back && back(); }, [session, back]);
   const slots = [...(game.slots || [])].sort((a, b) => (a.team + a.position).localeCompare(b.team + b.position));
@@ -2734,6 +2764,21 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
                 onCreate={createMix} />
             )}
           </div>
+        )}
+        {/* Явное завершение микс-сессии: пока не нажали — сессия висит активной
+            во вкладке «Игры»; после — уходит в «Историю» одной записью. */}
+        {list.length > 1 && !list.some((g) => g.mix_ended_at) && (
+          <button className="pl-ghost" disabled={finishBusy}
+            style={{ width: "100%", padding: 12, marginTop: 4, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--mut)", opacity: finishBusy ? .6 : 1 }}
+            onClick={async () => {
+              if (finishBusy) return;
+              if (!(await confirmDialog({ title: t("mix_finish_confirm_title"), message: t("mix_finish_confirm_msg"), confirmLabel: t("mix_finish_btn") }))) return;
+              setFinishBusy(true);
+              try { await finishMixSession(mixKey); bumpArchive && bumpArchive(); reloadGames && reloadGames(); back && back(); }
+              catch (e) { showToast(t("err_generic")); setFinishBusy(false); }
+            }}>
+            <Check size={16} /> {t("mix_finish_btn")}
+          </button>
         )}
       </div>
     );
@@ -2999,7 +3044,20 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
   const focusId = pFilter || profileId;            // чьи дельты и В–П показываем
 
   const load = useCallback(async () => {
-    try { const g = groupId ? await listGames(groupId) : await listMyGames(); setGames((g || []).filter((x) => x.status === "played")); }
+    try {
+      const g = groupId ? await listGames(groupId) : await listMyGames();
+      const list = g || [];
+      // Микс-сессия (группа ≥2 под-игр) попадает в Историю только если ЯВНО
+      // завершена (mix_ended_at); незавершённая живёт активной во вкладке «Игры».
+      // Одиночные сыгранные игры — как раньше.
+      const cnt = new Map(), ended = new Map();
+      list.forEach((x) => { const k = x.mix_group_id || x.id; cnt.set(k, (cnt.get(k) || 0) + 1); if (x.mix_ended_at) ended.set(k, true); });
+      setGames(list.filter((x) => {
+        if (x.status !== "played") return false;
+        const k = x.mix_group_id || x.id;
+        return (cnt.get(k) || 0) >= 2 ? !!ended.get(k) : true;
+      }));
+    }
     catch (e) { setGames([]); }
     try { const all = groupId ? await listTournaments(groupId) : await listMyTournaments(); setTours((all || []).filter((tr) => tr.status === "finished")); }
     catch (e) { setTours([]); }

@@ -203,7 +203,7 @@ export async function getRatingHistory(groupId, profileId) {
    ===================================================================== */
 
 const GAME_SELECT =
-  "id, invite_code, title, starts_at, started_at, place, status, host_id, created_at, mix_group_id, court_name, fee_per_player, fee_currency, fee_timing, level, ends_at, " +
+  "id, invite_code, title, starts_at, started_at, place, status, host_id, created_at, mix_group_id, mix_ended_at, court_name, fee_per_player, fee_currency, fee_timing, level, ends_at, " +
   "slots:game_slots(id, team, position, profile_id, guest_name, profile:profiles(name, avatar_url))," +
   "matches(id, sets_a, sets_b, score_detail, played_at)";
 
@@ -475,6 +475,19 @@ export async function startGame(gameId) {
   const { error } = await supabase.from("games")
     .update({ status: "live", started_at: new Date().toISOString() })
     .eq("id", gameId).eq("status", "open");
+  if (error) throw error;
+  bustCache();
+}
+
+// Явно завершить микс-сессию: ставим mix_ended_at на все под-игры группы
+// (anchor id == mixKey ИЛИ mix_group_id == mixKey). После этого сессия уходит
+// из активной вкладки «Игры» в «Историю». mixKey = game.mix_group_id || game.id.
+export async function finishMixSession(mixKey) {
+  const nowIso = new Date().toISOString();
+  const { error } = await supabase.from("games")
+    .update({ mix_ended_at: nowIso })
+    .or(`id.eq.${mixKey},mix_group_id.eq.${mixKey}`)
+    .is("mix_ended_at", null);
   if (error) throw error;
   bustCache();
 }

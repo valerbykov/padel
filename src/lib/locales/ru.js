@@ -232,6 +232,7 @@ export default {
     swipe_hint: 'Влево — удалить, вправо — копировать',
     mix_again: 'Сыграть ещё (микс)', mix_create: 'Создать игру', mix_hint: 'Перетащи игрока, чтобы поменять команды',
     mix_session_title: 'Микс-сессия', you_badge: 'Вы', mix_game_label: 'Игра', mix_delete_confirm: 'Удалить всю микс-сессию ({n} игр)?',
+    mix_active_section: 'Микс-сессии', mix_finish_btn: 'Завершить сессию', mix_finish_confirm_title: 'Завершить микс-сессию?', mix_finish_confirm_msg: 'Сессия уйдёт в Историю. Добавить в неё новые игры после этого будет нельзя.',
     games_empty_session: 'Игр нет. Создай игру и отправь ссылку друзьям.',
     games_empty_guest: 'Здесь будут игры твоей лиги. Войди и вступи в лигу.',
     slot_free: '🔗 свободно — ждёт по ссылке',
