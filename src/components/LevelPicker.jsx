@@ -8,6 +8,12 @@ import { LETTER_OPTIONS } from "../lib/levels";
 
 const PT_OPTIONS = ["1.0", "1.5", "2.0", "2.5", "3.0", "3.5", "4.0", "4.5", "5.0", "5.5", "6.0", "6.5", "7.0"];
 
+const inputStyle = {
+  width: "100%", background: "var(--bg)", border: "1px solid var(--line)", borderRadius: 10,
+  color: "var(--ink)", fontFamily: "'Outfit',sans-serif", fontSize: 14, padding: "9px 10px",
+  outline: "none", boxSizing: "border-box",
+};
+
 export default function LevelPicker({ value, onChange }) {
   const [sys, setSys] = useState(value?.sys || "pt");
   const [vals, setVals] = useState(
@@ -70,9 +76,3 @@ export default function LevelPicker({ value, onChange }) {
     </div>
   );
 }
-
-const inputStyle = {
-  width: "100%", background: "var(--bg)", border: "1px solid var(--line)", borderRadius: 10,
-  color: "var(--ink)", fontFamily: "'Outfit',sans-serif", fontSize: 14, padding: "9px 10px",
-  outline: "none", boxSizing: "border-box",
-};
