@@ -56,7 +56,8 @@ function CourtSpot({ s, side, busy, onTake }) {
   return (
     <div style={{ ...pos, cursor: "pointer" }} onClick={busy ? undefined : onTake} role="button" aria-label={t("pub_take_slot")}>
       <span style={{ width: 46, height: 46, borderRadius: "50%", border: "2.5px dashed rgba(255,255,255,.6)", background: "rgba(0,0,0,.25)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, boxSizing: "border-box", opacity: busy ? .5 : 1 }}>＋</span>
-      <span style={{ ...plate, borderStyle: "dashed" }}>{t("pub_your_spot")}</span>
+      {/* Пустой слот — нейтральная плашка (как «+»), а не красная team-B: это приглашение, не команда */}
+      <span style={{ ...plate, border: "1px dashed rgba(255,255,255,.5)", color: "rgba(255,255,255,.9)" }}>{t("pub_your_spot")}</span>
     </div>
   );
 }
