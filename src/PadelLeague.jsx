@@ -2747,12 +2747,13 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
       </div>
       {/* Афиша игры — постер как у турнира (⚔️ вместо 🏆, свои поля) */}
       <div className="trp-poster">
-        <span className="trp-trophy">⚔️</span>
+        {/* Водяной знак — SVG-иконка Swords (эмодзи ⚔️ не рендерится на части Android) */}
+        <Swords size={64} style={{ position: "absolute", right: 4, top: 128, opacity: .1, transform: "rotate(-8deg)", color: "var(--lime)", pointerEvents: "none", zIndex: 0 }} />
         <div className="trp-topbar">
           <div className="trp-eyebrow">
             {game.status === "live"
               ? <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "var(--coral)" }}><span className="pp-live-dot" style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--coral)" }} /> LIVE{game.started_at ? ` · ${t("game_live_min").replace("{n}", String(liveMin))}` : ""}</span>
-              : <>⚔️ {t("game_eyebrow")}</>}
+              : <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Swords size={13} /> {t("game_eyebrow")}</span>}
           </div>
           <div className="trp-actions">
             <button className="trp-act" onClick={share}><Share2 size={14} /> {toast || t("share_btn")}</button>

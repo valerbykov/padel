@@ -941,9 +941,9 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     <div className="trp-poster">
       <style>{`
         .trp-poster{border-radius:20px;padding:20px 18px 18px;overflow:hidden;position:relative;background:linear-gradient(160deg,#153a2a 0%,#112a20 55%,#0e2018 100%);border:1px solid var(--line);margin-bottom:12px;}
-        .trp-trophy{position:absolute;right:-8px;bottom:-14px;font-size:96px;opacity:.14;transform:rotate(-8deg);pointer-events:none;line-height:1;}
+        .trp-trophy{position:absolute;right:-2px;top:128px;font-size:66px;opacity:.11;transform:rotate(-8deg);pointer-events:none;line-height:1;z-index:0;}
         .trp-topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;position:relative;z-index:2;}
-        .trp-eyebrow{color:var(--lime);font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;position:relative;}
+        .trp-eyebrow{color:var(--lime);font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;position:relative;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
         .trp-title{font-family:'Anton',sans-serif;font-size:26px;line-height:1.02;margin:0 0 12px;color:#fff;position:relative;text-wrap:balance;}
         .trp-meta{display:flex;flex-direction:column;gap:9px;position:relative;}
         .trp-row{display:flex;align-items:center;gap:10px;font-size:14px;color:#e8f0ea;}
