@@ -292,12 +292,16 @@ export default function TournamentJoin({ code, botName }) {
               </div>
             )}
 
-            {/* Полный TournamentView: read-only для гостей, полный для залогиненных */}
-            <TournamentView id={t.id} players={[]} back={null} readOnly={!canEdit} initialT={t}
-              reloadFn={reloadBoth}
-              isGroupMember={false}
-              currentProfileId={profileId}
-              spectatorMode={!canEdit} />
+            {/* Полный TournamentView: read-only для гостей, полный для залогиненных.
+                Для открытого турнира, пока не записан, join-карточка выше уже содержит
+                всю инфу (имя/дата/место/ростер/запись) — не дублируем её афишей ниже. */}
+            {!(t.status === "open" && !joined) && (
+              <TournamentView id={t.id} players={[]} back={null} readOnly={!canEdit} initialT={t}
+                reloadFn={reloadBoth}
+                isGroupMember={false}
+                currentProfileId={profileId}
+                spectatorMode={!canEdit} />
+            )}
           </>
         )}
       </div>
