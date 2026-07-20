@@ -8,7 +8,7 @@ import LeagueLogo from "./LeagueLogo";
 import LeagueManager from "./LeagueManager";
 import { t } from "../lib/i18n";
 
-export default function LeagueSwitcher({ leagues, activeLeague, isAdmin, onLeagueChange, onLeagueCreated, onLeagueUpdated, onLeagueLeft }) {
+export default function LeagueSwitcher({ leagues, activeLeague, onLeagueChange, onLeagueCreated, onLeagueUpdated, onLeagueLeft }) {
   const [menu, setMenu] = useState(false);
   const [mode, setMode] = useState(false); // false | "create" | "join"
   const [manage, setManage] = useState(null); // { id, role } — открытое окно управления

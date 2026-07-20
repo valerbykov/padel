@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { registerBack } from "./lib/backstack";
 import { supabase } from "./lib/supabase";
 import BackButton from "./components/BackButton";
-import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createLeague, joinLeague, createDemoLeague, joinSlot, clearGameSlot, startGame, getGroupCounts, getGroupProfiles, listMyGames, listMyHistoryMatches, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, getHistoryMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames, getMyDeltas, getGameFee, getGameFeePayments, setGameFee, toggleGameFeePaid, remindGameFeeDebtors } from "./lib/padelApi";
+import { getLeaderboard, addMember, removeMember, createGame, listGames, submitResult, linkFor, deleteGame, createDemoLeague, joinSlot, clearGameSlot, startGame, getGroupCounts, getGroupProfiles, listMyGames, getPlayedWith, getLeagueablePlayers, addExistingMember, getBoardMatches, getStatMatches, updateGameCourtName, notifyGameCreated, setMemberRole, hidePartner, getProfileNames, getMyDeltas, getGameFee, getGameFeePayments, setGameFee, toggleGameFeePaid, remindGameFeeDebtors } from "./lib/padelApi";
 import { WEB_BASE } from "./lib/platform";
 import { CardSkeleton } from "./components/Skeleton";
 import { bustCache, cachePeek } from "./lib/cache";
@@ -13,22 +13,19 @@ import { useMinuteTick } from "./lib/useTick";
 import { getRatingHistory, getWeekDeltas } from "./lib/statsApi";
 import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
 import { t, nGames, currentLang , dateLocale} from "./lib/i18n";
-import { standings, detailedStandings } from "./lib/americano";
-import StandingsTable from "./components/StandingsTable";
+import { detailedStandings } from "./lib/americano";
 import Fab from "./components/Fab";
-import { Trophy, Swords, History, Users, UserPlus, Share2, Check, X, RefreshCw, Copy, PlusCircle, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Award, Phone, Mail, ArrowLeft, Trash2, KeyRound, Shuffle, GripVertical, HelpCircle, UserCheck, ShieldCheck, EyeOff, Star, User, Search, Pencil, Send, MessageCircle, QrCode } from "lucide-react";
+import { Trophy, Swords, History, Users, UserPlus, Share2, X, Copy, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Phone, Mail, Trash2, Shuffle, HelpCircle, UserCheck, ShieldCheck, EyeOff, Star, User, Search, Pencil, Send, MessageCircle, QrCode } from "lucide-react";
 import { shareUrl } from "./lib/shareLink";
 import Tournaments, { TournamentView, TournamentCard, CopyDialog, css as trCss } from "./components/Tournaments";
 import DateTimePicker from "./components/DateTimePicker";
 import FeesCard from "./components/FeesCard";
 import { defaultCurrency } from "./lib/region";
 import { confirmDialog, showToast } from "./components/ui-dialogs";
-import { copyTournament } from "./lib/tournamentApi";
 import { deleteTournament } from "./lib/tournamentApi";
 import CourtView from "./components/CourtView";
 import EmptyState from "./components/EmptyState";
 import Avatar from "./components/Avatar";
-import LeagueLogo from "./components/LeagueLogo";
 import InviteCard from "./components/InviteCard";
 const Analytics = lazy(() => import("./components/Analytics"));
 import LevelBadges, { EventLevelBadge } from "./components/LevelBadges";
@@ -373,7 +370,7 @@ function GateScreen() {
 }
 
 /* ------------------------------ WelcomeScreen ----------------------------- */
-function WelcomeScreen({ onLogin, onBrowseGames, onBrowseTournaments, onOpenLanding, theme = "dark", lang = "ru", onThemeToggle, onLangChange }) {
+function WelcomeScreen({ onLogin, onOpenLanding, theme = "dark", lang = "ru", onThemeToggle, onLangChange }) {
   // Собаки подиума — случайные из 15 при каждом заходе (как раньше верхний ряд);
   // выбор один раз на маунт, чтобы не мигали при ререндерах.
   const [podDogs] = useState(() => {
@@ -546,13 +543,11 @@ function PlayerRowSkeleton({ count = 5 }) {
   );
 }
 
-function Board({ groupId, players, loading = false, reload, profileId, bumpArchive, isAdmin, leagues, leaguesReady = true, activeLeague, onLeagueChange, onLeagueCreated, onEditProfile, selfStatsReq = false, onSelfStatsSeen, analyticsReq = false, onAnalyticsSeen }) {
+function Board({ groupId, players, loading = false, reload, profileId, isAdmin, leagues, leaguesReady = true, activeLeague, onLeagueCreated, onEditProfile, selfStatsReq = false, onSelfStatsSeen, analyticsReq = false, onAnalyticsSeen }) {
   const [open, setOpen] = useState(false);
   const [showStats, setShowStats] = useState(false);  // дашборд аналитики лиги
   const [query, setQuery] = useState("");
   const [netPlayers, setNetPlayers] = useState([]);
-  const [name, setName] = useState("");
-  const [contacts, setContacts] = useState({ whatsapp: "", telegram: "", email: "", phone: "" });
   const [selected, setSelected] = useState(null);
   const [busy, setBusy] = useState(false);
   const [tourCounts, setTourCounts] = useState({});
@@ -562,11 +557,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
   const [streaks, setStreaks] = useState({});
   const [extraPlayers, setExtraPlayers] = useState([]);
   const [hiddenIds, setHiddenIds] = useState(() => new Set()); // #4: оптимистично скрытые из «Играли вместе»
-  const [showLeagueMenu, setShowLeagueMenu] = useState(false);
-  const [showNewLeague, setShowNewLeague] = useState(false); // "create" | "join" | false
   const [showCreateLeague, setShowCreateLeague] = useState(false); // оверлей LeagueSetup (CTA демо-плашки)
-  const [newLeagueName, setNewLeagueName] = useState("");
-  const [joinCode, setJoinCode] = useState("");
   const [leagueBusy, setLeagueBusy] = useState(false);
   const [leagueErr, setLeagueErr] = useState("");
   const ranked = [...players].sort((a, b) => b.rating - a.rating);
@@ -766,17 +757,6 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
     />
   );
 
-  const handleCreateLeague = async () => {
-    if (!newLeagueName.trim() || leagueBusy) return;
-    setLeagueBusy(true); setLeagueErr("");
-    try {
-      const lg = await createLeague(newLeagueName.trim());
-      onLeagueCreated && onLeagueCreated(lg);
-      setShowNewLeague(false); setNewLeagueName("");
-    } catch (e) { setLeagueErr(e.message || t("err_generic")); }
-    finally { setLeagueBusy(false); }
-  };
-
   // Демо-стая из пустого состояния: раньше кнопка была только в LeagueSetup,
   // до которого пользователь без лиги (в т.ч. давно зарегистрированный) не добирался.
   const handleDemoLeague = async () => {
@@ -793,21 +773,6 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
   // демо-плашка с CTA «создай свою лигу»). pp_demo_gid — подстраховка, если
   // is_demo ещё не доехал из кэша лиг.
   const isDemoLeague = !!groupId && (activeLeague?.is_demo || (() => { try { return localStorage.getItem("pp_demo_gid") === groupId; } catch (e) { return false; } })());
-
-  const handleJoinLeague = async () => {
-    if (joinCode.trim().length < 4 || leagueBusy) return;
-    setLeagueBusy(true); setLeagueErr("");
-    try {
-      const lg = await joinLeague(joinCode.trim());
-      onLeagueCreated && onLeagueCreated(lg);
-      setShowNewLeague(false); setJoinCode("");
-    } catch (e) {
-      const msg = e.message || "";
-      if (msg.includes("league_not_found")) setLeagueErr(t("err_league_not_found"));
-      else if (msg.includes("already_member")) setLeagueErr(t("err_already_member"));
-      else setLeagueErr(msg || t("err_generic"));
-    } finally { setLeagueBusy(false); }
-  };
 
   return (
     <div className="pl-pop">
@@ -2048,7 +2013,6 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
             const together = myInA === thInA;
             const myTeamWon = myInA ? m.sets_a > m.sets_b : m.sets_b > m.sets_a;
             const isDraw = m.sets_a === m.sets_b;
-            const result = isDraw ? t("result_draw") : myTeamWon ? t("result_win") : t("result_loss");
             const resultColor = isDraw ? "var(--mut)" : myTeamWon ? "#3ddc84" : "var(--coral)";
             const teamA = (m.team_a || []).map(nameOf).join(" & ");
             const teamB = (m.team_b || []).map(nameOf).join(" & ");
@@ -2397,170 +2361,17 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
   );
 }
 
-function SlotPicker({ value, players, taken, onChange, teamLabel }) {
-  const [q, setQ] = useState("");
-  const color = teamLabel === "A" ? "var(--lime)" : "var(--coral)";
-  if (value) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <span className="pl-display" style={{ width: 24, fontSize: 12, color }}>{teamLabel}</span>
-        <div className="pl-slot" style={{ flex: 1, justifyContent: "space-between" }}>
-          <span>{value.label}</span>
-          <button aria-label={t("delete_btn")} onClick={() => onChange(null)} style={{ flexShrink: 0, width: 28, height: 28, borderRadius: "50%", border: "none", background: "color-mix(in srgb, var(--coral) 16%, transparent)", color: "var(--coral)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={15} /></button>
-        </div>
-      </div>
-    );
-  }
-  const matches = q.trim()
-    ? players.filter((p) => p.name.toLowerCase().includes(q.trim().toLowerCase()) && !taken.includes(p.id)).slice(0, 6)
-    : [];
-  const suggestions = (players || []).filter((p) => !taken.includes(p.id)).slice(0, 12);
-  return (
-    <div style={{ marginBottom: 8 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span className="pl-display" style={{ width: 24, fontSize: 12, color }}>{teamLabel}</span>
-        <input className="pl-input" style={{ padding: "9px 10px" }} placeholder={t("slot_search_placeholder")} value={q} onChange={(e) => setQ(e.target.value)} />
-      </div>
-      {q.trim() ? (
-        <div style={{ marginTop: 6, marginLeft: 32, display: "flex", flexDirection: "column", gap: 4 }}>
-          {matches.map((p) => (
-            <button key={p.id} className="pl-ghost" style={{ padding: "8px 10px", textAlign: "left" }} onClick={() => { onChange({ profileId: p.id, label: p.name }); setQ(""); }}>{p.name}</button>
-          ))}
-          <button className="pl-btn" style={{ padding: "8px 10px", textAlign: "left" }} onClick={() => { onChange({ guestName: q.trim(), label: q.trim() + " " + t("guest_label") }); setQ(""); }}>{t("add_guest_prefix")}{q.trim()}</button>
-          <div style={{ fontSize: 11, color: "var(--mut)", lineHeight: 1.4, padding: "2px 2px" }}>{t("add_guest_league_hint")}</div>
-        </div>
-      ) : (
-        suggestions.length > 0 && (
-          <div style={{ marginTop: 6, marginLeft: 32 }}>
-            <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none", WebkitOverflowScrolling: "touch", WebkitMaskImage: "linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)", maskImage: "linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)" }}>
-              {suggestions.map((p) => (
-                <button key={p.id} className="pl-ghost" onClick={() => onChange({ profileId: p.id, label: p.name })}
-                  style={{ flexShrink: 0, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 7, padding: "6px 12px 6px 6px", borderRadius: 999, fontSize: 13 }}>
-                  <Avatar name={p.name} id={p.id} size={22} /> {p.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        )
-      )}
-    </div>
-  );
-}
-
-// 4 слота игры: в пустые — поиск/добавление; у заполненных — перетаскивание
-// (долгое нажатие → плитка за пальцем, обмен/перенос) и удаление свайпом влево.
-// Жест обрабатывается на КОНТЕЙНЕРЕ с захватом указателя — поэтому pointerup
-// всегда приходит сюда (плитка не зависает), а попадание ищем по ближайшей
-// строке (надёжный обмен с первой попытки).
-function GameSlots({ slots, setSlots, players, chosenIds }) {
-  const ref = useRef(null);          // контейнер
-  const rowRefs = useRef([]);        // все 4 слота (для поиска цели)
-  const g = useRef({ mode: "idle", idx: -1, x0: 0, y0: 0, pid: null, timer: null });
-  const [drag, setDrag] = useState(null);              // { idx, x, y }
-  const setSlot = (i, v) => setSlots((s) => s.map((x, j) => (j === i ? v : x)));
-  const MAX = 88, LONG = 260, TH = 8;
-  const clearTimer = () => { if (g.current.timer) { clearTimeout(g.current.timer); g.current.timer = null; } };
-  const release = () => { try { ref.current.releasePointerCapture(g.current.pid); } catch (_) {} };
-  // Ближайший слот по вертикали (с горизонтальным допуском), кроме перетаскиваемого.
-  const nearestIdx = (x, y, exclude) => {
-    let best = -1, bestD = Infinity;
-    rowRefs.current.forEach((el, i) => {
-      if (!el || i === exclude) return;
-      const r = el.getBoundingClientRect();
-      if (x < r.left - 28 || x > r.right + 28) return;
-      const cy = r.top + r.height / 2, d = Math.abs(y - cy);
-      if (d <= r.height && d < bestD) { bestD = d; best = i; }
-    });
-    return best;
-  };
-  const beginDrag = () => { g.current.mode = "drag"; try { navigator.vibrate?.(12); } catch (_) {} setDrag({ idx: g.current.idx, x: g.current.x0, y: g.current.y0 }); };
-  const down = (e) => {
-    const rowEl = e.target.closest?.("[data-slot-idx]");
-    if (!rowEl) return;                                 // пустой слот / поле ввода — не жест
-    const idx = Number(rowEl.dataset.slotIdx);
-    g.current = { mode: "pending", idx, x0: e.clientX, y0: e.clientY, pid: e.pointerId, timer: null };
-    try { ref.current.setPointerCapture(e.pointerId); } catch (_) {}
-    clearTimer();
-    g.current.timer = setTimeout(() => { if (g.current.mode === "pending") beginDrag(); }, LONG);
-  };
-  const move = (e) => {
-    if (g.current.mode === "idle") return;
-    const dX = e.clientX - g.current.x0, dY = e.clientY - g.current.y0;
-    if (g.current.mode === "pending") {
-      // сдвинулись раньше long-press → это скролл/тап, не перетаскивание
-      if (Math.abs(dX) > TH || Math.abs(dY) > TH) { clearTimer(); g.current.mode = "idle"; release(); }
-      return;
-    }
-    if (g.current.mode === "drag") setDrag((d) => (d ? { ...d, x: e.clientX, y: e.clientY } : d));
-  };
-  const finish = (e) => {
-    clearTimer();
-    const m = g.current.mode, idx = g.current.idx;
-    g.current.mode = "idle";
-    release();
-    if (m === "drag") {
-      const tgt = nearestIdx(e.clientX, e.clientY, idx);
-      if (tgt >= 0) setSlots((prev) => { const n = [...prev]; const t = n[tgt]; n[tgt] = n[idx]; n[idx] = t; return n; });
-      setDrag(null);                                    // не нашли цель → плитка возвращается на место
-    }
-  };
-  const active = !!drag;
-  return (
-    <div ref={ref} onPointerDown={down} onPointerMove={move} onPointerUp={finish} onPointerCancel={finish}
-      style={{ touchAction: active ? "none" : "pan-y" }}>
-      {[0, 1, 2, 3].map((i) => {
-        const v = slots[i];
-        const team = i < 2 ? "A" : "B";
-        const ring = i < 2 ? "var(--lime)" : "var(--coral)";
-        if (!v) {
-          return (
-            <div key={i} ref={(el) => (rowRefs.current[i] = el)}>
-              <SlotPicker value={null} players={players} taken={chosenIds} teamLabel={team} onChange={(val) => setSlot(i, val)} />
-            </div>
-          );
-        }
-        return (
-          <div key={i} data-slot-idx={i} ref={(el) => (rowRefs.current[i] = el)}
-            style={{ marginBottom: 8, opacity: drag?.idx === i ? 0.3 : 1 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span className="pl-display" style={{ width: 24, fontSize: 12, color: ring, flexShrink: 0 }}>{team}</span>
-              <div className="pl-slot" style={{ flex: 1, gap: 8 }}>
-                <GripVertical size={16} style={{ color: "var(--mut)", flexShrink: 0 }} />
-                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.label}</span>
-              </div>
-              <button aria-label={t("delete_btn")} onPointerDown={(e) => e.stopPropagation()} onClick={() => setSlot(i, null)}
-                style={{ flexShrink: 0, width: 28, height: 28, borderRadius: "50%", border: "none", background: "color-mix(in srgb, var(--coral) 16%, transparent)", color: "var(--coral)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <X size={15} />
-              </button>
-            </div>
-          </div>
-        );
-      })}
-      <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 2, lineHeight: 1.4 }}>{t("slots_dnd_hint")}</div>
-      {drag && slots[drag.idx] && createPortal(
-        <div style={{ position: "fixed", left: drag.x, top: drag.y, transform: "translate(-50%,-50%)", pointerEvents: "none", zIndex: 300, padding: "8px 12px", borderRadius: 12, background: "var(--surface)", border: "1.5px solid var(--lime)", boxShadow: "0 8px 24px rgba(0,0,0,.4)", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>
-          {slots[drag.idx].label}
-        </div>,
-        document.body
-      )}
-    </div>
-  );
-}
-
-function CreateGame({ groupId, players, profileId, back, done }) {
-  const [step, setStep] = useState("info"); // "info" | "players"
+function CreateGame({ groupId, profileId, back, done }) {
   const [title, setTitle] = useState("");
   const [titleEdited, setTitleEdited] = useState(false);
   const [day, setDay] = useState(() => nowLocalDT().slice(0, 10));
   const [time, setTime] = useState(() => nowLocalDT().slice(11, 16));
   const date = day ? `${day}T${time || "00:00"}` : "";
   const [place, setPlace] = useState("");
-  const [slots, setSlots] = useState([null, null, null, null]);
+  const [slots] = useState([null, null, null, null]);
   const [durMin, setDurMin] = useState(60);
   const [level, setLevel] = useState(null);
   const [busy, setBusy] = useState(false);
-  const chosenIds = slots.filter((v) => v && v.profileId).map((v) => v.profileId);
-  const filled = slots.filter((v) => v && (v.profileId || v.guestName)).length;
 
   // Автоназвание = место (если указано) или пусто. Дата/время НЕ дублируются
   // в названии — они и так показываются отдельной строкой в плашке/карточке.
@@ -2581,10 +2392,6 @@ function CreateGame({ groupId, players, profileId, back, done }) {
     try { const g = await createGame(groupId, { title: title.trim() || null, startsAt: startsAtIso, endsAt, level: sanitizeEventLevel(level), place, slots, hostId: profileId || null }); notifyGameCreated(g?.id); creatingRef.current = false; done(g); }
     catch (e) { showToast(t("err_create_game")); setBusy(false); creatingRef.current = false; }
   };
-
-  const stepBadge = (txt) => (
-    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: "var(--lime)", marginBottom: 10 }}>{txt}</div>
-  );
 
   // ── Единственный шаг: когда / где / название. Состав добирается на экране
   //    игры (карусель лиги / гость / «Занять» / ссылка) — один инструмент.

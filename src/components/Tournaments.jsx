@@ -10,7 +10,7 @@ import {
   generateMexicanoRound, generateKotHRound, generateKotHLadderRound, setCourtName, setScorePin, checkScorePin,
   getTournamentFee, getFeePayments, setTournamentFee, toggleFeePaid, remindFeeDebtors,
 } from "../lib/tournamentApi";
-import { standings, detailedStandings, allMatchesPlayed, pairStandings } from "../lib/americano";
+import { detailedStandings, allMatchesPlayed, pairStandings } from "../lib/americano";
 import { dogAvatar } from "../lib/avatar";
 import Fab from "./Fab";
 import { CardSkeleton } from "./Skeleton";
@@ -56,7 +56,7 @@ import FeesCard from "./FeesCard";
 import EmptyState from "./EmptyState";
 import { formatMoney } from "../lib/money";
 import { defaultCurrency } from "../lib/region";
-import { Trophy, PlusCircle, Copy, Play, X, ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Share2, Trash2, Plus, Check, Calendar, MapPin } from "lucide-react";
+import { Trophy, Copy, Play, X, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Share2, Trash2, Plus, Check, Calendar, MapPin } from "lucide-react";
 import { t as tr , dateLocale} from "../lib/i18n";
 import DateTimePicker from "./DateTimePicker";
 import DurationPicker from "./DurationPicker";
@@ -592,7 +592,6 @@ function Create({ groupId, profileId, players = [], back, open }) {
   }, [step, format, courts, playerCount, points, openScoring, kotHChampionRule, day, time, place, name, durMin, description, contactName, contactLink, level, contactFromLeague]);
 
   const fmt = format ? fmtById(format) : null;
-  const isKothBtB = format === "king_of_hill" || format === "beat_the_box";
   const isBtb = format === "beat_the_box";     // единственный формат «один корт + очередь»
   const isKoth = format === "king_of_hill";    // «король корта» — по кортам (игроков/4)
 

@@ -24,16 +24,6 @@ const css = `
 .lp-join-btn:hover{filter:brightness(1.08);}
 `;
 
-const MEDALS = ["#ffd23f", "#cfd8d0", "#cd7f4d"];
-
-function noun(n, one, few, many) {
-  const m = Math.abs(n) % 100, m1 = m % 10;
-  if (m > 10 && m < 20) return many;
-  if (m1 > 1 && m1 < 5) return few;
-  if (m1 === 1) return one;
-  return many;
-}
-
 function Avatar({ name = "", url, size = 38 }) {
   const initials = name.trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
   const hue = [...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 360;

@@ -6,7 +6,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import LoginScreen from "./LoginScreen";
 import Logo from "./Logo";
-import { Calendar, MapPin, Check, AlertCircle, LogIn, UserCheck } from "lucide-react";
+import { Calendar, MapPin, AlertCircle, LogIn, UserCheck } from "lucide-react";
 import { t , dateLocale} from "../lib/i18n";
 import { playerAvatar, avatarFallback , avatarBg, avatarOnLoad} from "../lib/avatar";
 import { usePublicChrome, PublicToggles } from "./publicChrome";

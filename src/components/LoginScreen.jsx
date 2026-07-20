@@ -7,7 +7,7 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import TelegramLogin from "./TelegramLogin";
-import { Send, Mail, KeyRound, Check, AlertCircle, Sun, Moon, ArrowLeft } from "lucide-react";
+import { Send, Mail, KeyRound, Check, AlertCircle, Sun, Moon } from "lucide-react";
 import Logo from "./Logo";
 import BackButton from "./BackButton";
 import { t, setLang } from "../lib/i18n";

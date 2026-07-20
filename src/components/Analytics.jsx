@@ -11,7 +11,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { getGroupAnalytics } from "../lib/statsApi";
 import { getBoardMatches } from "../lib/padelApi";
 import { playerAvatar, avatarFallback , avatarBg, avatarOnLoad} from "../lib/avatar";
-import { Swords, CalendarDays, Flame, ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { t, currentLang } from "../lib/i18n";
 import BackButton from "./BackButton";
 
@@ -395,7 +395,7 @@ export default function Analytics({ groupId, onBack, players = [], onOpenPlayer,
           {/* Связка лиги: лучшая пара */}
           {pair && (() => {
             const pa = findPlayer(pair.a), pb = findPlayer(pair.b);
-            const nm = (x, id) => (x?.name || "?").split(" ")[0];
+            const nm = (x) => (x?.name || "?").split(" ")[0];
             return (
               <div className="an-card" style={{ marginBottom: 12 }}>
                 <CT>{t("an_pair")}</CT>

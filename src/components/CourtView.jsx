@@ -8,8 +8,6 @@ import React, { useState, useEffect } from "react";
 import { dogAvatar, avatarFallback , avatarBg, avatarOnLoad} from "../lib/avatar";
 import { t } from "../lib/i18n";
 
-const COURT_IMG = "/padel-court.png";
-
 function Chip({ name, avatarUrl, x, y, team, id, onTap, noTap }) {
   const color = team === "A" ? "var(--lime)" : "var(--coral)";
   const tappable = !noTap && id && onTap;
@@ -67,7 +65,7 @@ export default function CourtView({
   scoreA = null, scoreB = null,
   scoreDetail = null,
   points = 32, editable = false, onSave,
-  mode = "sum", maxScore, bgUrl = COURT_IMG,
+  mode = "sum", maxScore,
 }) {
   const max = maxScore != null ? maxScore : (mode === "sum" ? points : mode === "sets" ? 7 : 3);
 
@@ -144,7 +142,6 @@ export default function CourtView({
   };
 
   const addSet = () => { if (setsDetail.length < 5) setSetsDetail(prev => [...prev, { a: null, b: null }]); };
-  const removeLastSet = () => { if (setsDetail.length > 1) setSetsDetail(prev => prev.slice(0, -1)); };
   const removeSet = (i) => { if (setsDetail.length > 1) setSetsDetail((prev) => prev.filter((_, j) => j !== i)); };
 
   const saveSets = async () => {
@@ -185,21 +182,6 @@ export default function CourtView({
     if (pickSets) return <>{t("court_set")} {pickSets.setIdx + 1} · {t("court_team")} <b style={{ color: pickerColor }}>{pickSets.team}</b> (0–7)</>;
     return <>{t("court_team")} <b style={{ color: pickerColor }}>{pickFor}</b> · {t("court_score")} (0–{max})</>;
   };
-
-  const box = (val, win, team) => (
-    <div
-      onClick={() => editable && mode !== "sets" && openPick(team)}
-      style={{
-        fontFamily: "'Outfit',sans-serif", fontWeight: 800,
-        fontSize: "clamp(18px,7.5vw,30px)", minWidth: "clamp(38px,12vw,54px)",
-        textAlign: "center", padding: "clamp(5px,2vw,8px) clamp(7px,3vw,12px)",
-        borderRadius: 10, lineHeight: 1, cursor: editable && mode !== "sets" ? "pointer" : "default",
-        background: win ? "var(--lime)" : "color-mix(in srgb, var(--surface) 88%, transparent)", color: win ? "var(--lime-fg)" : "var(--ink)",
-        border: `2px solid ${win ? "var(--lime)" : "var(--line)"}`,
-        boxShadow: win ? "0 0 16px color-mix(in srgb, var(--lime) 50%, transparent)" : "none",
-      }}
-    >{val == null ? "–" : val}</div>
-  );
 
   return (
     <div style={{ marginBottom: 14 }}>
