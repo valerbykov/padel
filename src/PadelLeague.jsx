@@ -2629,6 +2629,10 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
   const share = async () => {
     const url = linkFor(game.invite_code);
     const text = `${t("game_share_text")}${game.title ? ` «${game.title}»` : ""}! ${t("game_share_join")}: ${url} (${t("code_label")} ${game.invite_code})`;
+    // Нативный Capacitor Share-плагин (веб-navigator.share в Android-WebView даёт
+    // лишнее окно редактирования текста «Изменить»).
+    const Share = (typeof window !== "undefined" && window.Capacitor?.Plugins?.Share) || null;
+    if (Share) { try { await Share.share({ title: "PadelPack", text, url }); return; } catch (e) { if (/cancel/i.test(e?.message || "")) return; } }
     try { if (navigator.share) { await navigator.share({ title: "PadelPack", text, url }); return; } } catch (e) {}
     try { await navigator.clipboard.writeText(text); setToast(t("copied")); setTimeout(() => setToast(""), 1600); } catch (e) { setToast(t("copy_manual")); }
   };

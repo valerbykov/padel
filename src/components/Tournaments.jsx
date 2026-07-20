@@ -908,6 +908,10 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   const share = async () => {
     const url = tournamentLink(trnData.invite_code);
     const text = `${tr("trn_share_text")}${trnData.name ? ` «${trnData.name}»` : ""}: ${url} (${tr("code_label")} ${trnData.invite_code})`;
+    // На нативе — тот же Capacitor Share-плагин, что и у подиума/пары (веб-navigator.share
+    // в Android-WebView показывает лишнее окно редактирования текста «Изменить»).
+    const Share = (typeof window !== "undefined" && window.Capacitor?.Plugins?.Share) || null;
+    if (Share) { try { await Share.share({ title: tr("tab_tournaments"), text, url }); return; } catch (e) { if (/cancel/i.test(e?.message || "")) return; } }
     try { if (navigator.share) { await navigator.share({ title: tr("tab_tournaments"), text, url }); return; } } catch (e) {}
     try { await navigator.clipboard.writeText(text); setToast(tr("copied")); setTimeout(() => setToast(""), 1500); } catch (e) {}
   };

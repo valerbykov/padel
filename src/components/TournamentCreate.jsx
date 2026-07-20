@@ -260,8 +260,17 @@ export default function Create({ groupId, profileId, players = [], back, open })
         {/* Длительность (заменяет ручное время окончания) */}
         <DurationPicker value={durMin} onChange={setDurMin} />
 
-        {/* Взнос с игрока (опционально). Задаётся сразу; потом можно менять и запускать
-            сбор в карточке взносов внутри турнира. Пусто = без взноса. */}
+        {/* Описание */}
+        <div>
+          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_desc_label")}</div>
+          <textarea className="tr-input" rows={3} placeholder={tr("trn_desc_ph")} value={description} onChange={(e) => setDescription(e.target.value)} style={{ resize: "vertical", fontFamily: "inherit" }} />
+        </div>
+
+        {/* Уровень турнира (опционально) */}
+        <LevelPicker value={level} onChange={setLevel} />
+
+        {/* Взнос с игрока (опционально) — после уровня, до контакта. Задаётся сразу;
+            потом можно менять и запускать сбор в карточке взносов внутри турнира. */}
         <div>
           <div onClick={() => setFeeOpen((o) => !o)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", padding: "2px 0" }}>
             <span style={{ fontWeight: 700, fontSize: 14 }}>{tr("fee_title")}</span>
@@ -290,15 +299,6 @@ export default function Create({ groupId, profileId, players = [], back, open })
           )}
           </>)}
         </div>
-
-        {/* Описание */}
-        <div>
-          <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_desc_label")}</div>
-          <textarea className="tr-input" rows={3} placeholder={tr("trn_desc_ph")} value={description} onChange={(e) => setDescription(e.target.value)} style={{ resize: "vertical", fontFamily: "inherit" }} />
-        </div>
-
-        {/* Уровень турнира (опционально) */}
-        <LevelPicker value={level} onChange={setLevel} />
 
         {/* Контакт ОРГАНИЗАТОРА (кого спросить по турниру — виден участникам).
             «Выбрать из Лиги» — быстрый способ заполнить поля из друга/себя; сами
