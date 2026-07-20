@@ -29,7 +29,8 @@ export async function createTournament(groupId, { name, pointsPerGame = 32, targ
       open_scoring: !!openScoring, level: level || null,
       fee_per_player: feePerPlayer && feePerPlayer > 0 ? feePerPlayer : null,
       fee_currency: feePerPlayer && feePerPlayer > 0 ? (feeCurrency || null) : null,
-      fee_timing: feePerPlayer && feePerPlayer > 0 ? (feeTiming || null) : null,
+      // fee_timing — NOT NULL в БД (default 'end'); нельзя писать null даже без взноса.
+      fee_timing: feeTiming || "end",
     }).select().single();
     if (!res.error) { t = res.data; break; }
     if (res.error.code !== "23505") throw res.error;

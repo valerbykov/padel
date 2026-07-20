@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { createTournament } from "../lib/tournamentApi";
 import { sanitizeEventLevel } from "../lib/levels";
 import { defaultCurrency } from "../lib/region";
-import { currencySymbol } from "../lib/money";
+import { currencySymbol, CURRENCIES } from "../lib/money";
 import { t as tr } from "../lib/i18n";
 import DateTimePicker from "./DateTimePicker";
 import DurationPicker from "./DurationPicker";
@@ -42,6 +42,8 @@ export default function Create({ groupId, profileId, players = [], back, open })
   const [feeAmount, setFeeAmount] = useState(() => d0.feeAmount || ""); // взнос с игрока (пусто = без взноса)
   const [feeTiming, setFeeTiming] = useState(() => d0.feeTiming || "start"); // когда собирать: до старта / после
   const [feeCur, setFeeCur] = useState(() => d0.feeCur || "");
+  const [feeOpen, setFeeOpen] = useState(false);        // взносы — свёрнуты по умолчанию
+  const [contactOpen, setContactOpen] = useState(false); // контакт организатора — свёрнут по умолчанию
   const [busy, setBusy] = useState(false);
   // Восстановленное из черновика название не должно затираться авто-именем при
   // первом же прогоне эффекта (format уже truthy на восстановлении).
@@ -113,7 +115,12 @@ export default function Create({ groupId, profileId, players = [], back, open })
       const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format, createdBy: profileId, startsAt: startsAtIso, endsAt: endsAtIso, place, description: description.trim() || null, contactName: contactName.trim() || null, contactLink: contactLink.trim() || null, kotHChampionRule: isKoth ? kotHChampionRule : undefined, openScoring, level: sanitizeEventLevel(level), feePerPlayer: Number(feeAmount) || null, feeCurrency: feeCur, feeTiming });
       try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) {}
       open(trn.id);
-    } catch (e) { showToast(tr("err_create_tour")); setBusy(false); }
+    } catch (e) {
+      console.error("createTournament failed:", e);
+      const reason = e?.message || e?.details || e?.hint || "";
+      showToast(reason ? `${tr("err_create_tour")}: ${reason}` : tr("err_create_tour"));
+      setBusy(false);
+    }
   };
 
   const chip = (active) => ({
@@ -256,14 +263,24 @@ export default function Create({ groupId, profileId, players = [], back, open })
         {/* Взнос с игрока (опционально). Задаётся сразу; потом можно менять и запускать
             сбор в карточке взносов внутри турнира. Пусто = без взноса. */}
         <div>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>{tr("fee_title")}</div>
-          <div style={{ fontSize: 11.5, color: "var(--mut)", marginBottom: 10 }}>{tr("fee_setup_hint")}</div>
+          <div onClick={() => setFeeOpen((o) => !o)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", padding: "2px 0" }}>
+            <span style={{ fontWeight: 700, fontSize: 14 }}>{tr("fee_title")}</span>
+            <span style={{ transition: "transform .2s", transform: feeOpen ? "rotate(180deg)" : "none", fontSize: 11, color: "var(--mut)" }}>▾</span>
+          </div>
+          {feeOpen && (<>
+          <div style={{ fontSize: 11.5, color: "var(--mut)", margin: "8px 0 10px" }}>{tr("fee_setup_hint")}</div>
           <div style={{ position: "relative" }}>
             <input className="tr-input" type="number" inputMode="decimal" min="0" placeholder={tr("fee_ph_each")} value={feeAmount} onChange={(e) => setFeeAmount(e.target.value)} style={{ paddingRight: 52 }} />
             <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", color: "var(--mut)", fontSize: 14, fontWeight: 800, pointerEvents: "none" }}>{currencySymbol(feeCur)}</span>
           </div>
           {Number(feeAmount) > 0 && (
             <div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 6 }}>{tr("fee_currency_label")}</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+                {CURRENCIES.map((c) => (
+                  <button key={c} onClick={() => setFeeCur(c)} style={{ border: "1px solid var(--line)", borderRadius: 8, padding: "6px 11px", cursor: "pointer", fontWeight: 700, fontSize: 12, fontFamily: "'Outfit',sans-serif", background: feeCur === c ? "var(--lime)" : "var(--surface2)", color: feeCur === c ? "var(--lime-fg)" : "var(--mut)" }}>{c}</button>
+                ))}
+              </div>
               <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 6 }}>{tr("fee_timing_label")}</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 <button style={chip(feeTiming === "start")} onClick={() => setFeeTiming("start")}>{tr("fee_timing_start")}</button>
@@ -271,6 +288,7 @@ export default function Create({ groupId, profileId, players = [], back, open })
               </div>
             </div>
           )}
+          </>)}
         </div>
 
         {/* Описание */}
@@ -286,8 +304,12 @@ export default function Create({ groupId, profileId, players = [], back, open })
             «Выбрать из Лиги» — быстрый способ заполнить поля из друга/себя; сами
             поля Имя+контакт показываем ВСЕГДА, чтобы автор видел, что увидят игроки. */}
         <div>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>{tr("trn_contact_org")}</div>
-          <div style={{ fontSize: 11.5, color: "var(--mut)", marginBottom: 10 }}>{tr("trn_contact_org_hint")}</div>
+          <div onClick={() => setContactOpen((o) => !o)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", padding: "2px 0" }}>
+            <span style={{ fontWeight: 700, fontSize: 14 }}>{tr("trn_contact_org")}</span>
+            <span style={{ transition: "transform .2s", transform: contactOpen ? "rotate(180deg)" : "none", fontSize: 11, color: "var(--mut)" }}>▾</span>
+          </div>
+          {contactOpen && (<>
+          <div style={{ fontSize: 11.5, color: "var(--mut)", margin: "8px 0 10px" }}>{tr("trn_contact_org_hint")}</div>
 
           {/* Тумблер «Выбрать из Лиги» скрываем, если участников нет — выбирать не из кого */}
           {contactMembers.length > 0 && (
@@ -324,6 +346,7 @@ export default function Create({ groupId, profileId, players = [], back, open })
           <div style={{ fontSize: 12, color: "var(--mut)", marginBottom: 4 }}>{tr("trn_contact_name_label")}</div>
           <input className="tr-input" placeholder={tr("trn_contact_name_ph")} value={contactName} onChange={(e) => setContactName(e.target.value)} style={{ marginBottom: 6 }} />
           <input className="tr-input" placeholder={tr("trn_contact_link_ph")} value={contactLink} onChange={(e) => setContactLink(e.target.value)} />
+          </>)}
         </div>
 
         {/* Превью: что получится из настроек */}
