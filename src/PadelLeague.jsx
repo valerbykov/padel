@@ -815,6 +815,9 @@ function Board({ groupId, players, loading = false, reload, profileId, isAdmin, 
                 </div>
                 <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: isFirst ? 17 : 14, color: ring, marginTop: 2, lineHeight: 1 }}>{p.rating}</div>
                 <div style={{ fontSize: 10, color: "var(--mut)", marginTop: 2 }}>{p.id === profileId ? t("fr_you") : isFirst ? t("podium_leader") : t("podium_place").replace("{n}", String(place))}</div>
+                {Array.isArray(p.levels) && p.levels.length > 0 && (
+                  <div style={{ marginTop: 4, display: "flex", justifyContent: "center", flexWrap: "wrap" }}><LevelBadges levels={p.levels} compact /></div>
+                )}
               </div>
             );
           })}
