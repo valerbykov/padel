@@ -4,7 +4,7 @@
 // санитайзит через lib/levels.sanitizeEventLevel перед сохранением.
 import React, { useState, useRef } from "react";
 import { t } from "../lib/i18n";
-import { LETTER_OPTIONS } from "../lib/levels";
+import { LETTER_OPTIONS, sysColor } from "../lib/levels";
 
 const PT_OPTIONS = ["1.0", "1.5", "2.0", "2.5", "3.0", "3.5", "4.0", "4.5", "5.0", "5.5", "6.0", "6.5", "7.0"];
 
@@ -38,8 +38,8 @@ export default function LevelPicker({ value, onChange }) {
   };
   const setOth = (v) => { const nv = v.trim() ? [v] : []; setVals(nv); push(nv); };
 
-  const accent = sys === "pt" ? "var(--lime)" : "#7cc4e0";
-  const accentFg = sys === "pt" ? "var(--lime-fg)" : "#0a1612";
+  const accent = sysColor(sys);
+  const accentFg = "var(--lime-fg)";
   const chip = (on) => ({
     flexShrink: 0, border: "1px solid var(--line)", borderRadius: 8, padding: "7px 12px",
     fontWeight: 800, fontSize: 13, cursor: "pointer",
@@ -54,7 +54,7 @@ export default function LevelPicker({ value, onChange }) {
       </div>
       <div style={{ display: "flex", gap: 4, background: "var(--bg)", borderRadius: 10, padding: 3, marginBottom: 10 }}>
         {[["pt", "Playtomic"], ["ltr", t("pc_level_sys_ltr")], ["oth", t("pc_level_sys_oth")]].map(([k, lbl2]) => (
-          <button key={k} type="button" onClick={() => pickSys(k)} style={{ flex: 1, border: "none", borderRadius: 8, padding: "7px 0", cursor: "pointer", fontWeight: 700, fontSize: 12, background: sys === k ? "var(--lime)" : "none", color: sys === k ? "var(--lime-fg)" : "var(--mut)" }}>{lbl2}</button>
+          <button key={k} type="button" onClick={() => pickSys(k)} style={{ flex: 1, border: "none", borderRadius: 8, padding: "7px 0", cursor: "pointer", fontWeight: 700, fontSize: 12, background: sys === k ? sysColor(k) : "none", color: sys === k ? "var(--lime-fg)" : "var(--mut)" }}>{lbl2}</button>
         ))}
       </div>
 

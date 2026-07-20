@@ -4,6 +4,8 @@
 // Модель бейджа: { sys: "pt"|"ltr"|"oth", val: string, lbl?: string }.
 
 export const LEVEL_SYSTEMS = ["pt", "ltr", "oth"];
+// Фирменные цвета систем: Playtomic — синий (как их иконка), Lunda — салатовый.
+export const sysColor = (sys) => sys === "pt" ? "#4da3ff" : sys === "ltr" ? "var(--lime)" : "var(--mut)";
 export const LETTER_OPTIONS = ["E", "D", "D+", "C", "C+", "B", "A"];
 
 // Префикс системы в бейдже. Playtomic и Lunda — бренды, не переводим.
