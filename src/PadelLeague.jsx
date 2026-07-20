@@ -30,7 +30,7 @@ import EmptyState from "./components/EmptyState";
 import Avatar from "./components/Avatar";
 import LeagueLogo from "./components/LeagueLogo";
 import InviteCard from "./components/InviteCard";
-import Analytics from "./components/Analytics";
+const Analytics = lazy(() => import("./components/Analytics"));
 import LevelBadges, { EventLevelBadge } from "./components/LevelBadges";
 import DurationPicker from "./components/DurationPicker";
 import LevelPicker from "./components/LevelPicker";
@@ -739,7 +739,7 @@ function Board({ groupId, players, loading = false, reload, profileId, bumpArchi
     finally { setBusy(false); }
   };
 
-  if (showStats) return <Analytics groupId={groupId} players={players} profileId={profileId} onBack={() => setShowStats(false)} onOpenPlayer={(p) => { setShowStats(false); setSelected(p); }} />;
+  if (showStats) return <Suspense fallback={<div style={{ minHeight: "50vh" }} />}><Analytics groupId={groupId} players={players} profileId={profileId} onBack={() => setShowStats(false)} onOpenPlayer={(p) => { setShowStats(false); setSelected(p); }} /></Suspense>;
 
   if (selected) return (
     <PlayerDetail key={selected.id} groupId={groupId} player={selected} players={players} close={() => setSelected(null)} onOpenPlayer={setSelected}
