@@ -12,7 +12,7 @@ import { bustCache, cachePeek } from "./lib/cache";
 import { useMinuteTick } from "./lib/useTick";
 import { getRatingHistory, getWeekDeltas } from "./lib/statsApi";
 import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
-import { t, nGames, currentLang , dateLocale} from "./lib/i18n";
+import { t, nGames, currentLang , dateLocale, isDeletedPlayer} from "./lib/i18n";
 import { detailedStandings } from "./lib/americano";
 import Fab from "./components/Fab";
 import { Trophy, Swords, History, Users, UserPlus, Share2, X, Copy, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Phone, Mail, Trash2, Shuffle, HelpCircle, UserCheck, ShieldCheck, EyeOff, Star, User, Search, Pencil, Send, MessageCircle, QrCode } from "lucide-react";
@@ -2345,7 +2345,7 @@ function CreateGame({ groupId, profileId, back, done }) {
 // находит игрока лиги или добавляет гостя по имени.
 function PickPlayerPanel({ slotLabel, players = [], takenIds = [], meId = null, onPick, onClose }) {
   const [q, setQ] = useState("");
-  const free = (players || []).filter((p) => !takenIds.includes(p.id) && p.id !== meId);
+  const free = (players || []).filter((p) => !takenIds.includes(p.id) && p.id !== meId && !isDeletedPlayer(p));
   const me = (!!meId && !takenIds.includes(meId)) ? (players || []).find((p) => p.id === meId) : null;
   const matches = q.trim()
     ? free.filter((p) => p.name.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 8)

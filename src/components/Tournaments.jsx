@@ -57,7 +57,7 @@ import EmptyState from "./EmptyState";
 import { formatMoney } from "../lib/money";
 import { defaultCurrency } from "../lib/region";
 import { Trophy, Copy, Play, X, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Share2, Trash2, Plus, Check, Calendar, MapPin } from "lucide-react";
-import { t as tr , dateLocale} from "../lib/i18n";
+import { t as tr , dateLocale, isDeletedPlayer} from "../lib/i18n";
 import DateTimePicker from "./DateTimePicker";
 import { EventLevelBadge } from "./LevelBadges";
 import { registerBack } from "../lib/backstack";
@@ -638,7 +638,7 @@ export function AddPlayer({ players, existing, onAdd, disabled, meId = null }) {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const existingIds = (existing || []).filter((p) => p.profile_id).map((p) => p.profile_id);
-  const available = (players || []).filter((p) => !existingIds.includes(p.id));
+  const available = (players || []).filter((p) => !existingIds.includes(p.id) && !isDeletedPlayer(p));
   // «Я сам» — первый чип карусели (пока не записан); остальные — без меня.
   const me = (!!meId && !existingIds.includes(meId)) ? available.find((p) => p.id === meId) : null;
   const matches = q.trim()

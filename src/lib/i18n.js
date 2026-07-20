@@ -1,4 +1,10 @@
 // src/lib/i18n.js — simple i18n for RU / EN / ES
+
+// Имя обезличенного профиля — точь-в-точь как ставит edge-функция delete-account.
+// Такие профили не предлагаем добавлять в новые игры/турниры (аккаунт удалён).
+export const DELETED_PLAYER_NAME = 'Удалённый игрок';
+export const isDeletedPlayer = (p) => !!p && p.name === DELETED_PLAYER_NAME;
+
 export const LANGS = ['ru', 'en', 'es'];
 export const LANG_LABELS = { ru: 'RU', en: 'EN', es: 'ES' };
 
