@@ -56,7 +56,7 @@ import FeesCard from "./FeesCard";
 import EmptyState from "./EmptyState";
 import { formatMoney } from "../lib/money";
 import { defaultCurrency } from "../lib/region";
-import { Trophy, Copy, Play, X, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Share2, Trash2, Plus, Check, Calendar, MapPin } from "lucide-react";
+import { Trophy, Copy, Play, X, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Share2, Trash2, Plus, Check, Calendar, MapPin } from "lucide-react";
 import { t as tr , dateLocale, isDeletedPlayer} from "../lib/i18n";
 import DateTimePicker from "./DateTimePicker";
 import { EventLevelBadge } from "./LevelBadges";
@@ -963,7 +963,6 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
       <div className="trp-topbar">
         <div className="trp-eyebrow">🏆 {tr("trn_share_text")}</div>
         <div className="trp-actions">
-          <button className="trp-act" aria-label={tr("refresh")} onClick={load}><RefreshCw size={15} /></button>
           {!readOnly && (
             <button className="trp-act" style={{ padding: "8px 12px" }} onClick={share}>
               <Share2 size={14} /> {toast || tr("share_btn")}
