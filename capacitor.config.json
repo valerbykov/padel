@@ -5,5 +5,12 @@
   "server": {
     "hostname": "padelpack.app",
     "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false,
+      "backgroundColor": "#0a1612",
+      "launchFadeOutDuration": 250
+    }
   }
 }

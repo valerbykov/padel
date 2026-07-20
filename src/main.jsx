@@ -58,6 +58,16 @@ function reloadForStaleChunk(reason) {
 window.addEventListener("vite:preloadError", (e) => { try { e.preventDefault(); } catch (_) {} reloadForStaleChunk((e && e.payload && e.payload.message) || "vite:preloadError"); });
 window.addEventListener("unhandledrejection", (e) => { if (isChunkLoadError(e && e.reason)) reloadForStaleChunk((e.reason && e.reason.message) || String(e && e.reason)); });
 
+// Прячем нативный сплеш, когда веб-приложение отрисовалось. Capacitor рекомендует
+// звать hide() вручную; в capacitor.config launchAutoHide:false — сплеш ждёт нас
+// (не прячется по таймауту, пока грузится бандл). На вебе window.Capacitor нет —
+// вызов no-op. Идемпотентно (повторный hide безвреден).
+function hideSplash() {
+  try { window.Capacitor?.Plugins?.SplashScreen?.hide?.({ fadeOutDuration: 250 }); } catch (_) { /* нет плагина/веб */ }
+}
+// Жёсткий фолбэк: даже если рендер не дошёл (катастрофа с бандлом), сплеш не залипнет.
+setTimeout(hideSplash, 8000);
+
 // Root — тонкий гейт: гостю показывает Landing без supabase/App, остальное грузит лениво.
 function renderApp() {
   createRoot(document.getElementById("root")).render(
@@ -65,6 +75,8 @@ function renderApp() {
       <Root />
     </React.StrictMode>
   );
+  // после первого кадра приложения прячем сплеш (передаём эстафету веб-UI)
+  requestAnimationFrame(() => requestAnimationFrame(hideSplash));
 }
 
 // Активную локаль (+ ru как фолбэк) грузим ДО первого рендера: t() синхронная, к
