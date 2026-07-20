@@ -1109,25 +1109,28 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                   <div style={{ fontSize: 12, color: "var(--mut)", fontWeight: 700, marginBottom: 8 }}>{tr("trn_pairs")} {done}/{pairCap}</div>
                   {pairs.map((pr) => (
                     <div key={pr.pair_no} style={{ padding: "9px 4px", borderBottom: "1px solid var(--line)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ width: 16, flexShrink: 0, fontWeight: 800, color: "var(--mut)", fontSize: 13, textAlign: "center" }}>{pr.pair_no}</span>
                         {member(pr.members[0])}
-                        <span style={{ color: "var(--mut)", fontWeight: 700, flexShrink: 0 }}>&amp;</span>
-                        {pr.members[1] ? member(pr.members[1]) : (
-                          !readOnly ? (
-                            <div style={{ display: "flex", alignItems: "center", gap: 6, flex: "1 1 0", minWidth: 0 }}>
-                              <button onClick={() => setAddingToPair(pr.pair_no)}
-                                style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1.5px dashed color-mix(in srgb, var(--lime) 45%, transparent)", background: "none", borderRadius: 999, padding: "5px 12px", color: "var(--lime)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
-                                ＋ {tr("trn_choose_partner")}
-                              </button>
-                              <button onClick={() => sharePairLink(pr.pair_no)} aria-label={tr("trn_share_pair")}
-                                style={{ border: "1px solid var(--line)", background: "var(--surface2)", borderRadius: 999, padding: "5px 10px", color: "var(--mut)", cursor: "pointer", fontSize: 12.5, flexShrink: 0 }}>🔗</button>
-                            </div>
-                          ) : <span style={{ color: "var(--mut)", fontSize: 12.5 }}>{tr("trn_looking_partner")}</span>
-                        )}
+                        {pr.members[1] && <span style={{ color: "var(--mut)", fontWeight: 700, flexShrink: 0 }}>&amp;</span>}
+                        {pr.members[1]
+                          ? member(pr.members[1])
+                          : (readOnly && <span style={{ color: "var(--mut)", fontSize: 12.5, flexShrink: 0 }}>{tr("trn_looking_partner")}</span>)}
                       </div>
+                      {/* Пустой второй слот: контролы (напарник + ссылка на пару) и подсказка —
+                          отдельной строкой с переносом; в узкой строке ссылка уезжала за экран. */}
                       {!pr.members[1] && !readOnly && (
-                        <div style={{ fontSize: 10.5, color: "var(--mut)", lineHeight: 1.3, marginTop: 5, marginLeft: 24 }}>{tr("trn_share_pair_hint")}</div>
+                        <div style={{ marginLeft: 24, marginTop: 7 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <button onClick={() => setAddingToPair(pr.pair_no)}
+                              style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1.5px dashed color-mix(in srgb, var(--lime) 45%, transparent)", background: "none", borderRadius: 999, padding: "5px 12px", color: "var(--lime)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                              ＋ {tr("trn_choose_partner")}
+                            </button>
+                            <button onClick={() => sharePairLink(pr.pair_no)} aria-label={tr("trn_share_pair")}
+                              style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1px solid var(--line)", background: "var(--surface2)", borderRadius: 999, padding: "5px 12px", color: "var(--ink)", cursor: "pointer", fontSize: 12.5, fontWeight: 600 }}>🔗 {tr("trn_share_pair")}</button>
+                          </div>
+                          <div style={{ fontSize: 10.5, color: "var(--mut)", lineHeight: 1.3, marginTop: 6 }}>{tr("trn_share_pair_hint")}</div>
+                        </div>
                       )}
                     </div>
                   ))}
