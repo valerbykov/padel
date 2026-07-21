@@ -5,7 +5,7 @@ import React, { useEffect, useState, useCallback, useRef, lazy, Suspense } from 
 import { supabase } from "../lib/supabase";
 import { createPortal } from "react-dom";
 import {
-  listTournaments, getTournament, addTournamentPlayer, removeTournamentPlayer,
+  listTournaments, getTournament, addTournamentPlayer, removeTournamentPlayer, combineIncompletePairs,
   startTournament, submitMatchScore, finishTournament, tournamentLink, deleteTournament, listMyTournaments, copyTournament,
   generateMexicanoRound, generateKotHRound, generateKotHLadderRound, setCourtName, setScorePin, checkScorePin,
   getTournamentFee, getFeePayments, setTournamentFee, toggleFeePaid, remindFeeDebtors,
@@ -726,6 +726,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   const [pinMsg, setPinMsg] = useState(""); // #1: сообщение о неверном PIN — отдельно от toast (кнопки «Ссылка»)
   const [unlocked, setUnlocked] = useState(() => { try { return !!localStorage.getItem("pp_scorepin_" + id); } catch (e) { return false; } });
   const [addingToPair, setAddingToPair] = useState(null); // pair_no | "new" | null — куда добавляем
+  const [combining, setCombining] = useState(false);       // «собрать неполные пары»
   const [openCourts, setOpenCourts] = useState({}); // {matchId: true} — раскрытые сыгранные корты
   const initRef = useRef(false);
   const roundRef = useRef(false);
@@ -1141,6 +1142,20 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                         <div key={p.id} style={{ display: "flex", alignItems: "center", padding: "8px 4px", borderBottom: "1px solid var(--line)" }}>{member(p)}</div>
                       ))}
                     </>
+                  )}
+                  {/* Собрать неполные пары: одиночек (по 1 в паре + без пары) складываем
+                      попарно. Полезно, когда «турнир заполнен», но пары не собраны. */}
+                  {!readOnly && addingToPair == null && (pairs.filter((pr) => pr.members.length === 1).length + pool.length) >= 2 && (
+                    <button onClick={async () => {
+                      if (combining) return;
+                      setCombining(true);
+                      try { await combineIncompletePairs(trnData.id, trnData.players); await load(); }
+                      catch (e) { showToast(tr("err_generic")); }
+                      finally { setCombining(false); }
+                    }} className="tr-ghost" disabled={combining}
+                      style={{ width: "100%", marginTop: 12, padding: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--lime)", borderColor: "color-mix(in srgb, var(--lime) 40%, transparent)", fontWeight: 700, opacity: combining ? .6 : 1 }}>
+                      🔗 {tr("trn_combine_pairs")}
+                    </button>
                   )}
                   {!readOnly && addingToPair == null && trnData.players.length < trnData.target_size && (
                     <button onClick={() => setAddingToPair("new")} className="tr-btn" style={{ marginTop: 12, background: "color-mix(in srgb, var(--lime) 12%, transparent)", color: "var(--lime)", border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)" }}>

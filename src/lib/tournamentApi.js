@@ -124,6 +124,38 @@ export async function removeTournamentPlayer(playerId) {
   bustCache();
 }
 
+// «Собрать неполные пары»: одиночек (неполные пары по 1 игроку + вовсе без пары)
+// складываем попарно, переназначая pair_no. Ничего не удаляем/создаём — только
+// UPDATE pair_no (RLS та же, что у add/remove). Нечётного последнего оставляем.
+// Возвращает число обновлённых рядов (0 = нечего собирать).
+export async function combineIncompletePairs(tournamentId, players = []) {
+  const byPair = new Map();
+  let maxPair = 0;
+  for (const p of players) {
+    if (p.pair_no == null) continue;
+    maxPair = Math.max(maxPair, p.pair_no);
+    const a = byPair.get(p.pair_no) || []; a.push(p); byPair.set(p.pair_no, a);
+  }
+  const solos = [];
+  byPair.forEach((arr) => { if (arr.length === 1) solos.push(arr[0]); });   // неполные пары
+  for (const p of players) if (p.pair_no == null) solos.push(p);            // вовсе без пары
+  solos.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+
+  const updates = [];
+  for (let i = 0; i + 1 < solos.length; i += 2) {
+    const a = solos[i], b = solos[i + 1];
+    let target = a.pair_no;
+    if (target == null) { target = ++maxPair; updates.push({ id: a.id, pair_no: target }); }
+    updates.push({ id: b.id, pair_no: target });
+  }
+  for (const u of updates) {
+    const { error } = await supabase.from("tournament_players").update({ pair_no: u.pair_no }).eq("id", u.id);
+    if (error) throw error;
+  }
+  bustCache();
+  return updates.length;
+}
+
 export async function joinTournamentByCode(code, name, pairNo = null) {
   let profileId = null;
   const { data: { user } } = await supabase.auth.getUser();
