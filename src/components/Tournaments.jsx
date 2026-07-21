@@ -90,7 +90,11 @@ export const css = `
 }
 /* Афиша-постер (турнир И игра). Раньше жила инлайном внутри JSX афиши турнира —
    из-за этого афиша игры (PadelLeague через trCss) оставалась без стилей. */
-.trp-poster{border-radius:20px;padding:20px 18px 18px;overflow:hidden;position:relative;background:linear-gradient(160deg,#153a2a 0%,#112a20 55%,#0e2018 100%);border:1px solid var(--line);margin-bottom:12px;}
+/* Постер всегда тёмный (жёсткий градиент) → и в СВЕТЛОЙ теме элементы на нём должны
+   быть светлыми-на-тёмном. Переопределяем тему-переменные на тёмную палитру внутри
+   постера, иначе var(--ink)/(--surface) в светлой теме темнеют и кнопки (напр. «Ссылка»)
+   становятся невидимыми. */
+.trp-poster{--ink:#eef3ee;--mut:#9db0a5;--surface:#16291f;--surface2:#1d3327;--line:#2c4436;--lime:#c8ff2d;--lime-fg:#0a1612;border-radius:20px;padding:20px 18px 18px;overflow:hidden;position:relative;background:linear-gradient(160deg,#153a2a 0%,#112a20 55%,#0e2018 100%);border:1px solid #2c4436;margin-bottom:12px;}
 .trp-trophy{position:absolute;right:-2px;top:128px;font-size:66px;opacity:.11;transform:rotate(-8deg);pointer-events:none;line-height:1;z-index:0;}
 .trp-topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;position:relative;z-index:2;}
 .trp-eyebrow{color:var(--lime);font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;position:relative;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
