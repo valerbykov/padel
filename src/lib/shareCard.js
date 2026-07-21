@@ -20,7 +20,11 @@ function loadImg(src) {
     im.crossOrigin = "anonymous";
     im.onload = () => res(im);
     im.onerror = () => res(null);
-    im.src = src;
+    // Кэш-бастер для внешних http(s)-аватаров: обычный <img> в приложении кэширует
+    // картинку БЕЗ CORS, и повторный crossOrigin-запрос на тот же URL падает
+    // (canvas требует CORS) → реальное фото превращалось в собаку-заглушку. Отдельный
+    // URL = отдельная запись кэша, уже с CORS. Локальные/data-URI не трогаем.
+    im.src = /^https?:\/\//i.test(src) ? src + (src.includes("?") ? "&" : "?") + "sc=1" : src;
   });
 }
 async function avatarImg(url, idOrName) {
