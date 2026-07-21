@@ -82,7 +82,7 @@ export default function AppInstallBanner() {
           {t("banner_sub")}
         </div>
       </div>
-      <button onClick={open} style={{ flexShrink: 0, background: "#0a84ff", color: "#fff", border: "none", borderRadius: 999, padding: "8px 17px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif" }}>
+      <button onClick={open} style={{ flexShrink: 0, background: "var(--lime, #c8ff2d)", color: "var(--lime-fg, #0a1612)", border: "none", borderRadius: 999, padding: "8px 17px", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif" }}>
         {t("banner_open")}
       </button>
     </div>
