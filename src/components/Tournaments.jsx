@@ -911,9 +911,11 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
     const text = `${tr("trn_share_text")}${trnData.name ? ` «${trnData.name}»` : ""}: ${url} (${tr("code_label")} ${trnData.invite_code})`;
     // На нативе — тот же Capacitor Share-плагин, что и у подиума/пары (веб-navigator.share
     // в Android-WebView показывает лишнее окно редактирования текста «Изменить»).
+    // Только text (в нём уже есть ссылка + код). url отдельно НЕ передаём — иначе
+    // Share-плагин склеивает text+url и ссылка задваивается.
     const Share = (typeof window !== "undefined" && window.Capacitor?.Plugins?.Share) || null;
-    if (Share) { try { await Share.share({ title: tr("tab_tournaments"), text, url }); return; } catch (e) { if (/cancel/i.test(e?.message || "")) return; } }
-    try { if (navigator.share) { await navigator.share({ title: tr("tab_tournaments"), text, url }); return; } } catch (e) {}
+    if (Share) { try { await Share.share({ title: tr("tab_tournaments"), text }); return; } catch (e) { if (/cancel/i.test(e?.message || "")) return; } }
+    try { if (navigator.share) { await navigator.share({ title: tr("tab_tournaments"), text }); return; } } catch (e) {}
     try { await navigator.clipboard.writeText(text); setToast(tr("copied")); setTimeout(() => setToast(""), 1500); } catch (e) {}
   };
   const sharePairLink = async (pairNo) => {
@@ -1446,6 +1448,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
               canManage={isAdmin || trnData.created_by === currentProfileId}
               avatarOf={avatarOfTp}
               currency={trnData.fee_currency} timing={trnData.fee_timing} defaultCurrency={defCur}
+              onChange={load}
               api={{ getFee: getTournamentFee, getPaid: getFeePayments, setFee: setTournamentFee, togglePaid: toggleFeePaid, remind: remindFeeDebtors }} />
           )}
         </>

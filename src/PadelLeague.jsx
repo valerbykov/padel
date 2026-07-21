@@ -2631,9 +2631,11 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
     const text = `${t("game_share_text")}${game.title ? ` «${game.title}»` : ""}! ${t("game_share_join")}: ${url} (${t("code_label")} ${game.invite_code})`;
     // Нативный Capacitor Share-плагин (веб-navigator.share в Android-WebView даёт
     // лишнее окно редактирования текста «Изменить»).
+    // Только text (ссылка+код уже внутри). url отдельно НЕ передаём — иначе плагин
+    // склеивает text+url и ссылка задваивается.
     const Share = (typeof window !== "undefined" && window.Capacitor?.Plugins?.Share) || null;
-    if (Share) { try { await Share.share({ title: "PadelPack", text, url }); return; } catch (e) { if (/cancel/i.test(e?.message || "")) return; } }
-    try { if (navigator.share) { await navigator.share({ title: "PadelPack", text, url }); return; } } catch (e) {}
+    if (Share) { try { await Share.share({ title: "PadelPack", text }); return; } catch (e) { if (/cancel/i.test(e?.message || "")) return; } }
+    try { if (navigator.share) { await navigator.share({ title: "PadelPack", text }); return; } } catch (e) {}
     try { await navigator.clipboard.writeText(text); setToast(t("copied")); setTimeout(() => setToast(""), 1600); } catch (e) { setToast(t("copy_manual")); }
   };
 
@@ -2781,6 +2783,7 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
               avatarOf={(key) => { const u = uniq.find((x) => x.key === key); return u?.profile_id ? playerAvatar(u.avatar_url, u.profile_id) : null; }}
               api={{ getFee: getGameFee, getPaid: getGameFeePayments, setFee: setGameFee, togglePaid: toggleGameFeePaid, remind: remindGameFeeDebtors }}
               currency={anchor.fee_currency} timing={anchor.fee_timing} defaultCurrency={defCur}
+              onChange={reloadSession}
               cardClass="pl-card" collapsible />
           );
         })()}
@@ -2923,6 +2926,7 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
             avatarOf={(key) => { const u = uniq.find((x) => x.key === key); return u?.profile_id ? playerAvatar(u.avatar_url, u.profile_id) : null; }}
             api={{ getFee: getGameFee, getPaid: getGameFeePayments, setFee: setGameFee, togglePaid: toggleGameFeePaid, remind: remindGameFeeDebtors }}
             currency={game.fee_currency} timing={game.fee_timing} defaultCurrency={defCur}
+            onChange={reloadGames}
             cardClass="pl-card" collapsible />
         );
       })()}

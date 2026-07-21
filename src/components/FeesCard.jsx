@@ -16,7 +16,7 @@ import { showToast } from "./ui-dialogs";
 import { t as tr } from "../lib/i18n";
 import { formatMoney, CURRENCIES } from "../lib/money";
 
-export default function FeesCard({ entityId, entityName = "", players = [], me, canManage, readOnly, avatarOf, api, cardClass = "tr-card", currency = null, timing = "end", defaultCurrency = "EUR", collapsible = false }) {
+export default function FeesCard({ entityId, entityName = "", players = [], me, canManage, readOnly, avatarOf, api, cardClass = "tr-card", currency = null, timing = "end", defaultCurrency = "EUR", collapsible = false, onChange = null }) {
   const [fee, setFee] = useState(undefined);        // undefined=загрузка, null=не задана
   const [paid, setPaid] = useState(new Set());
   const [setup, setSetup] = useState(false);
@@ -76,7 +76,7 @@ export default function FeesCard({ entityId, entityName = "", players = [], me, 
     if (!n || n <= 0) { showToast(tr("fee_bad_amount")); return; }
     const perPlayer = mode === "total" ? Math.ceil(n / Math.max(players.length, 1)) : n;
     setSaving(true);
-    try { await api.setFee(entityId, perPlayer, cur, when); setFee(perPlayer); setSetup(false); }
+    try { await api.setFee(entityId, perPlayer, cur, when); setFee(perPlayer); setSetup(false); onChange?.(); }
     catch (e) { showToast(`${tr("err_generic") || "Ошибка"}: ${e?.message || e}`); }
     finally { setSaving(false); }
   };
