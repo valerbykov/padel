@@ -86,29 +86,31 @@ assetlinks.json и должен быть в Яндекс OAuth-консоли). 
 Готовый текст для App Store Connect / Google Play / RuStore. Покрывает всё
 накопленное с первого публичного релиза (iOS 1.0, ~2026-07-16).
 
+Короткие (для Google Play — лимит 500 символов).
+
 **RU:**
-- Турниры парами — записывайтесь заранее собранной парой, зовите напарника персональной ссылкой, а неполные пары собирайте в один тап.
-- Взносы за корт — задавайте сумму с игрока при создании турнира или игры, отмечайте, кто скинулся, и напоминайте пушем.
-- Микс-сессии — серия игр в один заход с общим завершением.
-- Красивые афиши игр и турниров и карточки-подиумы для шаринга с настоящими аватарами.
-- Уровни игроков (Playtomic, Lunda) в фирменных цветах.
-- Свободный ввод счёта в турнирах по умолчанию, вход через Yandex, локализованные уведомления и десятки улучшений скорости, интерфейса и шаринга.
+• Турниры парами: приглашение в конкретную пару ссылкой, «собрать неполные пары».
+• Взносы за корт: сумма с игрока, отметки «скинулся», напоминания пушем.
+• Микс-сессии — серия игр с общим завершением.
+• Новые афиши и подиум-карточки для шаринга.
+• Уровни Playtomic/Lunda в цветах бренда.
+• Свободный счёт по умолчанию, вход через Yandex, локализованные уведомления, ускорение и фиксы.
 
 **EN:**
-- Pair tournaments — sign up as a ready-made pair, invite your partner with a personal link, and merge incomplete pairs in one tap.
-- Court chip-ins — set a per-player amount when creating a tournament or game, track who's paid, and nudge others with a push.
-- Mix sessions — play a series of games in one outing with a single finish.
-- Beautiful game & tournament posters and shareable podium cards with real avatars.
-- Player levels (Playtomic, Lunda) in their brand colors.
-- Open scoring by default in tournaments, Yandex sign-in, localized notifications, and dozens of speed, UI and sharing improvements.
+• Pair tournaments: invite a partner to a specific pair by link, merge incomplete pairs.
+• Court chip-ins: per-player amount, paid marks, push reminders.
+• Mix sessions — a series of games with one finish.
+• New posters and shareable podium cards.
+• Playtomic/Lunda levels in brand colors.
+• Open scoring by default, Yandex sign-in, localized notifications, speedups and fixes.
 
 **ES:**
-- Torneos por parejas — apúntate como pareja ya formada, invita a tu compañero con un enlace personal y combina parejas incompletas con un toque.
-- Aportes de pista — fija el importe por jugador al crear un torneo o partida, controla quién pagó y recuérdalo con un push.
-- Sesiones mix — juega varias partidas de una vez con un cierre único.
-- Bonitas fichas de partidas y torneos y tarjetas de podio para compartir con avatares reales.
-- Niveles de jugador (Playtomic, Lunda) con sus colores de marca.
-- Marcador libre por defecto en torneos, inicio de sesión con Yandex, notificaciones localizadas y decenas de mejoras de velocidad, interfaz y compartir.
+• Torneos por parejas: invita a una pareja concreta por enlace, combina parejas incompletas.
+• Aportes de pista: importe por jugador, marcas de pago, recordatorios push.
+• Sesiones mix — varias partidas con un cierre.
+• Nuevas fichas y tarjetas de podio para compartir.
+• Niveles Playtomic/Lunda con colores de marca.
+• Marcador libre por defecto, inicio con Yandex, notificaciones localizadas, mejoras y correcciones.
 
 ---
 
