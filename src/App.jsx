@@ -621,7 +621,7 @@ export default function App({ initialShowLogin = false }) {
           onSignOut={() => supabase.auth.signOut()}
           theme={theme} onThemeToggle={toggleTheme}
           lang={lang} onLangChange={handleLangChange}
-          leagues={leagues || []} activeLeague={activeLeague} isAdmin={isAdmin}
+          leagues={leagues || []} leaguesReady={leagues !== null} activeLeague={activeLeague} isAdmin={isAdmin}
           onLeagueChange={handleLeagueChange} onLeagueCreated={handleLeagueDone}
           onLeagueUpdated={handleLeagueUpdated} onLeagueLeft={handleLeagueLeft} onOpenEvent={handleOpenEvent}
         />
@@ -665,6 +665,7 @@ export default function App({ initialShowLogin = false }) {
         lang={lang}
         onLangChange={handleLangChange}
         leagues={leagues || []}
+        leaguesReady={leagues !== null}
         activeLeague={activeLeague}
         isAdmin={isAdmin}
         onLeagueChange={handleLeagueChange}
@@ -725,7 +726,7 @@ export default function App({ initialShowLogin = false }) {
   );
 }
 
-function TopBar({ session, name, avatarUrl, avatarId, onLogin, onProfile, theme, onThemeToggle, lang = "ru", onLangChange, leagues = [], activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, onLeagueUpdated, onLeagueLeft, onOpenEvent }) {
+function TopBar({ session, name, avatarUrl, avatarId, onLogin, onProfile, theme, onThemeToggle, lang = "ru", onLangChange, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, onLeagueUpdated, onLeagueLeft, onOpenEvent }) {
   const base = { border: "1px solid var(--line)", borderRadius: 11, padding: "7px 12px", fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif", transition: "transform .12s, filter .15s, background .15s" };
   return (
     <div style={{
@@ -740,7 +741,7 @@ function TopBar({ session, name, avatarUrl, avatarId, onLogin, onProfile, theme,
       {/* СЛЕВА: у залогиненного — переключатель лиги; у гостя — текстовый логотип. */}
       <div style={{ display: "flex", alignItems: "center", minWidth: 0, flex: 1 }}>
         {session
-          ? <LeagueSwitcher leagues={leagues} activeLeague={activeLeague} isAdmin={isAdmin} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onLeagueUpdated={onLeagueUpdated} onLeagueLeft={onLeagueLeft} />
+          ? <LeagueSwitcher leagues={leagues} leaguesReady={leaguesReady} activeLeague={activeLeague} isAdmin={isAdmin} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onLeagueUpdated={onLeagueUpdated} onLeagueLeft={onLeagueLeft} />
           : <span onClick={() => window.location.assign("/")} style={{ cursor: "pointer", display: "inline-flex" }} title={t("pub_to_app")}><Logo height={20} /></span>}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>

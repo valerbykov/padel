@@ -669,6 +669,9 @@ function Board({ groupId, players, loading = false, reload, profileId, isAdmin, 
   // is_demo ещё не доехал из кэша лиг.
   const isDemoLeague = !!groupId && (activeLeague?.is_demo || (() => { try { return localStorage.getItem("pp_demo_gid") === groupId; } catch (e) { return false; } })());
 
+  // Лиги ещё грузятся, активной пока нет — скелетон вместо мигающего «Без лиги»/пустоты.
+  if (!leaguesReady && !groupId) return <div className="pl-pop"><CardSkeleton count={5} /></div>;
+
   return (
     <div className="pl-pop">
       {/* Без лиги — подсказка + вход в демо-стаю (создание/вступление — в переключателе в шапке).

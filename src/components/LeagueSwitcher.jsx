@@ -8,7 +8,10 @@ import LeagueLogo from "./LeagueLogo";
 import LeagueManager from "./LeagueManager";
 import { t } from "../lib/i18n";
 
-export default function LeagueSwitcher({ leagues, activeLeague, onLeagueChange, onLeagueCreated, onLeagueUpdated, onLeagueLeft }) {
+export default function LeagueSwitcher({ leagues, leaguesReady = true, activeLeague, onLeagueChange, onLeagueCreated, onLeagueUpdated, onLeagueLeft }) {
+  // Лиги ещё грузятся и активной пока нет → показываем лоадер, а не «Без лиги»
+  // (иначе на старте мигает ложное «Без лиги», пока идёт bootstrap).
+  const loadingLeagues = !leaguesReady && !activeLeague;
   const [menu, setMenu] = useState(false);
   const [mode, setMode] = useState(false); // false | "create" | "join"
   const [manage, setManage] = useState(null); // { id, role } — открытое окно управления
@@ -53,15 +56,17 @@ export default function LeagueSwitcher({ leagues, activeLeague, onLeagueChange, 
         .ls-pop .pl-btn{background:var(--lime);color:var(--lime-fg);font-weight:700;border:none;border-radius:12px;cursor:pointer;font-family:'Outfit';}
         .ls-pop .pl-btn:disabled{filter:grayscale(.6) brightness(.7);cursor:not-allowed;}
         .ls-pop .pl-ghost{background:var(--surface2);color:var(--ink);border:1px solid var(--line);border-radius:12px;cursor:pointer;}
+        .ls-spin{width:14px;height:14px;border-radius:50%;border:2px solid color-mix(in srgb,var(--lime) 22%,transparent);border-top-color:var(--lime);animation:lsspin .7s linear infinite;}
+        @keyframes lsspin{to{transform:rotate(360deg)}}
       `}</style>
       <button className="ls-trigger" onClick={() => { setMenu((v) => !v); setMode(false); setErr(""); }}
         style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px 6px 7px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 999, cursor: "pointer", color: "var(--ink)", fontFamily: "'Outfit'", fontSize: 13, maxWidth: "100%", minWidth: 0, overflow: "hidden" }}>
         {activeLeague
           ? <LeagueLogo url={activeLeague.logo_url} name={activeLeague.name} size={26} radius={999} />
           : <span style={{ width: 26, height: 26, borderRadius: "50%", background: "color-mix(in srgb,var(--lime) 16%,transparent)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Trophy size={14} style={{ color: "var(--lime)" }} />
+              {loadingLeagues ? <span className="ls-spin" /> : <Trophy size={14} style={{ color: "var(--lime)" }} />}
             </span>}
-        <span style={{ fontWeight: 700, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeLeague?.name || t("no_league_chip")}</span>
+        <span style={{ fontWeight: 700, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: loadingLeagues ? "var(--mut)" : undefined }}>{activeLeague?.name || (loadingLeagues ? t("loading") : t("no_league_chip"))}</span>
         {menu ? <ChevronUp size={15} style={{ color: "var(--mut)", flexShrink: 0 }} /> : <ChevronDown size={15} style={{ color: "var(--mut)", flexShrink: 0 }} />}
       </button>
 
