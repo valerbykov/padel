@@ -25,6 +25,20 @@ assetlinks.json и должен быть в Яндекс OAuth-консоли). 
 
 ## Ожидает релиза
 
+- **Турниры парами + большой апдейт турниров/игр** (до `b2043a3` / `4f3f94f`).
+  Запись ПАРАМИ (KotH / Round Robin): персональная ссылка-приглашение в конкретную
+  пару (`/t/CODE?pair=N` → сфокусированный экран вступления к нужному игроку),
+  «Собрать неполные пары» одним тапом. Взнос задаётся прямо при создании турнира
+  (валюта из списка, тайминг) и обновляет афишу на лету; свободный ввод счёта по
+  умолчанию; ярлык контакта «Организатор»; уровни Playtomic (синий) / Lunda
+  (салатовый), два значения — двумя таблетками. **Микс-сессии** игр с явным
+  «Завершить сессию» (не утекает в Историю поштучно). Афиши игр/турниров — единый
+  постер; карточки-подиумы с настоящими аватарами (фикс CORS-кэша в canvas); шаринг
+  ссылки нативным Capacitor Share без задвоения ссылки и окна «Изменить». UX-фиксы:
+  лоадер вместо мигающего «Без лиги» на старте, скрытие ростера после «Начать игру»,
+  контраст кнопки баннера (A11y → 100), ужатое лого. Веб задеплоен ✓ (Netlify
+  Perf 98 / A11y 100 / BP 100 / SEO 100 / PWA ✓). Сервер: миграция `mix_ended_at`
+  применена ✓. Натив — пересборка.
 - **SMS-вход убран совсем** — вкладка/поле телефона удалены ещё ранее; остался
   вход по паролю (ревью Apple + админ-аккаунты). 2026-07-20 дочищены последние
   мёртвые комменты. Веб уже без SMS ✓; **на телефоне SMS исчезнет после пересборки
@@ -66,6 +80,35 @@ assetlinks.json и должен быть в Яндекс OAuth-консоли). 
 - **Нативный Yandex-вход (Yandex ID SDK, выбор аккаунта)** — `212d0e4` (JS+edge).
   Нативная часть — по `YANDEX_NATIVE.md`: SDK Android/iOS, регистрация в Yandex OAuth,
   редеплой `yandex-auth`. Без неё работает веб-фолбэк.
+
+### Заметки для сторов «Что нового» (ru / en / es) — следующий релиз
+
+Готовый текст для App Store Connect / Google Play / RuStore. Покрывает всё
+накопленное с первого публичного релиза (iOS 1.0, ~2026-07-16).
+
+**RU:**
+- Турниры парами — записывайтесь заранее собранной парой, зовите напарника персональной ссылкой, а неполные пары собирайте в один тап.
+- Взносы за корт — задавайте сумму с игрока при создании турнира или игры, отмечайте, кто скинулся, и напоминайте пушем.
+- Микс-сессии — серия игр в один заход с общим завершением.
+- Красивые афиши игр и турниров и карточки-подиумы для шаринга с настоящими аватарами.
+- Уровни игроков (Playtomic, Lunda) в фирменных цветах.
+- Свободный ввод счёта в турнирах по умолчанию, вход через Yandex, локализованные уведомления и десятки улучшений скорости, интерфейса и шаринга.
+
+**EN:**
+- Pair tournaments — sign up as a ready-made pair, invite your partner with a personal link, and merge incomplete pairs in one tap.
+- Court chip-ins — set a per-player amount when creating a tournament or game, track who's paid, and nudge others with a push.
+- Mix sessions — play a series of games in one outing with a single finish.
+- Beautiful game & tournament posters and shareable podium cards with real avatars.
+- Player levels (Playtomic, Lunda) in their brand colors.
+- Open scoring by default in tournaments, Yandex sign-in, localized notifications, and dozens of speed, UI and sharing improvements.
+
+**ES:**
+- Torneos por parejas — apúntate como pareja ya formada, invita a tu compañero con un enlace personal y combina parejas incompletas con un toque.
+- Aportes de pista — fija el importe por jugador al crear un torneo o partida, controla quién pagó y recuérdalo con un push.
+- Sesiones mix — juega varias partidas de una vez con un cierre único.
+- Bonitas fichas de partidas y torneos y tarjetas de podio para compartir con avatares reales.
+- Niveles de jugador (Playtomic, Lunda) con sus colores de marca.
+- Marcador libre por defecto en torneos, inicio de sesión con Yandex, notificaciones localizadas y decenas de mejoras de velocidad, interfaz y compartir.
 
 ---
 
