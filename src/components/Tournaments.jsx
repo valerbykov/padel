@@ -908,7 +908,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
 
   const share = async () => {
     const url = tournamentLink(trnData.invite_code);
-    const text = `${tr("trn_share_text")}${trnData.name ? ` «${trnData.name}»` : ""}: ${url} (${tr("code_label")} ${trnData.invite_code})`;
+    const text = `${tr("trn_share_text")}${trnData.name ? ` «${trnData.name}»` : ""}: ${url}`;
     // На нативе — тот же Capacitor Share-плагин, что и у подиума/пары (веб-navigator.share
     // в Android-WebView показывает лишнее окно редактирования текста «Изменить»).
     // Только text (в нём уже есть ссылка + код). url отдельно НЕ передаём — иначе

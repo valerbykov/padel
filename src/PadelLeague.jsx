@@ -2628,7 +2628,7 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
 
   const share = async () => {
     const url = linkFor(game.invite_code);
-    const text = `${t("game_share_text")}${game.title ? ` «${game.title}»` : ""}! ${t("game_share_join")}: ${url} (${t("code_label")} ${game.invite_code})`;
+    const text = `${t("game_share_text")}${game.title ? ` «${game.title}»` : ""}! ${t("game_share_join")}: ${url}`;
     // Нативный Capacitor Share-плагин (веб-navigator.share в Android-WebView даёт
     // лишнее окно редактирования текста «Изменить»).
     // Только text (ссылка+код уже внутри). url отдельно НЕ передаём — иначе плагин
