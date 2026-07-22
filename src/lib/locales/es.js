@@ -91,6 +91,7 @@ export default {
     pub_free: 'libre', pub_take_slot: 'Ocupar',
     pub_trn_notfound: 'Torneo con código {code} no encontrado.',
     pub_upto: 'hasta', pub_points: 'puntos', pub_login_for_rating2: 'Inicia sesión para contar en el rating',
+    pub_guest_rating_hint: 'Como invitado juegas sin ranking. Inicia sesión arriba para que cuente tu resultado.',
     pub_joining: 'Uniéndome…', pub_join_trn: 'Unirse al torneo', pub_youre_in: '¡Estás en la lista!',
     pub_invited_game: 'Te invitan a pádel', pub_invited_trn: 'Te invitan a un torneo', pub_invited_pair: 'Te invitan a una pareja', pub_pair_full_tag: 'completa', pub_pair_full_note: 'Alguien ya se unió a esta pareja — elige otra', pub_pair_notfound: 'Esta pareja ya no existe', pub_see_tournament: 'Ver todo el torneo', pub_join_this_pair: 'Únete a la pareja de {name}', pub_your_spot: 'tu sitio', pub_tap_spot: 'toca un sitio libre para entrar', pub_stand_court: 'Salir a la pista', pub_full_court: 'Pista completa', pub_name_first: 'Primero escribe tu nombre', pub_spots_left: 'sitios libres: {n}', pub_spot_chip: '＋ sitio', pub_since: 'desde',
     pub_view_mode: 'Solo lectura · solo los participantes pueden anotar', pub_americano: 'Americano',

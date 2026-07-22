@@ -91,6 +91,7 @@ export default {
     pub_free: 'free', pub_take_slot: 'Take',
     pub_trn_notfound: 'Tournament with code {code} not found.',
     pub_upto: 'up to', pub_points: 'points', pub_login_for_rating2: 'Sign in to count toward rating',
+    pub_guest_rating_hint: 'As a guest you play without rating. Sign in above so your result counts.',
     pub_joining: 'Joining…', pub_join_trn: 'Join the tournament', pub_youre_in: 'You’re on the list!',
     pub_invited_game: "You're invited to padel", pub_invited_trn: "You're invited to a tournament", pub_invited_pair: "You're invited to a pair", pub_pair_full_tag: 'full', pub_pair_full_note: 'Someone already joined this pair — pick another', pub_pair_notfound: 'This pair no longer exists', pub_see_tournament: 'Show the whole tournament', pub_join_this_pair: "Join {name}'s pair", pub_your_spot: 'your spot', pub_tap_spot: 'tap a free spot to join the game', pub_stand_court: 'Take the court', pub_full_court: 'The court is full', pub_name_first: 'Enter your name first', pub_spots_left: 'spots left: {n}', pub_spot_chip: '＋ spot', pub_since: 'since',
     pub_view_mode: 'View only · only tournament players can enter scores', pub_americano: 'Americano',

@@ -5,11 +5,13 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { getTournamentByCode, getTournament, joinTournamentByCode } from "../lib/tournamentApi";
-import { TournamentView } from "./Tournaments";
+import { TournamentView, TournamentPoster, css as trCss, fmtById } from "./Tournaments";
+import PublicRoster from "./PublicRoster";
+import { useIsWide } from "./wide/wide";
 import LoginScreen from "./LoginScreen";
 import { AlertCircle, Check, LogIn, UserCheck, Calendar, MapPin } from "lucide-react";
 import { t as tr , dateLocale} from "../lib/i18n";
-import { playerAvatar, avatarFallback, avatarBg , avatarOnLoad} from "../lib/avatar";
+import { playerAvatar, avatarFallback, avatarBg , avatarOnLoad, dogAvatar} from "../lib/avatar";
 import { usePublicChrome, PublicToggles } from "./publicChrome";
 import { groupPairs } from "../lib/pairs";
 import { formatMoney } from "../lib/money";
@@ -60,6 +62,7 @@ export default function TournamentJoin({ code, botName }) {
   const [loadErr, setLoadErr] = useState(false);
   const [showAllPairs, setShowAllPairs] = useState(false); // ?pair=N: раскрыть весь ростер
   const { theme, lang, vars, toggleTheme, cycleLang } = usePublicChrome();
+  const isWide = useIsWide();
 
   const load = useCallback(async () => {
     try {
@@ -137,11 +140,17 @@ export default function TournamentJoin({ code, botName }) {
   const targetPr = focusedPair ? (groupPairs(t.players || []).pairs.find((p) => p.pair_no === targetPair) || null) : null;
   const targetFirst = targetPr?.members?.[0] || null;
   const targetFull = !!targetPr && targetPr.members.length >= 2; // пара уже занята
+  // Открытый турнир, гость ещё не записан, не сфокусирован на конкретной паре —
+  // новая композиция (афиша+ростер+запись), для неё расширяем контейнер на
+  // широком экране. Остальные состояния (focusedPair/joined/active/finished)
+  // остаются на телефонной ширине 460px — их вёрстку не трогаем.
+  const openGeneral = !!t && t.status === "open" && !joined && !focusedPair;
 
   return (
     <div className="tj-root" style={vars}>
       <style>{css}</style>
-      <div className="tj-wrap">
+      <style>{trCss}</style>
+      <div className="tj-wrap" style={(isWide && openGeneral) ? { maxWidth: 1040 } : undefined}>
         <PublicToggles theme={theme} lang={lang} onTheme={toggleTheme} onLang={cycleLang} />
         {/* Шапка */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
@@ -182,154 +191,146 @@ export default function TournamentJoin({ code, botName }) {
           <>
             {/* Баннер: присоединиться (только при status=open и ещё не зарегистрирован) */}
             {t.status === "open" && !joined && (
-              <div className="tj-card">
-                <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 6 }}>🏆 {focusedPair ? tr("pub_invited_pair") : tr("pub_invited_trn")}</div>
-                <div className="tj-d" style={{ fontSize: 20, marginBottom: 4 }}>{t.name || tr("pub_americano")}</div>
-                <TrnMeta trn={t} />
-                <div style={{ fontSize: 12.5, color: "var(--mut)", marginBottom: 10 }}>{tr("pub_upto")} {t.points_per_game} {tr("pub_points")}</div>
-                {t.description && <div style={{ fontSize: 13, color: "var(--ink)", margin: "0 0 10px", whiteSpace: "pre-wrap", lineHeight: 1.45 }}>{t.description}</div>}
-                {t.contact_name && <div style={{ fontSize: 12.5, color: "var(--mut)", marginBottom: 10 }}>{tr("trn_contact_name_label")}: <span style={{ color: "var(--ink)", fontWeight: 600 }}>{t.contact_name}</span>{t.contact_link && <span> · {t.contact_link}</span>}</div>}
-                {t.fee_per_player > 0 && <div style={{ marginBottom: 10 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 700, color: "var(--lime)", background: "color-mix(in srgb, var(--lime) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", borderRadius: 999, padding: "3px 10px" }}>💸 {formatMoney(t.fee_per_player, t.fee_currency)}</span></div>}
-                {t.level && <div style={{ marginBottom: 10 }}><EventLevelBadge level={t.level} /></div>}
+              focusedPair ? (
+                /* Ссылка ?pair=N: сфокусированная карточка КОНКРЕТНОЙ пары —
+                   старая презентация не трогается (вне скоупа этой задачи). */
+                <div className="tj-card">
+                  <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 6 }}>🏆 {tr("pub_invited_pair")}</div>
+                  <div className="tj-d" style={{ fontSize: 20, marginBottom: 4 }}>{t.name || tr("pub_americano")}</div>
+                  <TrnMeta trn={t} />
+                  <div style={{ fontSize: 12.5, color: "var(--mut)", marginBottom: 10 }}>{tr("pub_upto")} {t.points_per_game} {tr("pub_points")}</div>
+                  {t.description && <div style={{ fontSize: 13, color: "var(--ink)", margin: "0 0 10px", whiteSpace: "pre-wrap", lineHeight: 1.45 }}>{t.description}</div>}
+                  {t.contact_name && <div style={{ fontSize: 12.5, color: "var(--mut)", marginBottom: 10 }}>{tr("trn_contact_name_label")}: <span style={{ color: "var(--ink)", fontWeight: 600 }}>{t.contact_name}</span>{t.contact_link && <span> · {t.contact_link}</span>}</div>}
+                  {t.fee_per_player > 0 && <div style={{ marginBottom: 10 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 700, color: "var(--lime)", background: "color-mix(in srgb, var(--lime) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", borderRadius: 999, padding: "3px 10px" }}>💸 {formatMoney(t.fee_per_player, t.fee_currency)}</span></div>}
+                  {t.level && <div style={{ marginBottom: 10 }}><EventLevelBadge level={t.level} /></div>}
 
-                {/* Ростер: для парных форматов — по парам, иначе плоские чипы.
-                    При ?pair=N — сфокусированная карточка КОНКРЕТНОЙ пары. */}
-                {focusedPair ? (() => {
-                  const avatar = (p, ring) => (
-                    <img src={playerAvatar(p.profile?.avatar_url || p.avatar_url, p.profile_id || p.name)} onError={avatarFallback(p.profile_id || p.name)} onLoad={avatarOnLoad} alt=""
-                      style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", boxShadow: `0 0 0 3px ${ring}`, ...avatarBg(p.profile_id || p.name) }} />
-                  );
-                  const accent = targetFull ? "var(--coral)" : "var(--lime)";
-                  const slot = (children) => <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, textAlign: "center", minWidth: 0 }}>{children}</div>;
-                  const warn = (msg) => <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, background: "color-mix(in srgb, var(--coral) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--coral) 30%, transparent)", borderRadius: 12, padding: "10px 12px", fontSize: 12.5, color: "var(--coral)" }}>⚠️ {msg}</div>;
-                  return (
-                    <div style={{ margin: "4px 0 12px", background: "var(--surface2)", border: `1px solid color-mix(in srgb, ${accent} 30%, transparent)`, borderRadius: 16, padding: "15px 14px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--mut)", marginBottom: 12 }}>
-                        <span>{tr("trn_pairs")} <b style={{ color: accent }}>{targetPair}</b></span>
-                        <span>{targetFull ? tr("pub_pair_full_tag") : tr("pub_your_spot")}</span>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        {targetFirst ? slot(<>
-                          {avatar(targetFirst, "var(--lime)")}
-                          <span style={{ fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{targetFirst.name}</span>
-                          {!targetFull && <span style={{ fontSize: 11, color: "var(--mut)" }}>{tr("trn_looking_partner")}</span>}
-                        </>) : <div style={{ flex: 1 }} />}
-                        <span style={{ color: "var(--mut)", fontWeight: 800, fontSize: 18, flexShrink: 0 }}>&amp;</span>
-                        {targetFull ? slot(<>
-                          {avatar(targetPr.members[1], "var(--mut)")}
-                          <span style={{ fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{targetPr.members[1].name}</span>
-                        </>) : slot(<>
-                          <span style={{ width: 56, height: 56, borderRadius: "50%", border: "2px dashed color-mix(in srgb, var(--lime) 55%, transparent)", display: "grid", placeItems: "center", color: "var(--lime)", fontSize: 24 }}>＋</span>
-                          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--lime)" }}>{tr("pub_your_spot")}</span>
-                        </>)}
-                      </div>
-                      {targetFull && warn(tr("pub_pair_full_note"))}
-                      {!targetFirst && warn(tr("pub_pair_notfound"))}
-                    </div>
-                  );
-                })() : isPair ? (() => {
-                  const { pairs, pool } = groupPairs(t.players || []);
-                  const filled = (t.players || []).length;
-                  const pct = t.target_size ? Math.round((filled / t.target_size) * 100) : 0;
-                  const chip = (p) => (
-                    <span key={p.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 11px 4px 4px", borderRadius: 999, background: "var(--surface2)", border: "1px solid var(--line)", fontSize: 12.5, fontWeight: 600, flex: "1 1 0", maxWidth: "100%", minWidth: 0 }}>
+                  {(() => {
+                    const avatar = (p, ring) => (
                       <img src={playerAvatar(p.profile?.avatar_url || p.avatar_url, p.profile_id || p.name)} onError={avatarFallback(p.profile_id || p.name)} onLoad={avatarOnLoad} alt=""
-                        style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", flexShrink: 0, ...avatarBg(p.profile_id || p.name) }} />
-                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{p.name}</span>
-                    </span>
-                  );
-                  return (
-                    <div style={{ marginBottom: 12 }}>
-                      <div style={{ fontSize: 12, color: "var(--mut)", fontWeight: 700, marginBottom: 8 }}>{tr("trn_pairs")} · {pairs.filter((pr) => pr.members.length === 2).length}/{Math.floor((t.target_size || 0) / 2)}</div>
-                      {pairs.map((pr) => (
-                        <div key={pr.pair_no} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap", padding: "8px 0", borderBottom: "1px solid var(--line)" }}>
-                          {chip(pr.members[0])}
-                          <span style={{ color: "var(--mut)", fontWeight: 700 }}>&amp;</span>
-                          {pr.members.length === 2 ? chip(pr.members[1]) : (
-                            <>
-                              <span style={{ display: "inline-flex", alignItems: "center", padding: "4px 11px", borderRadius: 999, border: "1.5px dashed var(--line)", color: "var(--mut)", fontSize: 12.5 }}>{tr("trn_looking_partner")}</span>
-                              {!joined && <button className="tj-ghost" style={{ fontSize: 12, color: "var(--lime)" }} onClick={() => join(pr.pair_no)}>{tr("trn_join_partner")}</button>}
-                            </>
-                          )}
+                        style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", boxShadow: `0 0 0 3px ${ring}`, ...avatarBg(p.profile_id || p.name) }} />
+                    );
+                    const accent = targetFull ? "var(--coral)" : "var(--lime)";
+                    const slot = (children) => <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, textAlign: "center", minWidth: 0 }}>{children}</div>;
+                    const warn = (msg) => <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, background: "color-mix(in srgb, var(--coral) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--coral) 30%, transparent)", borderRadius: 12, padding: "10px 12px", fontSize: 12.5, color: "var(--coral)" }}>⚠️ {msg}</div>;
+                    return (
+                      <div style={{ margin: "4px 0 12px", background: "var(--surface2)", border: `1px solid color-mix(in srgb, ${accent} 30%, transparent)`, borderRadius: 16, padding: "15px 14px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--mut)", marginBottom: 12 }}>
+                          <span>{tr("trn_pairs")} <b style={{ color: accent }}>{targetPair}</b></span>
+                          <span>{targetFull ? tr("pub_pair_full_tag") : tr("pub_your_spot")}</span>
                         </div>
-                      ))}
-                      {pool.map((p) => (
-                        <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderBottom: "1px solid var(--line)" }}>
-                          {chip(p)}<span style={{ fontSize: 11.5, color: "var(--mut)" }}>{tr("trn_looking_partner")}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          {targetFirst ? slot(<>
+                            {avatar(targetFirst, "var(--lime)")}
+                            <span style={{ fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{targetFirst.name}</span>
+                            {!targetFull && <span style={{ fontSize: 11, color: "var(--mut)" }}>{tr("trn_looking_partner")}</span>}
+                          </>) : <div style={{ flex: 1 }} />}
+                          <span style={{ color: "var(--mut)", fontWeight: 800, fontSize: 18, flexShrink: 0 }}>&amp;</span>
+                          {targetFull ? slot(<>
+                            {avatar(targetPr.members[1], "var(--mut)")}
+                            <span style={{ fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{targetPr.members[1].name}</span>
+                          </>) : slot(<>
+                            <span style={{ width: 56, height: 56, borderRadius: "50%", border: "2px dashed color-mix(in srgb, var(--lime) 55%, transparent)", display: "grid", placeItems: "center", color: "var(--lime)", fontSize: 24 }}>＋</span>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--lime)" }}>{tr("pub_your_spot")}</span>
+                          </>)}
                         </div>
-                      ))}
-                      <div style={{ height: 6, borderRadius: 4, background: "var(--surface2)", overflow: "hidden", margin: "10px 0 4px" }}>
-                        <div style={{ width: `${pct}%`, height: "100%", background: "var(--lime)", transition: "width .3s" }} />
+                        {targetFull && warn(tr("pub_pair_full_note"))}
+                        {!targetFirst && warn(tr("pub_pair_notfound"))}
                       </div>
-                      <div style={{ fontSize: 11.5, color: "var(--mut)" }}>{filled}/{t.target_size}</div>
+                    );
+                  })()}
+
+                  {!(targetFull || !targetFirst) && (session ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--lime)", fontSize: 13, marginBottom: 12 }}>
+                      <UserCheck size={16} /> {tr("pub_logged_rating").replace("{name}", profileName || tr("guest_default_name"))}
                     </div>
-                  );
-                })() : (() => {
-                  const players = t.players || [];
-                  const freeN = Math.max(0, (t.target_size || 0) - players.length);
-                  const pct = t.target_size ? Math.round((players.length / t.target_size) * 100) : 0;
-                  return (
-                    <>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 10 }}>
-                        {players.map((p) => (
-                          <span key={p.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 11px 4px 4px", borderRadius: 999, background: "var(--surface2)", border: "1px solid var(--line)", fontSize: 12.5, fontWeight: 600, maxWidth: "100%", minWidth: 0 }}>
-                            <img src={playerAvatar(p.profile?.avatar_url || p.avatar_url, p.profile_id || p.name)} onError={avatarFallback(p.profile_id || p.name)} onLoad={avatarOnLoad} alt=""
-                              style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover", flexShrink: 0, ...avatarBg(p.profile_id || p.name) }} />
-                            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{p.name}</span>
-                          </span>
-                        ))}
-                        {Array.from({ length: Math.min(freeN, 8) }).map((_, i) => (
-                          <span key={"f" + i} style={{ display: "inline-flex", alignItems: "center", padding: "4px 11px", borderRadius: 999, border: "1.5px dashed var(--line)", color: "var(--mut)", fontSize: 12.5 }}>{tr("pub_spot_chip")}</span>
-                        ))}
-                      </div>
-                      <div style={{ height: 6, borderRadius: 4, background: "var(--surface2)", overflow: "hidden", marginBottom: 4 }}>
-                        <div style={{ width: `${pct}%`, height: "100%", background: "var(--lime)", transition: "width .3s" }} />
-                      </div>
-                      <div style={{ fontSize: 11.5, color: "var(--mut)", marginBottom: 14 }}>
-                        {players.length}/{t.target_size} · {tr("pub_spots_left").replace("{n}", String(freeN))}
-                      </div>
-                    </>
-                  );
-                })()}
-
-                {/* Имя гостя — скрываем, когда во ссылке-паре вступить нельзя (пара занята/не найдена) */}
-                {!(focusedPair && (targetFull || !targetFirst)) && (session ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--lime)", fontSize: 13, marginBottom: 12 }}>
-                    <UserCheck size={16} /> {tr("pub_logged_rating").replace("{name}", profileName || tr("guest_default_name"))}
-                  </div>
-                ) : (
-                  <>
+                  ) : (
                     <input className="tj-input" placeholder={tr("pub_guest_name_ph")} value={name} onChange={(e) => setName(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && join(focusedPair ? targetPair : undefined)} />
-                    <button className="tj-loginlink" onClick={() => setShowLogin(true)}>
-                      <LogIn size={14} /> {tr("pub_login_for_rating2")}
-                    </button>
-                  </>
-                ))}
+                      onKeyDown={(e) => e.key === "Enter" && join(targetPair)} />
+                  ))}
 
-                {focusedPair ? (
-                  (targetFull || !targetFirst) ? (
+                  {(targetFull || !targetFirst) ? (
                     <button className="tj-btn" onClick={() => setShowAllPairs(true)}>{tr("pub_see_tournament")} ›</button>
                   ) : (
                     <button className="tj-btn" disabled={(!session && !name.trim()) || busy} onClick={() => join(targetPair)}>
                       {busy ? tr("pub_joining") : tr("pub_join_this_pair").replace("{name}", targetFirst.name)}
                     </button>
-                  )
-                ) : isPair ? (
-                  <button className="tj-btn" disabled={(!session && !name.trim()) || busy} onClick={() => join(targetPair)}>
-                    {busy ? tr("pub_joining") : (targetPair ? tr("trn_join_partner") : tr("trn_create_pair"))}
-                  </button>
+                  )}
+                  {!targetFull && targetFirst && (
+                    <button className="tj-loginlink" style={{ marginTop: 10 }} onClick={() => setShowAllPairs(true)}>{tr("pub_see_tournament")} ›</button>
+                  )}
+                  {err && <p style={{ color: "var(--coral)", fontSize: 13, marginTop: 8 }}>{err}</p>}
+                </div>
+              ) : (() => {
+                // Открытый турнир, без фокуса на паре: афиша (TournamentPoster) +
+                // ростер участников (PublicRoster) + компактная карточка записи —
+                // единая композиция, двухколонная на широком экране (см. спек
+                // 2026-07-22-public-tournament-wide-design.md).
+                const players = t.players || [];
+                const fmt = fmtById(t.format);
+                const filled = players.length;
+                const freeN = Math.max(0, (t.target_size || 0) - filled);
+                const pct = t.target_size ? Math.round((filled / (t.target_size || 1)) * 100) : 0;
+                // avatarOfTp: как в TournamentView, но источник — только гостевой
+                // RPC-агрегат (players уже содержит avatar_url/profile).
+                const avatarOfTp = (tpId) => {
+                  const tp = players.find((p) => p.id === tpId);
+                  if (!tp) return null;
+                  return tp.avatar_url || tp.profile?.avatar_url || (tp.profile_id ? dogAvatar(tp.profile_id) : null);
+                };
+
+                const posterAndRoster = (
+                  <div>
+                    <TournamentPoster trnData={t} fmt={fmt} readOnly avatarOfTp={avatarOfTp} />
+                    <div className="tj-card">
+                      <PublicRoster players={players} targetSize={t.target_size} isPair={isPair} isWide={isWide} />
+                    </div>
+                  </div>
+                );
+
+                const joinCard = (
+                  <div className="tj-card" style={isWide ? { position: "sticky", top: 16 } : undefined}>
+                    <div style={{ color: "var(--lime)", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 6 }}>🏆 {tr("pub_invited_trn")}</div>
+                    <div className="tj-d" style={{ fontSize: 18, marginBottom: 10 }}>{t.name || fmt.name}</div>
+                    <div style={{ height: 8, borderRadius: 999, background: "var(--surface2)", overflow: "hidden", margin: "2px 0 6px" }}>
+                      <div style={{ width: `${pct}%`, height: "100%", background: "var(--lime)", transition: "width .3s" }} />
+                    </div>
+                    <div style={{ fontSize: 12.5, color: "var(--mut)", marginBottom: 14 }}>
+                      {filled}/{t.target_size} · {tr("pub_spots_left").replace("{n}", String(freeN))}
+                    </div>
+                    {session ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--lime)", fontSize: 13, marginBottom: 12 }}>
+                        <UserCheck size={16} /> {tr("pub_logged_rating").replace("{name}", profileName || tr("guest_default_name"))}
+                      </div>
+                    ) : (
+                      <input className="tj-input" placeholder={tr("pub_guest_name_ph")} value={name} onChange={(e) => setName(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && join(isPair ? targetPair : undefined)} />
+                    )}
+                    {isPair ? (
+                      <button className="tj-btn" disabled={(!session && !name.trim()) || busy} onClick={() => join(targetPair)}>
+                        {busy ? tr("pub_joining") : (targetPair ? tr("trn_join_partner") : tr("trn_create_pair"))}
+                      </button>
+                    ) : (
+                      <button className="tj-btn" disabled={(!session && !name.trim()) || busy} onClick={() => join()}>
+                        {busy ? tr("pub_joining") : tr("pub_join_trn")}
+                      </button>
+                    )}
+                    <div style={{ color: "var(--mut)", fontSize: 12, lineHeight: 1.45, marginTop: 11, textAlign: "center" }}>{tr("pub_guest_rating_hint")}</div>
+                    {err && <p style={{ color: "var(--coral)", fontSize: 13, marginTop: 8 }}>{err}</p>}
+                  </div>
+                );
+
+                return isWide ? (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 372px", gap: 24, alignItems: "start", maxWidth: 980, margin: "0 auto" }}>
+                    {posterAndRoster}
+                    {joinCard}
+                  </div>
                 ) : (
-                  <button className="tj-btn" disabled={(!session && !name.trim()) || busy} onClick={() => join()}>
-                    {busy ? tr("pub_joining") : tr("pub_join_trn")}
-                  </button>
-                )}
-                {/* Сфокусированный экран пары: неявный вход во «весь турнир» */}
-                {focusedPair && !targetFull && targetFirst && (
-                  <button className="tj-loginlink" style={{ marginTop: 10 }} onClick={() => setShowAllPairs(true)}>{tr("pub_see_tournament")} ›</button>
-                )}
-                {err && <p style={{ color: "var(--coral)", fontSize: 13, marginTop: 8 }}>{err}</p>}
-              </div>
+                  <>
+                    {posterAndRoster}
+                    {joinCard}
+                  </>
+                );
+              })()
             )}
 
             {/* Подтверждение присоединения */}

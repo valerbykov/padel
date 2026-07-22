@@ -222,7 +222,10 @@ function PairRoster({ players, targetSize, isWide }) {
   const extraPairs = Math.max(0, pairCap - pairs.length - pool.length);
 
   const units = [
-    ...pairs.map((pr) => ({ key: `p${pr.pair_no}`, pairNo: pr.pair_no, a: pr.members[0] || null, b: pr.members[1] || null })),
+    // Реальная пара (есть pair_no), но зарегистрирован только один игрок —
+    // второе место НЕ джойн-чип (страница read-only), приглушённое "ищет
+    // напарника" — тот же вид, что у пул-игрока без пары.
+    ...pairs.map((pr) => ({ key: `p${pr.pair_no}`, pairNo: pr.pair_no, a: pr.members[0] || null, b: pr.members[1] || null, bLooking: pr.members.length < 2 })),
     // Игроки без пары (pool) — показываем как есть; второе место НЕ джойн-чип
     // (страница read-only) — приглушённое "ищет напарника".
     ...pool.map((p) => ({ key: `s${p.id}`, pairNo: null, a: p, b: null, bLooking: true })),
