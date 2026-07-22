@@ -12,7 +12,7 @@ export const tournamentLink = (code) => `${WEB_BASE}/t/${code}`;
 
 const T_SELECT =
   "id, invite_code, name, format, points_per_game, target_size, status, court_names, koth_champion_rule, created_by, created_at, starts_at, ends_at, place, description, contact_name, contact_link, open_scoring, fee_per_player, fee_currency, fee_timing, level, " +
-  "players:tournament_players(id, profile_id, name, pair_no, created_at, profile:profiles(name, avatar_url)), " +
+  "players:tournament_players(id, profile_id, name, pair_no, created_at, profile:profiles(name, avatar_url, levels)), " +
   "matches:tournament_matches(id, round_number, court, team_a, team_b, score_a, score_b)";
 
 export async function createTournament(groupId, { name, pointsPerGame = 32, targetSize = 8, createdBy, format = "americano", startsAt, endsAt, place, description, contactName, contactLink, kotHChampionRule, openScoring = false, level, feePerPlayer = null, feeCurrency = null, feeTiming = null } = {}) {

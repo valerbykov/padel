@@ -98,9 +98,9 @@ function PlayerCard({ p }) {
   const name = nameOf(p);
   return (
     <div style={S.card}>
-      <Avatar name={name} url={p.avatar_url} id={p.profile_id} size={58} />
+      <Avatar name={name} url={p.avatar_url || p.profile?.avatar_url} id={p.profile_id} size={58} />
       <div style={S.cardName}>{name}</div>
-      <LevelBadges levels={p.levels} compact />
+      <LevelBadges levels={p.levels || p.profile?.levels} compact />
     </div>
   );
 }
@@ -118,9 +118,9 @@ function PlayerRow({ p, last }) {
   const name = nameOf(p);
   return (
     <div style={{ ...S.row, borderBottom: last ? "none" : "1px solid var(--line)" }}>
-      <Avatar name={name} url={p.avatar_url} id={p.profile_id} size={36} />
+      <Avatar name={name} url={p.avatar_url || p.profile?.avatar_url} id={p.profile_id} size={36} />
       <div style={S.rowName}>{name}</div>
-      <LevelBadges levels={p.levels} compact />
+      <LevelBadges levels={p.levels || p.profile?.levels} compact />
     </div>
   );
 }
@@ -152,9 +152,9 @@ function PairMember({ p, size, looking }) {
   const name = nameOf(p);
   return (
     <div style={S.pairMemberRow}>
-      <Avatar name={name} url={p.avatar_url} id={p.profile_id} size={size} />
+      <Avatar name={name} url={p.avatar_url || p.profile?.avatar_url} id={p.profile_id} size={size} />
       <div style={S.pairMemberName}>{name}</div>
-      <LevelBadges levels={p.levels} compact />
+      <LevelBadges levels={p.levels || p.profile?.levels} compact />
     </div>
   );
 }
@@ -189,9 +189,9 @@ function PairRowMember({ p, looking }) {
   const name = nameOf(p);
   return (
     <span style={S.pairRowMember}>
-      <Avatar name={name} url={p.avatar_url} id={p.profile_id} size={28} />
+      <Avatar name={name} url={p.avatar_url || p.profile?.avatar_url} id={p.profile_id} size={28} />
       <span style={S.pairRowName}>{name}</span>
-      <LevelBadges levels={p.levels} compact />
+      <LevelBadges levels={p.levels || p.profile?.levels} compact />
     </span>
   );
 }

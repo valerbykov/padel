@@ -274,9 +274,11 @@ export default function TournamentJoin({ code, botName }) {
                   return tp.avatar_url || tp.profile?.avatar_url || (tp.profile_id ? dogAvatar(tp.profile_id) : null);
                 };
 
+                const isBtb = t.format === "beat_the_box";
+                const isKoth = t.format === "king_of_hill";
                 const posterAndRoster = (
                   <div>
-                    <TournamentPoster trnData={t} fmt={fmt} readOnly avatarOfTp={avatarOfTp} />
+                    <TournamentPoster trnData={t} fmt={fmt} readOnly isBtb={isBtb} isKoth={isKoth} avatarOfTp={avatarOfTp} />
                     <div className="tj-card">
                       <PublicRoster players={players} targetSize={t.target_size} isPair={isPair} isWide={isWide} />
                     </div>
