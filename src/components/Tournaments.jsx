@@ -11,7 +11,7 @@ import {
   getTournamentFee, getFeePayments, setTournamentFee, toggleFeePaid, remindFeeDebtors,
 } from "../lib/tournamentApi";
 import { detailedStandings, allMatchesPlayed, pairStandings } from "../lib/americano";
-import { dogAvatar } from "../lib/avatar";
+import { playerAvatar } from "../lib/avatar";
 import Fab from "./Fab";
 import { CardSkeleton } from "./Skeleton";
 import { getAllKotHTeams } from "../lib/mexicano";
@@ -785,7 +785,7 @@ export function TournamentPoster({ trnData, fmt, readOnly, isKoth, isBtb, isGrou
             {(trnData.players || []).length > 0 && (
               <span style={{ display: "inline-flex", flexShrink: 0 }}>
                 {trnData.players.slice(0, 5).map((p, k) => (
-                  <img key={p.id} src={avatarOfTp(p.id) || dogAvatar(p.profile_id || p.name)} alt=""
+                  <img key={p.id} src={playerAvatar(avatarOfTp(p.id), p.profile_id || p.name)} alt=""
                     style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", marginLeft: k ? -8 : 0, boxShadow: "0 0 0 2px #112a20", background: "var(--surface2)" }} />
                 ))}
                 {trnData.players.length > 5 && <span style={{ marginLeft: -8, width: 24, height: 24, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "var(--mut)", boxShadow: "0 0 0 2px #112a20" }}>+{trnData.players.length - 5}</span>}
@@ -887,7 +887,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   // #3: имя создателя турнира (для понимания, кто может вводить счёт). Резолвим по составу лиги.
   const creatorName = trnData.created_by ? ((players || []).find((p) => p.id === trnData.created_by)?.name || null) : null;
   const nameOf = (tpId) => trnData.players.find((p) => p.id === tpId)?.name || "?";
-  const _dogAv = (pid) => pid ? dogAvatar(pid) : null;
+  const _dogAv = (pid) => pid ? playerAvatar(null, pid) : null;
   const avatarOfTp = (tpId) => {
     const tp = trnData.players.find((p) => p.id === tpId);
     if (!tp) return null;

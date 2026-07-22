@@ -5,7 +5,7 @@
 //   mode="sets" — обычная игра с детальным счётом: 3 сета (A:B каждый), без скролла.
 // Props: teamAvatarsA/B=[] — массивы URL аватарок; scoreDetail=[{a,b},...] — для отображения.
 import React, { useState, useEffect } from "react";
-import { dogAvatar, avatarFallback , avatarBg, avatarOnLoad} from "../lib/avatar";
+import { playerAvatar, avatarFallback , avatarBg, avatarOnLoad} from "../lib/avatar";
 import { t } from "../lib/i18n";
 
 function Chip({ name, avatarUrl, x, y, team, id, onTap, noTap }) {
@@ -19,7 +19,7 @@ function Chip({ name, avatarUrl, x, y, team, id, onTap, noTap }) {
       maxWidth: "26%", cursor: tappable ? "pointer" : "default",
       pointerEvents: noTap ? "none" : "auto",
     }}>
-      <img src={avatarUrl || dogAvatar(name)} onError={avatarFallback(name)} onLoad={avatarOnLoad} alt="" loading="lazy" decoding="async" style={{
+      <img src={playerAvatar(avatarUrl, name)} onError={avatarFallback(name)} onLoad={avatarOnLoad} alt="" loading="lazy" decoding="async" style={{
         ...avatarBg(name), width: "clamp(44px,13vw,60px)", height: "clamp(44px,13vw,60px)",
         borderRadius: "50%", objectFit: "cover",
         border: `3px solid ${color}`, background: "var(--surface)", flexShrink: 0,

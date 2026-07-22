@@ -11,7 +11,7 @@ import { useIsWide } from "./wide/wide";
 import LoginScreen from "./LoginScreen";
 import { AlertCircle, Check, UserCheck, Calendar, MapPin } from "lucide-react";
 import { t as tr , dateLocale} from "../lib/i18n";
-import { playerAvatar, avatarFallback, avatarBg , avatarOnLoad, dogAvatar} from "../lib/avatar";
+import { playerAvatar, avatarFallback, avatarBg , avatarOnLoad} from "../lib/avatar";
 import { usePublicChrome, PublicToggles } from "./publicChrome";
 import { groupPairs } from "../lib/pairs";
 import { formatMoney } from "../lib/money";
@@ -271,7 +271,7 @@ export default function TournamentJoin({ code, botName }) {
                 const avatarOfTp = (tpId) => {
                   const tp = players.find((p) => p.id === tpId);
                   if (!tp) return null;
-                  return tp.avatar_url || tp.profile?.avatar_url || (tp.profile_id ? dogAvatar(tp.profile_id) : null);
+                  return tp.avatar_url || tp.profile?.avatar_url || (tp.profile_id ? playerAvatar(null, tp.profile_id) : null);
                 };
 
                 const isBtb = t.format === "beat_the_box";

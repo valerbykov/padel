@@ -2,7 +2,7 @@
 // Две карточки одним движком: результат игры и подиум турнира. 1080×1350 —
 // портретный формат под Telegram/WhatsApp. Аватары грузим с crossOrigin, при
 // ошибке падаем на собаку-заглушку (как в UI).
-import { dogAvatar } from "./avatar";
+import { playerAvatar } from "./avatar";
 import { t, nGames } from "./i18n";
 
 const W = 1080, H = 1350;
@@ -28,7 +28,7 @@ function loadImg(src) {
   });
 }
 async function avatarImg(url, idOrName) {
-  return (url && await loadImg(url)) || await loadImg(dogAvatar(idOrName || "?"));
+  return (url && await loadImg(url)) || await loadImg(playerAvatar(null, idOrName || "?"));
 }
 
 function rr(ctx, x, y, w, h, r) {

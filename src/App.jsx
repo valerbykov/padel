@@ -602,23 +602,27 @@ export default function App({ initialShowLogin = false }) {
   );
 
   // /l/CODE — публичная страница лиги. Залогиненный УЧАСТНИК → своя лига в приложении.
+  // Гостевые ветки ниже (/l, /j, /t, /r) форсируют маскот=вкл: это ДОМ-маскот
+  // публичной страницы, не флаг СВОЕЙ активной лиги залогиненного зрителя
+  // (иначе у автора с выключенным маскотом инициалы утекли бы на чужую афишу).
+  // Персональный маскот на гостевой странице — отдельная фича, пока не делаем.
   if (leaguePublicCode && leagueRoute !== "inapp") {
-    if (!session || leagueRoute === "public") return <LeaguePublicPage code={leaguePublicCode} />;
+    if (!session || leagueRoute === "public") { setMascotEnabled(true); return <LeaguePublicPage code={leaguePublicCode} />; }
     return routeSpinner;
   }
 
   // /j/CODE — вступление в игру. Залогиненный участник лиги → ин-апп вид игры.
   if (inviteCode && gameRoute !== "inapp") {
-    if (!session || gameRoute === "public") return <GuestJoin code={inviteCode} botName={BOT_NAME} />;
+    if (!session || gameRoute === "public") { setMascotEnabled(true); return <GuestJoin code={inviteCode} botName={BOT_NAME} />; }
     return routeSpinner;
   }
 
   // /t/CODE — турнир (эффект выше). Залогиненный участник → ин-апп вьюха.
   if (tournamentCode && tourRoute !== "inapp") {
-    if (!session || tourRoute === "public") return <TournamentJoin code={tournamentCode} botName={BOT_NAME} />;
+    if (!session || tourRoute === "public") { setMascotEnabled(true); return <TournamentJoin code={tournamentCode} botName={BOT_NAME} />; }
     return routeSpinner;
   }
-  if (claimCode)     return <ClaimProfile code={claimCode} botName={BOT_NAME} />;
+  if (claimCode)     { setMascotEnabled(true); return <ClaimProfile code={claimCode} botName={BOT_NAME} />; }
 
   // Явно открыли экран входа.
   if (showLogin && !session)
