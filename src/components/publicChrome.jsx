@@ -3,8 +3,8 @@
 // — переключатель темы и языка в стиле основного приложения (TopBar);
 // — CSS-переменные темы применяются инлайном на корень страницы.
 import React, { useState } from "react";
-import { Sun, Moon } from "lucide-react";
-import { setLang, currentLang, LANGS } from "../lib/i18n";
+import { Sun, Moon, LogIn } from "lucide-react";
+import { setLang, currentLang, LANGS, t as tr } from "../lib/i18n";
 
 export const PUBLIC_VARS = {
   dark:  { "--bg": "#0a1612", "--surface": "#11211b", "--surface2": "#16291f", "--line": "#22382c", "--ink": "#eef3ee", "--mut": "#7d9488", "--lime": "#c8ff2d", "--coral": "#ff6a52", "--lime-fg": "#0a1612", colorScheme: "dark" },
@@ -37,10 +37,19 @@ export function plural(n, kind) {
 }
 
 // Переключатель языка/темы — точь-в-точь как в TopBar основного приложения.
-export function PublicToggles({ theme, lang, onTheme, onLang }) {
+// onLogin опционален: когда задан, слева от язык/тема рендерится единая
+// кнопка «Войти» — общий источник входа для всех публичных страниц
+// (см. спек «Сквозное: единый вход»).
+export function PublicToggles({ theme, lang, onTheme, onLang, onLogin }) {
   const base = { border: "1px solid var(--line)", borderRadius: 10, cursor: "pointer", fontFamily: "'Outfit',sans-serif" };
   return (
     <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, marginBottom: 12 }}>
+      {onLogin && (
+        <button onClick={onLogin} aria-label="login"
+          style={{ ...base, background: "var(--surface2)", color: "var(--ink)", padding: "6px 12px", fontSize: 12.5, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, marginRight: "auto" }}>
+          <LogIn size={14} /> {tr("pub_login")}
+        </button>
+      )}
       <button onClick={onLang} aria-label="language"
         style={{ ...base, background: "var(--surface2)", color: "var(--ink)", padding: "6px 10px", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
         {lang.toUpperCase()} <span style={{ color: "var(--mut)", fontWeight: 400, fontSize: 13 }}>↻</span>

@@ -6,7 +6,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import LoginScreen from "./LoginScreen";
 import Logo from "./Logo";
-import { Calendar, MapPin, AlertCircle, LogIn, UserCheck } from "lucide-react";
+import { Calendar, MapPin, AlertCircle, UserCheck } from "lucide-react";
 import { t , dateLocale} from "../lib/i18n";
 import { playerAvatar, avatarFallback , avatarBg, avatarOnLoad} from "../lib/avatar";
 import { usePublicChrome, PublicToggles } from "./publicChrome";
@@ -29,7 +29,6 @@ const css = `
 .gj-slot{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--surface2);border:1px solid var(--line);margin-bottom:6px;}
 .gj-btn{background:var(--lime);color:var(--lime-fg);font-weight:700;border:none;border-radius:10px;padding:7px 13px;cursor:pointer;font-size:13px;}
 .gj-btn:disabled{filter:grayscale(.6) brightness(.7);cursor:not-allowed;}
-.gj-loginlink{background:none;border:none;color:var(--lime);cursor:pointer;font-family:'Outfit';font-size:13px;display:inline-flex;align-items:center;gap:6px;padding:0;}
 `;
 
 // Позиция на корте: занятая — аватар с подписью, свободная — пунктирный «＋»
@@ -125,7 +124,7 @@ export default function GuestJoin({ code, botName }) {
       <style>{css}</style>
       <div style={{ width: "100%", maxWidth: 400, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         <span onClick={() => window.location.assign("/")} style={{ cursor: "pointer" }} title={t("pub_to_app")}><Logo height={18} /></span>
-        <PublicToggles theme={theme} lang={lang} onTheme={toggleTheme} onLang={cycleLang} />
+        <PublicToggles theme={theme} lang={lang} onTheme={toggleTheme} onLang={cycleLang} onLogin={session ? undefined : () => setShowLogin(true)} />
       </div>
       <div className="gj-card">
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -190,11 +189,7 @@ export default function GuestJoin({ code, botName }) {
                     </button>
                   )}
                   {open && !session && freeSlots.length > 0 && (
-                    <div style={{ textAlign: "center", marginTop: 10 }}>
-                      <button className="gj-loginlink" onClick={() => setShowLogin(true)}>
-                        <LogIn size={14} /> {t("pub_login_for_rating")}
-                      </button>
-                    </div>
+                    <div style={{ color: "var(--mut)", fontSize: 12, lineHeight: 1.45, marginTop: 10, textAlign: "center" }}>{t("pub_guest_rating_hint")}</div>
                   )}
                   {err && <p style={{ color: "var(--coral)", fontSize: 13, marginTop: 8, textAlign: "center" }}>{err}</p>}
                   {note && <p style={{ color: "var(--ink)", fontSize: 13, marginTop: 8, textAlign: "center" }}>{note}</p>}

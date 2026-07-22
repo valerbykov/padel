@@ -3,6 +3,7 @@
 // Показывает рейтинг игроков, кнопку «Вступить» и вирусный CTA «Создать лигу».
 import React, { useEffect, useState } from "react";
 import { Send } from "lucide-react";
+import { supabase } from "../lib/supabase";
 import { getPublicLeague } from "../lib/padelApi";
 import { t, nGames , dateLocale} from "../lib/i18n";
 import { avatarFallback , avatarBg, avatarOnLoad} from "../lib/avatar";
@@ -10,6 +11,7 @@ import { usePublicChrome, PublicToggles, plural } from "./publicChrome";
 import Logo from "./Logo";
 import LeagueLogo from "./LeagueLogo";
 import OpenInApp from "./OpenInApp";
+import LoginScreen from "./LoginScreen";
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
@@ -39,7 +41,17 @@ function Avatar({ name = "", url, size = 38 }) {
 export default function LeaguePublicPage({ code }) {
   const [league, setLeague] = useState(undefined);
   const [err,    setErr]    = useState(null);
+  const [session, setSession] = useState(null);
+  const [showLogin, setShowLogin] = useState(false);
   const { theme, lang, vars, toggleTheme, cycleLang } = usePublicChrome();
+
+  // Вход по хедерной кнопке «Войти» (общий паттерн публичных страниц) —
+  // на этой странице раньше входа не было вовсе.
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => { setSession(s); if (s) setShowLogin(false); });
+    return () => sub.subscription.unsubscribe();
+  }, []);
 
   // Публичный фетч по коду с РЕТРАЯМИ: свежесозданную лигу открывают по ссылке в
   // ту же секунду, а разовый таймаут/сбой сети (особенно через RU-прокси, где
@@ -64,6 +76,10 @@ export default function LeaguePublicPage({ code }) {
     return () => { alive = false; if (timer) clearTimeout(timer); };
   }, [code]);
 
+  if (showLogin && !session) {
+    return <LoginScreen onSuccess={() => setShowLogin(false)} onBack={() => setShowLogin(false)} theme={theme} lang={lang} onThemeToggle={toggleTheme} onLangChange={cycleLang} />;
+  }
+
   const joinUrl   = `${window.location.origin}/?join=${code}`;
   const createUrl = window.location.origin;
 
@@ -71,7 +87,7 @@ export default function LeaguePublicPage({ code }) {
     <div className="lp-root" style={vars}>
       <style>{css}</style>
       <div style={{ maxWidth: 440, margin: "0 auto", padding: "max(20px, env(safe-area-inset-top)) 16px calc(56px + env(safe-area-inset-bottom))" }}>
-        <PublicToggles theme={theme} lang={lang} onTheme={toggleTheme} onLang={cycleLang} />
+        <PublicToggles theme={theme} lang={lang} onTheme={toggleTheme} onLang={cycleLang} onLogin={session ? undefined : () => setShowLogin(true)} />
 
         {/* Брендинг */}
         <div style={{ marginBottom: 22 }}><Logo height={24} /></div>

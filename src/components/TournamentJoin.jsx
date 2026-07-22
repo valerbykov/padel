@@ -9,7 +9,7 @@ import { TournamentView, TournamentPoster, css as trCss, fmtById } from "./Tourn
 import PublicRoster from "./PublicRoster";
 import { useIsWide } from "./wide/wide";
 import LoginScreen from "./LoginScreen";
-import { AlertCircle, Check, LogIn, UserCheck, Calendar, MapPin } from "lucide-react";
+import { AlertCircle, Check, UserCheck, Calendar, MapPin } from "lucide-react";
 import { t as tr , dateLocale} from "../lib/i18n";
 import { playerAvatar, avatarFallback, avatarBg , avatarOnLoad, dogAvatar} from "../lib/avatar";
 import { usePublicChrome, PublicToggles } from "./publicChrome";
@@ -151,16 +151,12 @@ export default function TournamentJoin({ code, botName }) {
       <style>{css}</style>
       <style>{trCss}</style>
       <div className="tj-wrap" style={(isWide && openGeneral) ? { maxWidth: 1040 } : undefined}>
-        <PublicToggles theme={theme} lang={lang} onTheme={toggleTheme} onLang={cycleLang} />
+        <PublicToggles theme={theme} lang={lang} onTheme={toggleTheme} onLang={cycleLang} onLogin={session ? undefined : () => setShowLogin(true)} />
         {/* Шапка */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <span onClick={() => window.location.assign("/")} style={{ cursor: "pointer" }} title={tr("pub_to_app")}><Logo height={18} /></span>
-          {session ? (
+          {session && (
             <button className="tj-ghost" style={{ fontSize: 12 }} onClick={() => window.location.assign("/")}>{tr("pub_to_app")}</button>
-          ) : (
-            <button className="tj-ghost" style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6 }} onClick={() => setShowLogin(true)}>
-              <LogIn size={13} /> {tr("pub_login")}
-            </button>
           )}
         </div>
 
