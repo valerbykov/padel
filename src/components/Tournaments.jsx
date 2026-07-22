@@ -728,6 +728,89 @@ export function AddPlayer({ players, existing, onAdd, disabled, meId = null }) {
   );
 }
 
+// ─── TournamentPoster ──────────────────────────────────────────────────────────
+// Афиша: постер со всей инфой турнира (тайтл/дата/место/уровень/взнос/описание/контакт) —
+// единый header для ЛЮБОГО статуса турнира. Вынесен из TournamentView, чтобы его же
+// мог рендерить публичный /l/CODE (без хуков/состояния TournamentView) — байт-в-байт
+// тот же JSX, только источники данных пришли пропами. Экшены (ТВ/шеринг/удаление) —
+// опциональные колбэки: не передали — кнопка не рендерится (гостю/паблик-странице нечего
+// шарить/удалять).
+export function TournamentPoster({ trnData, fmt, readOnly, isKoth, isBtb, isGroupMember, toast, avatarOfTp, onShare, onTv, onDelete }) {
+  return (
+    <div className="trp-poster">
+      <span className="trp-trophy">🏆</span>
+      <div className="trp-topbar">
+        <div className="trp-eyebrow">🏆 {tr("trn_share_text")}</div>
+        <div className="trp-actions">
+          {trnData.status === "active" && onTv && (
+            <button className="trp-act" onClick={onTv} aria-label="TV">📺</button>
+          )}
+          {!readOnly && onShare && (
+            <button className="trp-act" style={{ padding: "8px 12px" }} onClick={onShare}>
+              <Share2 size={14} /> {toast || tr("share_btn")}
+            </button>
+          )}
+          {isGroupMember && onDelete && (
+            <button className="trp-act" style={{ color: "var(--coral)", borderColor: "rgba(255,106,82,.4)" }} title={tr("delete_btn")}
+              onClick={onDelete}>
+              <Trash2 size={15} />
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="trp-title">{trnData.name || fmt.name}</div>
+      <div className="trp-meta">
+        {trnData.starts_at && (
+          <div className="trp-row"><span className="trp-ic">🗓️</span>
+            <span>{(() => { try { const s = new Date(trnData.starts_at).toLocaleString(dateLocale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); const e = trnData.ends_at ? new Date(trnData.ends_at).toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit" }) : null; return e ? `${s} – ${e}` : s; } catch (e) { return ""; } })()}</span>
+          </div>
+        )}
+        {trnData.place && (
+          <div className="trp-row"><span className="trp-ic">📍</span><span>{trnData.place}</span></div>
+        )}
+        {trnData.level && (
+          <div className="trp-row"><span className="trp-ic">🎖️</span><EventLevelBadge level={trnData.level} compact /></div>
+        )}
+        <div className="trp-row"><span className="trp-ic">{fmt.emoji}</span><span>{fmt.name} · {trnData.points_per_game} {tr("trn_winner_points")}</span></div>
+        {isKoth && (
+          <div className="trp-row"><span className="trp-ic">🏆</span>
+            <span>{tr("trn_koth_rule_prefix")} {(trnData.koth_champion_rule || "court_1") === "points" ? tr("trn_koth_champion_points") : tr("trn_koth_champion_court1")}</span>
+          </div>
+        )}
+        {trnData.fee_per_player > 0 && (
+          <div className="trp-row"><span className="trp-ic">💸</span><span className="trp-chip trp-chip-fee">{formatMoney(trnData.fee_per_player, trnData.fee_currency)}</span></div>
+        )}
+        <div className="trp-row"><span className="trp-ic">👥</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+            {(trnData.players || []).length > 0 && (
+              <span style={{ display: "inline-flex", flexShrink: 0 }}>
+                {trnData.players.slice(0, 5).map((p, k) => (
+                  <img key={p.id} src={avatarOfTp(p.id) || dogAvatar(p.profile_id || p.name)} alt=""
+                    style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", marginLeft: k ? -8 : 0, boxShadow: "0 0 0 2px #112a20", background: "var(--surface2)" }} />
+                ))}
+                {trnData.players.length > 5 && <span style={{ marginLeft: -8, width: 24, height: 24, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "var(--mut)", boxShadow: "0 0 0 2px #112a20" }}>+{trnData.players.length - 5}</span>}
+              </span>
+            )}
+            <span>{trnData.players.length}/{trnData.target_size} {tr("trn_players_label").toLowerCase()}{(fmt.category === "pair" && !isBtb) && trnData.target_size ? ` · ${Math.floor(trnData.target_size / 2)} ${tr("trn_pairs").toLowerCase()}` : ""}</span>
+          </span>
+        </div>
+      </div>
+      {trnData.description && (
+        <div className="trp-desc">{trnData.description}</div>
+      )}
+      {trnData.contact_name && (
+        <div className="trp-contact">
+          <span className="trp-avatar">{trnData.contact_name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}</span>
+          <div style={{ minWidth: 0 }}>
+            <div className="trp-contact-label">{tr("trn_contact_name_label")}</div>
+            <div className="trp-contact-name">{trnData.contact_name}{trnData.contact_link && <span style={{ color: "var(--mut)", fontWeight: 400 }}> · {trnData.contact_link}</span>}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── TournamentView ────────────────────────────────────────────────────────────
 
 export function TournamentView({ id, players, back, readOnly = false, initialT = null, reloadFn = null, isGroupMember = false, currentProfileId = null, spectatorMode = false, onArchiveChange = null, isAdmin = false, membersCanCreate = false, onOpenPlayer = null }) {
@@ -980,83 +1063,12 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
 
   const defenderLabel = trnData.format === "king_of_hill" ? tr("trn_defender_koth") : tr("trn_defender_btb");
 
-  // Афиша: постер со всей инфой турнира (тайтл/дата/место/уровень/взнос/описание/контакт) — теперь единый header для ЛЮБОГО статуса турнира.
-  const afisha = (
-    <div className="trp-poster">
-      <span className="trp-trophy">🏆</span>
-      <div className="trp-topbar">
-        <div className="trp-eyebrow">🏆 {tr("trn_share_text")}</div>
-        <div className="trp-actions">
-          {trnData.status === "active" && (
-            <button className="trp-act" onClick={() => setTvOpen(true)} aria-label="TV">📺</button>
-          )}
-          {!readOnly && (
-            <button className="trp-act" style={{ padding: "8px 12px" }} onClick={share}>
-              <Share2 size={14} /> {toast || tr("share_btn")}
-            </button>
-          )}
-          {isGroupMember && (
-            <button className="trp-act" style={{ color: "var(--coral)", borderColor: "rgba(255,106,82,.4)" }} title={tr("delete_btn")}
-              onClick={async () => {
-                if (!(await confirmDialog({ title: tr("trn_delete_confirm"), message: tr("trn_delete_msg"), confirmLabel: tr("delete_btn") }))) return;
-                try { await deleteTournament(id); onArchiveChange?.(); back?.(); } catch (e) { showToast(tr("err_delete")); }
-              }}>
-              <Trash2 size={15} />
-            </button>
-          )}
-        </div>
-      </div>
-      <div className="trp-title">{trnData.name || fmt.name}</div>
-      <div className="trp-meta">
-        {trnData.starts_at && (
-          <div className="trp-row"><span className="trp-ic">🗓️</span>
-            <span>{(() => { try { const s = new Date(trnData.starts_at).toLocaleString(dateLocale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); const e = trnData.ends_at ? new Date(trnData.ends_at).toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit" }) : null; return e ? `${s} – ${e}` : s; } catch (e) { return ""; } })()}</span>
-          </div>
-        )}
-        {trnData.place && (
-          <div className="trp-row"><span className="trp-ic">📍</span><span>{trnData.place}</span></div>
-        )}
-        {trnData.level && (
-          <div className="trp-row"><span className="trp-ic">🎖️</span><EventLevelBadge level={trnData.level} compact /></div>
-        )}
-        <div className="trp-row"><span className="trp-ic">{fmt.emoji}</span><span>{fmt.name} · {trnData.points_per_game} {tr("trn_winner_points")}</span></div>
-        {isKoth && (
-          <div className="trp-row"><span className="trp-ic">🏆</span>
-            <span>{tr("trn_koth_rule_prefix")} {(trnData.koth_champion_rule || "court_1") === "points" ? tr("trn_koth_champion_points") : tr("trn_koth_champion_court1")}</span>
-          </div>
-        )}
-        {trnData.fee_per_player > 0 && (
-          <div className="trp-row"><span className="trp-ic">💸</span><span className="trp-chip trp-chip-fee">{formatMoney(trnData.fee_per_player, trnData.fee_currency)}</span></div>
-        )}
-        <div className="trp-row"><span className="trp-ic">👥</span>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-            {(trnData.players || []).length > 0 && (
-              <span style={{ display: "inline-flex", flexShrink: 0 }}>
-                {trnData.players.slice(0, 5).map((p, k) => (
-                  <img key={p.id} src={avatarOfTp(p.id) || dogAvatar(p.profile_id || p.name)} alt=""
-                    style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", marginLeft: k ? -8 : 0, boxShadow: "0 0 0 2px #112a20", background: "var(--surface2)" }} />
-                ))}
-                {trnData.players.length > 5 && <span style={{ marginLeft: -8, width: 24, height: 24, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "var(--mut)", boxShadow: "0 0 0 2px #112a20" }}>+{trnData.players.length - 5}</span>}
-              </span>
-            )}
-            <span>{trnData.players.length}/{trnData.target_size} {tr("trn_players_label").toLowerCase()}{(fmt.category === "pair" && !isBtb) && trnData.target_size ? ` · ${Math.floor(trnData.target_size / 2)} ${tr("trn_pairs").toLowerCase()}` : ""}</span>
-          </span>
-        </div>
-      </div>
-      {trnData.description && (
-        <div className="trp-desc">{trnData.description}</div>
-      )}
-      {trnData.contact_name && (
-        <div className="trp-contact">
-          <span className="trp-avatar">{trnData.contact_name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}</span>
-          <div style={{ minWidth: 0 }}>
-            <div className="trp-contact-label">{tr("trn_contact_name_label")}</div>
-            <div className="trp-contact-name">{trnData.contact_name}{trnData.contact_link && <span style={{ color: "var(--mut)", fontWeight: 400 }}> · {trnData.contact_link}</span>}</div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  // Удаление турнира: колбэк для афиши (TournamentPoster) — та же логика, что раньше
+  // жила инлайном в JSX афиши. isGroupMember решает, показывать ли кнопку вовсе.
+  const deleteTr = async () => {
+    if (!(await confirmDialog({ title: tr("trn_delete_confirm"), message: tr("trn_delete_msg"), confirmLabel: tr("delete_btn") }))) return;
+    try { await deleteTournament(id); onArchiveChange?.(); back?.(); } catch (e) { showToast(tr("err_delete")); }
+  };
 
   return (
     <div className="tr-root">
@@ -1065,7 +1077,9 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
         <BackButton onClick={back} label={tr("trn_to_list")} style={{ marginBottom: 12 }} />
       )}
 
-      {afisha}
+      <TournamentPoster trnData={trnData} fmt={fmt} readOnly={readOnly} isKoth={isKoth} isBtb={isBtb}
+        isGroupMember={isGroupMember} toast={toast} avatarOfTp={avatarOfTp}
+        onShare={share} onTv={() => setTvOpen(true)} onDelete={deleteTr} />
 
       {/* Турнир со свободным счётом: PIN-карточка не нужна — короткая пометка */}
       {trnData.status === "active" && !readOnly && trnData.open_scoring && (
