@@ -68,6 +68,9 @@ const S = {
     fontSize: 14, fontWeight: 700,
   },
   pairMemberNameFree: { fontSize: 12.5, fontWeight: 600, color: "var(--lime)" },
+  // Пул-игрок без пары: второе место — НЕ джойн-чип (страница read-only),
+  // просто приглушённая подпись "ищет напарника".
+  pairMemberLooking: { fontSize: 12.5, fontWeight: 600, color: "var(--mut)" },
 
   pairRowWrap: { display: "flex", alignItems: "center", gap: 8, padding: "9px 4px" },
   pairRowNo: { width: 16, flexShrink: 0, fontWeight: 800, color: "var(--mut)", fontSize: 13, textAlign: "center" },
@@ -84,13 +87,19 @@ const S = {
     fontSize: 12, fontWeight: 700,
   },
   pairRowNameFree: { fontSize: 12.5, fontWeight: 600, color: "var(--lime)" },
+  // Тот же приглушённый вариант для строчного (узкого) макета.
+  pairRowLooking: { fontSize: 12.5, fontWeight: 600, color: "var(--mut)" },
 };
 
+// Плейсхолдер имени, если у игрока (гость/удалённый профиль) нет имени.
+const nameOf = (p) => (p && p.name) || tr("guest_default_name");
+
 function PlayerCard({ p }) {
+  const name = nameOf(p);
   return (
     <div style={S.card}>
-      <Avatar name={p.name} url={p.avatar_url} id={p.profile_id} size={58} />
-      <div style={S.cardName}>{p.name}</div>
+      <Avatar name={name} url={p.avatar_url} id={p.profile_id} size={58} />
+      <div style={S.cardName}>{name}</div>
       <LevelBadges levels={p.levels} compact />
     </div>
   );
@@ -106,10 +115,11 @@ function FreeCard() {
 }
 
 function PlayerRow({ p, last }) {
+  const name = nameOf(p);
   return (
     <div style={{ ...S.row, borderBottom: last ? "none" : "1px solid var(--line)" }}>
-      <Avatar name={p.name} url={p.avatar_url} id={p.profile_id} size={36} />
-      <div style={S.rowName}>{p.name}</div>
+      <Avatar name={name} url={p.avatar_url} id={p.profile_id} size={36} />
+      <div style={S.rowName}>{name}</div>
       <LevelBadges levels={p.levels} compact />
     </div>
   );
@@ -124,9 +134,14 @@ function FreeRow({ last }) {
   );
 }
 
-// Место в паре (карточка, широкий экран): игрок или пунктирное "свободно".
-function PairMember({ p, size }) {
+// Место в паре (карточка, широкий экран): игрок, пунктирное "свободно" (для
+// полностью открытой пары) или приглушённое "ищет напарника" (для пул-игрока
+// без пары — это НЕ джойн-чип, страница read-only).
+function PairMember({ p, size, looking }) {
   if (!p) {
+    if (looking) {
+      return <div style={S.pairMemberLooking}>{tr("trn_looking_partner")}</div>;
+    }
     return (
       <div style={S.pairMemberFree}>
         <div style={{ ...S.pairMemberAvatarFree, width: size, height: size }}>+</div>
@@ -134,31 +149,36 @@ function PairMember({ p, size }) {
       </div>
     );
   }
+  const name = nameOf(p);
   return (
     <div style={S.pairMemberRow}>
-      <Avatar name={p.name} url={p.avatar_url} id={p.profile_id} size={size} />
-      <div style={S.pairMemberName}>{p.name}</div>
+      <Avatar name={name} url={p.avatar_url} id={p.profile_id} size={size} />
+      <div style={S.pairMemberName}>{name}</div>
       <LevelBadges levels={p.levels} compact />
     </div>
   );
 }
 
 // Карточка пары (широкий экран): номер пары + два места друг под другом.
-function PairCard({ pairNo, a, b }) {
+function PairCard({ pairNo, a, b, bLooking }) {
   return (
     <div style={S.pairCard}>
       {pairNo != null && <div style={S.pairNo}>{pairNo}</div>}
       <div style={S.pairMembers}>
         <PairMember p={a} size={34} />
-        <PairMember p={b} size={34} />
+        <PairMember p={b} size={34} looking={bLooking} />
       </div>
     </div>
   );
 }
 
-// Место в паре (строка, узкий экран): игрок или пунктирное "свободно".
-function PairRowMember({ p }) {
+// Место в паре (строка, узкий экран): игрок, пунктирное "свободно" (полностью
+// открытая пара) или приглушённое "ищет напарника" (пул-игрок, не джойн-чип).
+function PairRowMember({ p, looking }) {
   if (!p) {
+    if (looking) {
+      return <span style={S.pairRowLooking}>{tr("trn_looking_partner")}</span>;
+    }
     return (
       <span style={S.pairRowMemberFree}>
         <span style={S.pairRowAvatarFree}>+</span>
@@ -166,23 +186,24 @@ function PairRowMember({ p }) {
       </span>
     );
   }
+  const name = nameOf(p);
   return (
     <span style={S.pairRowMember}>
-      <Avatar name={p.name} url={p.avatar_url} id={p.profile_id} size={28} />
-      <span style={S.pairRowName}>{p.name}</span>
+      <Avatar name={name} url={p.avatar_url} id={p.profile_id} size={28} />
+      <span style={S.pairRowName}>{name}</span>
       <LevelBadges levels={p.levels} compact />
     </span>
   );
 }
 
 // Строка пары (узкий экран): номер + игрок1 + "&" + игрок2 (или "свободно").
-function PairRow({ pairNo, a, b, last }) {
+function PairRow({ pairNo, a, b, last, bLooking }) {
   return (
     <div style={{ ...S.pairRowWrap, borderBottom: last ? "none" : "1px solid var(--line)" }}>
       {pairNo != null && <span style={S.pairRowNo}>{pairNo}</span>}
       <PairRowMember p={a} />
       <span style={S.pairAmp}>&amp;</span>
-      <PairRowMember p={b} />
+      <PairRowMember p={b} looking={bLooking} />
     </div>
   );
 }
@@ -192,13 +213,19 @@ function PairRow({ pairNo, a, b, last }) {
 // списке единиц отображения (юнит = одна карточка/строка на пару).
 function PairRoster({ players, targetSize, isWide }) {
   const { pairs, pool } = groupPairs(players);
+  // Допущение: для парных форматов target_size всегда чётный (шаг создания
+  // турнира даёт только courts*4 или чётные значения KOTH_PLAYER_OPTS —
+  // см. TournamentCreate.jsx), поэтому Math.floor здесь ничего не роняет.
   const pairCap = Math.floor((targetSize || 0) / 2);
-  const extraPairs = Math.max(0, pairCap - pairs.length);
+  // Пул-игроки (без pair_no) уже занимают по одному месту в общей ёмкости
+  // пар — их нужно вычесть, иначе полностью открытые пары задваивают счёт.
+  const extraPairs = Math.max(0, pairCap - pairs.length - pool.length);
 
   const units = [
     ...pairs.map((pr) => ({ key: `p${pr.pair_no}`, pairNo: pr.pair_no, a: pr.members[0] || null, b: pr.members[1] || null })),
-    // Игроки без пары (pool) — показываем как есть, второе место пунктиром.
-    ...pool.map((p) => ({ key: `s${p.id}`, pairNo: null, a: p, b: null })),
+    // Игроки без пары (pool) — показываем как есть; второе место НЕ джойн-чип
+    // (страница read-only) — приглушённое "ищет напарника".
+    ...pool.map((p) => ({ key: `s${p.id}`, pairNo: null, a: p, b: null, bLooking: true })),
     // Полностью свободные пары сверх текущего ростера — обе позиции пунктиром.
     ...Array.from({ length: extraPairs }, (_, i) => ({ key: `x${i}`, pairNo: null, a: null, b: null })),
   ];
@@ -206,14 +233,14 @@ function PairRoster({ players, targetSize, isWide }) {
   if (isWide) {
     return (
       <div style={S.grid}>
-        {units.map((u) => <PairCard key={u.key} pairNo={u.pairNo} a={u.a} b={u.b} />)}
+        {units.map((u) => <PairCard key={u.key} pairNo={u.pairNo} a={u.a} b={u.b} bLooking={u.bLooking} />)}
       </div>
     );
   }
   return (
     <div>
       {units.map((u, i) => (
-        <PairRow key={u.key} pairNo={u.pairNo} a={u.a} b={u.b} last={i === units.length - 1} />
+        <PairRow key={u.key} pairNo={u.pairNo} a={u.a} b={u.b} bLooking={u.bLooking} last={i === units.length - 1} />
       ))}
     </div>
   );
