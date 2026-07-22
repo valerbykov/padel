@@ -422,4 +422,10 @@ export default {
     evt_level_label: 'Nivel', evt_level_opt: 'opcional', refresh: 'Actualizar', dur_label: 'Duración', dur_h: 'h', dur_min: 'min', contact_pick_league: 'Elegir de la Liga', trn_contact_org: 'Contacto del organizador', trn_contact_org_hint: 'A quién preguntar sobre el torneo — visible para los jugadores', trn_share_pair_hint: 'Enlace para ESTA pareja — quien lo abra se une como compañero',
     inspector_badge: '✦ PRO · próximamente', inspector_hint: 'Contexto: {ctx}. Contenido en la etapa de análisis premium.',
     event_listed_label: 'Mostrar en la página de la liga', event_listed_hint: 'El evento aparece en la página pública de la liga, donde cualquiera puede unirse por enlace',
+    // ── Vitrina de la liga /l/CODE (héroe + feed en vivo) ──────────────────
+    ago_just: 'ahora mismo', ago_min: 'hace {n} min', ago_hour: 'hace {n} h', ago_day: 'hace {n} d',
+    showcase_open: 'Inscripción abierta', showcase_next: 'Próximos', showcase_recent: 'Recientes', showcase_wall: 'Todos',
+    showcase_going: '{n} van', showcase_seats_left: 'quedan {n}', showcase_full: 'completo', showcase_live: 'en vivo',
+    showcase_watch: 'Ver', showcase_join: 'Apuntarse', showcase_soon: 'Pronto el primer evento',
+    showcase_full_rating: 'Clasificación completa · {n}',
 };

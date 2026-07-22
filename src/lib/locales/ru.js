@@ -422,4 +422,10 @@ export default {
     evt_level_label: 'Уровень', evt_level_opt: 'необязательно', refresh: 'Обновить', dur_label: 'Длительность', dur_h: 'ч', dur_min: 'мин', contact_pick_league: 'Выбрать из Лиги', trn_contact_org: 'Контакт организатора', trn_contact_org_hint: 'Кого спросить по турниру — увидят участники на приглашении', trn_share_pair_hint: 'Ссылка именно для этой пары — кто её откроет, встанет вторым к этому игроку',
     inspector_badge: '✦ PRO · скоро', inspector_hint: 'Контекст: {ctx}. Наполнение — этап «премиум-аналитика».',
     event_listed_label: 'Показывать в афише лиги', event_listed_hint: 'Событие появится на публичной странице лиги, куда можно записаться по ссылке',
+    // ── Витрина лиги /l/CODE (афиша-герой + живая лента) ───────────────────
+    ago_just: 'только что', ago_min: '{n} мин назад', ago_hour: '{n} ч назад', ago_day: '{n} дн назад',
+    showcase_open: 'Сбор открыт', showcase_next: 'Дальше в лиге', showcase_recent: 'Было круто', showcase_wall: 'Вся стая',
+    showcase_going: '{n} идут', showcase_seats_left: 'осталось {n}', showcase_full: 'полный', showcase_live: 'идёт',
+    showcase_watch: 'Смотреть', showcase_join: 'Записаться', showcase_soon: 'Скоро первое событие',
+    showcase_full_rating: 'Полный рейтинг · {n}',
 };
