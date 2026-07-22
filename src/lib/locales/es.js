@@ -296,7 +296,7 @@ export default {
     tours_history_heading: 'Torneos',
     games_history_heading: 'Partidas',
     filter_all: 'Todo', filter_games: 'Partidas', filter_tours: 'Torneos', only_mine: 'Solo míos', history_no_mine: 'Aún no hay partidas ni torneos contigo',
-    hist_today: 'Hoy', hist_yesterday: 'Ayer', hist_games_lbl: 'partidas', hist_tours_lbl: 'torneos', hist_wl_lbl: 'tus V–D', hist_rating_lbl: 'rating', hist_month_empty: 'Sin eventos este mes — navega ‹ atrás', hist_you_place: 'tú — puesto {p}', hist_wl_of: '{name} · V–D', hist_place_of: '{name} — puesto {p}',
+    hist_today: 'Hoy', hist_yesterday: 'Ayer', hist_games_lbl: 'partidas', hist_tours_lbl: 'torneos', hist_wl_lbl: 'tus V–D', hist_rating_lbl: 'rating', hist_month_empty: 'Sin eventos este mes — navega ‹ atrás', hist_you_place: 'tú — puesto {p}', hist_wl_of: '{name} · V–D', hist_place_of: '{name} — puesto {p}', hist_whose: 'De quién',
     history_no_games: 'Aún no hay partidas jugadas.', history_no_tours: 'Aún no hay torneos finalizados.',
     winner_label: 'Ganador',
     set_label: 'Set',

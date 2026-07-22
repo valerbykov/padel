@@ -23,6 +23,21 @@ export function useIsWide() {
   return wide;
 }
 
+// useIsWideXL — «настоящий десктоп» ≥1280px: три зоны Истории (колонка
+// участников │ лента │ деталь). 900–1279 (планшет) остаётся на своей раскладке.
+const XL_QUERY = "(min-width: 1280px)";
+export function useIsWideXL() {
+  const [xl, setXl] = useState(() => safeMM(XL_QUERY)?.matches ?? false);
+  useEffect(() => {
+    const mq = safeMM(XL_QUERY);
+    if (!mq) return;
+    const on = (e) => setXl(e.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return xl;
+}
+
 // useRailExpanded — морфинг рейла в сайдбар с подписями на ≥1280px. Состояние
 // (свернут/развёрнут) переживает перезагрузку (localStorage); фактическое
 // expanded всегда учитывает текущую ширину экрана (canExpand).

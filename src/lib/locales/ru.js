@@ -296,7 +296,7 @@ export default {
     tours_history_heading: 'Турниры',
     games_history_heading: 'Игры',
     filter_all: 'Все', filter_games: 'Игры', filter_tours: 'Турниры', only_mine: 'Только мои', history_no_mine: 'Пока нет игр и турниров с вашим участием',
-    hist_today: 'Сегодня', hist_yesterday: 'Вчера', hist_games_lbl: 'игр', hist_tours_lbl: 'турниров', hist_wl_lbl: 'твои В–П', hist_rating_lbl: 'рейтинг', hist_month_empty: 'В этом месяце событий нет — листай ‹ назад', hist_you_place: 'ты — {p} место', hist_wl_of: '{name} · В–П', hist_place_of: '{name} — {p} место',
+    hist_today: 'Сегодня', hist_yesterday: 'Вчера', hist_games_lbl: 'игр', hist_tours_lbl: 'турниров', hist_wl_lbl: 'твои В–П', hist_rating_lbl: 'рейтинг', hist_month_empty: 'В этом месяце событий нет — листай ‹ назад', hist_you_place: 'ты — {p} место', hist_wl_of: '{name} · В–П', hist_place_of: '{name} — {p} место', hist_whose: 'Чья история',
     history_no_games: 'Сыгранных игр пока нет.', history_no_tours: 'Завершённых турниров пока нет.',
     winner_label: 'Победитель',
     set_label: 'Сет',

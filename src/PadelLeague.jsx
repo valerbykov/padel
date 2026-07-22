@@ -33,7 +33,7 @@ import DurationPicker from "./components/DurationPicker";
 import LevelPicker from "./components/LevelPicker";
 import { sanitizeEventLevel } from "./lib/levels";
 import { dogAvatar, playerAvatar, avatarFallback, DOG_COUNT , avatarBg, avatarOnLoad, mascotOn} from "./lib/avatar";
-import { useIsWide, useRailExpanded } from "./components/wide/wide";
+import { useIsWide, useIsWideXL, useRailExpanded } from "./components/wide/wide";
 import WideRail from "./components/wide/WideRail";
 import WideSplit from "./components/wide/WideSplit";
 import EmptyDetail from "./components/wide/EmptyDetail";
@@ -3094,6 +3094,7 @@ function GameCopyDialog({ src, groupId, profileId = null, onClose, onCopied }) {
 
 function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = false, archiveNonce, bumpArchive, onOpenPlayer }) {
   const isWide = useIsWide();
+  const xl = useIsWideXL();       // ≥1280: колонка «Участники» вместо горизонтальной карусели
   const [games, setGames] = useState(null);  // сыгранные игры
   const [tours, setTours] = useState([]);     // завершённые турниры
   const [copyTour, setCopyTour] = useState(null);
@@ -3177,18 +3178,19 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
   };
 
   // Сводка месяца: игры/турниры лиги + В–П и Δ рейтинга фокус-игрока.
-  const myWL = (() => {
+  const wlOf = (pid) => {
     let w = 0, l = 0;
+    if (!pid) return { w, l };
     mGames.forEach((g) => {
-      if (!focusId) return;
       const m = g.matches?.[0]; if (!m || m.sets_a === m.sets_b) return;
-      const fTeam = (g.slots || []).find((s) => s.profile_id === focusId)?.team;
+      const fTeam = (g.slots || []).find((s) => s.profile_id === pid)?.team;
       if (!fTeam) return;
       const won = fTeam === "A" ? m.sets_a > m.sets_b : m.sets_b > m.sets_a;
       won ? w++ : l++;
     });
     return { w, l };
-  })();
+  };
+  const myWL = wlOf(focusId);
   // Δ месяца — только по событиям, видимым в Истории: обычные матчи и матчи
   // ЗАВЕРШЁННЫХ турниров. Раунды активного турнира уже двигают рейтинг, но его
   // плитки в ленте ещё нет — без этого фильтра сводка «не бьётся» с карточками.
@@ -3264,6 +3266,31 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
   const meRow = profileId ? (players || []).find((p) => p.id === profileId) : null;
   const rosterOthers = (players || []).filter((p) => p.id !== profileId);
 
+  // Десктоп ≥1280: вертикальная колонка выбора «чья история» — та же логика
+  // pFilter, что и у горизонтальной карусели, но с именем и В–П за месяц.
+  const membersColumn = (players || []).length > 1 ? (
+    <div style={{ width: 236, flexShrink: 0, position: "sticky", top: 12, maxHeight: "calc(100vh - 24px)", overflowY: "auto" }}>
+      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.8, textTransform: "uppercase", color: "var(--mut)", padding: "2px 6px 8px" }}>{t("hist_whose")}</div>
+      {[...(meRow ? [meRow] : []), ...rosterOthers].map((p) => {
+        const on = pFilter === p.id;
+        const isMe = p.id === profileId;
+        const wl = wlOf(p.id);
+        return (
+          <button key={p.id} onClick={() => setPFilter((v) => v === p.id ? null : p.id)} title={p.name} aria-pressed={on}
+            style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", padding: "7px 8px", marginBottom: 2, borderRadius: 11, cursor: "pointer",
+              border: "none", borderLeft: `3px solid ${on ? "var(--lime)" : "transparent"}`, textAlign: "left", fontFamily: "'Outfit',sans-serif",
+              background: on ? "color-mix(in srgb, var(--lime) 8%, var(--surface))" : "transparent" }}>
+            <img src={playerAvatar(p.avatar_url, p.id, p.name)} onError={avatarFallback(p.id, p.name)} onLoad={avatarOnLoad} alt=""
+              style={{ ...avatarBg(p.id, p.name), width: 30, height: 30, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+            <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+            {isMe && <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 800, background: "var(--lime)", color: "var(--lime-fg)", borderRadius: 5, padding: "0 5px" }}>{t("fr_you")}</span>}
+            {(wl.w + wl.l) > 0 && <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 800, color: wl.w >= wl.l ? "var(--lime)" : "var(--coral)" }}>{wl.w}–{wl.l}</span>}
+          </button>
+        );
+      })}
+    </div>
+  ) : null;
+
   const listEl = (
     <div className="pl-pop">
       <style>{trCss}</style>
@@ -3312,8 +3339,9 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
           style={{ flexShrink: 0, width: 26, height: 26, borderRadius: 8, border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--mut)", cursor: monthOff === 0 ? "default" : "pointer", fontSize: 13, lineHeight: 1, opacity: monthOff === 0 ? .35 : 1 }}>›</button>
       </div>
 
-      {/* «Чья история»: я — первым, тап по игроку — его матчи, его В–П и дельты. */}
-      {(players || []).length > 1 && (
+      {/* «Чья история»: я — первым, тап по игроку — его матчи, его В–П и дельты.
+          На ≥1280 селектор вынесен в вертикальную колонку слева (см. xl-ветку). */}
+      {!xl && (players || []).length > 1 && (
         <div style={{ display: "flex", gap: 7, overflowX: "auto", padding: "2px 0 6px", marginBottom: 6, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
           {[...(meRow ? [meRow] : []), ...rosterOthers].slice(0, 17).map((p) => {
             const isMe = p.id === profileId;
@@ -3332,7 +3360,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
         </div>
       )}
 
-      {isGroupMember && swipeHint && (games.length > 0 || tours.length > 0) && (
+      {isGroupMember && swipeHint && !xl && (games.length > 0 || tours.length > 0) && (
         <div onClick={dismissHint} style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 2px 12px", padding: "9px 12px", borderRadius: 12, background: "color-mix(in srgb, var(--coral) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--coral) 30%, transparent)", fontSize: 12.5, color: "var(--mut)", cursor: "pointer" }}>
           <span style={{ fontSize: 15, fontWeight: 800, lineHeight: 1, flexShrink: 0 }}><span style={{ color: "var(--coral)" }}>←</span><span style={{ color: "var(--lime)" }}>→</span></span> {t("swipe_hint")} <X size={14} style={{ marginLeft: "auto", color: "var(--mut)", flexShrink: 0 }} />
         </div>
@@ -3357,7 +3385,14 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
       {copyGame && <GameCopyDialog src={copyGame} groupId={groupId} profileId={profileId} onClose={() => setCopyGame(null)} onCopied={() => { setCopyGame(null); bumpArchive?.(); showToast(t("copy_game_done")); }} />}
     </div>
   );
-  if (isWide) return <WideSplit list={listEl} detail={detailEl}
+  const wideSplit = <WideSplit list={listEl} detail={detailEl}
     empty={<EmptyDetail icon="🕘" title={t("tab_history")} sub={t("wide_pick_event")} />} />;
+  if (xl && membersColumn) return (
+    <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+      {membersColumn}
+      <div style={{ flex: 1, minWidth: 0 }}>{wideSplit}</div>
+    </div>
+  );
+  if (isWide) return wideSplit;
   return listEl;
 }
