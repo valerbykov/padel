@@ -12,6 +12,7 @@ import Logo from "./Logo";
 import LeagueLogo from "./LeagueLogo";
 import OpenInApp from "./OpenInApp";
 import LoginScreen from "./LoginScreen";
+import { useIsWide } from "./wide/wide";
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
@@ -44,6 +45,8 @@ export default function LeaguePublicPage({ code }) {
   const [session, setSession] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
   const { theme, lang, vars, toggleTheme, cycleLang } = usePublicChrome();
+  // Десктоп-раскладка (≥900px) — хук строго до ранних return (showLogin/loading/error ниже).
+  const isWide = useIsWide();
 
   // Вход по хедерной кнопке «Войти» (общий паттерн публичных страниц) —
   // на этой странице раньше входа не было вовсе.
@@ -83,10 +86,18 @@ export default function LeaguePublicPage({ code }) {
   const joinUrl   = `${window.location.origin}/?join=${code}`;
   const createUrl = window.location.origin;
 
+  // Ширина контейнера: узко всегда 440px; расширяем только когда реально
+  // рисуем двухколонник (лига загружена) — на loading/error экранах растягивать
+  // одну строку/карточку на 980px незачем (мирроринг TournamentJoin: инлайн
+  // maxWidth включается только для нужного состояния).
+  const wideLayout = isWide && !!league;
+
+  const membersCount = (league?.members || []).length;
+
   return (
     <div className="lp-root" style={vars}>
       <style>{css}</style>
-      <div style={{ maxWidth: 440, margin: "0 auto", padding: "max(20px, env(safe-area-inset-top)) 16px calc(56px + env(safe-area-inset-bottom))" }}>
+      <div style={{ maxWidth: wideLayout ? 980 : 440, margin: "0 auto", padding: "max(20px, env(safe-area-inset-top)) 16px calc(56px + env(safe-area-inset-bottom))" }}>
         <PublicToggles theme={theme} lang={lang} onTheme={toggleTheme} onLang={cycleLang} onLogin={session ? undefined : () => setShowLogin(true)} />
 
         {/* Брендинг */}
@@ -109,63 +120,69 @@ export default function LeaguePublicPage({ code }) {
           </div>
         )}
 
-        {league && (
-          <>
-            {/* Название лиги + логотип клуба */}
-            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: league.telegram_url ? 12 : 28 }}>
-              {league.logo_url && <LeagueLogo url={league.logo_url} name={league.name} size={60} radius={16} />}
-              <div style={{ minWidth: 0 }}>
-                <div className="lp-d" style={{ fontSize: 34, lineHeight: 1.05, marginBottom: 6, color: "var(--ink)", overflowWrap: "anywhere" }}>
-                  {league.name}
-                </div>
-                <div style={{ fontSize: 13, color: "var(--mut)" }}>
-                  {league.member_count} {plural(league.member_count, "players")}
-                  {league.games_count > 0 && <> · {nGames(league.games_count)}</>}
-                  {league.created_at && (() => { try { return <> · {t("pub_since")} {new Date(league.created_at).toLocaleDateString(dateLocale(), { month: "long", year: "numeric" })}</>; } catch (e) { return null; } })()}
+        {league && (() => {
+          // Название лиги + логотип клуба (шапка, на wide — во всю ширину сверху грида).
+          const header = (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: league.telegram_url ? 12 : 28 }}>
+                {league.logo_url && <LeagueLogo url={league.logo_url} name={league.name} size={60} radius={16} />}
+                <div style={{ minWidth: 0 }}>
+                  <div className="lp-d" style={{ fontSize: 34, lineHeight: 1.05, marginBottom: 6, color: "var(--ink)", overflowWrap: "anywhere" }}>
+                    {league.name}
+                  </div>
+                  <div style={{ fontSize: 13, color: "var(--mut)" }}>
+                    {league.member_count} {plural(league.member_count, "players")}
+                    {league.games_count > 0 && <> · {nGames(league.games_count)}</>}
+                    {league.created_at && (() => { try { return <> · {t("pub_since")} {new Date(league.created_at).toLocaleDateString(dateLocale(), { month: "long", year: "numeric" })}</>; } catch (e) { return null; } })()}
+                  </div>
                 </div>
               </div>
-            </div>
-            {league.telegram_url && (
-              <a href={league.telegram_url} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--lime)", fontWeight: 600, fontSize: 14, textDecoration: "none", marginBottom: 26 }}>
-                <Send size={14} /> {t("league_open_channel")}
-              </a>
-            )}
+              {league.telegram_url && (
+                <a href={league.telegram_url} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--lime)", fontWeight: 600, fontSize: 14, textDecoration: "none", marginBottom: 26 }}>
+                  <Send size={14} /> {t("league_open_channel")}
+                </a>
+              )}
+            </>
+          );
 
-            {/* Заголовок таблицы */}
+          // Заголовок таблицы
+          const membersHeading = (
             <div style={{ fontSize: 10, fontWeight: 700, color: "var(--mut)", letterSpacing: 2, marginBottom: 10 }}>
               {t("pub_members")}
             </div>
+          );
 
-            {/* Подиум топ-3 — как на вкладке «Друзья» в приложении */}
-            {(league.members || []).length >= 3 && (() => {
-              const [p1, p2, p3] = league.members;
-              const medal = ["var(--yellow)", "#cfd8d0", "#cd7f4d"];
-              const col = (p, rank, size, pad) => (
-                <div style={{ textAlign: "center", minWidth: 0, flex: 1, maxWidth: 120 }}>
-                  <div style={{ display: "flex", justifyContent: "center" }}><Avatar name={p.name} url={p.avatar_url} size={size} /></div>
-                  <div style={{ fontSize: rank === 1 ? 13 : 12, fontWeight: rank === 1 ? 700 : 600, marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
-                  {p.rating != null && <div style={{ fontSize: 10.5, color: rank === 1 ? "var(--yellow)" : "var(--mut)", fontWeight: 700 }}>{p.rating}</div>}
-                  <div style={{ background: rank === 1 ? "color-mix(in srgb, var(--yellow) 18%, var(--surface2))" : "var(--surface2)", borderRadius: "10px 10px 0 0", padding: `${pad}px 0`, fontWeight: 800, color: medal[rank - 1], marginTop: 6, fontFamily: "'Anton',sans-serif", fontSize: 17 }}>{rank}</div>
-                </div>
-              );
-              return (
-                <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 10, padding: "6px 6px 0", marginBottom: 0 }}>
-                  {col(p2, 2, 46, 12)}
-                  {col(p1, 1, 58, 20)}
-                  {col(p3, 3, 46, 7)}
-                </div>
-              );
-            })()}
+          // Подиум топ-3 — как на вкладке «Друзья» в приложении
+          const podium = membersCount >= 3 && (() => {
+            const [p1, p2, p3] = league.members;
+            const medal = ["var(--yellow)", "#cfd8d0", "#cd7f4d"];
+            const col = (p, rank, size, pad) => (
+              <div style={{ textAlign: "center", minWidth: 0, flex: 1, maxWidth: 120 }}>
+                <div style={{ display: "flex", justifyContent: "center" }}><Avatar name={p.name} url={p.avatar_url} size={size} /></div>
+                <div style={{ fontSize: rank === 1 ? 13 : 12, fontWeight: rank === 1 ? 700 : 600, marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+                {p.rating != null && <div style={{ fontSize: 10.5, color: rank === 1 ? "var(--yellow)" : "var(--mut)", fontWeight: 700 }}>{p.rating}</div>}
+                <div style={{ background: rank === 1 ? "color-mix(in srgb, var(--yellow) 18%, var(--surface2))" : "var(--surface2)", borderRadius: "10px 10px 0 0", padding: `${pad}px 0`, fontWeight: 800, color: medal[rank - 1], marginTop: 6, fontFamily: "'Anton',sans-serif", fontSize: 17 }}>{rank}</div>
+              </div>
+            );
+            return (
+              <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 10, padding: "6px 6px 0", marginBottom: 0 }}>
+                {col(p2, 2, 46, 12)}
+                {col(p1, 1, 58, 20)}
+                {col(p3, 3, 46, 7)}
+              </div>
+            );
+          })();
 
-            {/* Лидерборд (при подиуме — с 4-го места) */}
-            <div className="lp-card" style={{ marginBottom: 20, overflow: "hidden", borderTopLeftRadius: (league.members || []).length >= 3 ? 0 : undefined, borderTopRightRadius: (league.members || []).length >= 3 ? 0 : undefined }}>
-              {(league.members || []).length === 0 && (
+          // Лидерборд (при подиуме — с 4-го места)
+          const leaderboard = (
+            <div className="lp-card" style={{ marginBottom: 20, overflow: "hidden", borderTopLeftRadius: membersCount >= 3 ? 0 : undefined, borderTopRightRadius: membersCount >= 3 ? 0 : undefined }}>
+              {membersCount === 0 && (
                 <div style={{ padding: 20, textAlign: "center", color: "var(--mut)", fontSize: 13 }}>
                   {t("pub_no_players")}
                 </div>
               )}
-              {((league.members || []).length >= 3 ? league.members.slice(3) : (league.members || [])).map((p, idx) => {
-                const i = (league.members || []).length >= 3 ? idx + 3 : idx;
+              {(membersCount >= 3 ? league.members.slice(3) : (league.members || [])).map((p, idx) => {
+                const i = membersCount >= 3 ? idx + 3 : idx;
                 const rankColor = ["var(--yellow)", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)";
                 return (
                   <div key={i} style={{
@@ -184,19 +201,25 @@ export default function LeaguePublicPage({ code }) {
                 );
               })}
             </div>
+          );
 
-            {/* Кнопка вступить */}
-            <a href={joinUrl} className="lp-join-btn" style={{ marginBottom: 12 }}
-              onClick={() => { try { localStorage.setItem("pp_pending_join", code); } catch (e) {} }}>
-              {t("pub_join_league")}
-            </a>
-            {/* QR открылся в браузере, а приложение уже установлено → в натив по тапу */}
-            <OpenInApp path={`/l/${code}`} style={{ marginBottom: 12 }} />
-            <div style={{ fontSize: 12, color: "var(--mut)", textAlign: "center", marginBottom: 28 }}>
-              {t("pub_after_login")}
-            </div>
+          // Кнопка «Вступить» + подсказка + OpenInApp
+          const joinBlock = (
+            <>
+              <a href={joinUrl} className="lp-join-btn" style={{ marginBottom: 12 }}
+                onClick={() => { try { localStorage.setItem("pp_pending_join", code); } catch (e) {} }}>
+                {t("pub_join_league")}
+              </a>
+              {/* QR открылся в браузере, а приложение уже установлено → в натив по тапу */}
+              <OpenInApp path={`/l/${code}`} style={{ marginBottom: 12 }} />
+              <div style={{ fontSize: 12, color: "var(--mut)", textAlign: "center", marginBottom: 28 }}>
+                {t("pub_after_login")}
+              </div>
+            </>
+          );
 
-            {/* Вирусный CTA */}
+          // Вирусный CTA
+          const viral = (
             <div style={{ borderTop: "1px solid var(--line)", paddingTop: 22, textAlign: "center" }}>
               <div className="lp-d" style={{ fontSize: 13, color: "var(--mut)", marginBottom: 10, letterSpacing: 1 }}>
                 {t("pub_want_own_t")}
@@ -208,8 +231,38 @@ export default function LeaguePublicPage({ code }) {
                 {t("pub_create_own")}
               </a>
             </div>
-          </>
-        )}
+          );
+
+          if (!wideLayout) {
+            return (
+              <>
+                {header}
+                {membersHeading}
+                {podium}
+                {leaderboard}
+                {joinBlock}
+                {viral}
+              </>
+            );
+          }
+
+          return (
+            <>
+              {header}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 24, alignItems: "start" }}>
+                <div>
+                  {membersHeading}
+                  {podium}
+                  {leaderboard}
+                </div>
+                <div style={{ position: "sticky", top: 16 }}>
+                  {joinBlock}
+                  {viral}
+                </div>
+              </div>
+            </>
+          );
+        })()}
       </div>
     </div>
   );
