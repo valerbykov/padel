@@ -20,6 +20,24 @@ const css = `
 .wl-root .pl-pop{animation:pop .35s cubic-bezier(.2,.8,.2,1) both;}
 @keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @media(max-width:400px){.wl-root .pl-card{border-radius:14px;}}
+/* ≥900px: широкий hero — два столбца (слева текст+CTA, справа демо-превью).
+   Раскладка через grid-column/grid-row на существующих узлах (без reflow DOM,
+   без нового wrapper-а) — ряды заданы явно, чтобы не зависеть от эвристик
+   авто-расстановки grid (та кладёт «пустые» левые ячейки не туда, куда нужно). */
+@media(min-width:900px){
+  .wl-root .wl-shell{max-width:1040px !important;padding:56px 32px 72px !important;}
+  .wl-root .pl-pop{display:grid;grid-template-columns:1fr 1fr;column-gap:64px;row-gap:20px;align-items:start;}
+  .wl-root .wl-hero-text{grid-column:1;grid-row:1;text-align:left !important;padding:0 !important;}
+  .wl-root .wl-headline{margin:0 !important;max-width:420px !important;font-size:clamp(34px,3.6vw,50px) !important;}
+  .wl-root .wl-subtitle{margin:14px 0 0 !important;max-width:420px !important;}
+  .wl-root .wl-demo{grid-column:2;grid-row:1;}
+  .wl-root .wl-demohint{grid-column:2;grid-row:2;}
+  .wl-root .wl-features{grid-column:2;grid-row:3;}
+  .wl-root .wl-cta{grid-column:1;grid-row:2;}
+  .wl-root .wl-codehint{grid-column:1;grid-row:3;}
+  .wl-root .wl-about{grid-column:1;grid-row:4;}
+  .wl-root .wl-controls{grid-column:1/-1;grid-row:5;margin-top:28px !important;}
+}
 `;
 
 export default function WelcomeScreen({ onLogin, onOpenLanding, theme = "dark", lang = "ru", onThemeToggle, onLangChange }) {
@@ -39,27 +57,29 @@ export default function WelcomeScreen({ onLogin, onOpenLanding, theme = "dark", 
   return (
     <div className={`wl-root${theme === "light" ? " wl-light" : ""}`}>
       <style>{css}</style>
-      <div style={{ maxWidth: 460, margin: "0 auto", padding: "10px 16px calc(24px + env(safe-area-inset-bottom))" }}>
+      <div className="wl-shell" style={{ maxWidth: 460, margin: "0 auto", padding: "10px 16px calc(24px + env(safe-area-inset-bottom))" }}>
         <div className="pl-pop">
-          {/* Hero — слоган сразу сверху; «стаю» показывает подиум ниже (вариант A). */}
-          <div style={{ textAlign: "center", padding: "24px 0 18px" }}>
+          {/* Hero — слоган сразу сверху; «стаю» показывает подиум ниже (вариант A).
+              ≥900px: этот блок уезжает в левую колонку grid (см. .wl-hero-text в css). */}
+          <div className="wl-hero-text" style={{ textAlign: "center", padding: "24px 0 18px" }}>
             {(() => {
               const [a, b] = t("tagline").split(" · ");
               const cap = (s = "") => s.charAt(0).toUpperCase() + s.slice(1);
               return (
-                <div style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 30, lineHeight: 1.18, letterSpacing: "-0.5px", maxWidth: 340, margin: "0 auto" }}>
+                <div className="wl-headline" style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 30, lineHeight: 1.18, letterSpacing: "-0.5px", maxWidth: 340, margin: "0 auto" }}>
                   <span style={{ color: "var(--lime)" }}>{cap(a)}</span>
                   {b && <><span style={{ color: "var(--mut)", fontWeight: 500 }}> ·</span><span style={{ color: "var(--ink)", display: "block" }}>{cap(b)}</span></>}
                 </div>
               );
             })()}
-            <div style={{ fontSize: 14, color: "var(--mut)", lineHeight: 1.6, maxWidth: 270, margin: "14px auto 0" }}>
+            <div className="wl-subtitle" style={{ fontSize: 14, color: "var(--mut)", lineHeight: 1.6, maxWidth: 270, margin: "14px auto 0" }}>
               {t("welcome_tagline")}
             </div>
           </div>
 
-          {/* Живой мини-подиум: продукт виден до входа; собаки — те же, что в демо-стае */}
-          <div className="pl-card" style={{ padding: "14px 12px 0", marginBottom: 8 }}>
+          {/* Живой мини-подиум: продукт виден до входа; собаки — те же, что в демо-стае.
+              ≥900px: правая колонка grid — демо-тизер (см. .wl-demo/.wl-demohint/.wl-features). */}
+          <div className="pl-card wl-demo" style={{ padding: "14px 12px 0", marginBottom: 8 }}>
             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 12 }}>
               {[
                 { n: 2, img: podDogs[1], nm: t("w_pn2"), size: 42, pad: 10, col: "#cfd8d0" },
@@ -78,10 +98,10 @@ export default function WelcomeScreen({ onLogin, onOpenLanding, theme = "dark", 
               ))}
             </div>
           </div>
-          <div style={{ textAlign: "center", fontSize: 11.5, color: "var(--mut)", marginBottom: 14 }}>{t("w_pod_hint")}</div>
+          <div className="wl-demohint" style={{ textAlign: "center", fontSize: 11.5, color: "var(--mut)", marginBottom: 14 }}>{t("w_pod_hint")}</div>
 
           {/* Feature cards */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 22 }}>
+          <div className="wl-features" style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 22 }}>
             {features.map(({ icon, title, sub }) => (
               <div key={title} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px" }}>
                 <div style={{ fontSize: 24, flexShrink: 0, width: 32, textAlign: "center" }}>{icon}</div>
@@ -93,24 +113,24 @@ export default function WelcomeScreen({ onLogin, onOpenLanding, theme = "dark", 
             ))}
           </div>
 
-          {/* CTA */}
-          <button className="pl-btn" style={{ width: "100%", padding: 15, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={onLogin}>
+          {/* CTA — ≥900px уезжает в левую колонку, к заголовку. */}
+          <button className="pl-btn wl-cta" style={{ width: "100%", padding: 15, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }} onClick={onLogin}>
             {t("welcome_cta")}
           </button>
-          <div style={{ textAlign: "center", marginTop: 12, fontSize: 12, color: "var(--mut)" }}>
+          <div className="wl-codehint" style={{ textAlign: "center", marginTop: 12, fontSize: 12, color: "var(--mut)" }}>
             {t("welcome_code_hint")}
           </div>
 
           {onOpenLanding && (
-            <div style={{ textAlign: "center", marginTop: 14 }}>
+            <div className="wl-about" style={{ textAlign: "center", marginTop: 14 }}>
               <button onClick={onOpenLanding} style={{ background: "none", border: "none", color: "var(--lime)", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "'Outfit',sans-serif" }}>
                 {t("lp_about")}
               </button>
             </div>
           )}
 
-          {/* Lang + theme controls */}
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 6, marginTop: 18, flexWrap: "wrap" }}>
+          {/* Lang + theme controls — ≥900px во всю ширину внизу hero. */}
+          <div className="wl-controls" style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 6, marginTop: 18, flexWrap: "wrap" }}>
             <button onClick={() => { const o = ["ru", "en", "es"]; onLangChange?.(o[(o.indexOf(lang) + 1) % o.length]); }} style={{
               border: "1px solid var(--line)", borderRadius: 10, padding: "5px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer",
               background: "var(--surface2)", color: "var(--ink)", fontFamily: "'Outfit',sans-serif", display: "flex", alignItems: "center", gap: 6,
