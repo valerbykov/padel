@@ -68,6 +68,8 @@ import WideSplit from "./wide/WideSplit";
 import EmptyDetail from "./wide/EmptyDetail";
 // Мастер создания турнира вынесен в отдельный чанк — грузится только при открытии формы.
 const Create = lazy(() => import("./TournamentCreate"));
+// ТВ-табло — отдельный чанк, грузится только по клику на 📺 в афише.
+const TvBoardLazy = lazy(() => import("./TvBoard"));
 // Округляем к сетке 5 минут (00:01 → 00:00): степпер времени шагает по 5 мин.
 export const nowLocalDT = () => { const d = new Date(); d.setSeconds(0, 0); d.setMinutes(Math.round(d.getMinutes() / 5) * 5); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
 
@@ -742,6 +744,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   const [addingToPair, setAddingToPair] = useState(null); // pair_no | "new" | null — куда добавляем
   const [combining, setCombining] = useState(false);       // «собрать неполные пары»
   const [openCourts, setOpenCourts] = useState({}); // {matchId: true} — раскрытые сыгранные корты
+  const [tvOpen, setTvOpen] = useState(false); // полноэкранное ТВ-табло турнира
   const initRef = useRef(false);
   const roundRef = useRef(false);
   const startingRef = useRef(false);
@@ -984,6 +987,9 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
       <div className="trp-topbar">
         <div className="trp-eyebrow">🏆 {tr("trn_share_text")}</div>
         <div className="trp-actions">
+          {trnData.status === "active" && (
+            <button className="trp-act" onClick={() => setTvOpen(true)} aria-label="TV">📺</button>
+          )}
           {!readOnly && (
             <button className="trp-act" style={{ padding: "8px 12px" }} onClick={share}>
               <Share2 size={14} /> {toast || tr("share_btn")}
@@ -1466,6 +1472,11 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
               api={{ getFee: getTournamentFee, getPaid: getFeePayments, setFee: setTournamentFee, togglePaid: toggleFeePaid, remind: remindFeeDebtors }} />
           )}
         </>
+      )}
+      {tvOpen && (
+        <Suspense fallback={null}>
+          <TvBoardLazy initial={trnData} onClose={() => setTvOpen(false)} />
+        </Suspense>
       )}
     </div>
   );
