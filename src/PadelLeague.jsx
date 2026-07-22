@@ -33,6 +33,8 @@ import DurationPicker from "./components/DurationPicker";
 import LevelPicker from "./components/LevelPicker";
 import { sanitizeEventLevel } from "./lib/levels";
 import { dogAvatar, playerAvatar, avatarFallback, DOG_COUNT , avatarBg, avatarOnLoad} from "./lib/avatar";
+import { useIsWide } from "./components/wide/wide";
+import WideRail from "./components/wide/WideRail";
 
 // Текущая дата-время в формате datetime-local (YYYY-MM-DDTHH:MM) с учётом таймзоны.
 // Округляем к сетке 5 минут (00:01 → 00:00), секунды в 0: степпер времени шагает
@@ -213,6 +215,7 @@ function ContactLinks({ contacts = {} }) {
 
 export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin, onOpenLanding, onEditProfile, openSelfStatsNonce = 0, openAnalyticsNonce = 0, openEvent = null, profileNonce = 0 }) {
   const [tab, setTab] = useState(session ? "board" : "welcome");
+  const isWide = useIsWide();
   const [pendingSelfStats, setPendingSelfStats] = useState(false);   // одноразовый запрос «моя статистика»
   const [pendingAnalytics, setPendingAnalytics] = useState(false);   // одноразовый запрос «аналитика лиги»
   // Повторный тап по активной вкладке должен возвращать к её корню (закрыть
@@ -320,29 +323,38 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
     <div className={`pl-root${theme === "light" ? " pl-light" : ""}`}>
       <style>{css}</style>
       {/* Заголовок вкладки и переключатель лиги убраны — переключатель теперь в топбаре, имя вкладки видно в нижней навигации. */}
-      <div style={{ maxWidth: 460, margin: "0 auto", padding: "10px 16px calc(88px + env(safe-area-inset-bottom))" }}>
+      <div style={{ display: "flex", alignItems: "flex-start" }}>
+        {isWide && <WideRail tab={tab} goTab={goTab} session={session} activeLeague={activeLeague} />}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={isWide
+            ? { maxWidth: 1200, margin: "0 auto", padding: "14px 20px 40px" }
+            : { maxWidth: 460, margin: "0 auto", padding: "10px 16px calc(88px + env(safe-area-inset-bottom))" }}>
 
-        {session && !groupId && tab !== "board" && (
-          <div className="pl-card pl-pop" style={{ padding: 16, marginBottom: 12, textAlign: "center" }}>
-            <div style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.4 }}>{t("welcome_choose_sub")}</div>
-            <div style={{ fontSize: 12, color: "var(--lime)", marginTop: 10 }}>{t("league_switch_hint")}</div>
+            {session && !groupId && tab !== "board" && (
+              <div className="pl-card pl-pop" style={{ padding: 16, marginBottom: 12, textAlign: "center" }}>
+                <div style={{ fontSize: 13, color: "var(--mut)", lineHeight: 1.4 }}>{t("welcome_choose_sub")}</div>
+                <div style={{ fontSize: 12, color: "var(--lime)", marginTop: 10 }}>{t("league_switch_hint")}</div>
+              </div>
+            )}
+
+            {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} loading={!lbLoaded} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} leaguesReady={leaguesReady} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsReq={pendingSelfStats} onSelfStatsSeen={() => setPendingSelfStats(false)} analyticsReq={pendingAnalytics} onAnalyticsSeen={() => setPendingAnalytics(false)} /> : <GateScreen />)}
+            {tab === "games" && <Games key={navNonce} groupId={groupId} players={players} profileId={profileId} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} openReq={openEvent?.kind === "game" ? openEvent : null} theme={theme} />}
+            {tab === "tournaments" && <Tournaments key={navNonce} groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} membersCanCreate={!!activeLeague?.members_can_create} openReq={openEvent?.kind === "tour" ? openEvent : null} onOpenPlayer={openTourPlayer} />}
+            {tab === "history" && (session ? <HistoryView key={navNonce} groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} isAdmin={isAdmin} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onOpenPlayer={openTourPlayer} /> : <GateScreen />)}
           </div>
-        )}
-
-        {tab === "board" && (session ? <Board key={navNonce} groupId={groupId} players={players} loading={!lbLoaded} reload={loadLeaderboard} profileId={profileId} bumpArchive={bumpArchive} isAdmin={isAdmin} leagues={leagues} leaguesReady={leaguesReady} activeLeague={activeLeague} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onEditProfile={onEditProfile} selfStatsReq={pendingSelfStats} onSelfStatsSeen={() => setPendingSelfStats(false)} analyticsReq={pendingAnalytics} onAnalyticsSeen={() => setPendingAnalytics(false)} /> : <GateScreen />)}
-        {tab === "games" && <Games key={navNonce} groupId={groupId} players={players} profileId={profileId} reloadLeaderboard={loadLeaderboard} session={session} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} openReq={openEvent?.kind === "game" ? openEvent : null} theme={theme} />}
-        {tab === "tournaments" && <Tournaments key={navNonce} groupId={groupId} players={players} profileId={profileId} bumpArchive={bumpArchive} session={session} onLogin={onLogin} isAdmin={isAdmin} canCreate={isAdmin || !!activeLeague?.members_can_create} membersCanCreate={!!activeLeague?.members_can_create} openReq={openEvent?.kind === "tour" ? openEvent : null} onOpenPlayer={openTourPlayer} />}
-        {tab === "history" && (session ? <HistoryView key={navNonce} groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} isAdmin={isAdmin} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onOpenPlayer={openTourPlayer} /> : <GateScreen />)}
+        </div>
       </div>
 
-      <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50, background: "var(--topbar-bg)", borderTop: "1px solid var(--line)", backdropFilter: "blur(8px)", paddingBottom: "env(safe-area-inset-bottom)" }}>
-        <div style={{ maxWidth: 460, margin: "0 auto", display: "flex" }}>
-          {session && <button className={`pl-tab ${tab === "board" ? "on" : ""}`} onClick={() => goTab("board")}><Users size={20} strokeWidth={tab === "board" ? 2.6 : 2} />{t("tab_friends")}</button>}
-          <button className={`pl-tab ${tab === "games" ? "on" : ""}`} onClick={() => goTab("games")}><Swords size={20} strokeWidth={tab === "games" ? 2.6 : 2} />{t("tab_games")}</button>
-          <button className={`pl-tab ${tab === "tournaments" ? "on" : ""}`} onClick={() => goTab("tournaments")}><Trophy size={20} strokeWidth={tab === "tournaments" ? 2.6 : 2} />{t("tab_tournaments")}</button>
-          {session && <button className={`pl-tab ${tab === "history" ? "on" : ""}`} onClick={() => goTab("history")}><History size={20} strokeWidth={tab === "history" ? 2.6 : 2} />{t("tab_history")}</button>}
-        </div>
-      </nav>
+      {!isWide && (
+        <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50, background: "var(--topbar-bg)", borderTop: "1px solid var(--line)", backdropFilter: "blur(8px)", paddingBottom: "env(safe-area-inset-bottom)" }}>
+          <div style={{ maxWidth: 460, margin: "0 auto", display: "flex" }}>
+            {session && <button className={`pl-tab ${tab === "board" ? "on" : ""}`} onClick={() => goTab("board")}><Users size={20} strokeWidth={tab === "board" ? 2.6 : 2} />{t("tab_friends")}</button>}
+            <button className={`pl-tab ${tab === "games" ? "on" : ""}`} onClick={() => goTab("games")}><Swords size={20} strokeWidth={tab === "games" ? 2.6 : 2} />{t("tab_games")}</button>
+            <button className={`pl-tab ${tab === "tournaments" ? "on" : ""}`} onClick={() => goTab("tournaments")}><Trophy size={20} strokeWidth={tab === "tournaments" ? 2.6 : 2} />{t("tab_tournaments")}</button>
+            {session && <button className={`pl-tab ${tab === "history" ? "on" : ""}`} onClick={() => goTab("history")}><History size={20} strokeWidth={tab === "history" ? 2.6 : 2} />{t("tab_history")}</button>}
+          </div>
+        </nav>
+      )}
       {tourPlayer && createPortal(
         <div style={{ position: "fixed", inset: 0, zIndex: 250, background: "var(--bg)", color: "var(--ink)", overflowY: "auto" }}>
           <div style={{ maxWidth: 460, margin: "0 auto", padding: "calc(14px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom))" }}>
