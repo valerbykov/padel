@@ -94,6 +94,7 @@ const getTvCode = () => {
 
 export default function App({ initialShowLogin = false }) {
   const [session,      setSession]      = useState(null);
+  const [authReady,    setAuthReady]    = useState(false);   // сессия ЕЩЁ не определена (null≠гость) → не мигаем публичной страницей гостевых ссылок
   const [profile,      setProfile]      = useState(null);
   const [leagues,      setLeagues]      = useState(null);   // null = загружается
   const [activeLeague, setActiveLeague] = useState(null);   // { id, name, invite_code, role }
@@ -282,11 +283,13 @@ export default function App({ initialShowLogin = false }) {
       await handleYandexCallback().catch(() => {}); // возврат с Яндекса (?code=...) поднимет сессию
       const { data } = await supabase.auth.getSession();
       setSession(data.session);
+      setAuthReady(true);
       if (window.location.hash.includes("access_token")) {
         window.history.replaceState({}, "", window.location.pathname);
       }
     })();
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+      setAuthReady(true);              // страховка, если getSession выше подвис/упал
       // Supabase повторно шлёт это событие при фокусе вкладки / refresh токена.
       // Если сессия по сути та же — не пересоздаём state, иначе профиль и весь
       // каскад загрузок (лиги/лидерборд/турниры/игры/матчи) перезапускаются и
@@ -601,6 +604,11 @@ export default function App({ initialShowLogin = false }) {
     </Suspense>
   );
 
+  // Пока не знаем, залогинен ли зритель (session=null неоднозначен на холодном
+  // старте), НЕ мигаем публичной афишей гостевых ссылок — держим спиннер до
+  // резолва сессии, дальше эффекты уводят участника в ин-апп без прыжка.
+  if ((leaguePublicCode || inviteCode || tournamentCode) && !authReady) return routeSpinner;
+
   // /l/CODE — публичная страница лиги. Залогиненный УЧАСТНИК → своя лига в приложении.
   // Гостевые ветки ниже (/l, /j, /t, /r) форсируют маскот=вкл: это ДОМ-маскот
   // публичной страницы, не флаг СВОЕЙ активной лиги залогиненного зрителя
@@ -619,7 +627,8 @@ export default function App({ initialShowLogin = false }) {
 
   // /t/CODE — турнир (эффект выше). Залогиненный участник → ин-апп вьюха.
   if (tournamentCode && tourRoute !== "inapp") {
-    if (!session || tourRoute === "public") { setMascotEnabled(true); return <TournamentJoin code={tournamentCode} botName={BOT_NAME} />; }
+    // маскот здесь выставляет сам TournamentJoin по данным афиши (маскот её лиги)
+    if (!session || tourRoute === "public") return <TournamentJoin code={tournamentCode} botName={BOT_NAME} />;
     return routeSpinner;
   }
   if (claimCode)     { setMascotEnabled(true); return <ClaimProfile code={claimCode} botName={BOT_NAME} />; }

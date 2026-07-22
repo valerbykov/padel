@@ -11,7 +11,7 @@ import { useIsWide } from "./wide/wide";
 import LoginScreen from "./LoginScreen";
 import { AlertCircle, Check, UserCheck, Calendar, MapPin } from "lucide-react";
 import { t as tr , dateLocale} from "../lib/i18n";
-import { playerAvatar, avatarFallback, avatarBg , avatarOnLoad} from "../lib/avatar";
+import { playerAvatar, avatarFallback, avatarBg , avatarOnLoad, setMascotEnabled} from "../lib/avatar";
 import { usePublicChrome, PublicToggles } from "./publicChrome";
 import { groupPairs } from "../lib/pairs";
 import { formatMoney } from "../lib/money";
@@ -63,6 +63,9 @@ export default function TournamentJoin({ code, botName }) {
   const [showAllPairs, setShowAllPairs] = useState(false); // ?pair=N: раскрыть весь ростер
   const { theme, lang, vars, toggleTheme, cycleLang } = usePublicChrome();
   const isWide = useIsWide();
+  // Маскот афиши = маскот ЕЁ лиги (не зрителя). Выставляем синхронно на рендер,
+  // до отрисовки ростера/аватаров; по умолчанию вкл, пока данные не пришли.
+  setMascotEnabled(t?.mascot !== false);
 
   const load = useCallback(async () => {
     try {
@@ -73,7 +76,9 @@ export default function TournamentJoin({ code, botName }) {
       // select турнира в 406 (спам в консоли + бесполезный запрос). Гостю
       // хватает данных из RPC.
       const rich = session ? await getTournament(base.id).catch(() => null) : null;
-      setT(rich || base); setLoadErr(false);
+      // mascot приходит только из публичного RPC (base); переносим его в rich,
+      // чтобы афиша уважала маскот СВОЕЙ лиги (инициалы вместо собак при выкл).
+      setT(rich ? { ...rich, mascot: base.mascot } : base); setLoadErr(false);
     } catch (e) {
       // Сетевой/серверный сбой — это НЕ «турнир не найден». Логируем и показываем
       // отдельное сообщение, иначе аутаж выглядит как неверный код.
@@ -202,8 +207,8 @@ export default function TournamentJoin({ code, botName }) {
 
                   {(() => {
                     const avatar = (p, ring) => (
-                      <img src={playerAvatar(p.profile?.avatar_url || p.avatar_url, p.profile_id || p.name)} onError={avatarFallback(p.profile_id || p.name)} onLoad={avatarOnLoad} alt=""
-                        style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", boxShadow: `0 0 0 3px ${ring}`, ...avatarBg(p.profile_id || p.name) }} />
+                      <img src={playerAvatar(p.profile?.avatar_url || p.avatar_url, p.profile_id || p.name, p.name)} onError={avatarFallback(p.profile_id || p.name, p.name)} onLoad={avatarOnLoad} alt=""
+                        style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", boxShadow: `0 0 0 3px ${ring}`, ...avatarBg(p.profile_id || p.name, p.name) }} />
                     );
                     const accent = targetFull ? "var(--coral)" : "var(--lime)";
                     const slot = (children) => <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, textAlign: "center", minWidth: 0 }}>{children}</div>;
@@ -271,7 +276,7 @@ export default function TournamentJoin({ code, botName }) {
                 const avatarOfTp = (tpId) => {
                   const tp = players.find((p) => p.id === tpId);
                   if (!tp) return null;
-                  return tp.avatar_url || tp.profile?.avatar_url || (tp.profile_id ? playerAvatar(null, tp.profile_id) : null);
+                  return tp.avatar_url || tp.profile?.avatar_url || (tp.profile_id ? playerAvatar(null, tp.profile_id, tp.profile?.name || tp.name) : null);
                 };
 
                 const isBtb = t.format === "beat_the_box";
