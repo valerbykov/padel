@@ -59,7 +59,14 @@ export default function TvBoard({ code = null, initial = null, onClose = null })
     return isPairFmt ? pairStandings(t.players || [], t.matches || [])
                      : detailedStandings(t.players || [], t.matches || []);
   }, [t, isPairFmt]);
-  const round = useMemo(() => (t?.matches || []).reduce((m, x) => Math.max(m, x.round_number || 0), 0), [t]);
+  // Текущий раунд = МИНИМАЛЬНЫЙ с несыгранными матчами (американо генерирует все
+  // раунды заранее — max давал бы последний, а не текущий); всё сыграно → последний.
+  const round = useMemo(() => {
+    const ms = t?.matches || [];
+    if (!ms.length) return 0;
+    const unplayed = ms.filter((m) => m.score_a == null || m.score_b == null).map((m) => m.round_number || 1);
+    return unplayed.length ? Math.min(...unplayed) : ms.reduce((mx, x) => Math.max(mx, x.round_number || 0), 0);
+  }, [t]);
   const courts = useMemo(() => (t?.matches || []).filter((m) => (m.round_number || 0) === round), [t, round]);
   const nameOf = (id) => (t?.players || []).find((p) => p.id === id)?.name || "—";
   const staleMin = Math.floor((Date.now() - fetchedAt) / 60000);
