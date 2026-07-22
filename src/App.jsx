@@ -13,6 +13,7 @@ import LeagueSwitcher from "./components/LeagueSwitcher"; // глобальны�
 import NotificationBell from "./components/NotificationBell"; // колокольчик уведомлений (новые игры/турниры лиг)
 import { LogIn, Sun, Moon } from "lucide-react";
 import { getMyLeagues, refreshMyLeagues, bootstrapApp, joinLeague } from "./lib/padelApi";
+import { setMascotEnabled } from "./lib/avatar"; // маскот по активной лиге — выставляется на каждый рендер ниже
 import { findMyTournamentByCode, findMyGameByCode } from "./lib/routeResolvers";
 import { t, setLang, applyLang } from "./lib/i18n";
 import { detectCountry, langFromCountry } from "./lib/region";
@@ -563,6 +564,13 @@ export default function App({ initialShowLogin = false }) {
   }, [leagues]);
 
   const isAdmin = !!(activeLeague && (activeLeague.role === "owner" || activeLeague.role === "admin"));
+
+  // Маскот по активной лиге: синхронно на каждый рендер (не в эффекте!) — иначе
+  // смена лиги/тумблера в «Управлении» не перекрасит аватары/инициалы до
+  // следующего внешнего события. activeLeague.mascot === false → инициалы вместо
+  // собак у игроков без фото (playerAvatar/avatarBg в avatar.js читают флаг).
+  // undefined (лига ещё не отдала поле) трактуется как «маскот включён».
+  setMascotEnabled(activeLeague?.mascot !== false);
 
   // #7: ЛК теперь всплывающее окно (ProfileEditor сам портелится в body), а не
   // отдельный полноэкранный маршрут — рендерим поверх приложения там, где есть топбар.

@@ -46,6 +46,7 @@ export async function bootstrapApp(savedGroupId = null) {
     telegram_url: r.telegram_url,
     members_can_add: !!r.members_can_add, members_can_create: !!r.members_can_create,
     is_demo: !!r.is_demo, // app_bootstrap может не отдавать поле — тогда сработает localStorage-фолбэк
+    mascot: r.mascot !== false, // дефолт true — старые ответы RPC без поля тоже маскот-он
     role: r.role,
   }));
   const gid = data.board_group_id || null;
@@ -565,7 +566,7 @@ export async function deleteLeague(groupId) {
 async function _getMyLeagues(profileId) {
   const { data, error } = await supabase
     .from("group_members")
-    .select("role, group:groups(id, name, invite_code, logo_url, telegram_url, members_can_add, members_can_create, is_demo)")
+    .select("role, group:groups(id, name, invite_code, logo_url, telegram_url, members_can_add, members_can_create, is_demo, mascot)")
     .eq("profile_id", profileId);
   if (error) throw error;
   return (data || []).map((r) => ({
@@ -577,6 +578,7 @@ async function _getMyLeagues(profileId) {
     members_can_add: !!r.group.members_can_add,
     members_can_create: !!r.group.members_can_create,
     is_demo: !!r.group.is_demo,
+    mascot: r.group.mascot !== false,
     role: r.role,
   }));
 }
@@ -642,11 +644,12 @@ export async function updateLeague(groupId, fields) {
   if (fields.telegram_url !== undefined) patch.telegram_url = fields.telegram_url?.trim() || null;
   if (fields.members_can_add !== undefined) patch.members_can_add = !!fields.members_can_add;
   if (fields.members_can_create !== undefined) patch.members_can_create = !!fields.members_can_create;
+  if (fields.mascot !== undefined) patch.mascot = !!fields.mascot;
   const { data, error } = await supabase
     .from("groups")
     .update(patch)
     .eq("id", groupId)
-    .select("id, name, invite_code, logo_url, telegram_url, members_can_add, members_can_create")
+    .select("id, name, invite_code, logo_url, telegram_url, members_can_add, members_can_create, mascot")
     .single();
   if (error) throw error;
   return data;

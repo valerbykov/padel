@@ -4,7 +4,7 @@
 // Данные тянет через get_league_details (RPC), сохраняет в groups (RLS).
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Upload, Send, Check, Star, Users, ShieldCheck, ChevronDown, Loader, UserPlus, Swords, LogOut, Trash2 } from "lucide-react";
+import { X, Upload, Send, Check, Star, Users, ShieldCheck, ChevronDown, Loader, UserPlus, Swords, LogOut, Trash2, PawPrint } from "lucide-react";
 import { getLeagueDetails, updateLeague, uploadLeagueLogo, leaveLeague, deleteLeague } from "../lib/padelApi";
 import Avatar from "./Avatar";
 import InviteCard from "./InviteCard";
@@ -50,6 +50,7 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
   const [logo, setLogo] = useState("");
   const [membersCanAdd, setMembersCanAdd] = useState(false); // #1: кто добавляет игроков
   const [membersCanCreate, setMembersCanCreate] = useState(false); // #1: кто создаёт игры/турниры
+  const [mascot, setMascot] = useState(true); // маскот (собаки в аватарах) — дефолт вкл
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -83,7 +84,7 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
       try {
         const det = await getLeagueDetails(groupId);
         if (!alive) return;
-        setD(det); setName(det.name || ""); setTg(det.telegram_url || ""); setLogo(det.logo_url || ""); setMembersCanAdd(!!det.members_can_add); setMembersCanCreate(!!det.members_can_create);
+        setD(det); setName(det.name || ""); setTg(det.telegram_url || ""); setLogo(det.logo_url || ""); setMembersCanAdd(!!det.members_can_add); setMembersCanCreate(!!det.members_can_create); setMascot(det.mascot ?? true);
       } catch (e) { if (alive) setErr(e.message || t("err_generic")); }
     })();
     return () => { alive = false; };
@@ -94,7 +95,8 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
     (tg.trim() || "") !== (d.telegram_url || "") ||
     (logo || "") !== (d.logo_url || "") ||
     (!!membersCanAdd) !== (!!d.members_can_add) ||
-    (!!membersCanCreate) !== (!!d.members_can_create)
+    (!!membersCanCreate) !== (!!d.members_can_create) ||
+    (!!mascot) !== (d.mascot ?? true)
   );
 
   const onPick = async (e) => {
@@ -109,7 +111,7 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
     if (!canEdit || busy || !dirty) return;
     setBusy(true); setErr(""); setSaved(false);
     try {
-      const upd = await updateLeague(groupId, { name, telegram_url: tg, logo_url: logo, members_can_add: membersCanAdd, members_can_create: membersCanCreate });
+      const upd = await updateLeague(groupId, { name, telegram_url: tg, logo_url: logo, members_can_add: membersCanAdd, members_can_create: membersCanCreate, mascot });
       setD((p) => ({ ...p, ...upd }));
       setSaved(true);
       onUpdated && onUpdated(upd);
@@ -129,7 +131,7 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
     saveTmRef.current = setTimeout(() => saveRef.current(), 800);
     return () => clearTimeout(saveTmRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name, tg, logo, membersCanAdd, membersCanCreate]);
+  }, [name, tg, logo, membersCanAdd, membersCanCreate, mascot]);
   const handleClose = () => {
     clearTimeout(saveTmRef.current);
     if (dirty && canEdit) saveRef.current();
@@ -233,7 +235,7 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
                   </div>
                 </div>
                 <div onClick={canEdit ? () => setMembersCanCreate((v) => !v) : undefined} role="switch" aria-checked={membersCanCreate} aria-disabled={!canEdit}
-                  style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 12px", cursor: canEdit ? "pointer" : "default" }}>
+                  style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 12px", borderBottom: "1px solid var(--line)", cursor: canEdit ? "pointer" : "default" }}>
                   <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--yellow) 13%, transparent)", color: "var(--yellow)" }}><Swords size={15} /></span>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{t("members_can_create_label")}</div>
@@ -241,6 +243,17 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
                   </div>
                   <div style={{ flexShrink: 0, width: 42, height: 24, borderRadius: 999, background: membersCanCreate ? "var(--lime)" : "var(--line)", position: "relative", transition: "background .15s" }}>
                     <span style={{ position: "absolute", top: 3, left: membersCanCreate ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
+                  </div>
+                </div>
+                <div onClick={canEdit ? () => setMascot((v) => !v) : undefined} role="switch" aria-checked={mascot} aria-disabled={!canEdit}
+                  style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 12px", cursor: canEdit ? "pointer" : "default" }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--coral) 13%, transparent)", color: "var(--coral)" }}><PawPrint size={15} /></span>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{t("league_mascot_label")}</div>
+                    <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 1, lineHeight: 1.35 }}>{t("league_mascot_hint")}</div>
+                  </div>
+                  <div style={{ flexShrink: 0, width: 42, height: 24, borderRadius: 999, background: mascot ? "var(--lime)" : "var(--line)", position: "relative", transition: "background .15s" }}>
+                    <span style={{ position: "absolute", top: 3, left: mascot ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
                   </div>
                 </div>
               </div>
