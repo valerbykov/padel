@@ -196,7 +196,7 @@ export default {
     tier_leader_n: 'Champion', tier_leader_short_n: 'Champion', tier_predator_n: 'Master', tier_predator_short_n: 'Master',
     tier_hunter_n: 'Skilled', tier_hunter_short_n: 'Skilled', tier_player_n: 'Player', tier_player_short_n: 'Player',
     tier_trainee_n: 'Amateur', tier_trainee_short_n: 'Amateur', tier_puppy_n: 'Rookie', tier_puppy_short_n: 'Rookie',
-    tier_ladder_title: 'Pack ranks',
+    tier_ladder_title: 'Pack ranks', tier_ladder_title_n: 'Player ranks',
     tier_help: 'Everyone starts at 1000 points. Beating stronger players earns more; losing to weaker ones costs more. A typical match is ±5–15 points.',
     tier_next: 'to "{t}" — {n} pts', tier_wins_est: '≈ {n} wins', tier_upto: 'below {n}',
     tagline_n: "friends' league · your game on court", sc_footer_n: 'your league 🎾',

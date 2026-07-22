@@ -1630,7 +1630,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
             {player.rating != null && (
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
                 <TierChip rating={player.rating} />
-                <button type="button" onClick={() => setShowTiers((s) => !s)} aria-label={t("tier_ladder_title")} title={t("tier_ladder_title")}
+                <button type="button" onClick={() => setShowTiers((s) => !s)} aria-label={tierLabel("tier_ladder_title")} title={tierLabel("tier_ladder_title")}
                   style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", border: "1px solid var(--line)", background: showTiers ? "var(--surface2)" : "none", color: "var(--mut)", cursor: "pointer", padding: 0, flexShrink: 0 }}>
                   <HelpCircle size={11} />
                 </button>
@@ -1657,7 +1657,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
         {/* Легенда званий — лестница с диапазонами + механика ELO в двух строках */}
         {showTiers && (
           <div style={{ marginTop: 10, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, padding: "10px 12px" }}>
-            <div style={{ fontWeight: 700, fontSize: 12, color: "var(--ink)", marginBottom: 4 }}>{t("tier_ladder_title")}</div>
+            <div style={{ fontWeight: 700, fontSize: 12, color: "var(--ink)", marginBottom: 4 }}>{tierLabel("tier_ladder_title")}</div>
             <div style={{ fontSize: 11, color: "var(--mut)", lineHeight: 1.5, marginBottom: 9 }}>{t("tier_help")}</div>
             {TIERS.map((tr, i) => (
               <div key={tr.key} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>

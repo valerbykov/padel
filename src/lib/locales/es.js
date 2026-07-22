@@ -196,7 +196,7 @@ export default {
     tier_leader_n: 'Campeón', tier_leader_short_n: 'Campeón', tier_predator_n: 'Maestro', tier_predator_short_n: 'Maestro',
     tier_hunter_n: 'Avanzado', tier_hunter_short_n: 'Avanzado', tier_player_n: 'Jugador', tier_player_short_n: 'Jugador',
     tier_trainee_n: 'Aficionado', tier_trainee_short_n: 'Aficionado', tier_puppy_n: 'Novato', tier_puppy_short_n: 'Novato',
-    tier_ladder_title: 'Rangos de la manada',
+    tier_ladder_title: 'Rangos de la manada', tier_ladder_title_n: 'Rangos de jugadores',
     tier_help: 'Todos empiezan con 1000 puntos. Ganar a rivales fuertes da más puntos; perder contra débiles quita más. Un partido típico es ±5–15 puntos.',
     tier_next: 'hasta «{t}» — {n} pts', tier_wins_est: '≈ {n} victorias', tier_upto: 'menos de {n}',
     tagline_n: 'liga de amigos · tu juego en pista', sc_footer_n: 'tu liga 🎾',

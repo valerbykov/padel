@@ -86,7 +86,7 @@ export function initialsAvatar(idOrName) {
   const textColor = isLightColor(bg) ? "#1a1a1a" : "#ffffff";
   const fontSize = initials.length > 1 ? 40 : 46;
   const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">` +
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">` +
     `<circle cx="50" cy="50" r="50" fill="${bg}"/>` +
     `<text x="50" y="52" text-anchor="middle" dominant-baseline="central" ` +
     `font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" ` +

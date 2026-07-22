@@ -196,7 +196,7 @@ export default {
     tier_leader_n: 'Чемпион', tier_leader_short_n: 'Чемпион', tier_predator_n: 'Мастер', tier_predator_short_n: 'Мастер',
     tier_hunter_n: 'Опытный', tier_hunter_short_n: 'Опытный', tier_player_n: 'Игрок', tier_player_short_n: 'Игрок',
     tier_trainee_n: 'Любитель', tier_trainee_short_n: 'Любитель', tier_puppy_n: 'Новичок', tier_puppy_short_n: 'Новичок',
-    tier_ladder_title: 'Звания стаи',
+    tier_ladder_title: 'Звания стаи', tier_ladder_title_n: 'Звания игроков',
     tier_help: 'Все начинают с 1000 очков. Победа над сильными приносит больше очков, поражение от слабых отнимает больше. Обычный матч — ±5–15 очков.',
     tier_next: 'до звания «{t}» — {n} оч.', tier_wins_est: '≈ {n} побед', tier_upto: 'до {n}',
     tagline_n: 'лига друзей · своя игра на корте', sc_footer_n: 'твоя лига 🎾',
