@@ -191,7 +191,7 @@ export default function Tournaments({ groupId, players, profileId, bumpArchive, 
   const cancelCreate = () => { try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) {} setMode("list"); };
   if (mode === "create") return <Suspense fallback={<div style={{ minHeight: "60vh" }} />}><Create key={groupId} groupId={groupId} profileId={profileId} players={players} back={cancelCreate} open={(id) => { setActiveId(id); setMode("view"); }} /></Suspense>;
   const detailEl = mode === "view"
-    ? <TournamentView id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} onArchiveChange={bumpArchive} isAdmin={isAdmin} membersCanCreate={membersCanCreate} onOpenPlayer={onOpenPlayer} />
+    ? <TournamentView key={activeId} id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} onArchiveChange={bumpArchive} isAdmin={isAdmin} membersCanCreate={membersCanCreate} onOpenPlayer={onOpenPlayer} />
     : null;
   if (mode === "view" && !isWide) return detailEl;
   const listEl = <List groupId={groupId} profileId={profileId} players={players} session={session} onLogin={onLogin} canCreate={canCreate} isAdmin={isAdmin} membersCanCreate={membersCanCreate} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;

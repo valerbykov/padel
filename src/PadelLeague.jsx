@@ -3123,7 +3123,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
 
   // Проваливание в результаты — те же экраны, что на вкладках Игры/Турниры (там и удаление).
   const detailEl = sel?.type === "tour"
-    ? <TournamentView id={sel.data.id} players={players} back={backFromSel} isGroupMember={isGroupMember} currentProfileId={profileId} onArchiveChange={bumpArchive} onOpenPlayer={onOpenPlayer} />
+    ? <TournamentView key={sel.data.id} id={sel.data.id} players={players} back={backFromSel} isGroupMember={isGroupMember} currentProfileId={profileId} onArchiveChange={bumpArchive} onOpenPlayer={onOpenPlayer} />
     : sel?.type === "game"
       ? <GameCard key={sel.data.id} game={sel.data} groupId={groupId} profileId={profileId} isAdmin={isAdmin} back={backFromSel} reloadGames={load} reloadLeaderboard={() => {}} bumpArchive={bumpArchive} players={players} />
       : null;
