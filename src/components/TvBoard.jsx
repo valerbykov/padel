@@ -1,7 +1,7 @@
 // TvBoard — полноэкранное табло турнира (ТВ клуба / планшет на стойке).
 // Два режима: initial (ин-апп, данные от родителя) и code (публичный /tv/CODE,
 // поллинг публичного RPC — реалтайм анониму не гарантирован).
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getTournamentByCode } from "../lib/tournamentApi";
 import { detailedStandings, pairStandings } from "../lib/americano";
 import { fmtById } from "./Tournaments";
@@ -36,12 +36,23 @@ const S = {
 export default function TvBoard({ code = null, initial = null, onClose = null }) {
   const [t, setT] = useState(initial);
   const [fetchedAt, setFetchedAt] = useState(Date.now());
-  useEffect(() => { if (initial) setT(initial); }, [initial]);
+  // Состояние загрузки публичного /tv/CODE: null=грузим, "notfound"=нет турнира
+  // (неверный/просроченный код → RPC вернул пусто), "neterr"=сбой сети/RPC.
+  // Ошибку показываем только пока данных не было; после первой удачи —
+  // молча держим последнее (табло на стойке не должно мигать на блипе сети).
+  const [err, setErr] = useState(null);
+  const loadedRef = useRef(!!initial);
+  useEffect(() => { if (initial) { loadedRef.current = true; setT(initial); } }, [initial]);
   useEffect(() => {
     if (!code || initial) return;
     let alive = true;
     const load = () => getTournamentByCode(code)
-      .then((d) => { if (alive && d) { setT(d); setFetchedAt(Date.now()); } }).catch(() => {});
+      .then((d) => {
+        if (!alive) return;
+        if (d) { loadedRef.current = true; setT(d); setFetchedAt(Date.now()); setErr(null); }
+        else if (!loadedRef.current) setErr("notfound");
+      })
+      .catch(() => { if (alive && !loadedRef.current) setErr("neterr"); });
     load();
     const id = setInterval(load, 12000);
     return () => { alive = false; clearInterval(id); };
@@ -71,7 +82,21 @@ export default function TvBoard({ code = null, initial = null, onClose = null })
   const nameOf = (id) => (t?.players || []).find((p) => p.id === id)?.name || "—";
   const staleMin = Math.floor((Date.now() - fetchedAt) / 60000);
 
-  if (!t) return <div style={S.root}><div style={{ color: "var(--mut)" }}>{tr("loading")}</div></div>;
+  // Полноэкранное центрированное сообщение (загрузка / ошибка / не начался).
+  const message = (text, muted = true) => (
+    <div style={{ ...S.root, alignItems: "center", justifyContent: "center", textAlign: "center" }}>
+      <div style={{ color: muted ? "var(--mut)" : "var(--ink)", fontSize: "3vmin", fontWeight: 700, maxWidth: "70vmin", whiteSpace: "pre-line" }}>{text}</div>
+      {onClose && <button onClick={onClose} style={{ ...S.close, marginTop: "3vmin" }}>✕</button>}
+    </div>
+  );
+  if (!t) {
+    if (err === "notfound") return message(tr("trn_tv_notfound"));
+    if (err === "neterr") return message(tr("trn_tv_neterr"));
+    return message(tr("loading"));
+  }
+  // Турнир найден, но матчей ещё нет (не начат) — честное «не начался»,
+  // а не пустая сетка кортов с «раунд 0».
+  if (!(t.matches || []).length) return message(`🏆 ${t.name || fmt.name}\n${tr("trn_tv_notstarted")}`, false);
   return (
     <div style={S.root}>
       <div style={S.top}>
