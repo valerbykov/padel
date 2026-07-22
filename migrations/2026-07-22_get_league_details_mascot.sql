@@ -1,12 +1,7 @@
 -- get_league_details: добавляем g.mascot в ответ (тумблер маскота в «Управлении
 -- лигой» — LeagueManager читает det.mascot для начального состояния свитча).
 -- Остальное тело без изменений (сверено с прод-определением 2026-07-22).
---
--- ВНИМАНИЕ: применяется контроллером на прод через Supabase MCP (см.
--- migrations/2026-07-22_group_mascot.sql, migrations/2026-07-22_app_bootstrap_mascot.sql —
--- тот же паттерн). Прямое применение из этой сессии было заблокировано
--- classifier'ом автономного режима (изменение прод-БД) — миграция НЕ применена
--- на проде, только зафиксирована в репозитории.
+-- Применено на прод контроллером через Supabase MCP 2026-07-22.
 create or replace function public.get_league_details(p_group_id uuid)
 returns jsonb language plpgsql security definer set search_path to 'public'
 as $function$
