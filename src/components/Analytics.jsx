@@ -332,8 +332,8 @@ export default function Analytics({ groupId, onBack, players = [], onOpenPlayer,
                 const tap = full && onOpenPlayer ? () => onOpenPlayer(full) : undefined;
                 return (
                   <div key={i} onClick={tap} style={{ display: "flex", alignItems: "center", gap: 9, cursor: tap ? "pointer" : "default" }}>
-                    <img src={playerAvatar(full?.avatar_url, p.id || p.name)} onError={avatarFallback(p.id || p.name)} onLoad={avatarOnLoad} alt=""
-                      style={{ ...avatarBg(p.id || p.name), width: 30, height: 30, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                    <img src={playerAvatar(full?.avatar_url, p.id || p.name, p.name)} onError={avatarFallback(p.id || p.name, p.name)} onLoad={avatarOnLoad} alt=""
+                      style={{ ...avatarBg(p.id || p.name, p.name), width: 30, height: 30, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                     <span style={{ fontSize: 12.5, fontWeight: 600, width: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flexShrink: 0 }}>
                       {p.name}{p.id === profileId ? " " : ""}{p.id === profileId && <span style={{ fontSize: 9, color: "var(--lime-fg)", background: "var(--lime)", borderRadius: 5, padding: "0 4px", fontWeight: 800 }}>{t("fr_you")}</span>}
                     </span>
@@ -360,7 +360,7 @@ export default function Analytics({ groupId, onBack, players = [], onOpenPlayer,
                   const tap = full && onOpenPlayer ? () => onOpenPlayer(full) : undefined;
                   return (
                     <span key={m.id} onClick={tap} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 999, padding: "4px 11px 4px 4px", cursor: tap ? "pointer" : "default" }}>
-                      <img src={playerAvatar(full?.avatar_url, m.id)} onError={avatarFallback(m.id)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(m.id), width: 22, height: 22, borderRadius: "50%", objectFit: "cover" }} />
+                      <img src={playerAvatar(full?.avatar_url, m.id, m.name)} onError={avatarFallback(m.id, m.name)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(m.id, m.name), width: 22, height: 22, borderRadius: "50%", objectFit: "cover" }} />
                       <span style={{ fontSize: 11.5, fontWeight: 600 }}>{m.name}</span>
                     </span>
                   );
@@ -382,7 +382,7 @@ export default function Analytics({ groupId, onBack, players = [], onOpenPlayer,
                   const tap = full && onOpenPlayer ? () => onOpenPlayer(full) : undefined;
                   return (
                     <span key={m.id} onClick={tap} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 999, padding: "4px 11px 4px 4px", cursor: tap ? "pointer" : "default" }}>
-                      <img src={playerAvatar(full?.avatar_url, m.id)} onError={avatarFallback(m.id)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(m.id), width: 22, height: 22, borderRadius: "50%", objectFit: "cover" }} />
+                      <img src={playerAvatar(full?.avatar_url, m.id, m.name)} onError={avatarFallback(m.id, m.name)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(m.id, m.name), width: 22, height: 22, borderRadius: "50%", objectFit: "cover" }} />
                       <span style={{ fontSize: 11.5, fontWeight: 600 }}>{m.name}</span>
                       <span style={{ fontSize: 9.5, color: "var(--mut)" }}>{t("an_days_short").replace("{n}", String(m.days))}</span>
                     </span>
@@ -401,8 +401,8 @@ export default function Analytics({ groupId, onBack, players = [], onOpenPlayer,
                 <CT>{t("an_pair")}</CT>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
                   <span style={{ display: "flex", flexShrink: 0 }}>
-                    <img src={playerAvatar(pa?.avatar_url, pair.a)} onError={avatarFallback(pair.a)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(pair.a), width: 34, height: 34, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--surface)" }} />
-                    <img src={playerAvatar(pb?.avatar_url, pair.b)} onError={avatarFallback(pair.b)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(pair.b), width: 34, height: 34, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--surface)", marginLeft: -10 }} />
+                    <img src={playerAvatar(pa?.avatar_url, pair.a, pa?.name)} onError={avatarFallback(pair.a, pa?.name)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(pair.a, pa?.name), width: 34, height: 34, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--surface)" }} />
+                    <img src={playerAvatar(pb?.avatar_url, pair.b, pb?.name)} onError={avatarFallback(pair.b, pb?.name)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(pair.b, pb?.name), width: 34, height: 34, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--surface)", marginLeft: -10 }} />
                   </span>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nm(pa, pair.a)} + {nm(pb, pair.b)}</div>

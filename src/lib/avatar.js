@@ -77,12 +77,15 @@ function initialsFor(idOrName) {
 }
 
 // Аватар-заглушка на инициалах: самодостаточный SVG (data-URI), без ассетов.
-// Детерминированно по id/имени — цвет фона и буквы всегда одни и те же.
-export function initialsAvatar(idOrName) {
-  const key = String(idOrName ?? "");
-  const hash = [...key].reduce((a, c) => a + c.charCodeAt(0), 0);
+// key — ключ хэша (обычно id, для стабильного цвета), name — источник букв.
+// Если name не передан, буквы берём из key (обратная совместимость: старые
+// вызовы с одним аргументом-именем работают как раньше). Ключ-UUID без имени
+// букв не даёт — тогда «?».
+export function initialsAvatar(key, name) {
+  const hashKey = String(key ?? "");
+  const hash = [...hashKey].reduce((a, c) => a + c.charCodeAt(0), 0);
   const bg = INITIALS_PALETTE[hash % INITIALS_PALETTE.length];
-  const initials = initialsFor(idOrName);
+  const initials = initialsFor(name ?? key);
   const textColor = isLightColor(bg) ? "#1a1a1a" : "#ffffff";
   const fontSize = initials.length > 1 ? 40 : 46;
   const svg =
@@ -96,9 +99,10 @@ export function initialsAvatar(idOrName) {
 }
 
 // Кастомное фото игрока, иначе — автозаглушка: собака (маскот вкл) или
-// инициалы (маскот выкл).
-export const playerAvatar = (url, idOrName) =>
-  url || (mascotEnabled ? dogAvatar(idOrName) : initialsAvatar(idOrName));
+// инициалы (маскот выкл). key — ключ хэша/собаки (id), name — источник букв
+// для инициалов (передавать всегда, где ключ — UUID; иначе будет «?»).
+export const playerAvatar = (url, key, name) =>
+  url || (mascotEnabled ? dogAvatar(key) : initialsAvatar(key, name));
 
 // onError-обработчик для <img> аватара. playerAvatar/Avatar дают заглушку
 // только когда url пустой; но если url НЕ пустой и не грузится (битая ссылка,
@@ -106,12 +110,12 @@ export const playerAvatar = (url, idOrName) =>
 // показывает «битую картинку». Этот хендлер при провале загрузки один раз
 // подменяет src на заглушку (собака при маскоте, иначе инициалы).
 // Флаг dataset защищает от петли, если вдруг и заглушка не загрузится.
-export function avatarFallback(idOrName) {
+export function avatarFallback(key, name) {
   return (e) => {
     const img = e.currentTarget;
     if (img.dataset.dogFallback) return;
     img.dataset.dogFallback = "1";
-    img.src = mascotEnabled ? dogAvatar(idOrName) : initialsAvatar(idOrName);
+    img.src = mascotEnabled ? dogAvatar(key) : initialsAvatar(key, name);
   };
 }
 
@@ -120,8 +124,8 @@ export function avatarFallback(idOrName) {
 // Telegram/битый Storage), сквозь прозрачный img видна заглушка, а не пустой
 // круг. Загрузилось фото — оно перекрывает фон; не загрузилось — остаётся
 // заглушка (плюс onError-подмена как страховка).
-export function avatarBg(idOrName) {
-  const fallbackUrl = mascotEnabled ? dogAvatar(idOrName) : initialsAvatar(idOrName);
+export function avatarBg(key, name) {
+  const fallbackUrl = mascotEnabled ? dogAvatar(key) : initialsAvatar(key, name);
   return { backgroundImage: `url(${fallbackUrl})`, backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat" };
 }
 

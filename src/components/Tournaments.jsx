@@ -785,7 +785,7 @@ export function TournamentPoster({ trnData, fmt, readOnly, isKoth, isBtb, isGrou
             {(trnData.players || []).length > 0 && (
               <span style={{ display: "inline-flex", flexShrink: 0 }}>
                 {trnData.players.slice(0, 5).map((p, k) => (
-                  <img key={p.id} src={playerAvatar(avatarOfTp(p.id), p.profile_id || p.name)} alt=""
+                  <img key={p.id} src={playerAvatar(avatarOfTp(p.id), p.profile_id || p.name, p.name)} alt=""
                     style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", marginLeft: k ? -8 : 0, boxShadow: "0 0 0 2px #112a20", background: "var(--surface2)" }} />
                 ))}
                 {trnData.players.length > 5 && <span style={{ marginLeft: -8, width: 24, height: 24, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "var(--mut)", boxShadow: "0 0 0 2px #112a20" }}>+{trnData.players.length - 5}</span>}
@@ -887,14 +887,14 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   // #3: имя создателя турнира (для понимания, кто может вводить счёт). Резолвим по составу лиги.
   const creatorName = trnData.created_by ? ((players || []).find((p) => p.id === trnData.created_by)?.name || null) : null;
   const nameOf = (tpId) => trnData.players.find((p) => p.id === tpId)?.name || "?";
-  const _dogAv = (pid) => pid ? playerAvatar(null, pid) : null;
+  const _dogAv = (pid, name) => pid ? playerAvatar(null, pid, name) : null;
   const avatarOfTp = (tpId) => {
     const tp = trnData.players.find((p) => p.id === tpId);
     if (!tp) return null;
     const gp = (players || []).find((gp) => gp.id === tp.profile_id);
     // tp.avatar_url приходит из get_tournament_by_code (гостевая страница /t,
     // где ростер лиги недоступен) — реальные фото вместо собак-заглушек.
-    return gp?.avatar_url || tp.avatar_url || tp.profile?.avatar_url || (tp.profile_id ? _dogAv(tp.profile_id) : null);
+    return gp?.avatar_url || tp.avatar_url || tp.profile?.avatar_url || (tp.profile_id ? _dogAv(tp.profile_id, tp.profile?.name || tp.name) : null);
   };
 
   const isPairFmt = fmt.category === "pair" && !isBtb; // BtB тоже category:"pair", но без pair_no

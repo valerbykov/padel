@@ -27,8 +27,8 @@ function loadImg(src) {
     im.src = /^https?:\/\//i.test(src) ? src + (src.includes("?") ? "&" : "?") + "sc=1" : src;
   });
 }
-async function avatarImg(url, idOrName) {
-  return (url && await loadImg(url)) || await loadImg(playerAvatar(null, idOrName || "?"));
+async function avatarImg(url, key, name) {
+  return (url && await loadImg(url)) || await loadImg(playerAvatar(null, key || "?", name));
 }
 
 function rr(ctx, x, y, w, h, r) {
@@ -91,7 +91,7 @@ export async function renderGameCard({ title, dateStr, teamA, teamB, setsA, sets
     ctx.fillText(String(title).toUpperCase().slice(0, 34), W / 2, 240);
   }
 
-  const imgs = await Promise.all([...teamA, ...teamB].map((p) => avatarImg(p.avatar_url, p.id || p.name)));
+  const imgs = await Promise.all([...teamA, ...teamB].map((p) => avatarImg(p.avatar_url, p.id || p.name, p.name)));
   const [a1, a2, b1, b2] = imgs;
   const d = 190, overlap = 60, cy = 480;
   // Аватары пары перекрываются: пара компактнее и не налезает на крупный счёт.
@@ -148,7 +148,7 @@ export async function renderMixCard({ dateStr, games = [] }) {
 
   const shown = games.slice(0, 5);
   const imgs = await Promise.all(shown.map((g) =>
-    Promise.all([...g.teamA, ...g.teamB].map((p) => avatarImg(p.avatar_url, p.id || p.name)))));
+    Promise.all([...g.teamA, ...g.teamB].map((p) => avatarImg(p.avatar_url, p.id || p.name, p.name)))));
 
   const firstName = (n) => String(n || "?").trim().split(/\s+/)[0];
   const fit = (tx, max) => {
@@ -231,7 +231,7 @@ export async function renderTournamentCard({ name, dateStr, metaStr, top3 }) {
   const imgSets = await Promise.all(top3.map((p) =>
     Array.isArray(p.avatars) && p.avatars.length > 1
       ? Promise.all(p.avatars.slice(0, 2).map((u, k) => avatarImg(u, (p.names || [])[k] || p.name)))
-      : avatarImg(p.avatar_url, p.id || p.name).then((im) => [im])
+      : avatarImg(p.avatar_url, p.id || p.name, p.name).then((im) => [im])
   ));
   const baseY = H - 200;                       // низ пьедесталов (над футером)
   const cols = [
