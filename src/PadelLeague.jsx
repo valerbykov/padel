@@ -3073,6 +3073,7 @@ function GameCopyDialog({ src, groupId, profileId = null, onClose, onCopied }) {
 }
 
 function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = false, archiveNonce, bumpArchive, onOpenPlayer }) {
+  const isWide = useIsWide();
   const [games, setGames] = useState(null);  // сыгранные игры
   const [tours, setTours] = useState([]);     // завершённые турниры
   const [copyTour, setCopyTour] = useState(null);
@@ -3118,8 +3119,12 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
   }, [groupId, focusId, archiveNonce]);
 
   // Проваливание в результаты — те же экраны, что на вкладках Игры/Турниры (там и удаление).
-  if (sel?.type === "tour") return <TournamentView id={sel.data.id} players={players} back={backFromSel} isGroupMember={isGroupMember} currentProfileId={profileId} onArchiveChange={bumpArchive} onOpenPlayer={onOpenPlayer} />;
-  if (sel?.type === "game") return <GameCard key={sel.data.id} game={sel.data} groupId={groupId} profileId={profileId} isAdmin={isAdmin} back={backFromSel} reloadGames={load} reloadLeaderboard={() => {}} bumpArchive={bumpArchive} players={players} />;
+  const detailEl = sel?.type === "tour"
+    ? <TournamentView id={sel.data.id} players={players} back={backFromSel} isGroupMember={isGroupMember} currentProfileId={profileId} onArchiveChange={bumpArchive} onOpenPlayer={onOpenPlayer} />
+    : sel?.type === "game"
+      ? <GameCard key={sel.data.id} game={sel.data} groupId={groupId} profileId={profileId} isAdmin={isAdmin} back={backFromSel} reloadGames={load} reloadLeaderboard={() => {}} bumpArchive={bumpArchive} players={players} />
+      : null;
+  if (sel && !isWide) return detailEl;
 
   const gameDate = (g) => new Date(g.matches?.[0]?.played_at || g.starts_at || g.created_at || 0);
   const tourDate = (tr) => new Date(tr.starts_at || tr.created_at || 0);
@@ -3239,7 +3244,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
   const meRow = profileId ? (players || []).find((p) => p.id === profileId) : null;
   const rosterOthers = (players || []).filter((p) => p.id !== profileId);
 
-  return (
+  const listEl = (
     <div className="pl-pop">
       <style>{trCss}</style>
       {/* Фильтр видов: Все / Игры / Турниры. */}
@@ -3332,4 +3337,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
       {copyGame && <GameCopyDialog src={copyGame} groupId={groupId} profileId={profileId} onClose={() => setCopyGame(null)} onCopied={() => { setCopyGame(null); bumpArchive?.(); showToast(t("copy_game_done")); }} />}
     </div>
   );
+  if (isWide) return <WideSplit list={listEl} detail={detailEl}
+    empty={<EmptyDetail icon="🕘" title={t("tab_history")} sub={t("wide_pick_event")} />} />;
+  return listEl;
 }
