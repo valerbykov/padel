@@ -116,7 +116,7 @@ function AvatarStack({ people = [], size = 28 }) {
   return (
     <div style={{ display: "flex" }}>
       {people.map((p, i) => (
-        <div key={i} style={{ marginLeft: i === 0 ? 0 : -Math.round(size * 0.3), borderRadius: "50%", boxShadow: "0 0 0 2px var(--surface2)", lineHeight: 0 }}>
+        <div key={`${p.name}-${p.avatar_url ?? i}`} style={{ marginLeft: i === 0 ? 0 : -Math.round(size * 0.3), borderRadius: "50%", boxShadow: "0 0 0 2px var(--surface2)", lineHeight: 0 }}>
           <Avatar name={p.name} url={p.avatar_url} size={size} />
         </div>
       ))}
@@ -299,35 +299,39 @@ export default function LeaguePublicPage({ code }) {
               <div className="lp-status-pill"><span className="lp-status-dot" />{heroLive ? t("showcase_live") : t("showcase_open")}</div>
               <div className="lp-hero-title">{heroEvent.name || heroEvent.place || "Padel"}</div>
               <div className="lp-hero-meta">
-                {heroEvent.starts_at && <span>🗓️ <b>{fmtDateTime(heroEvent.starts_at)}</b></span>}
-                {heroEvent.place && !heroPlaceInTitle && <span>📍 {heroEvent.place}</span>}
+                {heroEvent.starts_at && <span><span aria-hidden="true">🗓️</span> <b>{fmtDateTime(heroEvent.starts_at)}</b></span>}
+                {heroEvent.place && !heroPlaceInTitle && <span><span aria-hidden="true">📍</span> {heroEvent.place}</span>}
                 {heroEvent.level && <EventLevelBadge level={heroEvent.level} />}
-                {heroEvent.fee_per_player > 0 && <span className="lp-hero-fee">💸 {formatMoney(heroEvent.fee_per_player, heroEvent.fee_currency)}</span>}
+                {heroEvent.fee_per_player > 0 && <span className="lp-hero-fee"><span aria-hidden="true">💸</span> {formatMoney(heroEvent.fee_per_player, heroEvent.fee_currency)}</span>}
               </div>
               <div className="lp-hero-foot">
                 <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
                   <AvatarStack people={heroEvent.going || []} size={30} />
                   <div className="lp-going-txt">
                     <b>{t("showcase_going").replace("{n}", String(heroEvent.taken))}</b>
-                    {heroEvent.last_join && (<><br /><span className="lp-pulseline">⚡ {heroEvent.last_join.name} {relTime(heroEvent.last_join.at)}</span></>)}
+                    {heroEvent.last_join && (<><br /><span className="lp-pulseline"><span aria-hidden="true">⚡</span> {heroEvent.last_join.name} {relTime(heroEvent.last_join.at)}</span></>)}
                   </div>
                 </div>
-                {wideLayout && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    {!heroLive && (
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  {/* Статус (осталось мест / «полный») — текст виден на ОБЕИХ раскладках;
+                      сама кнопка записи — только на wide (на телефоне — липкая CTA внизу). */}
+                  {!heroLive && (
+                    heroFull ? (
+                      <span className="lp-full-tag">{t("showcase_full")}</span>
+                    ) : (
                       <div className="lp-seats" style={{ color: heroFree < 3 ? "var(--coral)" : "var(--lime)" }}>
                         {t("showcase_seats_left").replace("{n}", String(heroFree))}
                       </div>
-                    )}
-                    {heroLive ? (
+                    )
+                  )}
+                  {wideLayout && (
+                    heroLive ? (
                       <a href={heroHref} className="lp-go-btn">{t("showcase_watch")}</a>
-                    ) : heroFull ? (
-                      <span className="lp-full-tag">{t("showcase_full")}</span>
-                    ) : (
+                    ) : !heroFull ? (
                       <a href={heroHref} className="lp-go-btn">{t("showcase_join")}</a>
-                    )}
-                  </div>
-                )}
+                    ) : null
+                  )}
+                </div>
               </div>
             </div>
           );
@@ -382,8 +386,8 @@ export default function LeaguePublicPage({ code }) {
             <>
               <div className="lp-cap">{t("showcase_recent")}</div>
               <div className="lp-spines">
-                {recentList.map((r, i) => (
-                  <span className="lp-spine" key={i}>{eventEmoji(r.kind, r.format)} <b>{r.name || "Padel"}</b> · {fmtDay(r.at)}</span>
+                {recentList.map((r) => (
+                  <span className="lp-spine" key={`${r.kind}-${r.name}-${r.at}`}><span aria-hidden="true">{eventEmoji(r.kind, r.format)}</span> <b>{r.name || "Padel"}</b> · {fmtDay(r.at)}</span>
                 ))}
               </div>
             </>
@@ -432,7 +436,7 @@ export default function LeaguePublicPage({ code }) {
 
           // Лидерборд (при подиуме — с 4-го места)
           const leaderboard = (
-            <div className="lp-card" style={{ marginBottom: 20, overflow: "hidden", borderTopLeftRadius: membersCount >= 3 ? 0 : undefined, borderTopRightRadius: membersCount >= 3 ? 0 : undefined }}>
+            <div id="lp-full-rating" className="lp-card" style={{ marginBottom: 20, overflow: "hidden", borderTopLeftRadius: membersCount >= 3 ? 0 : undefined, borderTopRightRadius: membersCount >= 3 ? 0 : undefined }}>
               {membersCount === 0 && (
                 <div style={{ padding: 20, textAlign: "center", color: "var(--mut)", fontSize: 13 }}>
                   {t("pub_no_players")}
@@ -463,7 +467,7 @@ export default function LeaguePublicPage({ code }) {
           // Свёртка полного рейтинга — по умолчанию закрыт, подиум уже виден.
           const ratingBlock = membersCount >= 3 ? (
             <>
-              <div className="lp-fold" role="button" tabIndex={0} aria-expanded={ratingOpen}
+              <div className="lp-fold" role="button" tabIndex={0} aria-expanded={ratingOpen} aria-controls="lp-full-rating"
                 onClick={() => setRatingOpen((v) => !v)}
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setRatingOpen((v) => !v); } }}>
                 <span>{t("showcase_full_rating").replace("{n}", String(membersCount))}</span>
@@ -551,7 +555,7 @@ export default function LeaguePublicPage({ code }) {
           const sidePulse = heroEvent?.last_join && (
             <div className="lp-side-pulse">
               <Avatar name={heroEvent.last_join.name} size={24} />
-              <span>⚡ <b>{heroEvent.last_join.name}</b> {relTime(heroEvent.last_join.at)}</span>
+              <span><span aria-hidden="true">⚡</span> <b>{heroEvent.last_join.name}</b> {relTime(heroEvent.last_join.at)}</span>
             </div>
           );
 
