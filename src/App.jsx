@@ -2,7 +2,7 @@
 // Показывает приложение лиги сразу. Сверху панель: «Войти» для гостей,
 // имя + «Выйти» для авторизованных. Определяет группы пользователя (leagues)
 // и прокидывает активную лигу в PadelLeague. Ссылка /j/CODE открывает экран гостя.
-import React, { useEffect, useState, useCallback, useRef, lazy } from "react";
+import React, { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
 import { supabase } from "./lib/supabase";
 import { handleAuthCallbackUrl, handleYandexCallback, handleTelegramCallback } from "./lib/auth";
 import { cachePeek, cacheSet } from "./lib/cache";
@@ -59,6 +59,7 @@ const GuestJoin        = lazy(() => import("./components/GuestJoin"));
 const TournamentJoin   = lazy(() => import("./components/TournamentJoin"));
 const ClaimProfile     = lazy(() => import("./components/ClaimProfile"));
 const TgNativeBridge   = lazy(() => import("./components/TgNativeBridge"));
+const TvBoard          = lazy(() => import("./components/TvBoard"));
 
 const BOT_NAME = "padelacc_bot"; // имя твоего Telegram-бота без @
 
@@ -83,6 +84,12 @@ function getLeaguePublicCode() {
   const m = window.location.pathname.match(/^\/l\/([A-Za-z0-9]{4,12})$/i);
   return m ? m[1].toUpperCase() : null;
 }
+
+// /tv/CODE — публичное ТВ-табло турнира (без логина, только чтение).
+const getTvCode = () => {
+  const m = window.location.pathname.match(/^\/tv\/([A-Za-z0-9]{4,12})$/i);
+  return m ? m[1] : null;
+};
 
 export default function App({ initialShowLogin = false }) {
   const [session,      setSession]      = useState(null);
@@ -178,6 +185,7 @@ export default function App({ initialShowLogin = false }) {
   const tournamentCode  = getTournamentCode();
   const claimCode       = getClaimCode();
   const leaguePublicCode = getLeaguePublicCode();
+  const tvCode          = getTvCode();
 
   // ?join=CODE — автозаполнение формы вступления в лигу. В нативной обёртке
   // полная навигация webview теряет query, поэтому публичная страница лиги
@@ -576,6 +584,13 @@ export default function App({ initialShowLogin = false }) {
       <div style={{ width: 34, height: 34, borderRadius: "50%", border: "3px solid rgba(255,255,255,.12)", borderTopColor: "var(--lime, #c8ff2d)", animation: "appspin .7s linear infinite" }} />
       <style>{`@keyframes appspin{to{transform:rotate(360deg)}}`}</style>
     </div>
+  );
+
+  // /tv/CODE — публичное ТВ-табло турнира (без логина; поллинг публичного RPC).
+  if (tvCode) return (
+    <Suspense fallback={routeSpinner}>
+      <TvBoard code={tvCode} />
+    </Suspense>
   );
 
   // /l/CODE — публичная страница лиги. Залогиненный УЧАСТНИК → своя лига в приложении.
