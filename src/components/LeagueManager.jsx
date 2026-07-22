@@ -235,7 +235,7 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
                   </div>
                 </div>
                 <div onClick={canEdit ? () => setMembersCanCreate((v) => !v) : undefined} role="switch" aria-checked={membersCanCreate} aria-disabled={!canEdit}
-                  style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 12px", borderBottom: "1px solid var(--line)", cursor: canEdit ? "pointer" : "default" }}>
+                  style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 12px", cursor: canEdit ? "pointer" : "default" }}>
                   <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--yellow) 13%, transparent)", color: "var(--yellow)" }}><Swords size={15} /></span>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{t("members_can_create_label")}</div>
@@ -245,19 +245,24 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
                     <span style={{ position: "absolute", top: 3, left: membersCanCreate ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
                   </div>
                 </div>
-                <div onClick={canEdit ? () => setMascot((v) => !v) : undefined} role="switch" aria-checked={mascot} aria-disabled={!canEdit}
-                  style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 12px", cursor: canEdit ? "pointer" : "default" }}>
-                  <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--coral) 13%, transparent)", color: "var(--coral)" }}><PawPrint size={15} /></span>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{t("league_mascot_label")}</div>
-                    <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 1, lineHeight: 1.35 }}>{t("league_mascot_hint")}</div>
-                  </div>
-                  <div style={{ flexShrink: 0, width: 42, height: 24, borderRadius: 999, background: mascot ? "var(--lime)" : "var(--line)", position: "relative", transition: "background .15s" }}>
-                    <span style={{ position: "absolute", top: 3, left: mascot ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
-                  </div>
-                </div>
               </div>
             </Section>
+
+            {/* Маскот — оформление лиги (собаки в аватарах + «стайная» лексика).
+                Отдельная строка верхнего уровня: это не право участника. */}
+            <div style={{ background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 14, marginBottom: 12, overflow: "hidden", opacity: canEdit ? 1 : 0.72 }}>
+              <div onClick={canEdit ? () => setMascot((v) => !v) : undefined} role="switch" aria-checked={mascot} aria-disabled={!canEdit}
+                style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 12px", cursor: canEdit ? "pointer" : "default" }}>
+                <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--coral) 13%, transparent)", color: "var(--coral)" }}><PawPrint size={15} /></span>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{t("league_mascot_label")}</div>
+                  <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 1, lineHeight: 1.35 }}>{t("league_mascot_hint")}</div>
+                </div>
+                <div style={{ flexShrink: 0, width: 42, height: 24, borderRadius: 999, background: mascot ? "var(--lime)" : "var(--line)", position: "relative", transition: "background .15s" }}>
+                  <span style={{ position: "absolute", top: 3, left: mascot ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
+                </div>
+              </div>
+            </div>
 
             {/* Телеграм-канал — компактная строка в стиле личного кабинета:
                 значение справа, поле ввода раскрывается по тапу. */}
