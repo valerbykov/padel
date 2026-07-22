@@ -63,6 +63,9 @@ import { EventLevelBadge } from "./LevelBadges";
 import { registerBack } from "../lib/backstack";
 import { confirmDialog, showToast } from "./ui-dialogs";
 import BackButton from "./BackButton";
+import { useIsWide } from "./wide/wide";
+import WideSplit from "./wide/WideSplit";
+import EmptyDetail from "./wide/EmptyDetail";
 // Мастер создания турнира вынесен в отдельный чанк — грузится только при открытии формы.
 const Create = lazy(() => import("./TournamentCreate"));
 // Округляем к сетке 5 минут (00:01 → 00:00): степпер времени шагает по 5 мин.
@@ -160,6 +163,7 @@ const statusLabel = (s) => ({ open: tr("trn_sec_open"), active: tr("trn_sec_acti
 // ─── Root ──────────────────────────────────────────────────────────────────────
 
 export default function Tournaments({ groupId, players, profileId, bumpArchive, session, onLogin, isAdmin = false, canCreate = false, membersCanCreate = false, openReq = null, onOpenPlayer = null }) {
+  const isWide = useIsWide();
   const DRAFT_KEY = `pp_trn_draft_${groupId}`;
   // При смене вкладки Tournaments размонтируется (гейт tab===). Чтобы черновик
   // создания пережил уход/возврат, стартуем сразу в форме, если есть непустой
@@ -184,8 +188,14 @@ export default function Tournaments({ groupId, players, profileId, bumpArchive, 
   // снова затянул нас в форму при следующем открытии вкладки.
   const cancelCreate = () => { try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) {} setMode("list"); };
   if (mode === "create") return <Suspense fallback={<div style={{ minHeight: "60vh" }} />}><Create key={groupId} groupId={groupId} profileId={profileId} players={players} back={cancelCreate} open={(id) => { setActiveId(id); setMode("view"); }} /></Suspense>;
-  if (mode === "view") return <TournamentView id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} onArchiveChange={bumpArchive} isAdmin={isAdmin} membersCanCreate={membersCanCreate} onOpenPlayer={onOpenPlayer} />;
-  return <List groupId={groupId} profileId={profileId} players={players} session={session} onLogin={onLogin} canCreate={canCreate} isAdmin={isAdmin} membersCanCreate={membersCanCreate} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
+  const detailEl = mode === "view"
+    ? <TournamentView id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} onArchiveChange={bumpArchive} isAdmin={isAdmin} membersCanCreate={membersCanCreate} onOpenPlayer={onOpenPlayer} />
+    : null;
+  if (mode === "view" && !isWide) return detailEl;
+  const listEl = <List groupId={groupId} profileId={profileId} players={players} session={session} onLogin={onLogin} canCreate={canCreate} isAdmin={isAdmin} membersCanCreate={membersCanCreate} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
+  if (isWide) return <WideSplit list={listEl} detail={detailEl}
+    empty={<EmptyDetail icon="🏆" title={tr("tab_tournaments")} sub={tr("wide_pick_tour")} />} />;
+  return listEl;
 }
 
 // ─── TournamentHero ────────────────────────────────────────────────────────────
