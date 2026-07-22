@@ -35,6 +35,8 @@ import { sanitizeEventLevel } from "./lib/levels";
 import { dogAvatar, playerAvatar, avatarFallback, DOG_COUNT , avatarBg, avatarOnLoad} from "./lib/avatar";
 import { useIsWide } from "./components/wide/wide";
 import WideRail from "./components/wide/WideRail";
+import WideSplit from "./components/wide/WideSplit";
+import EmptyDetail from "./components/wide/EmptyDetail";
 
 // Текущая дата-время в формате datetime-local (YYYY-MM-DDTHH:MM) с учётом таймзоны.
 // Округляем к сетке 5 минут (00:01 → 00:00), секунды в 0: степпер времени шагает
@@ -2176,6 +2178,7 @@ function MixGroupCard({ games, color, onOpenGame, me = null, delta = null, showM
 }
 
 function Games({ groupId, players, profileId, reloadLeaderboard, session, archiveNonce, bumpArchive, onLogin, isAdmin = false, canCreate = false, openReq = null, theme = "dark" }) {
+  const isWide = useIsWide();
   const [games, setGames] = useState([]);
   const GAME_DRAFT_KEY = `pp_game_draft_${groupId}`;
   // Черновик создания игры переживает уход на другую вкладку/профиль (как у турниров):
@@ -2217,13 +2220,18 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
       back={() => { try { sessionStorage.removeItem(GAME_DRAFT_KEY); } catch (e) {} setMode("list"); }}
       done={async (g) => { await loadGames(); if (g?.id) { setSelId(g.id); setMode("view"); } else setMode("list"); }} />;
 
-  if (mode === "view") {
+  const detailEl = (() => {
+    if (mode !== "view") return null;
     const g = games.find((x) => x.id === selId);
-    if (!g) { setMode("list"); return null; }
-    return <GameCard key={g.id} game={g} groupId={groupId} profileId={profileId} isAdmin={isAdmin} back={backToList} reloadGames={loadGames} reloadLeaderboard={reloadLeaderboard} bumpArchive={bumpArchive} players={players} />;
-  }
+    if (!g) return null;
+    return <GameCard key={g.id} game={g} groupId={groupId} profileId={profileId} isAdmin={isAdmin}
+      back={backToList} reloadGames={loadGames} reloadLeaderboard={reloadLeaderboard}
+      bumpArchive={bumpArchive} players={players} />;
+  })();
+  if (mode === "view" && !detailEl) { setMode("list"); return null; }
+  if (mode === "view" && !isWide) return detailEl;
 
-  return (
+  const listEl = (
     <div className="pl-pop">
       {!session && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "color-mix(in srgb, var(--lime) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 30%, transparent)", borderRadius: 12, marginBottom: 12 }}>
@@ -2311,6 +2319,9 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
       })()}
     </div>
   );
+  if (isWide) return <WideSplit list={listEl} detail={detailEl}
+    empty={<EmptyDetail icon="⚔️" title={t("tab_games")} sub={t("wide_pick_game")} />} />;
+  return listEl;
 }
 
 function CreateGame({ groupId, profileId, back, done }) {

@@ -233,6 +233,7 @@ export default {
     mix_again: 'Jugar otra (mix)', mix_create: 'Crear partida', mix_hint: 'Arrastra un jugador para cambiar equipos',
     mix_session_title: 'Sesión mix', you_badge: 'Tú', mix_game_label: 'Partida', mix_delete_confirm: '¿Eliminar toda la sesión mix ({n} partidas)?',
     mix_active_section: 'Sesiones mix', mix_finish_btn: 'Terminar sesión', mix_finish_confirm_title: '¿Terminar la sesión mix?', mix_finish_confirm_msg: 'La sesión pasará al Historial. Después no podrás añadirle más partidas.',
+    wide_pick_game: 'Elige una partida a la izquierda — se abrirá aquí', wide_pick_tour: 'Elige un torneo a la izquierda — su cuadro se abrirá aquí', wide_pick_player: 'Elige un jugador a la izquierda — su perfil se abrirá aquí', wide_pick_event: 'Elige un evento a la izquierda — sus detalles se abrirán aquí',
     games_empty_session: 'No hay partidas. Crea una y comparte el enlace con tus amigos.',
     games_empty_guest: 'Aquí aparecerán las partidas de tu liga. Entra y únete a una liga.',
     slot_free: '🔗 libre — esperando por enlace',
