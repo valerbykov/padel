@@ -2347,13 +2347,14 @@ function CreateGame({ groupId, profileId, back, done }) {
   const [slots] = useState([null, null, null, null]);
   const [durMin, setDurMin] = useState(() => d0.durMin || 60);
   const [level, setLevel] = useState(() => d0.level ?? null);
+  const [listed, setListed] = useState(() => d0.listed !== false); // афиша лиги: по умолчанию показываем
   const [busy, setBusy] = useState(false);
 
   // Сохраняем черновик при любом изменении полей.
   useEffect(() => {
-    const draft = { title, titleEdited, day, time, place, durMin, level };
+    const draft = { title, titleEdited, day, time, place, durMin, level, listed };
     try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch (e) {}
-  }, [title, titleEdited, day, time, place, durMin, level]);
+  }, [title, titleEdited, day, time, place, durMin, level, listed]);
 
   // Автоназвание = место (если указано) или пусто. Дата/время НЕ дублируются
   // в названии — они и так показываются отдельной строкой в плашке/карточке.
@@ -2371,7 +2372,7 @@ function CreateGame({ groupId, profileId, back, done }) {
     let startsAtIso = null;
     try { if (date) startsAtIso = new Date(date).toISOString(); } catch (e) { startsAtIso = null; }
     const endsAt = startsAtIso ? new Date(new Date(startsAtIso).getTime() + durMin * 60000).toISOString() : null;
-    try { const g = await createGame(groupId, { title: title.trim() || null, startsAt: startsAtIso, endsAt, level: sanitizeEventLevel(level), place, slots, hostId: profileId || null }); try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) {} notifyGameCreated(g?.id); creatingRef.current = false; done(g); }
+    try { const g = await createGame(groupId, { title: title.trim() || null, startsAt: startsAtIso, endsAt, level: sanitizeEventLevel(level), place, slots, hostId: profileId || null, listed }); try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) {} notifyGameCreated(g?.id); creatingRef.current = false; done(g); }
     catch (e) { showToast(t("err_create_game")); setBusy(false); creatingRef.current = false; }
   };
 
@@ -2397,6 +2398,18 @@ function CreateGame({ groupId, profileId, back, done }) {
           </div>
           <DurationPicker value={durMin} onChange={setDurMin} />
           <LevelPicker value={level} onChange={setLevel} />
+          {/* Афиша лиги: показывать ли игру на публичной странице /l/CODE */}
+          <div onClick={() => setListed((v) => !v)} role="switch" aria-checked={listed}
+            style={{ display: "flex", alignItems: "center", gap: 11, cursor: "pointer" }}>
+            <span style={{ width: 44, height: 26, borderRadius: 13, flexShrink: 0, position: "relative", transition: "background .15s",
+              background: listed ? "var(--lime)" : "var(--surface2)", border: listed ? "none" : "1px solid var(--line)" }}>
+              <span style={{ position: "absolute", top: 3, left: listed ? 21 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
+            </span>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{t("event_listed_label")}</div>
+              <div style={{ fontSize: 11, color: "var(--mut)" }}>{t("event_listed_hint")}</div>
+            </div>
+          </div>
         </div>
         <button className="pl-btn" style={{ width: "100%", padding: 14, fontSize: 16 }} disabled={!day || busy} onClick={create}>{busy ? t("creating_game") : t("create_and_get_link")}</button>
       </div>

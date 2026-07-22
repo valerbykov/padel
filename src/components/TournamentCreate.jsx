@@ -38,6 +38,7 @@ export default function Create({ groupId, profileId, players = [], back, open })
   const [contactName, setContactName] = useState(() => d0.contactName || "");
   const [contactLink, setContactLink] = useState(() => d0.contactLink || "");
   const [level, setLevel] = useState(() => d0.level ?? null);
+  const [listed, setListed] = useState(() => d0.listed !== false); // афиша лиги: по умолчанию показываем
   const [contactFromLeague, setContactFromLeague] = useState(() => d0.contactFromLeague !== false); // по умолчанию — из Лиги
   const [feeAmount, setFeeAmount] = useState(() => d0.feeAmount || ""); // взнос с игрока (пусто = без взноса)
   const [feeTiming, setFeeTiming] = useState(() => d0.feeTiming || "start"); // когда собирать: до старта / после
@@ -52,9 +53,9 @@ export default function Create({ groupId, profileId, players = [], back, open })
   // Сохраняем черновик при любом изменении полей — переживает уход со вкладки
   // (включая выбранный формат и шаг мастера, чтобы вернуться на тот же экран).
   useEffect(() => {
-    const draft = { step, format, courts, playerCount, points, openScoring, kotHChampionRule, day, time, place, name, durMin, description, contactName, contactLink, level, contactFromLeague, feeAmount, feeTiming, feeCur };
+    const draft = { step, format, courts, playerCount, points, openScoring, kotHChampionRule, day, time, place, name, durMin, description, contactName, contactLink, level, listed, contactFromLeague, feeAmount, feeTiming, feeCur };
     try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch (e) {}
-  }, [step, format, courts, playerCount, points, openScoring, kotHChampionRule, day, time, place, name, durMin, description, contactName, contactLink, level, contactFromLeague, feeAmount, feeTiming, feeCur]);
+  }, [step, format, courts, playerCount, points, openScoring, kotHChampionRule, day, time, place, name, durMin, description, contactName, contactLink, level, listed, contactFromLeague, feeAmount, feeTiming, feeCur]);
 
   // Валюта взноса по региону (async) — только если не восстановлена из черновика.
   useEffect(() => { if (!feeCur) defaultCurrency().then((c) => setFeeCur(c || "EUR")).catch(() => setFeeCur("EUR")); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -112,7 +113,7 @@ export default function Create({ groupId, profileId, players = [], back, open })
       // Окончание = начало + выбранная длительность.
       let endsAtIso = null;
       try { endsAtIso = new Date(new Date(`${day}T${time}`).getTime() + durMin * 60000).toISOString(); } catch (e) { endsAtIso = null; }
-      const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format, createdBy: profileId, startsAt: startsAtIso, endsAt: endsAtIso, place, description: description.trim() || null, contactName: contactName.trim() || null, contactLink: contactLink.trim() || null, kotHChampionRule: isKoth ? kotHChampionRule : undefined, openScoring, level: sanitizeEventLevel(level), feePerPlayer: Number(feeAmount) || null, feeCurrency: feeCur, feeTiming });
+      const trn = await createTournament(groupId, { name: name.trim() || null, pointsPerGame: points, targetSize, format, createdBy: profileId, startsAt: startsAtIso, endsAt: endsAtIso, place, description: description.trim() || null, contactName: contactName.trim() || null, contactLink: contactLink.trim() || null, kotHChampionRule: isKoth ? kotHChampionRule : undefined, openScoring, level: sanitizeEventLevel(level), feePerPlayer: Number(feeAmount) || null, feeCurrency: feeCur, feeTiming, listed });
       try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) {}
       open(trn.id);
     } catch (e) {
@@ -298,6 +299,19 @@ export default function Create({ groupId, profileId, players = [], back, open })
             </div>
           )}
           </>)}
+        </div>
+
+        {/* Афиша лиги: показывать ли турнир на публичной странице /l/CODE */}
+        <div onClick={() => setListed((v) => !v)} role="switch" aria-checked={listed}
+          style={{ display: "flex", alignItems: "center", gap: 11, cursor: "pointer" }}>
+          <span style={{ width: 44, height: 26, borderRadius: 13, flexShrink: 0, position: "relative", transition: "background .15s",
+            background: listed ? "var(--lime)" : "var(--surface2)", border: listed ? "none" : "1px solid var(--line)" }}>
+            <span style={{ position: "absolute", top: 3, left: listed ? 21 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
+          </span>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{tr("event_listed_label")}</div>
+            <div style={{ fontSize: 11, color: "var(--mut)" }}>{tr("event_listed_hint")}</div>
+          </div>
         </div>
 
         {/* Контакт ОРГАНИЗАТОРА (кого спросить по турниру — виден участникам).

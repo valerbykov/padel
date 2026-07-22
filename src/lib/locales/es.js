@@ -421,4 +421,5 @@ export default {
     games_loading: 'Cargando…', evt_level_multi_hint: 'Marca todos los niveles que apliquen',
     evt_level_label: 'Nivel', evt_level_opt: 'opcional', refresh: 'Actualizar', dur_label: 'Duración', dur_h: 'h', dur_min: 'min', contact_pick_league: 'Elegir de la Liga', trn_contact_org: 'Contacto del organizador', trn_contact_org_hint: 'A quién preguntar sobre el torneo — visible para los jugadores', trn_share_pair_hint: 'Enlace para ESTA pareja — quien lo abra se une como compañero',
     inspector_badge: '✦ PRO · próximamente', inspector_hint: 'Contexto: {ctx}. Contenido en la etapa de análisis premium.',
+    event_listed_label: 'Mostrar en la página de la liga', event_listed_hint: 'El evento aparece en la página pública de la liga, donde cualquiera puede unirse por enlace',
 };

@@ -203,7 +203,7 @@ export async function getRatingHistory(groupId, profileId) {
    ===================================================================== */
 
 const GAME_SELECT =
-  "id, invite_code, title, starts_at, started_at, place, status, host_id, created_at, mix_group_id, mix_ended_at, court_name, fee_per_player, fee_currency, fee_timing, level, ends_at, " +
+  "id, invite_code, title, starts_at, started_at, place, status, host_id, created_at, mix_group_id, mix_ended_at, court_name, fee_per_player, fee_currency, fee_timing, level, ends_at, listed, " +
   "slots:game_slots(id, team, position, profile_id, guest_name, profile:profiles(name, avatar_url))," +
   "matches(id, sets_a, sets_b, score_detail, played_at)";
 
@@ -216,7 +216,7 @@ export async function updateGameCourtName(gameId, name) {
 
 // Создать игру + 4 слота. slots: [A1, A2, B1, B2] — profileId или null (по ссылке).
 // mixGroupId — для «Сыграть ещё (микс)»: связывает под-игры одного выхода.
-export async function createGame(groupId, { title, startsAt, endsAt, place, slots = [], hostId, mixGroupId, level } = {}) {
+export async function createGame(groupId, { title, startsAt, endsAt, place, slots = [], hostId, mixGroupId, level, listed = true } = {}) {
   let game = null;
   for (let attempt = 0; attempt < 5; attempt++) {
     const res = await supabase
@@ -232,6 +232,8 @@ export async function createGame(groupId, { title, startsAt, endsAt, place, slot
         mix_group_id: mixGroupId || null,
         status: "open",
         level: level || null,
+        // listed — тумблер «показывать в афише лиги» (/l/CODE); дефолт true.
+        listed: listed !== false,
       })
       .select()
       .single();
