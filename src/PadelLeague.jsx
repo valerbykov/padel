@@ -453,6 +453,7 @@ function PlayerRowSkeleton({ count = 5 }) {
 }
 
 function Board({ groupId, players, loading = false, reload, profileId, isAdmin, leagues, leaguesReady = true, activeLeague, onLeagueCreated, onEditProfile, selfStatsReq = false, onSelfStatsSeen, analyticsReq = false, onAnalyticsSeen }) {
+  const isWide = useIsWide();
   const [open, setOpen] = useState(false);
   const [showStats, setShowStats] = useState(false);  // дашборд аналитики лиги
   const [query, setQuery] = useState("");
@@ -641,7 +642,7 @@ function Board({ groupId, players, loading = false, reload, profileId, isAdmin, 
 
   if (showStats) return <Suspense fallback={<div style={{ minHeight: "50vh" }} />}><Analytics groupId={groupId} players={players} profileId={profileId} onBack={() => setShowStats(false)} onOpenPlayer={(p) => { setShowStats(false); setSelected(p); }} /></Suspense>;
 
-  if (selected) return (
+  const detailEl = selected ? (
     <PlayerDetail key={selected.id} groupId={groupId} player={selected} players={players} close={() => setSelected(null)} onOpenPlayer={setSelected}
       isAdmin={isAdmin} onEditProfile={onEditProfile}
       onAddToLeague={isAdmin ? async () => {
@@ -664,7 +665,8 @@ function Board({ groupId, players, loading = false, reload, profileId, isAdmin, 
         setSelected(null);
       } : undefined}
     />
-  );
+  ) : null;
+  if (selected && !isWide) return detailEl;
 
   // Демо-стая из пустого состояния: раньше кнопка была только в LeagueSetup,
   // до которого пользователь без лиги (в т.ч. давно зарегистрированный) не добирался.
@@ -686,7 +688,7 @@ function Board({ groupId, players, loading = false, reload, profileId, isAdmin, 
   // Лиги ещё грузятся, активной пока нет — скелетон вместо мигающего «Без лиги»/пустоты.
   if (!leaguesReady && !groupId) return <div className="pl-pop"><CardSkeleton count={5} /></div>;
 
-  return (
+  const listEl = (
     <div className="pl-pop">
       {/* Без лиги — подсказка + вход в демо-стаю (создание/вступление — в переключателе в шапке).
           Только когда список лиг ДОГРУЖЕН: иначе карточка мигает при каждом логине. */}
@@ -1017,6 +1019,9 @@ function Board({ groupId, players, loading = false, reload, profileId, isAdmin, 
       )}
     </div>
   );
+  if (isWide) return <WideSplit list={listEl} detail={detailEl}
+    empty={<EmptyDetail icon="👥" title={t("tab_friends")} sub={t("wide_pick_player")} />} />;
+  return listEl;
 }
 
 /* -------------------- DeletePlayerModal ---------------------------------- */
