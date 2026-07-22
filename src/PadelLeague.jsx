@@ -33,10 +33,11 @@ import DurationPicker from "./components/DurationPicker";
 import LevelPicker from "./components/LevelPicker";
 import { sanitizeEventLevel } from "./lib/levels";
 import { dogAvatar, playerAvatar, avatarFallback, DOG_COUNT , avatarBg, avatarOnLoad} from "./lib/avatar";
-import { useIsWide } from "./components/wide/wide";
+import { useIsWide, useRailExpanded } from "./components/wide/wide";
 import WideRail from "./components/wide/WideRail";
 import WideSplit from "./components/wide/WideSplit";
 import EmptyDetail from "./components/wide/EmptyDetail";
+import InspectorPanel from "./components/wide/InspectorPanel";
 
 // Текущая дата-время в формате datetime-local (YYYY-MM-DDTHH:MM) с учётом таймзоны.
 // Округляем к сетке 5 минут (00:01 → 00:00), секунды в 0: степпер времени шагает
@@ -218,6 +219,7 @@ function ContactLinks({ contacts = {} }) {
 export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin, onOpenLanding, onEditProfile, openSelfStatsNonce = 0, openAnalyticsNonce = 0, openEvent = null, profileNonce = 0 }) {
   const [tab, setTab] = useState(session ? "board" : "welcome");
   const isWide = useIsWide();
+  const rail = useRailExpanded();
   const [pendingSelfStats, setPendingSelfStats] = useState(false);   // одноразовый запрос «моя статистика»
   const [pendingAnalytics, setPendingAnalytics] = useState(false);   // одноразовый запрос «аналитика лиги»
   // Повторный тап по активной вкладке должен возвращать к её корню (закрыть
@@ -326,7 +328,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
       <style>{css}</style>
       {/* Заголовок вкладки и переключатель лиги убраны — переключатель теперь в топбаре, имя вкладки видно в нижней навигации. */}
       <div style={{ display: "flex", alignItems: "flex-start" }}>
-        {isWide && <WideRail tab={tab} goTab={goTab} session={session} activeLeague={activeLeague} />}
+        {isWide && <WideRail tab={tab} goTab={goTab} session={session} activeLeague={activeLeague} expanded={rail.expanded} canExpand={rail.canExpand} onToggleExpand={rail.toggle} />}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={isWide
             ? { maxWidth: 1200, margin: "0 auto", padding: "14px 20px 40px" }
@@ -345,6 +347,7 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
             {tab === "history" && (session ? <HistoryView key={navNonce} groupId={groupId} players={players} profileId={profileId} isGroupMember={!!groupId} isAdmin={isAdmin} archiveNonce={archiveNonce} bumpArchive={bumpArchive} onOpenPlayer={openTourPlayer} /> : <GateScreen />)}
           </div>
         </div>
+        {isWide && <InspectorPanel context={tab} />}
       </div>
 
       {!isWide && (
