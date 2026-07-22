@@ -32,7 +32,7 @@ import LevelBadges, { EventLevelBadge } from "./components/LevelBadges";
 import DurationPicker from "./components/DurationPicker";
 import LevelPicker from "./components/LevelPicker";
 import { sanitizeEventLevel } from "./lib/levels";
-import { dogAvatar, playerAvatar, avatarFallback, DOG_COUNT , avatarBg, avatarOnLoad} from "./lib/avatar";
+import { dogAvatar, playerAvatar, avatarFallback, DOG_COUNT , avatarBg, avatarOnLoad, mascotOn} from "./lib/avatar";
 import { useIsWide, useRailExpanded } from "./components/wide/wide";
 import WideRail from "./components/wide/WideRail";
 import WideSplit from "./components/wide/WideSplit";
@@ -164,25 +164,29 @@ function RatingChart({ rows }) {
 // чип в шапке статистики, чип в строке таблицы, прогресс до следующего звания.
 // Эмодзи — только у крайних званий, середина лестницы текстом.
 const TIERS = [
-  { key: "tier_leader",   min: 1350, color: "#ff9f2d",       emoji: "🐺" },
+  { key: "tier_leader",   min: 1350, color: "#ff9f2d",       emoji: "🐺", emojiN: "🎾" },
   { key: "tier_predator", min: 1200, color: "var(--yellow)" },
   { key: "tier_hunter",   min: 1100, color: "var(--lime)" },
   { key: "tier_player",   min: 1000, color: "#4db8e8" },
   { key: "tier_trainee",  min: 900,  color: "#a9bfb2" },
-  { key: "tier_puppy",    min: -Infinity, color: "var(--mut)", emoji: "🐶" },
+  { key: "tier_puppy",    min: -Infinity, color: "var(--mut)", emoji: "🐶", emojiN: "" },
 ];
 // Защитно: у игроков вне лиги («Играли вместе») rating отсутствует — NaN не должен ронять UI.
 const tierOf = (r) => TIERS.find((tr) => (Number(r) || 0) >= tr.min) || TIERS[TIERS.length - 1];
 const tierAbove = (r) => { const i = TIERS.findIndex((tr) => (Number(r) || 0) >= tr.min); return i > 0 ? TIERS[i - 1] : null; };
+// Собачий словарь → нейтральный, когда в активной лиге маскот выключен (см. avatar.js
+// mascotOn(), выставляется App-ом синхронно на каждый рендер по активной лиге).
+const tierLabel = (baseKey) => (mascotOn() ? t(baseKey) : t(baseKey + "_n"));
 
 function TierChip({ rating, compact = false }) {
   const tr = tierOf(rating);
+  const emoji = mascotOn() ? tr.emoji : tr.emojiN;
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: compact ? 9.5 : 10.5, fontWeight: 800,
       padding: compact ? "1px 7px" : "3px 9px", borderRadius: 999, flexShrink: 0, whiteSpace: "nowrap",
       background: `color-mix(in srgb, ${tr.color} 13%, transparent)`, color: tr.color,
       border: `1px solid color-mix(in srgb, ${tr.color} 35%, transparent)` }}>
-      {tr.emoji ? tr.emoji + " " : ""}{t(compact ? tr.key + "_short" : tr.key)}
+      {emoji ? emoji + " " : ""}{tierLabel(compact ? tr.key + "_short" : tr.key)}
     </span>
   );
 }
@@ -703,7 +707,7 @@ function Board({ groupId, players, loading = false, reload, profileId, isAdmin, 
             background: "linear-gradient(180deg, color-mix(in srgb, var(--lime) 12%, var(--surface)) 0%, var(--surface) 60%)",
             border: "1px solid color-mix(in srgb, var(--lime) 38%, transparent)",
             boxShadow: "0 0 0 4px color-mix(in srgb, var(--lime) 7%, transparent)" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10.5, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--lime)" }}>🐕 {t("demo_hero_eyebrow")}</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10.5, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--lime)" }}>{mascotOn() ? "🐕" : "🎾"} {t("demo_hero_eyebrow")}</span>
             <div style={{ fontSize: 17, fontWeight: 800, lineHeight: 1.2, margin: "8px 0 3px", letterSpacing: -0.2 }}>{t("demo_hero_title")}</div>
             <div style={{ fontSize: 12, color: "var(--mut)", margin: "0 0 13px", lineHeight: 1.4 }}>{t("demo_hero_desc")}</div>
 
@@ -718,7 +722,7 @@ function Board({ groupId, players, loading = false, reload, profileId, isAdmin, 
                   <img src={dogAvatar(d.n)} alt="" style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, objectFit: "cover", border: "1px solid var(--line)" }} />
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: "block", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.n}</span>
-                    <span style={{ display: "block", fontSize: 10, color: "var(--mut)" }}>{t(tierOf(d.p).key)}</span>
+                    <span style={{ display: "block", fontSize: 10, color: "var(--mut)" }}>{tierLabel(tierOf(d.p).key)}</span>
                   </span>
                   <span style={{ fontSize: 13, fontWeight: 800, color: "var(--lime)" }}>{d.p}</span>
                 </div>
@@ -727,7 +731,7 @@ function Board({ groupId, players, loading = false, reload, profileId, isAdmin, 
 
             <button disabled={leagueBusy} onClick={handleDemoLeague}
               style={{ width: "100%", marginTop: 13, padding: "13px 0", border: "none", borderRadius: 13, background: "var(--lime)", color: "var(--lime-fg)", fontSize: 15, fontWeight: 800, fontFamily: "'Outfit',sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, cursor: "pointer", boxShadow: "0 8px 22px -8px color-mix(in srgb, var(--lime) 65%, transparent)" }}>
-              🐕 {leagueBusy ? t("creating") : t("demo_hero_cta")} {!leagueBusy && <span className="demo-arrow">→</span>}
+              {mascotOn() ? "🐕" : "🎾"} {leagueBusy ? t("creating") : t("demo_hero_cta")} {!leagueBusy && <span className="demo-arrow">→</span>}
             </button>
 
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
@@ -770,7 +774,7 @@ function Board({ groupId, players, loading = false, reload, profileId, isAdmin, 
       {/* Демо-плашка: пунктир = «песочница». CTA ведёт в создание настоящей лиги. */}
       {isDemoLeague && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 13px", marginBottom: 12, background: "color-mix(in srgb, var(--lime) 8%, transparent)", border: "1px dashed color-mix(in srgb, var(--lime) 45%, transparent)", borderRadius: 14 }}>
-          <span style={{ fontSize: 18, flexShrink: 0 }}>🐕</span>
+          <span style={{ fontSize: 18, flexShrink: 0 }}>{mascotOn() ? "🐕" : "🎾"}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--ink)" }}>{t("demo_banner_title")}</div>
             <div style={{ fontSize: 10.5, color: "var(--mut)" }}>{t("demo_banner_sub")}</div>
@@ -1676,7 +1680,7 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
           return (
             <div style={{ marginTop: 12 }}>
               <div style={{ display: "flex", fontSize: 10.5, color: "var(--mut)", marginBottom: 5, gap: 8, flexWrap: "wrap" }}>
-                <span>{t("tier_next").replace("{t}", t(next.key)).replace("{n}", String(gap))}</span>
+                <span>{t("tier_next").replace("{t}", tierLabel(next.key)).replace("{n}", String(gap))}</span>
                 <span style={{ marginLeft: "auto" }}>{t("tier_wins_est").replace("{n}", String(Math.max(1, Math.ceil(gap / avgWin))))}</span>
               </div>
               <div style={{ height: 6, background: "var(--surface2)", borderRadius: 4, overflow: "hidden" }}>
