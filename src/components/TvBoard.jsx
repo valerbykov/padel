@@ -68,7 +68,7 @@ export default function TvBoard({ code = null, initial = null, onClose = null })
   return (
     <div style={S.root}>
       <div style={S.top}>
-        <span style={S.eyebrow}>🏆 {t.name || fmt.name} · {tr("trn_hero_round").replace("{a}", String(round)).replace("{b}", "")} </span>
+        <span style={S.eyebrow}>🏆 {t.name || fmt.name} · {tr("trn_tv_round").replace("{n}", String(round))}</span>
         {code && staleMin > 1 && <span style={{ color: "var(--mut)", fontSize: "1.4vmin" }}>{tr("trn_tv_stale").replace("{n}", String(staleMin))}</span>}
         {onClose && <button onClick={onClose} style={S.close}>✕</button>}
       </div>

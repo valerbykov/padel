@@ -1473,10 +1473,13 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
           )}
         </>
       )}
-      {tvOpen && (
+      {/* Портал в body: внутри анимированных контейнеров (.pl-pop / transform)
+          position:fixed считается от предка — оверлей не накрывал шапку и FAB. */}
+      {tvOpen && createPortal(
         <Suspense fallback={null}>
           <TvBoardLazy initial={trnData} onClose={() => setTvOpen(false)} />
-        </Suspense>
+        </Suspense>,
+        document.body
       )}
     </div>
   );
