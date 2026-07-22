@@ -160,11 +160,17 @@ export default function GuestJoin({ code, botName }) {
       if (!free.length) return null;
       const partner = takenOnTeam(team);
       const opponent = takenOnTeam(team === "A" ? "B" : "A");
+      // Без сырой буквы команды («корт A» — внутренний код, не перевод): сторону
+      // различают напарник/соперник в подписи, а на пустом корте кнопка одна.
       const label = partner
         ? t("pub_join_this_pair").replace("{name}", partner.name) + (opponent ? ` · ${t("versus")} ${opponent.name}` : "")
-        : `${t("pub_stand_court")} ${team}`;
+        : opponent
+          ? `${t("pub_stand_court")} · ${t("versus")} ${opponent.name}`
+          : t("pub_stand_court");
       return { team, position: free[0].position, label };
     }).filter(Boolean);
+    // Полностью пустой корт: стороны эквивалентны — одна кнопка вместо двух одинаковых.
+    const visibleChoices = filled === 0 ? sideChoices.slice(0, 1) : sideChoices;
 
     const title = <div className="gj-display" style={{ fontSize: 26, marginTop: 4 }}>{game.title || "PadelPack"}</div>;
 
@@ -217,7 +223,7 @@ export default function GuestJoin({ code, botName }) {
         {/* По кнопке на каждую сторону со свободным местом — явно называет
             напарника (и соперника, если он уже известен), а не молча берёт
             первый свободный слот. Тап по месту на корте — рабочая альтернатива. */}
-        {open && sideChoices.map((c, i) => (
+        {open && visibleChoices.map((c, i) => (
           <button key={c.team} className="gj-btn" disabled={busy}
             style={{
               width: "100%", padding: 13, fontSize: 14.5, borderRadius: 14, marginBottom: 8,
