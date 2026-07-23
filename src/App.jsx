@@ -518,22 +518,22 @@ export default function App({ initialShowLogin = false }) {
     return () => { alive = false; };
   }, [tournamentCode, session, profile, leagues, handleOpenEvent]);
 
-  // /l/CODE у ЗАЛОГИНЕННОГО: обычного УЧАСТНИКА открываем в приложении (доска его
-  // лиги), а не публичной страницей «как гость». Но ВЛАДЕЛЬЦА/АДМИНА пускаем на
-  // ВИТРИНУ — он приходит по своей ссылке посмотреть/расшарить публичную страницу
-  // (иначе владелец не мог увидеть, что именно шарит). Не участник → публичная.
+  // /l/CODE — вид зависит от УСТРОЙСТВА и авторизации, не от роли:
+  //   • участник на ТЕЛЕФОНЕ (узкий экран) → приложение (вкладка Друзья его лиги);
+  //   • планшет/десктоп (широкий), гость и не-участник → ВИТРИНА лиги (с логином).
+  // На широком экране витрина — полноценная двухколонная страница, поэтому её
+  // показываем даже своему участнику/владельцу (внутри есть вход/открыть приложение).
   useEffect(() => {
     if (!leaguePublicCode) { setLeagueRoute(null); return; }
     if (!session) { setLeagueRoute("public"); return; }
     if (leagues === null) return;                          // ждём список лиг
     const lg = (leagues || []).find((l) => l.invite_code === leaguePublicCode);
-    const isOwnerAdmin = lg && (lg.role === "owner" || lg.role === "admin");
-    if (lg && !isOwnerAdmin) {
+    if (lg && !isWide) {
       setActiveLeague(lg);
       setLeagueRoute("inapp");
       try { window.history.replaceState({}, "", "/"); } catch (e) { /* приват/SSR */ }
-    } else setLeagueRoute("public");   // владелец/админ и не-участники → витрина
-  }, [leaguePublicCode, session, leagues]);
+    } else setLeagueRoute("public");   // широкий экран / гость / не-участник → витрина
+  }, [leaguePublicCode, session, leagues, isWide]);
 
   // /j/CODE у ЗАЛОГИНЕННОГО: игра из его лиги → ин-апп вид игры (как тап из «Игр»), а не
   // гостевая страница. RLS-запрос вернёт строку только участнику лиги.
