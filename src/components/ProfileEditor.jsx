@@ -15,6 +15,7 @@ import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
 import { Camera, Check, Loader, LogOut, BarChart3, Sun, Moon, X, Bell, Trash2, User, Phone, Mail, Globe, ChevronRight, ChevronDown, Lock, ArrowUp, ArrowDown, MessageCircle } from "lucide-react";
 import Avatar from "./Avatar";
+import { useIsWide } from "./wide/wide";
 import { AVATAR_SETS, presetsForSet, setIdForUrl } from "../lib/avatar";
 import { t, setLang , dateLocale} from "../lib/i18n";
 import { saveNotifPrefs, registerPush, OFFSET_OPTIONS } from "../lib/notifications";
@@ -95,6 +96,11 @@ const css = `
 .pc-skel{background:var(--surface2);border-radius:10px;animation:pc-skel 1.1s ease-in-out infinite alternate;}
 @keyframes pc-skel{from{opacity:.45}to{opacity:.9}}
 @media (prefers-reduced-motion:reduce){.pc-skel{animation:none;opacity:.6}}
+/* Десктоп (≥900): две колонки — герой слева (липкий), данные/настройки/зона справа. */
+.pc-grid{display:grid;grid-template-columns:320px 1fr;gap:14px;align-items:start;}
+.pc-grid .pc-hero{position:sticky;top:0;}
+.pc-grid .pc-rightcol{display:flex;flex-direction:column;gap:12px;}
+.pc-grid .pc-rightcol > .pc-card{margin-top:0 !important;}
 `;
 
 function Chevron({ open }) {
@@ -104,6 +110,7 @@ function Chevron({ open }) {
 }
 
 export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpenStats, lang = "ru", onThemeToggle, onLangChange, profile = null, activeLeague = null, leagueCount = 0 }) {
+  const isWide = useIsWide();     // ≥900: модалка в две колонки (герой слева, остальное справа)
   const pickLang = async (l) => { await setLang(l); onLangChange?.(l); };
   // Мгновенная гидратация из props.profile (кэш бутстрапа): первый кадр — без сети.
   const [userId, setUserId] = useState(null);
@@ -346,7 +353,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
       style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,.62)", backdropFilter: "blur(5px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, boxSizing: "border-box" }}>
       <style>{css}</style>
       <div className="pc-sheet" onClick={(e) => e.stopPropagation()}
-        style={{ width: "100%", maxWidth: 440, maxHeight: "min(90vh, 780px)" }}>
+        style={{ width: "100%", maxWidth: isWide ? 860 : 440, maxHeight: "min(90vh, 780px)" }}>
         <div className="pc-head">
           <h2 className="pc-title">{t("profile_label")}</h2>
           <span className="pc-status" aria-live="polite">
@@ -369,9 +376,9 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
           ) : !userId && !profile ? (
             <div className="pc-card" style={{ textAlign: "center", color: "var(--mut)", padding: 16 }}>{t("pc_login_to_edit")}</div>
           ) : (
-            <>
+            <div className={isWide ? "pc-grid" : undefined}>
               {/* ГЕРОЙ: аватар + стая + чипы + стат-плитки + CTA */}
-              <div className="pc-card" style={{ padding: "18px 16px 14px", textAlign: "center" }}>
+              <div className={"pc-card" + (isWide ? " pc-hero" : "")} style={{ padding: "18px 16px 14px", textAlign: "center" }}>
                 <div style={{ position: "relative", display: "inline-block" }}>
                   <span style={{ display: "block", borderRadius: "50%", border: "3px solid var(--lime)", padding: 3 }}>
                     <Avatar url={avatarUrl} name={fullName} id={profileId || userId} size={86} />
@@ -478,6 +485,8 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
                 )}
               </div>
 
+              {/* Правая колонка на десктопе: данные, настройки, опасная зона */}
+              <div className={isWide ? "pc-rightcol" : undefined}>
               {/* ДАННЫЕ: аккордеон-строки */}
               <div className="pc-card" style={{ marginTop: 12 }}>
                 <button className="pc-row" onClick={() => toggleRow("name")} aria-expanded={editRow === "name"}>
@@ -659,7 +668,8 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
                   <span className="pc-rname" style={{ color: "var(--coral)" }}>{t("pc_delete_account")}</span>
                 </button>
               </div>
-            </>
+              </div>
+            </div>
           )}
         </div>
       </div>
