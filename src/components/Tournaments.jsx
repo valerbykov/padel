@@ -1256,7 +1256,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                             <Avatar name={p.name} url={avatarOfTp(p.id)} id={p.profile_id} size={58} />
                             {!readOnly && (
                               <button aria-label={tr("delete_btn")} onClick={(e) => { e.stopPropagation(); (async () => { try { await removeTournamentPlayer(p.id); } catch (err) {} load(); })(); }}
-                                style={{ position: "absolute", top: -2, right: -2, width: 22, height: 22, borderRadius: "50%", border: "2px solid var(--bg)", background: "var(--coral)", color: "#fff", cursor: "pointer", display: "grid", placeItems: "center" }}>
+                                style={{ position: "absolute", top: -2, right: -2, width: 22, height: 22, borderRadius: "50%", border: "2px solid var(--bg)", background: "var(--coral)", color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 0, padding: 0 }}>
                                 <X size={12} />
                               </button>
                             )}

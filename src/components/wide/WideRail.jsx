@@ -25,7 +25,7 @@ export default function WideRail({
     session && { id: "history", icon: History, label: t("tab_history") },
   ].filter(Boolean);
   return (
-    <div style={{ width: expanded ? 244 : 72, flexShrink: 0, borderRight: "1px solid var(--line)", position: "sticky", top: 0,
+    <div style={{ width: expanded ? 244 : 72, flexShrink: 0, borderRight: "1px solid var(--line)", position: "sticky", top: 0, zIndex: 30,
       height: "100vh", display: "flex", flexDirection: "column", alignItems: expanded ? "stretch" : "center", gap: 6,
       padding: "14px 0 16px", background: "color-mix(in srgb, var(--surface) 60%, var(--bg))", transition: "width .18s" }}>
       {canExpand && (
