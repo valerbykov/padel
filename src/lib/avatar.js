@@ -132,7 +132,12 @@ export function initialsAvatar(key, name) {
     `font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" ` +
     `font-size="${fontSize}" font-weight="700" fill="${textColor}">${initials}</text>` +
     `</svg>`;
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  // base64 UTF-8, а НЕ percent-encoding: WKWebView (натив iOS) мисдекодил
+  // КИРИЛЛИЦУ в data-URI без charset — инициалы (ВС/ВН/СС) выходили пустым
+  // кругом с крохотными буквами в углу, а латиница («D») рендерилась нормально.
+  // base64 снимает неоднозначность кодировки во всех движках.
+  try { return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`; }
+  catch (e) { return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`; }
 }
 
 // Кастомное фото игрока, иначе — автозаглушка: собака (маскот вкл) или
