@@ -7,7 +7,7 @@ import { Send, Tv } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { getPublicLeague } from "../lib/padelApi";
 import { t, nGames , dateLocale} from "../lib/i18n";
-import { playerAvatar, avatarFallback , avatarBg, avatarOnLoad} from "../lib/avatar";
+import { playerAvatar, avatarFallback , avatarBg, avatarOnLoad, setMascotEnabled, mascotOn } from "../lib/avatar";
 import { formatMoney } from "../lib/money";
 import { EventLevelBadge } from "./LevelBadges";
 import { usePublicChrome, PublicToggles, plural } from "./publicChrome";
@@ -240,6 +240,12 @@ export default function LeaguePublicPage({ code }) {
   // Липкая CTA на телефоне — только когда реально можно записаться или посмотреть.
   const showStickyCta = !wideLayout && !!heroEvent && (heroLive || !heroFull);
 
+  // Маскот афиши — по флагу ПОКАЗЫВАЕМОЙ лиги (не форсим собак): если у лиги
+  // маскот выключен, у игроков без фото будут инициалы, а не собаки (и убираем
+  // собаку-водяной знак). App.jsx до загрузки держит true — здесь уточняем.
+  setMascotEnabled(league?.mascot !== false);
+  const showMascot = mascotOn();
+
   return (
     <div className="lp-root" style={vars}>
       <style>{css}</style>
@@ -295,7 +301,7 @@ export default function LeaguePublicPage({ code }) {
           const heroPlaceInTitle = heroEvent && !heroEvent.name && !!heroEvent.place;
           const heroSection = heroEvent && (
             <div className="lp-hero">
-              <span className="lp-hero-mascot" aria-hidden="true">🐕</span>
+              {showMascot && <span className="lp-hero-mascot" aria-hidden="true">🐕</span>}
               <div className="lp-status-pill"><span className="lp-status-dot" />{heroLive ? t("showcase_live") : t("showcase_open")}</div>
               <div className="lp-hero-title">{heroEvent.name || heroEvent.place || "Padel"}</div>
               <div className="lp-hero-meta">
@@ -396,7 +402,7 @@ export default function LeaguePublicPage({ code }) {
           // Cold start: событий вообще нет — маскот + «скоро первое событие» + телеграм.
           const coldSection = coldStart && (
             <div className="lp-cold">
-              <div style={{ fontSize: 40, marginBottom: 10 }} aria-hidden="true">🐕</div>
+              <div style={{ fontSize: 40, marginBottom: 10 }} aria-hidden="true">{showMascot ? "🐕" : "🎾"}</div>
               <div style={{ fontWeight: 700, color: "var(--ink)" }}>{t("showcase_soon")}</div>
               {league.telegram_url && (
                 <a href={league.telegram_url} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--lime)", fontWeight: 600, fontSize: 14, textDecoration: "none", marginTop: 12 }}>
