@@ -24,9 +24,12 @@ export default function WideRail({
     { id: "tournaments", icon: Trophy, label: t("tab_tournaments") },
     session && { id: "history", icon: History, label: t("tab_history") },
   ].filter(Boolean);
+  // ВАЖНО: у рейла НЕ ставим overflow. Попап лига-свитчера открывается ВПРАВО за
+  // пределы рейла (left: calc(100% + 10px)); overflow:auto/hidden обрезал его и
+  // делал клики по лигам недоступными. Низовые контролы держит растяжитель maxHeight.
   return (
     <div style={{ width: expanded ? 244 : 72, flexShrink: 0, borderRight: "1px solid var(--line)", position: "sticky", top: 0, zIndex: 30,
-      height: "100dvh", overflowY: "auto", scrollbarWidth: "none", display: "flex", flexDirection: "column", alignItems: expanded ? "stretch" : "center", gap: 6,
+      height: "100dvh", display: "flex", flexDirection: "column", alignItems: expanded ? "stretch" : "center", gap: 6,
       padding: "14px 0 16px", background: "color-mix(in srgb, var(--surface) 60%, var(--bg))", transition: "width .18s" }}>
       {canExpand && (
         <button onClick={onToggleExpand} aria-label="menu"

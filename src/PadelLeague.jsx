@@ -2080,11 +2080,11 @@ const ROW_NAMES_CSS = { fontFamily: "system-ui, -apple-system, 'Segoe UI', Robot
 // были новым типом компонента на каждый рендер → React ремаунтил Avatar-
 // поддерево (мигание аватаров при любой перерисовке списка игр, в т.ч. по тику
 // LIVE-таймера). На уровне модуля тип стабилен — поддерево переиспользуется.
-function RowSlot({ s, ring, me }) {
-  const isMe = !!me && hasSlot(s) && s.profile_id === me;
-  const sz = isMe ? ROW_AV + 12 : ROW_AV;
+function RowSlot({ s, ring }) {
+  // Все аватары одного размера. Раньше «мой» рисовался на +12px крупнее, но это
+  // выглядело как рассинхрон размеров в ленте — убрали по просьбе.
   return hasSlot(s)
-    ? <Avatar name={s.profile?.name || s.guest_name} url={s.profile?.avatar_url} id={s.profile_id || s.guest_name} size={sz} ring={ring} style={{ marginLeft: -12, position: "relative", zIndex: isMe ? 2 : 1 }} />
+    ? <Avatar name={s.profile?.name || s.guest_name} url={s.profile?.avatar_url} id={s.profile_id || s.guest_name} size={ROW_AV} ring={ring} style={{ marginLeft: -12, position: "relative" }} />
     : <span style={{ width: ROW_AV, height: ROW_AV, borderRadius: "50%", border: "1.5px dashed var(--line)", background: "var(--surface2)", flexShrink: 0, display: "inline-block", marginLeft: -12, boxSizing: "border-box" }} />;
 }
 function RowTeam({ a, b, ring, names, won, me }) {
