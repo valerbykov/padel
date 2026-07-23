@@ -100,7 +100,9 @@ export default function Create({ groupId, profileId, players = [], back, open })
         setName(`${fmt.name} · ${c.label}`);
       }
     } catch (e) {}
-  }, [courts, playerCount, format, isBtb, fmt.name, COURTS_OPTS]);
+    // fmt?.name (а НЕ fmt.name): fmt=null пока формат не выбран — иначе оценка
+    // массива зависимостей при рендере падает (Cannot read 'name' of null).
+  }, [courts, playerCount, format, isBtb, fmt?.name, COURTS_OPTS]);
 
   const go = async () => {
     setBusy(true);
