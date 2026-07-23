@@ -1,7 +1,7 @@
 // English locale — loaded as a chunk on demand from i18n.js.
 export default {
     // ── Tabs ──────────────────────────────────────────────────────────────
-    tab_friends: 'Friends', tab_games: 'Games', tab_history: 'History', tab_tournaments: 'Cups',
+    tab_friends: 'Friends', tab_games: 'Games', tab_history: 'History', tab_tournaments: 'Cups', nav_notifications: 'Notifications', err_boundary_title: 'Something went wrong', err_boundary_sub: "We've logged it. Refresh the page — that usually helps.", err_boundary_btn: 'Refresh',
     tab_start: 'Home',
     tagline: 'a league of friends · your pack on court',
     trn_stat_total: 'Total', trn_stat_podium: 'Top 3', trn_stat_wins: 'Wins',

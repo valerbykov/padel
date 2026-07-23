@@ -70,8 +70,9 @@ export default function WideRail({
       {session && (
         <>
           <div style={{ height: 1, background: "var(--line)", margin: expanded ? "4px 12px" : "4px 12px", alignSelf: "stretch" }} />
-          <div style={{ display: "flex", alignItems: "center", justifyContent: expanded ? "flex-start" : "center", margin: expanded ? "0 12px" : 0 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: expanded ? "flex-start" : "center", gap: expanded ? 6 : 0, margin: expanded ? "0 10px" : 0 }}>
             <NotificationBell leagues={leagues} activeLeague={activeLeague} onOpen={onOpenEvent} />
+            {expanded && <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--mut)" }}>{t("nav_notifications")}</span>}
           </div>
           {onEditProfile && (expanded ? (
             <button onClick={onEditProfile} title={profileName || t("pc_title")}

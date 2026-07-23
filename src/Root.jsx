@@ -4,6 +4,7 @@
 import React, { lazy, Suspense } from "react";
 import { DialogHost } from "./components/ui-dialogs";
 import AppInstallBanner from "./components/AppInstallBanner";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const App = lazy(() => import("./App"));
 
@@ -21,9 +22,11 @@ export default function Root() {
   return (
     <>
       <AppInstallBanner />
-      <Suspense fallback={<Splash />}>
-        <App />
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<Splash />}>
+          <App />
+        </Suspense>
+      </ErrorBoundary>
       <DialogHost />
     </>
   );

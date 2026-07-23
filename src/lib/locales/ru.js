@@ -1,7 +1,7 @@
 // Русская локаль — грузится чанком по требованию из i18n.js.
 export default {
     // ── Tabs ──────────────────────────────────────────────────────────────
-    tab_friends: 'Друзья', tab_games: 'Игры', tab_history: 'История', tab_tournaments: 'Турниры',
+    tab_friends: 'Друзья', tab_games: 'Игры', tab_history: 'История', tab_tournaments: 'Турниры', nav_notifications: 'Уведомления', err_boundary_title: 'Что-то пошло не так', err_boundary_sub: 'Мы уже знаем об этом. Обнови страницу — обычно помогает.', err_boundary_btn: 'Обновить',
     tab_start: 'Начало',
     tagline: 'лига друзей · своя стая на корте',
     trn_stat_total: 'Всего', trn_stat_podium: 'Тройка', trn_stat_wins: 'Победы',

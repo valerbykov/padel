@@ -1,7 +1,7 @@
 // Locale español — cargada como chunk bajo demanda desde i18n.js.
 export default {
     // ── Tabs ──────────────────────────────────────────────────────────────
-    tab_friends: 'Amigos', tab_games: 'Partidas', tab_history: 'Historial', tab_tournaments: 'Copas',
+    tab_friends: 'Amigos', tab_games: 'Partidas', tab_history: 'Historial', tab_tournaments: 'Copas', nav_notifications: 'Notificaciones', err_boundary_title: 'Algo salió mal', err_boundary_sub: 'Ya lo registramos. Recarga la página — suele ayudar.', err_boundary_btn: 'Recargar',
     tab_start: 'Inicio',
     tagline: 'una liga de amigos · tu jauría en la pista',
     trn_stat_total: 'Total', trn_stat_podium: 'Top 3', trn_stat_wins: 'Victorias',
