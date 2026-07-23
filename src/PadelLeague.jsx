@@ -1169,6 +1169,7 @@ function PartnerCard({ label, bp, name, avatarUrl, help, onOpen }) {
 
 /* ----------------------------- PlayerDetail ------------------------------- */
 function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOwner, onAddToLeague, onEditProfile, onSetRole, onOpenPlayer }) {
+  const isWide = useIsWide();     // на wide карточка игрока в сплите рядом со списком → «Назад» не нужна
   const [hist, setHist] = useState(null);
   const [myId, setMyId] = useState(null);
   const [allMatches, setAllMatches] = useState(null);
@@ -1602,9 +1603,11 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
 
   return (
     <div className="pl-pop">
-      <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center" }}>
-        <BackButton onClick={close} />
-      </div>
+      {!isWide && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center" }}>
+          <BackButton onClick={close} />
+        </div>
+      )}
 
       {/* Шапка-герой: аватар (свой → личный кабинет по тапу), имя, место в лиге,
           рейтинг с недельной дельтой; ниже — контакты, действия и график. */}
