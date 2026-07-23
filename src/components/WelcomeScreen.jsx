@@ -13,7 +13,10 @@ import Logo from "./Logo";
 // LoginScreen/GuestJoin/ProfileEditor): body-переменные PadelLeague гостю не
 // приходят, т.к. PadelLeague не смонтирован. + минимум классов pl-card/pl-btn/pl-pop.
 const css = `
-.wl-root{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;--lime-fg:#0a1612;--yellow:#ffd23f;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;color-scheme:dark;}
+.wl-root{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;--lime-fg:#0a1612;--yellow:#ffd23f;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;color-scheme:dark;position:relative;overflow-x:hidden;}
+/* Подложка падел-корта под углом (мобильный гостевой экран; десктоп — своя .wld-court). */
+.wl-court{position:fixed;inset:-22%;z-index:0;pointer-events:none;transform:rotate(-9deg) scale(1.12);background:url(/padel-court.png) center/cover no-repeat;filter:brightness(.4) saturate(.72);opacity:.42;}
+.wl-root.wl-light .wl-court{filter:brightness(1.5) saturate(.4) contrast(.9);opacity:.1;}
 .wl-root.wl-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;--ink:#0d1f18;--mut:#4a7060;--lime:#2a7a00;--coral:#d93a1f;--lime-fg:#ffffff;--yellow:#9a6800;color-scheme:light;background-image:radial-gradient(circle at 80% -10%,rgba(42,122,0,.06),transparent 45%),radial-gradient(circle at 0% 110%,rgba(40,120,90,.08),transparent 40%);}
 .wl-root .pl-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;}
 .wl-root .pl-btn{background:var(--lime);color:var(--lime-fg);font-weight:700;border:none;border-radius:14px;cursor:pointer;transition:transform .12s,filter .15s,box-shadow .15s;}
@@ -147,7 +150,8 @@ export default function WelcomeScreen({ onLogin, onOpenLanding, theme = "dark", 
   return (
     <div className={`wl-root${theme === "light" ? " wl-light" : ""}`}>
       <style>{css}</style>
-      <div className="wl-shell" style={{ maxWidth: 460, margin: "0 auto", padding: "10px 16px calc(24px + env(safe-area-inset-bottom))" }}>
+      <div className="wl-court" aria-hidden="true" />
+      <div className="wl-shell" style={{ position: "relative", zIndex: 1, maxWidth: 460, margin: "0 auto", padding: "10px 16px calc(24px + env(safe-area-inset-bottom))" }}>
         <div className="pl-pop">
           {/* Hero — слоган сразу сверху; «стаю» показывает подиум ниже (вариант A).
               ≥900px: этот блок уезжает в левую колонку grid (см. .wl-hero-text в css). */}
