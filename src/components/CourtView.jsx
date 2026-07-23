@@ -8,31 +8,62 @@ import React, { useState, useEffect } from "react";
 import { playerAvatar, avatarFallback , avatarBg, avatarOnLoad} from "../lib/avatar";
 import { t } from "../lib/i18n";
 
-function Chip({ name, avatarUrl, x, y, team, id, onTap, noTap }) {
+function Chip({ name, avatarUrl, x, y, team, pos, id, onTap, noTap, onTake, onClear, canClear, pickingSpot }) {
   const color = team === "A" ? "var(--lime)" : "var(--coral)";
+  const empty = !name;
+  const avSize = "clamp(44px,13vw,60px)";
+  const wrapStyle = {
+    position: "absolute", left: `${x}%`, top: `${y}%`, transform: "translate(-50%,-50%)",
+    display: "flex", flexDirection: "column", alignItems: "center", gap: 3, maxWidth: "26%",
+  };
+  const labelStyle = {
+    background: "color-mix(in srgb, var(--surface) 88%, transparent)", border: `1px solid ${color}`,
+    borderRadius: 7, padding: "2px 6px",
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+    fontSize: "clamp(11px,2.9vw,13px)", fontWeight: 600, color: "var(--ink)",
+    lineHeight: 1.15, textAlign: "center", wordBreak: "normal", overflowWrap: "break-word", hyphens: "none",
+    display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", maxWidth: "100%",
+  };
+
+  // Вариант A: пустое место в режиме редактирования состава — «＋ добавить».
+  if (empty && onTake) {
+    const picking = pickingSpot && pickingSpot.team === team && pickingSpot.position === pos;
+    return (
+      <button type="button" aria-label={t("slot_add")} onClick={() => onTake(team, pos)} style={{
+        ...wrapStyle, cursor: "pointer", border: "none", background: "none", padding: 0, fontFamily: "inherit",
+        pointerEvents: noTap ? "none" : "auto",
+      }}>
+        <div style={{
+          width: avSize, height: avSize, borderRadius: "50%", display: "grid", placeItems: "center",
+          border: "2px dashed color-mix(in srgb, var(--lime) 55%, transparent)", background: "rgba(0,0,0,.22)",
+          color: "var(--lime)", fontSize: "clamp(20px,6vw,26px)", fontWeight: 700,
+          boxShadow: picking ? "0 0 0 3px color-mix(in srgb, var(--lime) 30%, transparent)" : "none",
+        }}>＋</div>
+        <div style={{ ...labelStyle, border: "1px solid color-mix(in srgb, var(--lime) 55%, transparent)", color: "var(--lime)" }}>{t("slot_add")}</div>
+      </button>
+    );
+  }
+
   const tappable = !noTap && id && onTap;
+  const showClear = !empty && onClear && canClear && canClear(team, pos);
   return (
     <div onClick={tappable ? () => onTap(id) : undefined} style={{
-      position: "absolute", left: `${x}%`, top: `${y}%`,
-      transform: "translate(-50%,-50%)",
-      display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-      maxWidth: "26%", cursor: tappable ? "pointer" : "default",
-      pointerEvents: noTap ? "none" : "auto",
+      ...wrapStyle, cursor: tappable ? "pointer" : "default", pointerEvents: noTap ? "none" : "auto",
     }}>
-      <img src={playerAvatar(avatarUrl, name)} onError={avatarFallback(name)} onLoad={avatarOnLoad} alt="" loading="lazy" decoding="async" style={{
-        ...avatarBg(name), width: "clamp(44px,13vw,60px)", height: "clamp(44px,13vw,60px)",
-        borderRadius: "50%", objectFit: "cover",
-        border: `3px solid ${color}`, background: "var(--surface)", flexShrink: 0,
-      }} />
-      <div style={{
-        background: "color-mix(in srgb, var(--surface) 88%, transparent)", border: `1px solid ${color}`,
-        borderRadius: 7, padding: "2px 6px",
-        fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-        fontSize: "clamp(11px,2.9vw,13px)", fontWeight: 600, color: "var(--ink)",
-        lineHeight: 1.15, textAlign: "center", wordBreak: "normal", overflowWrap: "break-word", hyphens: "none",
-        display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
-        maxWidth: "100%",
-      }}>{name || "—"}</div>
+      <div style={{ position: "relative" }}>
+        <img src={playerAvatar(avatarUrl, name)} onError={avatarFallback(name)} onLoad={avatarOnLoad} alt="" loading="lazy" decoding="async" style={{
+          ...avatarBg(name), width: avSize, height: avSize, borderRadius: "50%", objectFit: "cover",
+          border: `3px solid ${color}`, background: "var(--surface)", flexShrink: 0,
+        }} />
+        {showClear && (
+          <button aria-label={t("delete_btn")} onClick={(e) => { e.stopPropagation(); onClear(team, pos); }} style={{
+            position: "absolute", top: -2, right: -2, width: 22, height: 22, borderRadius: "50%",
+            border: "2px solid rgba(0,0,0,.35)", background: "var(--coral)", color: "#fff",
+            cursor: "pointer", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800, lineHeight: 1,
+          }}>✕</button>
+        )}
+      </div>
+      <div style={labelStyle}>{name || "—"}</div>
     </div>
   );
 }
@@ -66,6 +97,9 @@ export default function CourtView({
   scoreDetail = null,
   points = 32, editable = false, onSave,
   mode = "sum", maxScore,
+  // Вариант A: редактирование состава прямо на корте (открытая игра). Все
+  // опциональны — турнирные/сыгранные корты их не передают и не меняются.
+  onTakeSpot, onClearSpot, canClearSpot, pickingSpot = null,
 }) {
   const max = maxScore != null ? maxScore : (mode === "sum" ? points : mode === "sets" ? 7 : 3);
 
@@ -248,10 +282,10 @@ export default function CourtView({
           )
         )}
 
-        <Chip name={teamA[0]} avatarUrl={teamAvatarsA[0]} id={teamIdsA[0]} onTap={onOpenPlayer} noTap={scoringActive} x={10} y={21} team="A" />
-        <Chip name={teamA[1]} avatarUrl={teamAvatarsA[1]} id={teamIdsA[1]} onTap={onOpenPlayer} noTap={scoringActive} x={10} y={79} team="A" />
-        <Chip name={teamB[0]} avatarUrl={teamAvatarsB[0]} id={teamIdsB[0]} onTap={onOpenPlayer} noTap={scoringActive} x={90} y={21} team="B" />
-        <Chip name={teamB[1]} avatarUrl={teamAvatarsB[1]} id={teamIdsB[1]} onTap={onOpenPlayer} noTap={scoringActive} x={90} y={79} team="B" />
+        <Chip name={teamA[0]} avatarUrl={teamAvatarsA[0]} id={teamIdsA[0]} onTap={onOpenPlayer} noTap={scoringActive} x={10} y={21} team="A" pos={1} onTake={onTakeSpot} onClear={onClearSpot} canClear={canClearSpot} pickingSpot={pickingSpot} />
+        <Chip name={teamA[1]} avatarUrl={teamAvatarsA[1]} id={teamIdsA[1]} onTap={onOpenPlayer} noTap={scoringActive} x={10} y={79} team="A" pos={2} onTake={onTakeSpot} onClear={onClearSpot} canClear={canClearSpot} pickingSpot={pickingSpot} />
+        <Chip name={teamB[0]} avatarUrl={teamAvatarsB[0]} id={teamIdsB[0]} onTap={onOpenPlayer} noTap={scoringActive} x={90} y={21} team="B" pos={1} onTake={onTakeSpot} onClear={onClearSpot} canClear={canClearSpot} pickingSpot={pickingSpot} />
+        <Chip name={teamB[1]} avatarUrl={teamAvatarsB[1]} id={teamIdsB[1]} onTap={onOpenPlayer} noTap={scoringActive} x={90} y={79} team="B" pos={2} onTake={onTakeSpot} onClear={onClearSpot} canClear={canClearSpot} pickingSpot={pickingSpot} />
 
         <div style={{
           position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)",

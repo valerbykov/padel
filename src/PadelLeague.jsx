@@ -15,7 +15,7 @@ import { listTournaments, listMyTournaments } from "./lib/tournamentApi";
 import { t, nGames, currentLang , dateLocale, isDeletedPlayer} from "./lib/i18n";
 import { detailedStandings } from "./lib/americano";
 import Fab from "./components/Fab";
-import { Trophy, Swords, History, Users, UserPlus, Share2, X, Copy, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Phone, Mail, Trash2, Shuffle, HelpCircle, UserCheck, ShieldCheck, EyeOff, Star, User, Search, Pencil, Send, MessageCircle, QrCode, Check } from "lucide-react";
+import { Trophy, Swords, History, Users, Share2, X, Copy, ChevronUp, ChevronDown, ChevronRight, Calendar, MapPin, TrendingUp, LogIn, Phone, Mail, Trash2, Shuffle, HelpCircle, UserCheck, ShieldCheck, EyeOff, Star, User, Search, Pencil, Send, MessageCircle, QrCode, Check } from "lucide-react";
 import { shareUrl } from "./lib/shareLink";
 import Tournaments, { TournamentView, TournamentCard, CopyDialog, css as trCss } from "./components/Tournaments";
 import DateTimePicker from "./components/DateTimePicker";
@@ -82,14 +82,12 @@ body.pl-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;-
 .demo-peek::after{content:"";position:absolute;left:0;right:0;bottom:0;height:34px;border-radius:0 0 13px 13px;background:linear-gradient(180deg,transparent,var(--surface));pointer-events:none;}
 @media(prefers-reduced-motion:reduce){.demo-arrow{animation:none}}
 .pl-codebox{font-family:'Outfit';font-weight:800;letter-spacing:6px;font-size:30px;color:var(--lime);text-align:center;background:var(--surface2);border:1px dashed var(--line);border-radius:14px;padding:12px;}
-.pl-slot{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--surface2);border:1px solid var(--line);}
 @media(max-width:400px){
   .pl-card{border-radius:14px;}
   .pl-display{letter-spacing:.3px;}
   .pl-codebox{font-size:24px;letter-spacing:4px;}
   .pl-tab{font-size:10px;padding:4px 0;}
   .pl-tab.on::before{width:42px;height:28px;}
-  .pl-slot{padding:8px 10px;gap:8px;}
 }
 `;
 
@@ -2678,6 +2676,16 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
   const liveMin = game.started_at ? Math.max(0, Math.floor((Date.now() - new Date(game.started_at).getTime()) / 60000)) : 0;
   const slotsA = slots.filter((s) => s.team === "A");
   const slotsB = slots.filter((s) => s.team === "B");
+  // Вариант A: редактирование состава прямо на корте открытой игры (тап по
+  // свободному месту — добор, ✕ на аватаре — убрать). Пробрасывается в CourtView
+  // только при status==="open"; live/сыгранные корты остаются табло без правки.
+  const spotSlot = (team, pos) => slots.find((s) => s.team === team && Number(s.position) === pos);
+  const rosterEditProps = game.status === "open" ? {
+    onTakeSpot: canAddOthers ? (team, pos) => { const s = spotSlot(team, pos); if (s && !nameOf(s)) setPickSlot(s); } : undefined,
+    onClearSpot: (team, pos) => { const s = spotSlot(team, pos); if (s) clearSlot(s); },
+    canClearSpot: (team, pos) => { const s = spotSlot(team, pos); return !!(s && nameOf(s) && canClear(s)); },
+    pickingSpot: pickSlot ? { team: pickSlot.team, position: Number(pickSlot.position) } : null,
+  } : {};
   // #3: кто создал игру (host_id) — резолвим по составу лиги.
   const creatorName = game.host_id ? ((players || []).find((p) => p.id === game.host_id)?.name || null) : null;
 
@@ -2894,46 +2902,9 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
         </div>
       </div>
       <div className="pl-card" style={{ padding: 14, marginBottom: 10 }}>
-      {/* Ростер-список нужен только пока игра открыта (добор/удаление состава).
-          После «Начать игру» состав зафиксирован и его показывает табло корта —
-          список дублирует и не несёт пользы, поэтому прячем. */}
-      {game.status === "open" && (
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {slots.map((s, i) => {
-          const free = !nameOf(s);
-          const picking = pickSlot && (pickSlot.id ? pickSlot.id === s.id : pickSlot === s);
-          return (
-            <React.Fragment key={s.id || i}>
-              <div className="pl-slot" style={picking ? { borderColor: "color-mix(in srgb, var(--lime) 45%, transparent)" } : undefined}>
-                <span className="pl-display" style={{ fontSize: 11, color: s.team === "A" ? "var(--lime)" : "var(--coral)", width: 30 }}>{s.team}</span>
-                <span style={{ flex: 1, color: free ? "var(--mut)" : "var(--ink)" }}>{free ? t("slot_free") : nameOf(s)}</span>
-                {/* Убрать из состава: хост — любого, игрок — себя */}
-                {!free && canClear(s) && (
-                  <button onClick={() => clearSlot(s)} disabled={joinBusy} aria-label={t("delete_btn")} title={t("delete_btn")}
-                    style={{ flexShrink: 0, width: 26, height: 26, borderRadius: "50%", border: "none", background: "color-mix(in srgb, var(--coral) 16%, transparent)", color: "var(--coral)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: joinBusy ? .6 : 1 }}>
-                    <X size={14} />
-                  </button>
-                )}
-                {/* Свободный слот: одна кнопка «Добавить» — панель с «Я сам», лигой и гостем */}
-                {free && canAddOthers && !picking && (
-                  <button onClick={() => setPickSlot(s)} disabled={joinBusy}
-                    style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 999, border: "1px solid color-mix(in srgb, var(--lime) 40%, transparent)", background: "color-mix(in srgb, var(--lime) 14%, transparent)", color: "var(--lime)", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Outfit',sans-serif", opacity: joinBusy ? .6 : 1 }}>
-                    <UserPlus size={12} /> {t("slot_add")}
-                  </button>
-                )}
-              </div>
-              {/* Панель добора — прямо под своим слотом, открыта максимум одна */}
-              {picking && (
-                <PickPlayerPanel slotLabel={`${s.team}${s.position}`} players={players}
-                  takenIds={slots.map((x) => x.profile_id).filter(Boolean)} meId={profileId}
-                  onPick={addToSlot} onClose={() => setPickSlot(null)} />
-              )}
-            </React.Fragment>
-          );
-        })}
-        {joinErr && <div style={{ fontSize: 12, color: "var(--coral)", textAlign: "center" }}>{joinErr}</div>}
-      </div>
-      )}
+      {/* Вариант A: состав редактируется прямо на корте (тап по свободному месту —
+          добор, ✕ на аватаре — убрать). Отдельный текстовый список убран; панель
+          выбора игрока (PickPlayerPanel) раскрывается под кортом. */}
 
       {/* Фиксация момента старта: кнопка видна всегда, активируется при 4/4 */}
       {mayStart && (
@@ -2955,18 +2926,26 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
             teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
             teamAvatarsA={slotsA.map(avatarOf)} teamAvatarsB={slotsB.map(avatarOf)}
           teamIdsA={slotsA.map((s) => s.profile_id)} teamIdsB={slotsB.map((s) => s.profile_id)} onOpenPlayer={onOpenPlayer}
-            onSave={async (a, b, detail) => { await submitResult(game.id, a, b, detail); await Promise.all([reloadGames(), reloadLeaderboard()]); }} />
+            onSave={async (a, b, detail) => { await submitResult(game.id, a, b, detail); await Promise.all([reloadGames(), reloadLeaderboard()]); }} {...rosterEditProps} />
         ) : (
           <>
             <CourtView courtNumber={1} courtName={game.court_name} onRenameCourt={groupId ? (name) => updateGameCourtName(game.id, name).then(reloadGames).catch(() => {}) : undefined}
               teamA={slotsA.map(nameOf)} teamB={slotsB.map(nameOf)}
               teamAvatarsA={slotsA.map(avatarOf)} teamAvatarsB={slotsB.map(avatarOf)}
           teamIdsA={slotsA.map((s) => s.profile_id)} teamIdsB={slotsB.map((s) => s.profile_id)} onOpenPlayer={onOpenPlayer}
-              editable={false} />
+              editable={false} {...rosterEditProps} />
             <div style={{ textAlign: "center", color: "var(--mut)", fontSize: 12, marginTop: 6 }}>{filled}/4 — {t("waiting_via_link")}</div>
           </>
         )}
       </div>
+      {pickSlot && (
+        <div style={{ marginTop: 10 }}>
+          <PickPlayerPanel slotLabel={`${pickSlot.team}${pickSlot.position}`} players={players}
+            takenIds={slots.map((x) => x.profile_id).filter(Boolean)} meId={profileId}
+            onPick={addToSlot} onClose={() => setPickSlot(null)} />
+        </div>
+      )}
+      {joinErr && <div style={{ fontSize: 12, color: "var(--coral)", textAlign: "center", marginTop: 8 }}>{joinErr}</div>}
       </div>
       {(() => {
         const uniq = [];
