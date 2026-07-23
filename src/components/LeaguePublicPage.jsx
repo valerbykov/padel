@@ -3,7 +3,7 @@
 // Показывает афишу событий (герой + лента + пульс), рейтинг игроков, кнопку
 // «Вступить» и вирусный CTA «Создать лигу».
 import React, { useEffect, useState } from "react";
-import { Send } from "lucide-react";
+import { Send, Tv } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { getPublicLeague } from "../lib/padelApi";
 import { t, nGames , dateLocale} from "../lib/i18n";
@@ -513,6 +513,13 @@ export default function LeaguePublicPage({ code }) {
               </a>
               {/* QR открылся в браузере, а приложение уже установлено → в натив по тапу */}
               <OpenInApp path={`/l/${code}`} style={{ marginBottom: 12 }} />
+              {/* ТВ клуба — полноэкранное табло лиги для экрана в клубе / планшета на стойке */}
+              <a href={`/tv/l/${code}`} target="_blank" rel="noreferrer"
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: session ? 12 : 20,
+                  padding: 12, borderRadius: 14, textDecoration: "none", fontSize: 13.5, fontWeight: 700,
+                  border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--ink)" }}>
+                <Tv size={16} style={{ color: "var(--lime)" }} /> {t("pub_open_tv")}
+              </a>
               {!session && (
                 <div style={{ fontSize: 12, color: "var(--mut)", textAlign: "center", marginBottom: 28 }}>
                   {t("pub_after_login")}

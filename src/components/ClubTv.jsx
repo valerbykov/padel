@@ -11,6 +11,7 @@ import { getPublicLeague } from "../lib/padelApi";
 import { getTournamentByCode } from "../lib/tournamentApi";
 import { TV_S as S, TvMessage, TvTournamentScreen } from "./TvBoard";
 import { WEB_BASE } from "../lib/platform";
+import { useWakeLock } from "../lib/useWakeLock";
 import { t as tr, dateLocale } from "../lib/i18n";
 
 const ROTATE_MS = 15000;  // смена экрана
@@ -112,6 +113,7 @@ export default function ClubTv({ code = null, onClose = null }) {
   const [idx, setIdx] = useState(0);
   const [qr, setQr] = useState(null);
   const loadedRef = useRef(false);
+  useWakeLock(true);   // держим экран включённым (планшет на стойке не гаснет)
 
   // Поллинг публичного состояния лиги.
   useEffect(() => {

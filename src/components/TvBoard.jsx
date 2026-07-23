@@ -7,11 +7,27 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getTournamentByCode } from "../lib/tournamentApi";
 import { detailedStandings, pairStandings } from "../lib/americano";
 import { fmtById } from "./Tournaments";
+import { useWakeLock } from "../lib/useWakeLock";
 import { t as tr } from "../lib/i18n";
+
+// ТВ-табло — ВСЕГДА тёмное, независимо от темы устройства/приложения. Раньше оно
+// брало var(--ink)/var(--surface)… из активной темы, и на планшете со светлой
+// темой цифры счёта становились тёмными на тёмном боксе (не читались), таблица
+// белела. Прибиваем палитру локально на корень (CSS-переменные наследуются
+// детьми), плюс color-scheme:dark, чтобы всё табло рисовалось в тёмных тонах.
+/* eslint-disable no-restricted-syntax -- намеренный фикс палитры темы: ТВ-табло
+   всегда тёмное и НЕ зависит от темы устройства, поэтому здесь именно
+   хардкод значений (иначе var(--...) снова утекли бы из светлой темы). */
+const TV_VARS = {
+  "--bg": "#0a1612", "--surface": "#11211b", "--surface2": "#16291f", "--line": "#22382c",
+  "--ink": "#eef3ee", "--mut": "#7d9488", "--lime": "#c8ff2d", "--coral": "#ff6a52",
+  "--yellow": "#ffd23f", "--lime-fg": "#0a1612", colorScheme: "dark",
+};
+/* eslint-enable no-restricted-syntax */
 
 // Общие стили ТВ (экспортируются для ClubTv — единая визуальная система табло).
 export const TV_S = {
-  root: { position: "fixed", inset: 0, zIndex: 500, display: "flex", flexDirection: "column",
+  root: { ...TV_VARS, position: "fixed", inset: 0, zIndex: 500, display: "flex", flexDirection: "column",
     background: "linear-gradient(160deg,#122a20 0%, #0a1612 70%)", color: "var(--ink)",
     fontFamily: "'Outfit',sans-serif", padding: "3vmin 4vmin" },
   top: { display: "flex", alignItems: "center", gap: "2vmin" },
@@ -118,6 +134,7 @@ export default function TvBoard({ code = null, initial = null, onClose = null })
   // молча держим последнее (табло на стойке не должно мигать на блипе сети).
   const [err, setErr] = useState(null);
   const loadedRef = useRef(!!initial);
+  useWakeLock(true);   // экран-табло не гаснет по таймауту неактивности
   useEffect(() => { if (initial) { loadedRef.current = true; setT(initial); } }, [initial]);
   useEffect(() => {
     if (!code || initial) return;

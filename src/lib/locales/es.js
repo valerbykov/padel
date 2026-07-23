@@ -83,7 +83,7 @@ export default {
     pub_league_notfound_t: 'Liga no encontrada',
     pub_league_notfound_s: 'Revisa el enlace o pide al organizador uno nuevo.',
     pub_create_own: 'Crea tu propia liga →', pub_rating: 'RANKING', pub_no_players: 'Aún no hay jugadores',
-    pub_join_league: 'Unirse a la liga →', pub_open_in_app: 'Abrir en la app →', pj_joining: 'Uniéndote a la liga…', pub_after_login: 'Al iniciar sesión te añadirán a la liga automáticamente',
+    pub_join_league: 'Unirse a la liga →', pub_open_in_app: 'Abrir en la app →', pub_open_tv: 'TV del club a pantalla completa →', pj_joining: 'Uniéndote a la liga…', pub_after_login: 'Al iniciar sesión te añadirán a la liga automáticamente',
     pub_want_own_t: '¿QUIERES TU PROPIA LIGA?', pub_want_own_s: 'Rankings, torneos americano, historial — gratis para cualquier grupo. Dentro hay una liga demo para verlo todo antes.',
     pub_game_invite: 'INVITACIÓN AL PARTIDO', pub_game_notfound: 'Partido con código {code} no encontrado.',
     pub_game_closed: 'Este partido está cerrado.', pub_logged_rating: 'Conectado como {name} — el resultado cuenta para tu rating',
