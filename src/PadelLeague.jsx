@@ -55,9 +55,14 @@ const css = `
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@400;500;600;700&display=swap');
 body{--bg:#0a1612;--surface:#11211b;--surface2:#16291f;--line:#22382c;--ink:#eef3ee;--mut:#7d9488;--lime:#c8ff2d;--coral:#ff6a52;--lime-fg:#0a1612;--topbar-bg:rgba(10,22,18,.92);--yellow:#ffd23f;--border:var(--line);--card:var(--surface);--fg:var(--ink);background:var(--bg);color:var(--ink);}
 body.pl-light{--bg:#f2f7f4;--surface:#ffffff;--surface2:#e6f0ea;--line:#c4d9cc;--ink:#0d1f18;--mut:#4a7060;--lime:#2a7a00;--coral:#d93a1f;--lime-fg:#ffffff;--topbar-bg:rgba(242,247,244,.95);--yellow:#9a6800;}
-.pl-root{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;color-scheme:dark;
+.pl-root{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;color-scheme:dark;position:relative;
  background-image:radial-gradient(circle at 80% -10%,rgba(200,255,45,.10),transparent 45%),radial-gradient(circle at 0% 110%,rgba(40,120,90,.18),transparent 40%);}
 .pl-root.pl-light{color-scheme:light;background-image:radial-gradient(circle at 80% -10%,rgba(42,122,0,.06),transparent 45%),radial-gradient(circle at 0% 110%,rgba(40,120,90,.08),transparent 40%);}
+/* Подложка падел-корта за всем контентом (fixed, субтльно). Тёмная тема —
+   заметнее; светлая — еле-еле, чтобы не мешать читаемости. Контент выше (z:1). */
+.pl-court{position:fixed;inset:-22%;z-index:0;pointer-events:none;transform:rotate(-9deg) scale(1.12);transform-origin:center;background:url(/padel-court.png) center/cover no-repeat;filter:brightness(.4) saturate(.72);opacity:.42;}
+.pl-root.pl-light .pl-court{filter:brightness(1.5) saturate(.4) contrast(.9);opacity:.1;}
+.pl-above{position:relative;z-index:1;}
 .pl-display{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-0.3px;}
 .pl-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;}
 .plsk{background:var(--surface2);border-radius:8px;animation:plsk 1.2s ease-in-out infinite;}@keyframes plsk{0%,100%{opacity:.45}50%{opacity:.85}}
@@ -329,8 +334,9 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
   return (
     <div className={`pl-root${theme === "light" ? " pl-light" : ""}`}>
       <style>{css}</style>
+      <div className="pl-court" aria-hidden="true" />
       {/* Заголовок вкладки и переключатель лиги убраны — переключатель теперь в топбаре, имя вкладки видно в нижней навигации. */}
-      <div style={{ display: "flex", alignItems: "flex-start" }}>
+      <div className="pl-above" style={{ display: "flex", alignItems: "flex-start" }}>
         {isWide && <WideRail tab={tab} goTab={goTab} session={session} activeLeague={activeLeague} expanded={rail.expanded} canExpand={rail.canExpand} onToggleExpand={rail.toggle}
           leagues={leagues} leaguesReady={leaguesReady} isAdmin={isAdmin} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onLeagueUpdated={onLeagueUpdated} onLeagueLeft={onLeagueLeft}
           profileName={profileName} profileAvatarUrl={profileAvatarUrl} profileId={profileId} onEditProfile={onEditProfile} theme={theme} onThemeToggle={onThemeToggle} onOpenEvent={onOpenEvent} />}
