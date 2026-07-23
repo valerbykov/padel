@@ -526,7 +526,7 @@ function Board({ groupId, players, loading = false, reload, profileId, isAdmin, 
     const self = players.find((p) => p.id === profileId);
     if (self) setSelected(self);
     setWantSelf(false);
-  }, [wantSelf, players, profileId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [wantSelf, players, profileId]);
 
   useEffect(() => {
     if (!analyticsReq) return;
@@ -621,7 +621,7 @@ function Board({ groupId, players, loading = false, reload, profileId, isAdmin, 
 
   useEffect(() => {
     if (open && groupId) getLeagueablePlayers(groupId).then(setNetPlayers).catch(() => setNetPlayers([]));
-  }, [open, groupId, memberKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, groupId, memberKey]);
 
   // Добавить уже существующего игрока (из других лиг) в один тап.
   // После успеха лист ЗАКРЫВАЕМ (раньше оставался висеть и выглядел как зависший
