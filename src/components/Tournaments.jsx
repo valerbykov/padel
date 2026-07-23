@@ -857,9 +857,10 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   const [defCur, setDefCur] = useState("EUR");
   useEffect(() => { defaultCurrency().then(setDefCur).catch(() => {}); }, []);
   const firedRef = useRef(false);
+  const trnStatus = trnData?.status;
   useEffect(() => {
-    if (trnData && trnData.status === "finished" && !firedRef.current) { firedRef.current = true; setBurst((b) => b + 1); }
-  }, [trnData && trnData.status]);
+    if (trnStatus === "finished" && !firedRef.current) { firedRef.current = true; setBurst((b) => b + 1); }
+  }, [trnStatus]);
 
   const load = useCallback(async () => {
     try {

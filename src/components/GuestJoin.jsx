@@ -2,7 +2,7 @@
 // Вход по ссылке-приглашению (/j/:code). Можно зайти гостем по имени
 // ИЛИ войти в аккаунт — тогда слот привяжется к профилю (результат
 // засчитается в твой рейтинг). props: { code, botName }.
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import LoginScreen from "./LoginScreen";
 import Logo from "./Logo";
@@ -81,14 +81,14 @@ export default function GuestJoin({ code, botName }) {
   // Десктоп-раскладка (≥900px) — хук строго до ранних return (showLogin ниже).
   const isWide = useIsWide();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const { data, error } = await supabase.rpc("get_game_by_code_full", { p_code: code });
       if (error) throw error;
       setGame(data || null);
     } catch (e) { setGame(null); }
-  };
-  useEffect(() => { load(); }, [code]);
+  }, [code]);
+  useEffect(() => { load(); }, [load]);
 
   // следим за входом
   useEffect(() => {

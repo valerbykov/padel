@@ -12,6 +12,15 @@ import { WEB_BASE } from "../lib/platform";
 import { shareUrl } from "../lib/shareLink";
 import { t } from "../lib/i18n";
 
+function Btn({ onClick, label, children }) {
+  return (
+    <button onClick={onClick} title={label} aria-label={label}
+      style={{ flexShrink: 0, width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--lime) 16%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", borderRadius: 11, color: "var(--lime)", cursor: "pointer" }}>
+      {children}
+    </button>
+  );
+}
+
 export default function InviteCard({ code, leagueName = "", logoUrl = null, compact = false, style }) {
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
@@ -39,13 +48,6 @@ export default function InviteCard({ code, leagueName = "", logoUrl = null, comp
       setQr(svg);
     } catch (e) { /* без QR переживём */ }
   };
-
-  const Btn = ({ onClick, label, children }) => (
-    <button onClick={onClick} title={label} aria-label={label}
-      style={{ flexShrink: 0, width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--lime) 16%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 35%, transparent)", borderRadius: 11, color: "var(--lime)", cursor: "pointer" }}>
-      {children}
-    </button>
-  );
 
   return (
     <>

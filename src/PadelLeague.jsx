@@ -1300,7 +1300,8 @@ function PlayerDetail({ groupId, player, players, close, onDelete, isAdmin, isOw
       if (!data || !data.length) return;
       setNameMap((prev) => { const n = { ...prev }; data.forEach((r) => { n[r.id] = r.name; }); return n; });
     }).catch(() => {});
-  }, [allMatches, players]);
+    // nameMap намеренно вне deps: эффект сам его сетает — добавление даст бесконечный цикл.
+  }, [allMatches, players]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Имя по id: ростер лиги → подтянутые профили → нейтральный прочерк (без «Удалён»).
   const nameOf = (id) => players.find((p) => p.id === id)?.name || nameMap[id] || "—";
@@ -2367,7 +2368,7 @@ function CreateGame({ groupId, profileId, back, done }) {
   useEffect(() => {
     const draft = { title, titleEdited, day, time, place, durMin, level, listed };
     try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch (e) {}
-  }, [title, titleEdited, day, time, place, durMin, level, listed]);
+  }, [DRAFT_KEY, title, titleEdited, day, time, place, durMin, level, listed]);
 
   // Автоназвание = место (если указано) или пусто. Дата/время НЕ дублируются
   // в названии — они и так показываются отдельной строкой в плашке/карточке.

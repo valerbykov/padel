@@ -97,6 +97,12 @@ const css = `
 @media (prefers-reduced-motion:reduce){.pc-skel{animation:none;opacity:.6}}
 `;
 
+function Chevron({ open }) {
+  return open
+    ? <ChevronDown size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />
+    : <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />;
+}
+
 export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpenStats, lang = "ru", onThemeToggle, onLangChange, profile = null, activeLeague = null, leagueCount = 0 }) {
   const pickLang = async (l) => { await setLang(l); onLangChange?.(l); };
   // Мгновенная гидратация из props.profile (кэш бутстрапа): первый кадр — без сети.
@@ -332,9 +338,6 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
     setLvlVal(""); setLvlLbl(""); setLvlAdding(false);
   };
   const removeLevel = (i) => setLevels((ls) => ls.filter((_, j) => j !== i));
-  const Chevron = ({ open }) => open
-    ? <ChevronDown size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />
-    : <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />;
 
   return createPortal(
     <div className={"pc-root" + (theme === "light" ? " pc-light" : "")} onClick={handleClose}

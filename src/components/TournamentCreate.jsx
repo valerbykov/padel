@@ -55,7 +55,7 @@ export default function Create({ groupId, profileId, players = [], back, open })
   useEffect(() => {
     const draft = { step, format, courts, playerCount, points, openScoring, kotHChampionRule, day, time, place, name, durMin, description, contactName, contactLink, level, listed, contactFromLeague, feeAmount, feeTiming, feeCur };
     try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch (e) {}
-  }, [step, format, courts, playerCount, points, openScoring, kotHChampionRule, day, time, place, name, durMin, description, contactName, contactLink, level, listed, contactFromLeague, feeAmount, feeTiming, feeCur]);
+  }, [DRAFT_KEY, step, format, courts, playerCount, points, openScoring, kotHChampionRule, day, time, place, name, durMin, description, contactName, contactLink, level, listed, contactFromLeague, feeAmount, feeTiming, feeCur]);
 
   // Валюта взноса по региону (async) — только если не восстановлена из черновика.
   useEffect(() => { if (!feeCur) defaultCurrency().then((c) => setFeeCur(c || "EUR")).catch(() => setFeeCur("EUR")); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -100,7 +100,7 @@ export default function Create({ groupId, profileId, players = [], back, open })
         setName(`${fmt.name} · ${c.label}`);
       }
     } catch (e) {}
-  }, [courts, playerCount, format]);
+  }, [courts, playerCount, format, isBtb, fmt.name, COURTS_OPTS]);
 
   const go = async () => {
     setBusy(true);
