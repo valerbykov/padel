@@ -25,6 +25,40 @@ export function dogAvatar(idOrName) {
   return `/avatars/dog-${String((hash % DOG_COUNT) + 1).padStart(2, "0")}.webp`;
 }
 
+// ── Наборы аватарок-пресетов ────────────────────────────────────────────────
+// Галереи, из которых игрок выбирает СВОЮ картинку в профиле. Это НЕ то же, что
+// автозаглушка-маскот (mascotEnabled): маскот решает, что показать, когда фото
+// нет; набор — из какой галереи игрок берёт фото сам. Выбранная картинка всё
+// так же пишется в avatar_url как /avatars/<set>-NN.webp — БД не меняется.
+// status: 'available' — ассеты есть; 'soon' — заявлен, картинок пока нет;
+// 'pro' — под подпиской. Включить набор потом = положить ассеты (+ снять гейт)
+// и сменить status на 'available'. Порядок в массиве = порядок вкладок.
+export const AVATAR_SETS = [
+  { id: "dogs",   emoji: "🐶", count: DOG_COUNT, status: "available", file: (i) => `/avatars/dog-${String(i + 1).padStart(2, "0")}.webp` },
+  { id: "people", emoji: "🧑", count: 0,         status: "soon",      file: (i) => `/avatars/person-${String(i + 1).padStart(2, "0")}.webp` },
+  { id: "ducks",  emoji: "🦆", count: 0,         status: "pro",       file: (i) => `/avatars/duck-${String(i + 1).padStart(2, "0")}.webp` },
+];
+
+export function avatarSetById(id) {
+  return AVATAR_SETS.find((s) => s.id === id) || AVATAR_SETS[0];
+}
+
+// URL всех пресетов набора (для ленты выбора). У soon/pro — пустой массив.
+export function presetsForSet(id) {
+  const set = avatarSetById(id);
+  return Array.from({ length: set.count }, (_, i) => set.file(i));
+}
+
+// По URL уже выбранной аватарки понять, какой набор был активен — чтобы при
+// открытии профиля подсветить правильную вкладку. Кастомное фото / внешний
+// URL (Telegram, Storage) → набор по умолчанию (dogs).
+export function setIdForUrl(url) {
+  if (!url) return "dogs";
+  if (url.includes("/avatars/duck-")) return "ducks";
+  if (url.includes("/avatars/person-")) return "people";
+  return "dogs";
+}
+
 // Палитра фонов для инициалов — приятные насыщенные цвета, читаемые с белым
 // или тёмным текстом (см. isLightColor). Индекс выбирается детерминированно
 // по хэшу id/имени, как и для собак.

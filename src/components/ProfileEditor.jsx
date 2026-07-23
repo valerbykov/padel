@@ -15,6 +15,7 @@ import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
 import { Camera, Check, Loader, LogOut, BarChart3, Sun, Moon, X, Bell, Trash2, User, Phone, Mail, Globe, ChevronRight, ChevronDown, Lock, ArrowUp, ArrowDown, MessageCircle } from "lucide-react";
 import Avatar from "./Avatar";
+import { AVATAR_SETS, presetsForSet, setIdForUrl } from "../lib/avatar";
 import { t, setLang , dateLocale} from "../lib/i18n";
 import { saveNotifPrefs, registerPush, OFFSET_OPTIONS } from "../lib/notifications";
 import { cachePeek, bustCache } from "../lib/cache";
@@ -37,7 +38,6 @@ const AUTH_PROVIDERS = {
   telegram: { label: "Telegram", icon: <TgPlane size={13} />, color: "#229ED9" },
 };
 
-const PRESETS = Array.from({ length: 15 }, (_, i) => `/avatars/dog-${String(i + 1).padStart(2, "0")}.webp`);
 
 // Шрифты НЕ импортируем с fonts.googleapis.com — они самохостятся (index.html,
 // public/fonts): из РФ Google Fonts ходит плохо и тормозил каждое открытие ЛК.
@@ -113,6 +113,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
   const [lastName, setLastName] = useState(profile?.last_name || "");
   const [phone, setPhone] = useState(profile?.phone || "");
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
+  const [avatarSet, setAvatarSet] = useState(setIdForUrl(profile?.avatar_url || "")); // активная вкладка набора в ленте пресетов
   const [profileId, setProfileId] = useState(profile?.id || null);
   const [whatsapp, setWhatsapp] = useState(profile?.contacts?.whatsapp || "");
   const [telegram, setTelegram] = useState(profile?.contacts?.telegram || "");
@@ -182,6 +183,7 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
         setLastName(data.last_name || (nmParts ? nmParts.slice(1).join(" ") : ""));
         setPhone(data.phone || "");
         setAvatarUrl(data.avatar_url || "");
+        setAvatarSet(setIdForUrl(data.avatar_url || ""));
         setWhatsapp(data.contacts?.whatsapp || "");
         // Вход через Telegram: @ник из метаданных подставляем, пока свой не задан
         // (сервер telegram-auth тоже пишет его в contacts при каждом входе).
@@ -390,15 +392,41 @@ export default function ProfileEditor({ onClose, onSaved, theme = "dark", onOpen
                   {sinceLabel && <span className="pc-pill">{sinceLabel}</span>}
                 </div>
 
-                {/* Выбор аватара из стаи — прокручиваемая пальцем лента (авто-бегущую
-                    строку убрали: на мобиле :active залипал и ряд «застревал»). */}
-                <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 14, marginBottom: 6 }}>{t("pc_pick_avatar")}</div>
-                <div className="pc-presets">
-                  {PRESETS.map((u, i) => (
-                    <img key={i} src={u} alt="" loading="lazy" onClick={() => setAvatarUrl(u)} className="pc-preset"
-                      style={{ border: avatarUrl === u ? "2.5px solid var(--lime)" : "2px solid var(--line)" }} />
-                  ))}
+                {/* Выбор аватара: вкладки наборов + лента пресетов активного набора.
+                    Игрок выбирает галерею (Собаки доступны; Люди — скоро; Уточки —
+                    под PRO). Выбранная картинка пишется в avatar_url как обычно. */}
+                <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 16, marginBottom: 8, textAlign: "left" }}>{t("avset_title")}</div>
+                <div style={{ display: "flex", gap: 7, marginBottom: 10 }}>
+                  {AVATAR_SETS.map((s) => {
+                    const on = avatarSet === s.id;
+                    return (
+                      <button key={s.id} type="button" onClick={() => setAvatarSet(s.id)} aria-pressed={on}
+                        style={{ flex: 1, cursor: "pointer", fontFamily: "'Outfit',sans-serif",
+                          background: on ? "color-mix(in srgb, var(--lime) 9%, var(--surface2))" : "var(--surface2)",
+                          border: "1.5px solid " + (on ? "var(--lime)" : "var(--line)"),
+                          borderRadius: 12, padding: "8px 4px 7px", opacity: s.status === "available" ? 1 : 0.7 }}>
+                        <div style={{ fontSize: 20, lineHeight: 1 }}>{s.emoji}</div>
+                        <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 4, color: "var(--ink)" }}>{t("avset_" + s.id)}</div>
+                        {s.status === "soon" && <div style={{ fontSize: 9, fontWeight: 800, marginTop: 3, color: "var(--mut)" }}>{t("avset_soon")}</div>}
+                        {s.status === "pro" && <div style={{ fontSize: 9, fontWeight: 800, marginTop: 3, color: "var(--yellow)" }}>🔒 {t("avset_pro")}</div>}
+                      </button>
+                    );
+                  })}
                 </div>
+                {presetsForSet(avatarSet).length > 0 ? (
+                  <div className="pc-presets">
+                    {presetsForSet(avatarSet).map((u, i) => (
+                      <img key={i} src={u} alt="" loading="lazy" onClick={() => setAvatarUrl(u)} className="pc-preset"
+                        style={{ border: avatarUrl === u ? "2.5px solid var(--lime)" : "2px solid var(--line)" }} />
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 66, padding: 10, textAlign: "center", fontSize: 12.5,
+                    border: "1.5px dashed " + (avatarSet === "ducks" ? "color-mix(in srgb, var(--yellow) 35%, transparent)" : "var(--line)"),
+                    borderRadius: 12, color: avatarSet === "ducks" ? "var(--yellow)" : "var(--mut)" }}>
+                    {avatarSet === "ducks" ? `🔒 ${t("avset_pro_strip")}` : t("avset_soon_strip")}
+                  </div>
+                )}
 
                 {/* Стат-плитки активной лиги (из кэша лидерборда) + мостик в статистику */}
                 {lbRow && (
