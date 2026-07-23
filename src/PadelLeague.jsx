@@ -394,7 +394,7 @@ function GateScreen() {
 // «Организатор» (если доступно). Действие — ТАПОМ по раскрытой кнопке, не
 // авто-коммитом: случайный край-свайп ничего не делает. Тап по строке без свайпа
 // открывает карточку игрока. Если действий нет — обычная строка без свайпа.
-function SwipeRow({ onRemove, onOrganize, organizerActive, onTap, leftLabel, leftIcon, children }) {
+function SwipeRow({ onRemove, onOrganize, organizerActive, onTap, leftLabel, leftIcon, active: activeRow = false, children }) {
   const [dx, setDx] = useState(0);
   const [dragging, setDragging] = useState(false);
   const startX = useRef(0), startY = useRef(0), startDx = useRef(0), active = useRef(false), moved = useRef(false), snapped = useRef(0);
@@ -423,7 +423,7 @@ function SwipeRow({ onRemove, onOrganize, organizerActive, onTap, leftLabel, lef
   };
   const actBtn = { position: "absolute", top: 0, bottom: 0, width: 104, border: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, cursor: "pointer", fontFamily: "'Outfit',sans-serif", fontSize: 11, fontWeight: 700 };
   return (
-    <div style={{ position: "relative", marginBottom: 8, borderRadius: 18, overflow: "hidden" }}>
+    <div style={{ position: "relative", marginBottom: 8, borderRadius: 18, overflow: activeRow && dx === 0 ? "visible" : "hidden" }}>
       {RIGHT > 0 && dx > 0 && (
         <button type="button" onClick={() => { snapped.current = 0; setDx(0); onOrganize(); }} style={{ ...actBtn, left: 0, background: "var(--lime)", color: "var(--lime-fg)" }}>
           <ShieldCheck size={16} /> {organizerActive ? t("unset_organizer_short") : t("set_organizer_short")}
@@ -819,13 +819,17 @@ function Board({ groupId, players, loading = false, reload, profileId, isAdmin, 
             const isFirst = idx === 1;
             const place = isFirst ? 1 : idx === 0 ? 2 : 3;
             const ring = isFirst ? "var(--yellow)" : place === 2 ? "#cfd8d0" : "#cd7f4d";
+            const isActive = isWide && selected?.id === p.id;   // открыт в детали справа
             return (
               <div key={p.id} onClick={() => setSelected(p)} className="pl-card"
-                style={{ flex: isFirst ? 1.15 : 1, textAlign: "center", padding: isFirst ? "13px 6px 11px" : "11px 6px 9px", cursor: "pointer", minWidth: 0,
-                  // Своя плитка подсвечивается как своя строка в списке; иначе у лидера — золотая рамка.
-                  border: p.id === profileId ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)"
+                style={{ position: isActive ? "relative" : undefined, flex: isFirst ? 1.15 : 1, textAlign: "center", padding: isFirst ? "13px 6px 11px" : "11px 6px 9px", cursor: "pointer", minWidth: 0,
+                  // Открытый в детали — лаймовое кольцо; своя плитка — как своя строка; иначе у лидера золотая рамка.
+                  border: isActive ? "1.5px solid var(--lime)"
+                    : p.id === profileId ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)"
                     : isFirst ? "1px solid color-mix(in srgb, var(--yellow) 35%, transparent)" : undefined,
-                  background: p.id === profileId ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined }}>
+                  background: p.id === profileId ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined,
+                  boxShadow: isActive ? "0 0 0 3px color-mix(in srgb, var(--lime) 20%, transparent)" : undefined }}>
+                {isActive && <OpenBall />}
                 {isFirst && <div style={{ fontSize: 15, lineHeight: 1, marginBottom: 4 }}>👑</div>}
                 <img src={playerAvatar(p.avatar_url, p.id, p.name)} onError={avatarFallback(p.id, p.name)} onLoad={avatarOnLoad} alt=""
                   style={{ ...avatarBg(p.id, p.name), width: isFirst ? 58 : 48, height: isFirst ? 58 : 48, borderRadius: "50%", objectFit: "cover", border: `${isFirst ? 3 : 2.5}px solid ${ring}`, margin: "0 auto", display: "block" }} />
@@ -872,12 +876,17 @@ function Board({ groupId, players, loading = false, reload, profileId, isAdmin, 
         const wd = weekDeltas[p.id] || 0;
         const canRemove = isAdmin && p.role !== "owner" && p.id !== profileId;
         const canOrg = activeLeague?.role === "owner" && p.user_id && p.role !== "owner" && p.id !== profileId;
+        const isActive = isWide && selected?.id === p.id;   // открыт в детали справа → кольцо + мяч
         return (
-          <SwipeRow key={p.id}
+          <SwipeRow key={p.id} active={isActive}
             onRemove={canRemove ? async () => { await removeMember(groupId, p.id); reload(); } : null}
             onOrganize={canOrg ? async () => { await setMemberRole(groupId, p.id, p.role === "admin" ? "member" : "admin"); reload(); } : null}
             organizerActive={p.role === "admin"} onTap={() => setSelected(p)}>
-          <div className="pl-card" style={{ display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", cursor: "pointer", border: p.id === profileId ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined, background: p.id === profileId ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined }}>
+          <div className="pl-card" style={{ position: isActive ? "relative" : undefined, display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", cursor: "pointer",
+            border: isActive ? "1.5px solid var(--lime)" : p.id === profileId ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined,
+            background: p.id === profileId ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined,
+            boxShadow: isActive ? "0 0 0 3px color-mix(in srgb, var(--lime) 20%, transparent)" : undefined }}>
+            {isActive && <OpenBall />}
             <div className="pl-display" style={{ width: 22, fontSize: 16, color: ["var(--yellow)", "#cfd8d0", "#cd7f4d"][i] || "var(--mut)", textAlign: "center", flexShrink: 0 }}>{i + 1}</div>
             <img src={playerAvatar(p.avatar_url, p.id, p.name)} onError={avatarFallback(p.id, p.name)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(p.id, p.name), width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -957,10 +966,14 @@ function Board({ groupId, players, loading = false, reload, profileId, isAdmin, 
         return friends.length > 0 ? (
         <>
           <div className="pl-display" style={{ fontSize: 12, color: "var(--mut)", margin: "4px 2px 8px", letterSpacing: 1 }}>{t("played_together_label")}</div>
-          {friends.map((p) => (
-            <SwipeRow key={p.id} onRemove={() => hidePlayer(p)} onTap={() => setSelected(p)}
+          {friends.map((p) => {
+            const isActive = isWide && selected?.id === p.id;
+            return (
+            <SwipeRow key={p.id} active={isActive} onRemove={() => hidePlayer(p)} onTap={() => setSelected(p)}
               leftLabel={t("hide_btn")} leftIcon={<EyeOff size={16} />}>
-            <div className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", cursor: "pointer" }}>
+            <div className="pl-card" style={{ position: isActive ? "relative" : undefined, display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", cursor: "pointer",
+              border: isActive ? "1.5px solid var(--lime)" : undefined, boxShadow: isActive ? "0 0 0 3px color-mix(in srgb, var(--lime) 20%, transparent)" : undefined }}>
+              {isActive && <OpenBall />}
               <img src={playerAvatar(p.avatar_url, p.id, p.name)} onError={avatarFallback(p.id, p.name)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(p.id, p.name), width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
@@ -972,7 +985,8 @@ function Board({ groupId, players, loading = false, reload, profileId, isAdmin, 
               <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />
             </div>
             </SwipeRow>
-          ))}
+            );
+          })}
         </>
       ) : (
         <EmptyState text={t("solo_friends_empty")} />
@@ -1013,8 +1027,12 @@ function Board({ groupId, players, loading = false, reload, profileId, isAdmin, 
       {extraPlayers.length > 0 && (
         <>
           <div className="pl-display" style={{ fontSize: 12, color: "var(--mut)", margin: "14px 2px 8px", letterSpacing: 1 }}>{t("played_together_label")}</div>
-          {extraPlayers.map((p) => (
-            <div key={p.id} className="pl-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", marginBottom: 8, cursor: "pointer" }} onClick={() => setSelected(p)}>
+          {extraPlayers.map((p) => {
+            const isActive = isWide && selected?.id === p.id;
+            return (
+            <div key={p.id} className="pl-card" style={{ position: isActive ? "relative" : undefined, display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", marginBottom: 8, cursor: "pointer",
+              border: isActive ? "1.5px solid var(--lime)" : undefined, boxShadow: isActive ? "0 0 0 3px color-mix(in srgb, var(--lime) 20%, transparent)" : undefined }} onClick={() => setSelected(p)}>
+              {isActive && <OpenBall />}
               <img src={playerAvatar(p.avatar_url, p.id, p.name)} onError={avatarFallback(p.id, p.name)} onLoad={avatarOnLoad} alt="" style={{ ...avatarBg(p.id, p.name), width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
@@ -1022,7 +1040,8 @@ function Board({ groupId, players, loading = false, reload, profileId, isAdmin, 
               </div>
               <ChevronRight size={14} style={{ color: "var(--mut)", flexShrink: 0 }} />
             </div>
-          ))}
+            );
+          })}
         </>
       )}
     </div>

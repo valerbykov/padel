@@ -26,7 +26,7 @@ export default function WideRail({
   ].filter(Boolean);
   return (
     <div style={{ width: expanded ? 244 : 72, flexShrink: 0, borderRight: "1px solid var(--line)", position: "sticky", top: 0, zIndex: 30,
-      height: "100vh", display: "flex", flexDirection: "column", alignItems: expanded ? "stretch" : "center", gap: 6,
+      height: "100dvh", overflowY: "auto", scrollbarWidth: "none", display: "flex", flexDirection: "column", alignItems: expanded ? "stretch" : "center", gap: 6,
       padding: "14px 0 16px", background: "color-mix(in srgb, var(--surface) 60%, var(--bg))", transition: "width .18s" }}>
       {canExpand && (
         <button onClick={onToggleExpand} aria-label="menu"
@@ -64,7 +64,10 @@ export default function WideRail({
         </button>
       ))}
 
-      <div style={{ flex: 1 }} />
+      {/* Растяжитель прижимает контролы к низу, НО не даёт им уехать за экран:
+          maxHeight ограничивает толкание (баннер AppInstallBanner сдвигает рейл
+          вниз, и «чистый» flex:1 увозил колокольчик/профиль/тему за нижний край). */}
+      <div style={{ flexGrow: 1, flexShrink: 1, minHeight: 8, maxHeight: 40 }} />
 
       {/* Низ рейла: колокольчик + профиль + тема (перенос из TopBar). */}
       {session && (
