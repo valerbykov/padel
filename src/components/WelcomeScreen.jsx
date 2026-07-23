@@ -7,6 +7,7 @@ import React, { useState } from "react";
 import { t } from "../lib/i18n";
 import { DOG_COUNT } from "../lib/avatar";
 import { useIsWide } from "./wide/wide";
+import Logo from "./Logo";
 
 // Переменные темы задаём на своём корне (как остальные standalone-экраны —
 // LoginScreen/GuestJoin/ProfileEditor): body-переменные PadelLeague гостю не
@@ -103,7 +104,7 @@ export default function WelcomeScreen({ onLogin, onOpenLanding, theme = "dark", 
         <div className="wld-court" />
         <div className="wld-tint" />
         <div className="wld-nav">
-          <div className="wld-brand"><span className="wld-paw">🐾</span>Padel<b>Pack</b></div>
+          <div className="wld-brand"><Logo height={26} /></div>
           <div className="wld-navr">
             <button className="wld-pill" onClick={() => { const o = ["ru", "en", "es"]; onLangChange?.(o[(o.indexOf(lang) + 1) % o.length]); }}>{lang.toUpperCase()} <span style={{ color: "var(--mut)", fontWeight: 400 }}>↻</span></button>
             <button className="wld-pill" onClick={onThemeToggle} aria-label={t("aria_theme")}>{theme === "dark" ? "☀️" : "🌙"}</button>
