@@ -46,26 +46,28 @@ export const TV_CSS = `
 .pptv-dots i.now{background:linear-gradient(90deg,var(--accent) 55%,rgba(255,255,255,.12) 55%);}
 
 .pptv-tbody{flex:1;display:grid;grid-template-columns:minmax(0,1.32fr) minmax(0,1.05fr);gap:1.8cqw;margin-top:1.1cqw;min-height:0;position:relative;z-index:1;}
-.pptv-courts{display:grid;gap:1.4cqw;min-height:0;min-width:0;}
-.pptv-court{position:relative;min-width:0;border-radius:1.4cqw;padding:1.4cqw;display:flex;flex-direction:column;justify-content:space-between;
+/* --cs — масштаб контента корта (уменьшается при многих кортах); --cc — колонки */
+.pptv-courts{display:grid;grid-template-columns:repeat(var(--cc,2),minmax(0,1fr));gap:calc(1.4cqw * var(--cs,1));min-height:0;min-width:0;}
+.pptv-court{position:relative;min-width:0;overflow:hidden;border-radius:1.2cqw;padding:calc(1.4cqw * var(--cs,1));display:flex;flex-direction:column;justify-content:space-between;
   background:linear-gradient(180deg,var(--panel) 0%,#0b1a13 100%);box-shadow:inset 0 0 0 1px var(--line),inset 0 .4cqw 0 -.2cqw rgba(200,255,45,.5);}
 .pptv-court::before{content:"";position:absolute;inset:1.1cqw;border:1px solid rgba(255,255,255,.06);border-radius:.6cqw;background:linear-gradient(rgba(255,255,255,.05),rgba(255,255,255,.05)) center/100% 1px no-repeat;}
-.pptv-clab{display:inline-flex;align-items:center;gap:.5cqw;font-size:1cqw;font-weight:900;letter-spacing:.14cqw;text-transform:uppercase;color:var(--mut);position:relative;}
-.pptv-court.live .pptv-clab i{width:.7cqw;height:.7cqw;border-radius:50%;background:var(--live);animation:pptvp 1.2s ease-in-out infinite;}
-.pptv-lineup{display:flex;flex-direction:column;gap:.9cqw;margin-top:.6cqw;position:relative;}
+.pptv-clab{display:inline-flex;align-items:center;gap:.5cqw;font-size:calc(1cqw * var(--cs,1));font-weight:900;letter-spacing:.1cqw;text-transform:uppercase;color:var(--mut);position:relative;white-space:nowrap;}
+.pptv-court.live .pptv-clab i{width:calc(.7cqw * var(--cs,1));height:calc(.7cqw * var(--cs,1));border-radius:50%;background:var(--live);animation:pptvp 1.2s ease-in-out infinite;}
+.pptv-lineup{display:flex;flex-direction:column;gap:calc(.9cqw * var(--cs,1));margin-top:.6cqw;position:relative;}
 .pptv-tm{display:flex;align-items:center;gap:.8cqw;min-width:0;}
 .pptv-pv{display:flex;flex-shrink:0;}
-.pptv-pv .a{width:3cqw;height:3cqw;min-width:24px;min-height:24px;border-radius:50%;border:.2cqw solid #0b1a13;display:grid;place-items:center;font-size:1.1cqw;font-weight:800;color:#fff;overflow:hidden;box-shadow:0 .3cqw .7cqw rgba(0,0,0,.35);}
+.pptv-pv .a{width:calc(3cqw * var(--cs,1));height:calc(3cqw * var(--cs,1));min-width:20px;min-height:20px;border-radius:50%;border:.2cqw solid #0b1a13;display:grid;place-items:center;font-size:calc(1.1cqw * var(--cs,1));font-weight:800;color:#fff;overflow:hidden;box-shadow:0 .3cqw .7cqw rgba(0,0,0,.35);}
 .pptv-pv .a img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
 .pptv-pv .a+.a{margin-left:-.95cqw;}
-.pptv-tm .nm{font-size:1.55cqw;font-weight:700;color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.pptv-tm.win .nm{color:var(--white);font-weight:800;border-bottom:.3cqw solid var(--accent);padding-bottom:.1cqw;}
+.pptv-tm .nm{font-size:calc(1.55cqw * var(--cs,1));font-weight:700;color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pptv-tm.win .nm{color:var(--white);font-weight:800;border-bottom:.25cqw solid var(--accent);padding-bottom:.1cqw;}
 .pptv-tm.lose .nm{opacity:.55;}
 .pptv-scoreline{display:flex;align-items:baseline;justify-content:center;gap:1.2cqw;font-family:'Anton',sans-serif;line-height:.82;position:relative;}
-.pptv-scoreline .d{font-size:6.6cqw;color:var(--white);font-variant-numeric:tabular-nums;}
+.pptv-scoreline .d{font-size:calc(6.6cqw * var(--cs,1));color:var(--white);font-variant-numeric:tabular-nums;}
 .pptv-scoreline .d.win{color:var(--accent);}
 .pptv-scoreline .d.lose{opacity:.45;}
-.pptv-scoreline .sep{font-size:4cqw;color:var(--mut);}
+.pptv-scoreline .sep{font-size:calc(4cqw * var(--cs,1));color:var(--mut);}
+.pptv-morec{grid-column:1/-1;text-align:center;color:var(--mut);font-size:1.2cqw;font-weight:800;letter-spacing:.1cqw;padding:.4cqw;}
 
 .pptv-tbl{background:rgba(6,13,10,.5);border:1px solid var(--line);border-radius:1.4cqw;padding:1cqw 1cqw .8cqw;display:flex;flex-direction:column;min-height:0;min-width:0;}
 .pptv-tgrid{display:grid;grid-template-columns:1.8cqw minmax(0,1fr) 4.2cqw 3cqw 2.8cqw;gap:.7cqw;align-items:center;}
@@ -251,8 +253,18 @@ export function TvTournamentScreen({ t, clock, header = true }) {
         </div>
       </div>
       <div className="pptv-tbody">
-        <div className="pptv-courts" style={{ gridTemplateColumns: courts.length > 1 ? "1fr 1fr" : "1fr" }}>
-          {courts.map((m) => (
+        {(() => {
+          // Адаптив под число кортов (в турнире их может быть много: 100 игроков
+          // ≈ 24 корта в раунде). Колонки и масштаб растут/падают; при переборе
+          // показываем сколько влезает + «ещё N» (все игроки видны в таблице).
+          const nC = courts.length;
+          const MAX = 9;
+          const shown = courts.slice(0, MAX);
+          const cc = nC <= 1 ? 1 : nC <= 4 ? 2 : 3;
+          const cs = nC <= 2 ? 1 : nC <= 4 ? 0.72 : nC <= 6 ? 0.56 : 0.46;
+          return (
+        <div className="pptv-courts" style={{ "--cc": cc, "--cs": cs }}>
+          {shown.map((m) => (
             <div key={m.id} className="pptv-court live">
               <div className="pptv-clab"><i />{t.court_names?.[String(m.court)] || `${tr("court_label")} ${m.court}`}</div>
               <div className="pptv-lineup">{team(m, "a")}{team(m, "b")}</div>
@@ -263,7 +275,10 @@ export function TvTournamentScreen({ t, clock, header = true }) {
               </div>
             </div>
           ))}
+          {nC > MAX && <div className="pptv-morec">+{nC - MAX} {tr("court_label").toLowerCase()}…</div>}
         </div>
+          );
+        })()}
         <div className="pptv-tbl">
           <div className="pptv-tgrid pptv-thead"><span className="l">#</span><span className="l">{tr("trn_pairs")}</span><span>{tr("result_win")}·{tr("result_draw")}·{tr("result_loss")}</span><span>{tr("trn_hero_pts")}</span><span>Δ</span></div>
           {table.slice(0, 6).map((r, i) => (
