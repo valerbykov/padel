@@ -1222,7 +1222,31 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
               );
             })() : (
               <>
-                {trnData.players.map((p) => (
+                {/* Широкий экран: крупные профиль-карточки как в гостевом ростере
+                    (аватар 58 + имя, ✕ в углу). Узкий — компактные строки. */}
+                {isWide ? (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(116px, 1fr))", gap: 10 }}>
+                    {trnData.players.map((p) => {
+                      const tap = onOpenPlayer && p.profile_id ? () => onOpenPlayer(p.profile_id) : null;
+                      const meCard = p.profile_id === currentProfileId;
+                      return (
+                        <div key={p.id} onClick={tap || undefined}
+                          style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 8, padding: "16px 8px 13px", borderRadius: 16, cursor: tap ? "pointer" : "default", minWidth: 0,
+                            border: meCard ? "1.5px solid color-mix(in srgb, var(--lime) 55%, transparent)" : "1px solid var(--line)",
+                            background: meCard ? "color-mix(in srgb, var(--lime) 8%, transparent)" : "var(--surface)" }}>
+                          <Avatar name={p.name} url={avatarOfTp(p.id)} id={p.profile_id} size={58} />
+                          <span style={{ maxWidth: "100%", fontSize: 13.5, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--ink)" }}>{p.name}</span>
+                          {!readOnly && (
+                            <button aria-label={tr("delete_btn")} onClick={(e) => { e.stopPropagation(); (async () => { try { await removeTournamentPlayer(p.id); } catch (err) {} load(); })(); }}
+                              style={{ position: "absolute", top: 6, right: 6, width: 24, height: 24, borderRadius: "50%", border: "none", background: "color-mix(in srgb, var(--coral) 16%, transparent)", color: "var(--coral)", cursor: "pointer", display: "grid", placeItems: "center" }}>
+                              <X size={13} />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : trnData.players.map((p) => (
                   <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 8px", borderBottom: "1px solid var(--line)", background: p.profile_id === currentProfileId ? "color-mix(in srgb, var(--lime) 10%, transparent)" : undefined, borderRadius: p.profile_id === currentProfileId ? 8 : undefined }}>
                     {(() => {
                       const tap = onOpenPlayer && p.profile_id ? () => onOpenPlayer(p.profile_id) : null;
