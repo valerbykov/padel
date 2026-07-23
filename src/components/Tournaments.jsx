@@ -194,7 +194,7 @@ export default function Tournaments({ groupId, players, profileId, bumpArchive, 
     ? <TournamentView key={activeId} id={activeId} players={players} back={() => setMode("list")} isGroupMember={!!groupId} currentProfileId={profileId} onArchiveChange={bumpArchive} isAdmin={isAdmin} membersCanCreate={membersCanCreate} onOpenPlayer={onOpenPlayer} />
     : null;
   if (mode === "view" && !isWide) return detailEl;
-  const listEl = <List groupId={groupId} profileId={profileId} players={players} session={session} onLogin={onLogin} canCreate={canCreate} isAdmin={isAdmin} membersCanCreate={membersCanCreate} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} />;
+  const listEl = <List groupId={groupId} profileId={profileId} players={players} session={session} onLogin={onLogin} canCreate={canCreate} isAdmin={isAdmin} membersCanCreate={membersCanCreate} create={() => setMode("create")} open={(id) => { setActiveId(id); setMode("view"); }} activeId={isWide && mode === "view" ? activeId : null} />;
   if (isWide) return <WideSplit list={listEl} detail={detailEl}
     empty={<EmptyDetail icon="🏆" title={tr("tab_tournaments")} sub={tr("wide_pick_tour")} />} />;
   return listEl;
@@ -202,7 +202,7 @@ export default function Tournaments({ groupId, players, profileId, bumpArchive, 
 
 // ─── TournamentHero ────────────────────────────────────────────────────────────
 // Активный турнир наверху списка: прогресс раундов, текущий лидер, CTA к счёту.
-function TournamentHero({ trn, onOpen, scoreCta = true }) {
+function TournamentHero({ trn, onOpen, scoreCta = true, active = false }) {
   const ms = (trn.matches || []).filter((m) => m.round_number > 0);
   const total = ms.length;
   const done = ms.filter((m) => m.score_a != null && m.score_b != null).length;
@@ -217,7 +217,7 @@ function TournamentHero({ trn, onOpen, scoreCta = true }) {
     if (tbl[0] && tbl[0].played > 0) leader = tbl[0];
   } catch (e) {}
   return (
-    <div onClick={onOpen} style={{ border: "1.5px solid color-mix(in srgb, var(--yellow) 45%, transparent)", background: "linear-gradient(160deg, color-mix(in srgb, var(--yellow) 9%, var(--surface)), var(--surface))", borderRadius: 18, padding: "14px 14px 13px", marginBottom: 10, cursor: "pointer" }}>
+    <div onClick={onOpen} style={{ border: active ? "1.5px solid var(--lime)" : "1.5px solid color-mix(in srgb, var(--yellow) 45%, transparent)", background: "linear-gradient(160deg, color-mix(in srgb, var(--yellow) 9%, var(--surface)), var(--surface))", borderRadius: 18, padding: "14px 14px 13px", marginBottom: 10, cursor: "pointer", boxShadow: active ? "0 0 0 1px var(--lime) inset" : undefined }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.2, color: "var(--yellow)", textTransform: "uppercase" }}>🏆 {tr("trn_hero_now")}</span>
         {rounds > 0 && <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--mut)" }}>{tr("trn_hero_round").replace("{a}", String(cur)).replace("{b}", String(rounds))}</span>}
@@ -239,7 +239,7 @@ function TournamentHero({ trn, onOpen, scoreCta = true }) {
 
 // ─── TournamentCard ────────────────────────────────────────────────────────────
 
-export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null, onTake = null, takeBusy = false, myDelta = null, placeFor = null, showMeBadge = true }) {
+export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null, onTake = null, takeBusy = false, myDelta = null, placeFor = null, showMeBadge = true, active = false }) {
   const fmt = fmtById(trn.format);
   const mine = !!me && (trn.players || []).some((pl) => pl.profile_id === me);
   // Завершённый турнир — победитель, топ-3 (мини-подиум), моё место и дата.
@@ -276,7 +276,10 @@ export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null, 
   // место победителю в строке итогов.
   const dateStr = whenIso ? (() => { try { return new Date(whenIso).toLocaleString(dateLocale(), trn.starts_at && trn.status !== "finished" ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" } : { day: "numeric", month: "short" }); } catch (e) { return null; } })() : null;
   return (
-    <div className="tr-card" style={{ marginBottom: flush ? 0 : 8, cursor: "pointer", border: mine ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined, background: mine ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined }} onClick={onClick}>
+    <div className="tr-card" style={{ marginBottom: flush ? 0 : 8, cursor: "pointer",
+      border: active ? "1.5px solid var(--lime)" : mine ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined,
+      background: active ? "color-mix(in srgb, var(--lime) 12%, transparent)" : mine ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined,
+      boxShadow: active ? "0 0 0 1px var(--lime) inset" : undefined }} onClick={onClick}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {/* Завершённый: мини-подиум из аватарок (чемпион с золотой рамкой) вместо кубка */}
         {trn.status === "finished" && top3.length > 0 ? (
@@ -359,7 +362,7 @@ export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null, 
 
 // ─── List ──────────────────────────────────────────────────────────────────────
 
-function List({ groupId, profileId, players = [], create, open, session, onLogin, canCreate = false, isAdmin = false, membersCanCreate = false }) {
+function List({ groupId, profileId, players = [], create, open, session, onLogin, canCreate = false, isAdmin = false, membersCanCreate = false, activeId = null }) {
   const [items, setItems] = useState(null);
   const [showAll, setShowAll] = useState(false);
   const [copySrc, setCopySrc] = useState(null);
@@ -407,7 +410,7 @@ function List({ groupId, profileId, players = [], create, open, session, onLogin
       {items !== null && heroTrn && (
         /* CTA «Ввести счёт» — только у тех, кто реально может вводить (свободный
            ввод / админ / создатель при праве участников); остальным — «Открыть». */
-        <TournamentHero trn={heroTrn} onOpen={() => open(heroTrn.id)}
+        <TournamentHero trn={heroTrn} onOpen={() => open(heroTrn.id)} active={heroTrn.id === activeId}
           scoreCta={!!heroTrn.open_scoring || isAdmin || (membersCanCreate && heroTrn.created_by === profileId)} />
       )}
       {items !== null && getSections().filter((sec) => sec.status !== "finished").map((sec) => {
@@ -422,7 +425,7 @@ function List({ groupId, profileId, players = [], create, open, session, onLogin
             </div>
             {visible.map((trn) => {
               const canDel = session && groupId && canCreate;
-              const card = <TournamentCard trn={trn} color={sec.color} me={profileId} flush={canDel} onClick={() => open(trn.id)}
+              const card = <TournamentCard trn={trn} color={sec.color} me={profileId} flush={canDel} onClick={() => open(trn.id)} active={trn.id === activeId}
                 onCopy={groupId && trn.status === "finished" ? () => setCopySrc(trn) : null}
                 onTake={trn.status === "open" && canTake(trn) ? () => takeSeat(trn) : null}
                 takeBusy={takingId === trn.id} />;
@@ -814,6 +817,7 @@ export function TournamentPoster({ trnData, fmt, readOnly, isKoth, isBtb, isGrou
 // ─── TournamentView ────────────────────────────────────────────────────────────
 
 export function TournamentView({ id, players, back, readOnly = false, initialT = null, reloadFn = null, isGroupMember = false, currentProfileId = null, spectatorMode = false, onArchiveChange = null, isAdmin = false, membersCanCreate = false, onOpenPlayer = null }) {
+  const isWide = useIsWide();     // на wide деталь в сплите рядом со списком → «К списку» не нужна
   useEffect(() => { if (back) return registerBack(back); }, [back]);
   const hasInitRef = useRef(!!initialT);
   const [trnData, setTrnData] = useState(initialT ? { ...initialT, matches: initialT.matches || [], players: initialT.players || [] } : null);
@@ -1073,7 +1077,7 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
   return (
     <div className="tr-root">
       <style>{css}</style>
-      {back && (
+      {back && !isWide && (
         <BackButton onClick={back} label={tr("trn_to_list")} style={{ marginBottom: 12 }} />
       )}
 

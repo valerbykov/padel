@@ -2009,7 +2009,7 @@ function MeBadge({ style }) {
 }
 // Hero «Ближайшая игра»: обратный отсчёт, состав и действие в одной карточке
 // наверху вкладки — зеркало пуш-напоминаний, но всегда на виду.
-function GameHero({ g, me, onOpen, onTake }) {
+function GameHero({ g, me, onOpen, onTake, active = false }) {
   useMinuteTick(!!g.starts_at && g.status !== "played" && new Date(g.starts_at) > Date.now());  // тикаем только пока идёт отсчёт ДО игры
   const slots = [...(g.slots || [])].sort((a, b) => ((a.team || "") + (a.position || "")).localeCompare((b.team || "") + (b.position || "")));
   const filled = slots.filter((s) => s.profile_id || s.guest_name).length;
@@ -2023,7 +2023,7 @@ function GameHero({ g, me, onOpen, onTake }) {
     : null;
   const canTake = !!me && hasFree && !meIn;
   return (
-    <div onClick={onOpen} style={{ border: "1.5px solid color-mix(in srgb, var(--lime) 45%, transparent)", background: "linear-gradient(160deg, color-mix(in srgb, var(--lime) 10%, var(--surface)), var(--surface))", borderRadius: 18, padding: "14px 14px 13px", marginBottom: 10, cursor: "pointer" }}>
+    <div onClick={onOpen} style={{ border: active ? "1.5px solid var(--lime)" : "1.5px solid color-mix(in srgb, var(--lime) 45%, transparent)", background: "linear-gradient(160deg, color-mix(in srgb, var(--lime) 10%, var(--surface)), var(--surface))", borderRadius: 18, padding: "14px 14px 13px", marginBottom: 10, cursor: "pointer", boxShadow: active ? "0 0 0 1px var(--lime) inset" : undefined }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.2, color: "var(--lime)", textTransform: "uppercase" }}>{t("hero_next_game")}</span>
         {g.starts_at && <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--mut)" }}>{fmtDate(g.starts_at)}</span>}
@@ -2071,7 +2071,7 @@ function RowTeam({ a, b, ring, names, won, me }) {
   );
 }
 
-export function GameRow({ g, color, onOpen, flush, bare, label, me = null, onTake = null, delta = null, showMeBadge = true }) {
+export function GameRow({ g, color, onOpen, flush, bare, label, me = null, onTake = null, delta = null, showMeBadge = true, active = false }) {
   useMinuteTick(g.status === "live");  // «LIVE · N мин» тикает только у живой игры
   const mine = meInGame(g, me);
   const gslots = [...(g.slots || [])].sort((a, b) => ((a.team || "") + (a.position || "")).localeCompare((b.team || "") + (b.position || "")));
@@ -2085,7 +2085,10 @@ export function GameRow({ g, color, onOpen, flush, bare, label, me = null, onTak
   const bWon = played && m && m.sets_b > m.sets_a;
   const nm = (slots) => slots.filter(has).map(s => s.profile?.name || s.guest_name).join(" & ") || "—";
   return (
-    <div className={bare ? "" : "pl-card"} style={{ marginBottom: bare ? 0 : (flush ? 0 : 8), cursor: "pointer", padding: bare ? "10px 2px" : "12px 14px", border: (mine && !bare) ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined, background: (mine && !bare) ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined }} onClick={onOpen}>
+    <div className={bare ? "" : "pl-card"} style={{ marginBottom: bare ? 0 : (flush ? 0 : 8), cursor: "pointer", padding: bare ? "10px 2px" : "12px 14px",
+      border: (active && !bare) ? "1.5px solid var(--lime)" : (mine && !bare) ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined,
+      background: (active && !bare) ? "color-mix(in srgb, var(--lime) 12%, transparent)" : (mine && !bare) ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined,
+      boxShadow: (active && !bare) ? "0 0 0 1px var(--lime) inset" : undefined }} onClick={onOpen}>
       {/* bare-режим (внутри плашки микс-сессии): без шапки, только составы и счёт. */}
       {!bare && (
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -2296,7 +2299,7 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
           <div key={label}>
             <div style={{ fontSize: 12, color: "var(--mut)", fontFamily:"'Anton',sans-serif", textTransform:"uppercase", letterSpacing:1, margin:"12px 2px 6px" }}>{label}</div>
             {items.map(g => {
-              const row = <GameRow key={g.id} g={g} color={color} me={profileId} flush={!!del} onOpen={() => { setSelId(g.id); setMode("view"); }}
+              const row = <GameRow key={g.id} g={g} color={color} me={profileId} flush={!!del} onOpen={() => { setSelId(g.id); setMode("view"); }} active={g.id === selId && mode === "view"}
                 onTake={take && canTakeRow(g) ? () => takeFirstFree(g) : null} />;
               return del
                 ? <SwipeToDelete key={g.id} onDelete={async () => { if (!(await confirmDialog({ title: t("delete_game_confirm"), message: t("delete_game_msg"), confirmLabel: t("delete_btn") }))) return; await deleteGame(g.id).catch(() => showToast(t("err_delete"))); loadGames(); bumpArchive?.(); }}>{row}</SwipeToDelete>
@@ -2306,7 +2309,7 @@ function Games({ groupId, players, profileId, reloadLeaderboard, session, archiv
         );
         return [
           (games.length > 0 && upcoming.length === 0 && active.length === 0 && liveNow.length === 0 && activeMixSessions.length === 0) ? <EmptyState key="na" variant="run" theme={theme} text={t("games_no_active")} /> : null,
-          hero && <GameHero key="hero" g={hero} me={profileId} onOpen={() => { setSelId(hero.id); setMode("view"); }} onTake={() => takeFirstFree(hero)} />,
+          hero && <GameHero key="hero" g={hero} me={profileId} onOpen={() => { setSelId(hero.id); setMode("view"); }} onTake={() => takeFirstFree(hero)} active={hero.id === selId && mode === "view"} />,
           // Активные микс-сессии — одной карточкой каждая (открывает страницу сессии).
           activeMixSessions.length > 0 && (
             <div key="mix-active">
@@ -2594,6 +2597,7 @@ function GameCourtBlock({ game, index, total, groupId, reloadSession, reloadLead
 }
 
 function GameCard({ game, groupId, profileId = null, isAdmin = false, back, reloadGames, reloadLeaderboard, bumpArchive, players = [] }) {
+  const isWide = useIsWide();     // на wide деталь в сплите рядом со списком → «К списку» не нужна
   const [mix, setMix] = useState(false);
   const [prof, setProf] = useState(null);  // карточка игрока из состава (только просмотр)
   const onOpenPlayer = (id) => { const f = players.find((p) => p.id === id); if (f) setProf(f); };
@@ -2765,9 +2769,11 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
     const reloadSession = async () => { await loadSession(); reloadGames && reloadGames(); };
     return (
       <div className="pl-pop">
-        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          {back && <BackButton onClick={back} label={t("to_list")} />}
-        </div>
+        {back && !isWide && (
+          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+            <BackButton onClick={back} label={t("to_list")} />
+          </div>
+        )}
         {list.length > 1 && (
           <div className="pl-display" style={{ fontSize: 18, margin: "0 2px 12px", display: "flex", alignItems: "center", gap: 8 }}>
             <Shuffle size={18} color="var(--lime)" /> {last.title || t("mix_session_title")} · {nGames(list.length)}
@@ -2845,9 +2851,11 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
   return (
     <div className="pl-pop">
       <style>{trCss}</style>
-      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        {back && <BackButton onClick={back} label={t("to_list")} />}
-      </div>
+      {back && !isWide && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          <BackButton onClick={back} label={t("to_list")} />
+        </div>
+      )}
       {/* Афиша игры — постер как у турнира (⚔️ вместо 🏆, свои поля) */}
       <div className="trp-poster">
         {/* Водяной знак — SVG-иконка Swords (эмодзи ⚔️ не рендерится на части Android) */}
