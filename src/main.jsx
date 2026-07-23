@@ -58,6 +58,22 @@ function reloadForStaleChunk(reason) {
 window.addEventListener("vite:preloadError", (e) => { try { e.preventDefault(); } catch (_) {} reloadForStaleChunk((e && e.payload && e.payload.message) || "vite:preloadError"); });
 window.addEventListener("unhandledrejection", (e) => { if (isChunkLoadError(e && e.reason)) reloadForStaleChunk((e.reason && e.reason.message) || String(e && e.reason)); });
 
+// Обновление после деплоя: SW собран с skipWaiting+clientsClaim, поэтому новый SW
+// ПЕРЕХВАТЫВАЕТ уже открытую страницу — но registerSW.js не перезагружает её, и
+// страница продолжает крутить СТАРЫЙ код (старый дизайн), а при чистке старого
+// precache её ленивые чанки начинают падать (рассыпавшийся UI: свитчер лиг,
+// аналитика и т.п.). Ловим смену контроллера и один раз перезагружаемся за
+// свежей версией. Слушатель вешаем ТОЛЬКО если контроллер уже был на старте:
+// иначе это первый заход (первичный claim) — перезагрузка не нужна.
+if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+  let swReloading = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (swReloading) return;
+    swReloading = true;
+    window.location.reload();
+  });
+}
+
 // Прячем нативный сплеш, когда веб-приложение отрисовалось. Capacitor рекомендует
 // звать hide() вручную; в capacitor.config launchAutoHide:false — сплеш ждёт нас
 // (не прячется по таймауту, пока грузится бандл). На вебе window.Capacitor нет —
