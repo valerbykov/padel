@@ -3124,7 +3124,13 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
   const [monthOff, setMonthOff] = useState(0);     // 0 = текущий месяц, -1 = прошлый…
   const [pFilter, setPFilter] = useState(null);    // «чья история»: id игрока из карусели (я — первый)
   const [deltaRows, setDeltaRows] = useState([]);  // rating_changes фокус-игрока (бейджи ±N и Δ месяца)
+  const [weekDeltas, setWeekDeltas] = useState({}); // недельная дельта рейтинга по игрокам — для колонки «Участники» (как в лидерборде)
   const focusId = pFilter || profileId;            // чьи дельты и В–П показываем
+  useEffect(() => {
+    let alive = true;
+    if (groupId) getWeekDeltas(groupId).then((m) => { if (alive) setWeekDeltas(m || {}); }).catch(() => {});
+    return () => { alive = false; };
+  }, [groupId, archiveNonce]);
 
   const load = useCallback(async () => {
     try {
@@ -3284,14 +3290,15 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
   const rosterOthers = (players || []).filter((p) => p.id !== profileId);
 
   // Десктоп ≥1280: вертикальная колонка выбора «чья история» — та же логика
-  // pFilter, что и у горизонтальной карусели, но с именем и В–П за месяц.
+  // pFilter, что и у карусели; у имени — недельное изменение рейтинга (±N),
+  // как в лидерборде (В–П убрали — путалось с «по играм»).
   const membersColumn = (players || []).length > 1 ? (
     <div style={{ width: 236, flexShrink: 0, position: "sticky", top: 12, maxHeight: "calc(100vh - 24px)", overflowY: "auto" }}>
       <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.8, textTransform: "uppercase", color: "var(--mut)", padding: "2px 6px 8px" }}>{t("hist_whose")}</div>
       {[...(meRow ? [meRow] : []), ...rosterOthers].map((p) => {
         const on = pFilter === p.id;
         const isMe = p.id === profileId;
-        const wl = wlOf(p.id);
+        const wd = weekDeltas[p.id] || 0;
         return (
           <button key={p.id} onClick={() => setPFilter((v) => v === p.id ? null : p.id)} title={p.name} aria-pressed={on}
             style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", padding: "7px 8px", marginBottom: 2, borderRadius: 11, cursor: "pointer",
@@ -3301,7 +3308,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
               style={{ ...avatarBg(p.id, p.name), width: 30, height: 30, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
             <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
             {isMe && <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 800, background: "var(--lime)", color: "var(--lime-fg)", borderRadius: 5, padding: "0 5px" }}>{t("fr_you")}</span>}
-            {(wl.w + wl.l) > 0 && <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 800, color: wl.w >= wl.l ? "var(--lime)" : "var(--coral)" }}>{wl.w}–{wl.l}</span>}
+            {wd !== 0 && <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 800, color: wd > 0 ? "var(--lime)" : "var(--coral)" }}>{wd > 0 ? `+${wd}` : wd}</span>}
           </button>
         );
       })}
