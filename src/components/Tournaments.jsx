@@ -52,6 +52,7 @@ function Confetti({ burst }) {
 import StandingsTable from "./StandingsTable";
 import { groupPairs, nextPairNo, allPaired } from "../lib/pairs";
 import Avatar from "./Avatar";
+import OpenBall from "./OpenBall";
 import FeesCard from "./FeesCard";
 import EmptyState from "./EmptyState";
 import { formatMoney } from "../lib/money";
@@ -217,7 +218,8 @@ function TournamentHero({ trn, onOpen, scoreCta = true, active = false }) {
     if (tbl[0] && tbl[0].played > 0) leader = tbl[0];
   } catch (e) {}
   return (
-    <div onClick={onOpen} style={{ border: active ? "1.5px solid var(--lime)" : "1.5px solid color-mix(in srgb, var(--yellow) 45%, transparent)", background: "linear-gradient(160deg, color-mix(in srgb, var(--yellow) 9%, var(--surface)), var(--surface))", borderRadius: 18, padding: "14px 14px 13px", marginBottom: 10, cursor: "pointer", boxShadow: active ? "0 0 0 1px var(--lime) inset" : undefined }}>
+    <div onClick={onOpen} style={{ position: active ? "relative" : undefined, border: active ? "1.5px solid var(--lime)" : "1.5px solid color-mix(in srgb, var(--yellow) 45%, transparent)", background: "linear-gradient(160deg, color-mix(in srgb, var(--yellow) 9%, var(--surface)), var(--surface))", borderRadius: 18, padding: "14px 14px 13px", marginBottom: 10, cursor: "pointer", boxShadow: active ? "0 0 0 3px color-mix(in srgb, var(--lime) 20%, transparent)" : undefined }}>
+      {active && <OpenBall />}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.2, color: "var(--yellow)", textTransform: "uppercase" }}>🏆 {tr("trn_hero_now")}</span>
         {rounds > 0 && <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--mut)" }}>{tr("trn_hero_round").replace("{a}", String(cur)).replace("{b}", String(rounds))}</span>}
@@ -276,10 +278,11 @@ export function TournamentCard({ trn, color, onClick, onCopy, flush, me = null, 
   // место победителю в строке итогов.
   const dateStr = whenIso ? (() => { try { return new Date(whenIso).toLocaleString(dateLocale(), trn.starts_at && trn.status !== "finished" ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" } : { day: "numeric", month: "short" }); } catch (e) { return null; } })() : null;
   return (
-    <div className="tr-card" style={{ marginBottom: flush ? 0 : 8, cursor: "pointer",
+    <div className="tr-card" style={{ position: active ? "relative" : undefined, marginBottom: flush ? 0 : 8, cursor: "pointer",
       border: active ? "1.5px solid var(--lime)" : mine ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined,
-      background: active ? "color-mix(in srgb, var(--lime) 12%, transparent)" : mine ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined,
-      boxShadow: active ? "0 0 0 1px var(--lime) inset" : undefined }} onClick={onClick}>
+      background: mine ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined,
+      boxShadow: active ? "0 0 0 3px color-mix(in srgb, var(--lime) 20%, transparent)" : undefined }} onClick={onClick}>
+      {active && <OpenBall />}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {/* Завершённый: мини-подиум из аватарок (чемпион с золотой рамкой) вместо кубка */}
         {trn.status === "finished" && top3.length > 0 ? (
@@ -639,6 +642,7 @@ function kothChampionPair(trn) {
 
 // Свайп влево по строке участника → удаление (как в Истории/слотах игры).
 function SwipeRow({ onDelete, children }) {
+  const isWide = useIsWide();     // десктоп: свайп → hover-кнопка удаления
   const [dx, setDx] = useState(0);
   const [dragging, setDragging] = useState(false);
   const startX = useRef(0), startY = useRef(0), active = useRef(false), busy = useRef(false), captured = useRef(false), pid = useRef(null);
@@ -660,6 +664,19 @@ function SwipeRow({ onDelete, children }) {
     if (dx <= -MAX * 0.55) { setDx(-MAX); busy.current = true; try { await onDelete(); } finally { busy.current = false; } setDx(0); }
     else setDx(0);
   };
+  // Десктоп: свайп → видимая hover-кнопка удаления в углу карточки.
+  if (isWide) {
+    return (
+      <div className="tsr-hover" style={{ position: "relative", marginBottom: 8 }}>
+        <style>{`.tsr-hover .tsr-del{opacity:0;transition:opacity .12s}.tsr-hover:hover .tsr-del,.tsr-hover:focus-within .tsr-del{opacity:1}`}</style>
+        {children}
+        <button className="tsr-del" onClick={(e) => { e.stopPropagation(); onDelete(); }} aria-label={tr("delete_btn")} title={tr("delete_btn")}
+          style={{ position: "absolute", top: 8, right: 8, width: 30, height: 30, borderRadius: 9, border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--coral)", cursor: "pointer", display: "grid", placeItems: "center", zIndex: 3 }}>
+          <Trash2 size={15} />
+        </button>
+      </div>
+    );
+  }
   return (
     <div style={{ position: "relative", borderRadius: 16, overflow: "hidden", background: dx < 0 ? "var(--coral)" : "transparent" }}>
       <div style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: MAX, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>

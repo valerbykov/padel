@@ -26,6 +26,7 @@ import { deleteTournament } from "./lib/tournamentApi";
 import CourtView from "./components/CourtView";
 import EmptyState from "./components/EmptyState";
 import Avatar from "./components/Avatar";
+import OpenBall from "./components/OpenBall";
 import InviteCard from "./components/InviteCard";
 const Analytics = lazy(() => import("./components/Analytics"));
 import LevelBadges, { EventLevelBadge } from "./components/LevelBadges";
@@ -2023,7 +2024,8 @@ function GameHero({ g, me, onOpen, onTake, active = false }) {
     : null;
   const canTake = !!me && hasFree && !meIn;
   return (
-    <div onClick={onOpen} style={{ border: active ? "1.5px solid var(--lime)" : "1.5px solid color-mix(in srgb, var(--lime) 45%, transparent)", background: "linear-gradient(160deg, color-mix(in srgb, var(--lime) 10%, var(--surface)), var(--surface))", borderRadius: 18, padding: "14px 14px 13px", marginBottom: 10, cursor: "pointer", boxShadow: active ? "0 0 0 1px var(--lime) inset" : undefined }}>
+    <div onClick={onOpen} style={{ position: active ? "relative" : undefined, border: active ? "1.5px solid var(--lime)" : "1.5px solid color-mix(in srgb, var(--lime) 45%, transparent)", background: "linear-gradient(160deg, color-mix(in srgb, var(--lime) 10%, var(--surface)), var(--surface))", borderRadius: 18, padding: "14px 14px 13px", marginBottom: 10, cursor: "pointer", boxShadow: active ? "0 0 0 3px color-mix(in srgb, var(--lime) 20%, transparent)" : undefined }}>
+      {active && <OpenBall />}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.2, color: "var(--lime)", textTransform: "uppercase" }}>{t("hero_next_game")}</span>
         {g.starts_at && <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--mut)" }}>{fmtDate(g.starts_at)}</span>}
@@ -2085,10 +2087,11 @@ export function GameRow({ g, color, onOpen, flush, bare, label, me = null, onTak
   const bWon = played && m && m.sets_b > m.sets_a;
   const nm = (slots) => slots.filter(has).map(s => s.profile?.name || s.guest_name).join(" & ") || "—";
   return (
-    <div className={bare ? "" : "pl-card"} style={{ marginBottom: bare ? 0 : (flush ? 0 : 8), cursor: "pointer", padding: bare ? "10px 2px" : "12px 14px",
+    <div className={bare ? "" : "pl-card"} style={{ position: (active && !bare) ? "relative" : undefined, marginBottom: bare ? 0 : (flush ? 0 : 8), cursor: "pointer", padding: bare ? "10px 2px" : "12px 14px",
       border: (active && !bare) ? "1.5px solid var(--lime)" : (mine && !bare) ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined,
-      background: (active && !bare) ? "color-mix(in srgb, var(--lime) 12%, transparent)" : (mine && !bare) ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined,
-      boxShadow: (active && !bare) ? "0 0 0 1px var(--lime) inset" : undefined }} onClick={onOpen}>
+      background: (mine && !bare) ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined,
+      boxShadow: (active && !bare) ? "0 0 0 3px color-mix(in srgb, var(--lime) 20%, transparent)" : undefined }} onClick={onOpen}>
+      {active && !bare && <OpenBall />}
       {/* bare-режим (внутри плашки микс-сессии): без шапки, только составы и счёт. */}
       {!bare && (
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -2154,12 +2157,15 @@ export function GameRow({ g, color, onOpen, flush, bare, label, me = null, onTak
 
 // Объединённая плашка микс-сессии: несколько под-игр одного выхода (тот же
 // состав, разные расстановки). Внутри — каждая под-игра со своим счётом.
-function MixGroupCard({ games, color, onOpenGame, me = null, delta = null, showMeBadge = true }) {
+function MixGroupCard({ games, color, onOpenGame, me = null, delta = null, showMeBadge = true, active = false }) {
   const first = games[0];
   const mine = !!me && games.some((g) => meInGame(g, me));
   const when = first.starts_at || first.created_at;
   return (
-    <div className="pl-card" style={{ padding: 0, overflow: "hidden", border: mine ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined, background: mine ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined }}>
+    <div className="pl-card" style={{ padding: 0, overflow: "hidden",
+      border: active ? "1.5px solid var(--lime)" : mine ? "1.5px solid color-mix(in srgb, var(--lime) 60%, transparent)" : undefined,
+      background: mine ? "color-mix(in srgb, var(--lime) 8%, transparent)" : undefined,
+      boxShadow: active ? "0 0 0 3px color-mix(in srgb, var(--lime) 20%, transparent)" : undefined }}>
       <div onClick={() => onOpenGame(first)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderBottom: "1px solid var(--line)", cursor: "pointer" }}>
         <Shuffle size={18} color={color} style={{ flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -2977,6 +2983,7 @@ function GameCard({ game, groupId, profileId = null, isAdmin = false, back, relo
 /* ------------------------------- HistoryView ------------------------------ */
 // Свайп влево по карточке → раскрывается красная зона с корзиной → удаление.
 function SwipeToDelete({ onDelete, onCopy, children }) {
+  const isWide = useIsWide();     // на десктопе свайп мышью не очевиден → hover-кнопки
   const [dx, setDx] = useState(0);
   const [dragging, setDragging] = useState(false);
   const startX = useRef(0), startY = useRef(0), active = useRef(false), busy = useRef(false), captured = useRef(false), pid = useRef(null);
@@ -3005,6 +3012,23 @@ function SwipeToDelete({ onDelete, onCopy, children }) {
       setDx(0);
     } else setDx(0);
   };
+  // Десктоп: свайп заменяем видимыми hover-кнопками в углу карточки (появляются
+  // на hover/focus), сам свайп-обработчик не вешаем.
+  if (isWide) {
+    const abtn = { width: 30, height: 30, borderRadius: 9, border: "1px solid var(--line)", background: "var(--surface2)", cursor: "pointer", display: "grid", placeItems: "center" };
+    return (
+      <div className="std-hover" style={{ position: "relative", marginBottom: 8 }}>
+        <style>{`.std-hover .std-acts{opacity:0;transition:opacity .12s}.std-hover:hover .std-acts,.std-hover:focus-within .std-acts{opacity:1}`}</style>
+        {children}
+        <div className="std-acts" style={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 6, zIndex: 3 }}>
+          {onCopy && (
+            <button onClick={(e) => { e.stopPropagation(); onCopy(); }} aria-label={t("copy_btn")} title={t("copy_btn")} style={{ ...abtn, color: "var(--lime)" }}><Copy size={15} /></button>
+          )}
+          <button onClick={(e) => { e.stopPropagation(); onDelete(); }} aria-label={t("delete_btn")} title={t("delete_btn")} style={{ ...abtn, color: "var(--coral)" }}><Trash2 size={15} /></button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div style={{ position: "relative", marginBottom: 8, borderRadius: 18, overflow: "hidden", background: dx > 0 ? "var(--lime)" : dx < 0 ? "var(--coral)" : "transparent" }}>
       <div style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: MAX, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
@@ -3223,7 +3247,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
     if (ev.kind === "tour") {
       const tour = ev.tour;
       const mine = !profileId || mineTour(tour);
-      const card = <TournamentCard trn={tour} color="var(--yellow)" me={profileId} placeFor={focusId} showMeBadge={!pFilter || pFilter === profileId} myDelta={trDelta(tour)} flush={isGroupMember} onClick={() => setSel({ type: "tour", data: tour })} />;
+      const card = <TournamentCard trn={tour} color="var(--yellow)" me={profileId} placeFor={focusId} showMeBadge={!pFilter || pFilter === profileId} myDelta={trDelta(tour)} flush={isGroupMember} onClick={() => setSel({ type: "tour", data: tour })} active={isWide && sel?.type === "tour" && sel.data?.id === tour.id} />;
       const inner = isGroupMember
         ? <SwipeToDelete onCopy={groupId ? () => setCopyTour(tour) : null} onDelete={async () => { if (!(await confirmDialog({ title: t("trn_delete_confirm"), message: t("trn_delete_msg"), confirmLabel: t("delete_btn") }))) return; await deleteTournament(tour.id).catch(() => showToast(t("err_delete"))); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
         : card;
@@ -3237,7 +3261,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
         ordered.forEach((gg) => { const d0 = gDelta(gg); if (d0 != null) { sum += d0; found = true; } });
         return found ? sum : null;
       })();
-      const card = <MixGroupCard games={ordered} color="var(--mut)" me={profileId} showMeBadge={!pFilter || pFilter === profileId} delta={mixDelta} onOpenGame={(g) => setSel({ type: "game", data: g })} />;
+      const card = <MixGroupCard games={ordered} color="var(--mut)" me={profileId} showMeBadge={!pFilter || pFilter === profileId} delta={mixDelta} onOpenGame={(g) => setSel({ type: "game", data: g })} active={isWide && sel?.type === "game" && ordered.some((gg) => gg.id === sel.data?.id)} />;
       const inner = isGroupMember
         ? <SwipeToDelete onDelete={async () => { if (!(await confirmDialog({ title: t("mix_delete_confirm").replace("{n}", ordered.length), message: t("mix_delete_msg"), confirmLabel: t("delete_btn") }))) return; for (const gg of ordered) await deleteGame(gg.id).catch(() => showToast(t("err_delete"))); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
         : card;
@@ -3245,7 +3269,7 @@ function HistoryView({ groupId, players, profileId, isGroupMember, isAdmin = fal
     }
     const g = ev.game;
     const mine = !profileId || meInGame(g, profileId);
-    const card = <GameRow g={g} color="var(--mut)" me={profileId} showMeBadge={!pFilter || pFilter === profileId} delta={gDelta(g)} flush={isGroupMember} onOpen={() => setSel({ type: "game", data: g })} />;
+    const card = <GameRow g={g} color="var(--mut)" me={profileId} showMeBadge={!pFilter || pFilter === profileId} delta={gDelta(g)} flush={isGroupMember} onOpen={() => setSel({ type: "game", data: g })} active={isWide && sel?.type === "game" && sel.data?.id === g.id} />;
     const inner = isGroupMember
       ? <SwipeToDelete onCopy={groupId ? () => setCopyGame(g) : null} onDelete={async () => { if (!(await confirmDialog({ title: t("delete_game_confirm"), message: t("delete_game_msg"), confirmLabel: t("delete_btn") }))) return; await deleteGame(g.id).catch(() => showToast(t("err_delete"))); bumpArchive?.(); load(); }}>{card}</SwipeToDelete>
       : card;
