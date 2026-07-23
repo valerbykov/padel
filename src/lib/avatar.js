@@ -122,10 +122,13 @@ export function initialsAvatar(key, name) {
   const initials = initialsFor(name ?? key);
   const textColor = isLightColor(bg) ? "#1a1a1a" : "#ffffff";
   const fontSize = initials.length > 1 ? 40 : 46;
+  // Вертикальное центрирование через dy=0.35em, а НЕ dominant-baseline:
+  // Safari (iOS/iPad) в data-URI-SVG внутри <img> нестабильно применяет
+  // dominant-baseline — буквы уезжали вверх и «сжимались». dy надёжен везде.
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">` +
     `<circle cx="50" cy="50" r="50" fill="${bg}"/>` +
-    `<text x="50" y="52" text-anchor="middle" dominant-baseline="central" ` +
+    `<text x="50" y="50" dy="0.35em" text-anchor="middle" ` +
     `font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" ` +
     `font-size="${fontSize}" font-weight="700" fill="${textColor}">${initials}</text>` +
     `</svg>`;
