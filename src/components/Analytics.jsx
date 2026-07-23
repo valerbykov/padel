@@ -12,6 +12,7 @@ import { getGroupAnalytics } from "../lib/statsApi";
 import { getBoardMatches } from "../lib/padelApi";
 import { playerAvatar, avatarFallback , avatarBg, avatarOnLoad} from "../lib/avatar";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { useIsWide } from "./wide/wide";
 import { t, currentLang } from "../lib/i18n";
 import BackButton from "./BackButton";
 
@@ -79,6 +80,7 @@ const CT = ({ children, style }) => (
 );
 
 export default function Analytics({ groupId, onBack, players = [], onOpenPlayer, profileId = null }) {
+  const isWide = useIsWide();     // ≥900: дашборд-сетка вместо вертикальной колонки
   const [data, setData] = useState(undefined);
   const [mode, setMode] = useState("all");
   const [showDays, setShowDays] = useState(false);
@@ -219,10 +221,13 @@ export default function Analytics({ groupId, onBack, players = [], onOpenPlayer,
 
   return (
     <div className="pl-pop" style={{ fontFamily: "'Outfit',sans-serif" }}>
-      <style>{`.an-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;}.an-tile{flex:1;text-align:center;min-width:0;padding:11px 6px;}.an-display{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-.3px;}`}</style>
+      <style>{`.an-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;}.an-tile{flex:1;text-align:center;min-width:0;padding:11px 6px;}.an-display{font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:-.3px;}
+        .an-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start;}
+        .an-grid>*{margin-bottom:0 !important;}
+        .an-grid .an-full{grid-column:1 / -1;}`}</style>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-        {onBack && <BackButton onClick={onBack} />}
+        {onBack && !isWide && <BackButton onClick={onBack} />}
         <h1 className="an-display" style={{ fontSize: 24, margin: 0 }}>{t("an_title")}</h1>
       </div>
 
@@ -230,9 +235,9 @@ export default function Analytics({ groupId, onBack, players = [], onOpenPlayer,
       {data === null && <p style={{ color: "var(--coral)" }}>{t("an_error")}</p>}
 
       {data && md && (
-        <>
+        <div className={isWide ? "an-grid" : undefined}>
           {/* Переключатель Все / Игры / Турниры */}
-          <div style={{ display: "flex", gap: 4, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, padding: 3, marginBottom: 12 }}>
+          <div className={isWide ? "an-full" : undefined} style={{ display: "flex", gap: 4, background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 12, padding: 3, marginBottom: 12 }}>
             {[["all", t("filter_all")], ["games", t("filter_games")], ["tours", t("filter_tours")]].map(([key, label]) => (
               <button key={key} onClick={() => setMode(key)} style={{
                 flex: 1, border: "none", borderRadius: 9, padding: "8px 0", cursor: "pointer",
@@ -244,7 +249,7 @@ export default function Analytics({ groupId, onBack, players = [], onOpenPlayer,
           </div>
 
           {/* KPI с динамикой */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          <div className={isWide ? "an-full" : undefined} style={{ display: "flex", gap: 8, marginBottom: 12 }}>
             <div className="an-card an-tile">
               <div className="an-display" style={{ fontSize: 22 }}>{md.total_matches ?? 0}</div>
               <div style={{ fontSize: 10, color: "var(--mut)", marginTop: 1 }}>{t("an_matches")}</div>
@@ -267,7 +272,7 @@ export default function Analytics({ groupId, onBack, players = [], onOpenPlayer,
           </div>
 
           {/* Пульс: столбики по неделям; лента по дням — по тапу */}
-          <div className="an-card" style={{ marginBottom: 12 }}>
+          <div className={`an-card${isWide ? " an-full" : ""}`} style={{ marginBottom: 12 }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
               <CT>{t("an_pulse")}</CT>
               {mom !== null && (
@@ -436,7 +441,7 @@ export default function Analytics({ groupId, onBack, players = [], onOpenPlayer,
               </div>
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );
