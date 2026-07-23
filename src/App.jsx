@@ -518,18 +518,21 @@ export default function App({ initialShowLogin = false }) {
     return () => { alive = false; };
   }, [tournamentCode, session, profile, leagues, handleOpenEvent]);
 
-  // /l/CODE у ЗАЛОГИНЕННОГО: если это ЕГО лига (код среди загруженных) — открываем её
-  // в приложении (доска), а не публичной страницей «как гость». Не участник → публичная.
+  // /l/CODE у ЗАЛОГИНЕННОГО: обычного УЧАСТНИКА открываем в приложении (доска его
+  // лиги), а не публичной страницей «как гость». Но ВЛАДЕЛЬЦА/АДМИНА пускаем на
+  // ВИТРИНУ — он приходит по своей ссылке посмотреть/расшарить публичную страницу
+  // (иначе владелец не мог увидеть, что именно шарит). Не участник → публичная.
   useEffect(() => {
     if (!leaguePublicCode) { setLeagueRoute(null); return; }
     if (!session) { setLeagueRoute("public"); return; }
     if (leagues === null) return;                          // ждём список лиг
     const lg = (leagues || []).find((l) => l.invite_code === leaguePublicCode);
-    if (lg) {
+    const isOwnerAdmin = lg && (lg.role === "owner" || lg.role === "admin");
+    if (lg && !isOwnerAdmin) {
       setActiveLeague(lg);
       setLeagueRoute("inapp");
       try { window.history.replaceState({}, "", "/"); } catch (e) { /* приват/SSR */ }
-    } else setLeagueRoute("public");
+    } else setLeagueRoute("public");   // владелец/админ и не-участники → витрина
   }, [leaguePublicCode, session, leagues]);
 
   // /j/CODE у ЗАЛОГИНЕННОГО: игра из его лиги → ин-апп вид игры (как тап из «Игр»), а не
