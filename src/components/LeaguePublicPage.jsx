@@ -501,18 +501,23 @@ export default function LeaguePublicPage({ code }) {
             </>
           );
 
-          // Кнопка «Вступить» + подсказка + OpenInApp
+          // Кнопка «Вступить» + подсказка + OpenInApp. Залогиненному (участник он
+          // или нет) показываем «Открыть в приложении» — /?join=CODE идемпотентен:
+          // участника просто откроет в его лиге, не-участника добавит. Подсказку
+          // «после входа добавим» показываем только гостю.
           const joinBlock = (
             <>
               <a href={joinUrl} className="lp-join-btn" style={{ marginBottom: 12 }}
                 onClick={() => { try { localStorage.setItem("pp_pending_join", code); } catch (e) {} }}>
-                {t("pub_join_league")}
+                {session ? t("pub_open_in_app") : t("pub_join_league")}
               </a>
               {/* QR открылся в браузере, а приложение уже установлено → в натив по тапу */}
               <OpenInApp path={`/l/${code}`} style={{ marginBottom: 12 }} />
-              <div style={{ fontSize: 12, color: "var(--mut)", textAlign: "center", marginBottom: 28 }}>
-                {t("pub_after_login")}
-              </div>
+              {!session && (
+                <div style={{ fontSize: 12, color: "var(--mut)", textAlign: "center", marginBottom: 28 }}>
+                  {t("pub_after_login")}
+                </div>
+              )}
             </>
           );
 

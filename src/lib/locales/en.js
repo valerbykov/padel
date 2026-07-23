@@ -83,7 +83,7 @@ export default {
     pub_league_notfound_t: 'League not found',
     pub_league_notfound_s: 'Check the link or ask the organizer to send a new one.',
     pub_create_own: 'Create your own league →', pub_rating: 'RANKING', pub_no_players: 'No players yet',
-    pub_join_league: 'Join the league →', pj_joining: 'Joining the league…', pub_after_login: 'After signing in you’ll be added to the league automatically',
+    pub_join_league: 'Join the league →', pub_open_in_app: 'Open in the app →', pj_joining: 'Joining the league…', pub_after_login: 'After signing in you’ll be added to the league automatically',
     pub_want_own_t: 'WANT YOUR OWN LEAGUE?', pub_want_own_s: 'Rankings, americano tournaments, match history — free for any group. A demo league inside lets you explore first.',
     pub_game_invite: 'GAME INVITE', pub_game_notfound: 'Game with code {code} not found.',
     pub_game_closed: 'This game is closed for joining.', pub_logged_rating: 'Signed in as {name} — the result counts toward your rating',
