@@ -6,6 +6,7 @@
 import React, { useState } from "react";
 import { t } from "../lib/i18n";
 import { DOG_COUNT } from "../lib/avatar";
+import { useIsWide } from "./wide/wide";
 
 // Переменные темы задаём на своём корне (как остальные standalone-экраны —
 // LoginScreen/GuestJoin/ProfileEditor): body-переменные PadelLeague гостю не
@@ -41,6 +42,7 @@ const css = `
 `;
 
 export default function WelcomeScreen({ onLogin, onOpenLanding, theme = "dark", lang = "ru", onThemeToggle, onLangChange }) {
+  const isWide = useIsWide();     // ≥900: десктопный hero с подложкой-кортом
   // Собаки подиума — случайные из 15 при каждом заходе (как раньше верхний ряд);
   // выбор один раз на маунт, чтобы не мигали при ререндерах.
   const [podDogs] = useState(() => {
@@ -54,6 +56,93 @@ export default function WelcomeScreen({ onLogin, onOpenLanding, theme = "dark", 
     { icon: "🔗", title: t("w_f2_t"), sub: t("w_f2_d") },   // ссылки, LIVE, напоминания
     { icon: "📸", title: t("w_f3_t"), sub: t("w_f3_d") },   // рейтинг, звания, карточки
   ];
+  // Десктоп ≥900: асимметричный hero с подложкой-кортом (реальный
+  // /padel-court.png, затемнён), подиум-собаки справа, верхний нав с
+  // языком/темой/о-проекте. Мобильная версия ниже — без изменений.
+  const deskCss = `
+.wl-desk .wld-page{position:relative;overflow:hidden;min-height:100vh;background:var(--bg);}
+.wl-desk .wld-court{position:absolute;inset:0;z-index:0;background:url(/padel-court.png) center/cover;filter:brightness(.34) saturate(.72);}
+.wl-desk.wl-light .wld-court{filter:brightness(.95) saturate(.85);opacity:.45;}
+.wl-desk .wld-tint{position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse at 74% 42%, color-mix(in srgb,var(--lime) 12%,transparent), transparent 52%),linear-gradient(180deg, color-mix(in srgb,var(--bg) 58%,transparent), color-mix(in srgb,var(--bg) 80%,transparent) 55%, var(--bg));}
+.wl-desk .wld-nav{position:relative;z-index:3;display:flex;align-items:center;padding:20px 40px;border-bottom:1px solid var(--line);}
+.wl-desk .wld-brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:18px;}
+.wl-desk .wld-brand b{color:var(--lime);}
+.wl-desk .wld-paw{width:30px;height:30px;border-radius:9px;background:var(--lime);color:var(--lime-fg);display:grid;place-items:center;font-size:15px;}
+.wl-desk .wld-navr{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.wl-desk .wld-pill{border:1px solid var(--line);border-radius:10px;padding:6px 11px;font-size:12px;font-weight:700;color:var(--ink);background:var(--surface2);cursor:pointer;font-family:'Outfit',sans-serif;}
+.wl-desk .wld-link{border:none;background:none;color:var(--mut);font-size:13.5px;font-weight:600;padding:7px 10px;cursor:pointer;font-family:'Outfit',sans-serif;}
+.wl-desk .wld-hero{position:relative;z-index:3;display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,.95fr);gap:56px;align-items:center;max-width:1240px;margin:0 auto;padding:min(90px,8vh) 48px;}
+.wl-desk .wld-left{max-width:600px;}
+.wl-desk .wld-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--lime);margin-bottom:20px;}
+.wl-desk .wld-dot{width:7px;height:7px;border-radius:50%;background:var(--lime);box-shadow:0 0 10px var(--lime);}
+.wl-desk .wld-h1{font-weight:800;font-size:clamp(36px,4.3vw,58px);line-height:1.0;letter-spacing:-1.4px;margin:0;}
+.wl-desk .wld-h1 .g{color:var(--lime);}
+.wl-desk .wld-sub{margin-top:20px;font-size:18px;line-height:1.5;color:var(--mut);max-width:480px;}
+.wl-desk .wld-cta{margin-top:28px;width:auto;min-width:260px;padding:16px 26px;font-size:16px;display:inline-flex;align-items:center;justify-content:center;gap:8px;}
+.wl-desk .wld-codehint{margin-top:14px;font-size:13px;color:var(--mut);max-width:430px;line-height:1.5;}
+.wl-desk .wld-right{display:flex;justify-content:center;}
+.wl-desk .wld-stage{position:relative;width:100%;max-width:420px;background:linear-gradient(180deg, color-mix(in srgb,var(--surface) 72%,transparent), color-mix(in srgb,var(--bg) 82%,transparent));border:1px solid var(--line);border-radius:22px;padding:22px 22px 0;box-shadow:0 40px 90px -34px #000;backdrop-filter:blur(3px);}
+.wl-desk .wld-glow{position:absolute;left:50%;bottom:52px;width:200px;height:120px;transform:translateX(-50%);background:radial-gradient(ellipse at center, color-mix(in srgb,var(--lime) 30%,transparent), transparent 68%);filter:blur(6px);pointer-events:none;}
+.wl-desk .wld-pod{position:relative;display:flex;align-items:flex-end;justify-content:center;gap:16px;}
+.wl-desk .wld-p{display:flex;flex-direction:column;align-items:center;min-width:0;}
+.wl-desk .wld-p img{border-radius:50%;object-fit:cover;border:3px solid var(--line);background:var(--surface);}
+.wl-desk .wld-nm{font-weight:700;margin-top:7px;white-space:nowrap;font-size:12.5px;color:var(--mut);}
+.wl-desk .wld-p1 .wld-nm{font-size:15px;color:var(--ink);}
+.wl-desk .wld-badge{font-size:10px;font-weight:800;padding:2px 9px;border-radius:20px;background:color-mix(in srgb,#ff9f2d 20%,transparent);color:#ff9f2d;margin-top:4px;}
+.wl-desk .wld-ped{border-radius:10px 10px 0 0;font-weight:800;display:grid;place-items:center;margin-top:8px;width:82px;background:var(--surface2);font-size:20px;}
+.wl-desk .wld-p1 .wld-ped{height:92px;font-size:26px;background:color-mix(in srgb,var(--yellow) 20%,var(--surface2));}
+.wl-desk .wld-p2 .wld-ped{height:62px;}
+.wl-desk .wld-p3 .wld-ped{height:44px;}
+.wl-desk .wld-cap{text-align:center;padding:14px 0 18px;font-size:11.5px;color:var(--mut);}
+`;
+  if (isWide) return (
+    <div className={`wl-root wl-desk${theme === "light" ? " wl-light" : ""}`}>
+      <style>{css}</style>
+      <style>{deskCss}</style>
+      <div className="wld-page">
+        <div className="wld-court" />
+        <div className="wld-tint" />
+        <div className="wld-nav">
+          <div className="wld-brand"><span className="wld-paw">🐾</span>Padel<b>Pack</b></div>
+          <div className="wld-navr">
+            <button className="wld-pill" onClick={() => { const o = ["ru", "en", "es"]; onLangChange?.(o[(o.indexOf(lang) + 1) % o.length]); }}>{lang.toUpperCase()} <span style={{ color: "var(--mut)", fontWeight: 400 }}>↻</span></button>
+            <button className="wld-pill" onClick={onThemeToggle} aria-label={t("aria_theme")}>{theme === "dark" ? "☀️" : "🌙"}</button>
+            {onOpenLanding && <button className="wld-link" onClick={onOpenLanding}>{t("lp_about")}</button>}
+          </div>
+        </div>
+        <div className="wld-hero">
+          <div className="wld-left">
+            <div className="wld-eyebrow"><span className="wld-dot" />{t("tagline")}</div>
+            <h1 className="wld-h1">{t("wl_slogan_main")} <span className="g">{t("wl_slogan_accent")}</span></h1>
+            <div className="wld-sub">{t("welcome_tagline")}</div>
+            <button className="pl-btn wld-cta" onClick={onLogin}>{t("welcome_cta")}</button>
+            <div className="wld-codehint">{t("welcome_code_hint")}</div>
+          </div>
+          <div className="wld-right">
+            <div className="wld-stage">
+              <div className="wld-glow" />
+              <div className="wld-pod">
+                {[
+                  { n: 2, img: podDogs[1], nm: t("w_pn2"), size: 64, col: "#cfd8d0" },
+                  { n: 1, img: podDogs[0], nm: t("w_pn1"), size: 92, col: "var(--yellow)" },
+                  { n: 3, img: podDogs[2], nm: t("w_pn3"), size: 64, col: "#cd7f4d" },
+                ].map((c) => (
+                  <div key={c.n} className={`wld-p wld-p${c.n}`}>
+                    <img src={`/avatars/${c.img}-sm.webp`} alt="" decoding="async" fetchPriority={c.n === 1 ? "high" : undefined} style={{ width: c.size, height: c.size, borderColor: c.col }} />
+                    <div className="wld-nm">{c.nm}{c.n === 1 ? " · 1204" : ""}</div>
+                    {c.n === 1 && <div className="wld-badge">{t("tier_leader")}</div>}
+                    <div className="wld-ped" style={{ color: c.col }}>{c.n}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="wld-cap">{t("w_pod_hint")}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className={`wl-root${theme === "light" ? " wl-light" : ""}`}>
       <style>{css}</style>

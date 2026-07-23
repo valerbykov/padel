@@ -108,6 +108,7 @@ export default {
     welcome_code_hint: '¿Te invitaron a una liga? Pon el código del organizador. O explora las pestañas.',
     w_pn1: 'Barón', w_pn2: 'Rex', w_pn3: 'Toby',
     w_pod_hint: 'así se ve tu liga — y la manada demo te espera dentro',
+    wl_slogan_main: 'Todo para gestionar tu comunidad de pádel.', wl_slogan_accent: 'En un solo pack.',
     w_f1_t: 'Crea o únete a una liga', w_f1_d: 'tu grupo en un par de minutos — o por código',
     w_f2_t: 'Partidas y torneos por enlace', w_f2_d: 'entran en un toque, LIVE y recordatorios',
     w_f3_t: 'Rating, rangos y tarjetas al chat', w_f3_d: 'de Cachorro a Líder de la manada; resultados en imagen',

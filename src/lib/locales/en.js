@@ -108,6 +108,7 @@ export default {
     welcome_code_hint: 'Got invited to a league? Enter the organizer\'s code. Or just look around the tabs.',
     w_pn1: 'Baron', w_pn2: 'Rex', w_pn3: 'Buddy',
     w_pod_hint: 'this is what your league looks like — and this demo pack awaits inside',
+    wl_slogan_main: 'Everything to run your padel community.', wl_slogan_accent: 'All in one pack.',
     w_f1_t: 'Create or join a league', w_f1_d: 'your crew in a couple of minutes — or join by code',
     w_f2_t: 'Games & tournaments by link', w_f2_d: 'friends join in one tap, LIVE and reminders',
     w_f3_t: 'Rating, ranks & chat cards', w_f3_d: 'from Puppy to Pack Leader; results as images',
