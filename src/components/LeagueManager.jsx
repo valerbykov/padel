@@ -4,10 +4,12 @@
 // Данные тянет через get_league_details (RPC), сохраняет в groups (RLS).
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Upload, Send, Check, Star, Users, ShieldCheck, ChevronDown, Loader, UserPlus, Swords, LogOut, Trash2, PawPrint } from "lucide-react";
+import { X, Upload, AtSign, Check, Star, Users, ShieldCheck, ChevronDown, Loader, UserPlus, Swords, LogOut, Trash2, PawPrint, Globe, ChevronRight } from "lucide-react";
 import { getLeagueDetails, updateLeague, uploadLeagueLogo, leaveLeague, deleteLeague } from "../lib/padelApi";
 import Avatar from "./Avatar";
 import InviteCard from "./InviteCard";
+import { useIsWide } from "./wide/wide";
+import { WEB_BASE } from "../lib/platform";
 import { t } from "../lib/i18n";
 
 function Section({ icon, title, count, open, onToggle, children }) {
@@ -62,6 +64,7 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
   const [danger, setDanger] = useState(false);       // подтверждение выхода/удаления
   const [dangerBusy, setDangerBusy] = useState(false);
   const isOwner = role === "owner";
+  const isWide = useIsWide();   // ≥900: центрированная модалка в две колонки вместо нижней шторки
 
   // Владелец удаляет лигу целиком, остальные (организатор/участник) — выходят.
   const doDanger = async () => {
@@ -146,8 +149,8 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
   // Портал в body: иначе fixed-оверлей попадает в трансформируемого предка
   // (.pl-pop с анимацией) и «уезжает» вместе с нижней навигацией.
   return createPortal(
-    <div onClick={handleClose} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-end", justifyContent: "center", fontFamily: "'Outfit',sans-serif" }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 460, maxHeight: "92vh", overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "20px 20px 0 0", padding: 18, paddingBottom: "max(18px, env(safe-area-inset-bottom))", boxShadow: "0 -8px 40px rgba(0,0,0,.5)" }}>
+    <div onClick={handleClose} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: isWide ? "center" : "flex-end", justifyContent: "center", padding: isWide ? 20 : 0, boxSizing: "border-box", fontFamily: "'Outfit',sans-serif" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: isWide ? 880 : 460, maxHeight: isWide ? "min(90vh, 760px)" : "92vh", overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: isWide ? 22 : "20px 20px 0 0", padding: isWide ? 22 : 18, paddingBottom: isWide ? 22 : "max(18px, env(safe-area-inset-bottom))", boxShadow: "0 -8px 40px rgba(0,0,0,.5)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
           <div style={{ fontWeight: 800, fontSize: 17, color: "var(--ink)" }}>{t("league_manage")}</div>
           <span aria-live="polite" style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: "var(--mut)", whiteSpace: "nowrap" }}>
@@ -161,7 +164,9 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
         {err && <div style={{ color: "var(--coral)", fontSize: 13, marginBottom: 12 }}>{err}</div>}
 
         {d && (
-          <>
+          <div style={isWide ? { display: "grid", gridTemplateColumns: "320px 1fr", gap: 18, alignItems: "start" } : undefined}>
+            {/* ЛЕВАЯ колонка: логотип+название, инвайт-код, кнопка витрины */}
+            <div>
             {/* Логотип + название */}
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
               <div style={{ position: "relative", flexShrink: 0 }}>
@@ -193,6 +198,23 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
               <InviteCard code={d.invite_code} leagueName={name} style={{ marginBottom: 12 }} />
             )}
 
+            {/* Публичная витрина лиги — предпросмотр/шэринг публичной страницы /l/CODE */}
+            {d.invite_code && !isDemo && (
+              <a href={`${WEB_BASE}/l/${d.invite_code}`} target="_blank" rel="noreferrer"
+                style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 12px", marginBottom: 12, borderRadius: 14, textDecoration: "none",
+                  border: "1px solid color-mix(in srgb, var(--lime) 30%, transparent)", background: "color-mix(in srgb, var(--lime) 8%, transparent)" }}>
+                <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--lime) 15%, transparent)", color: "var(--lime)" }}><Globe size={15} /></span>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--lime)" }}>{t("league_public_page")}</div>
+                  <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 1 }}>{t("league_public_page_sub")}</div>
+                </div>
+                <ChevronRight size={15} style={{ color: "var(--lime)", flexShrink: 0 }} />
+              </a>
+            )}
+            </div>{/* /ЛЕВАЯ колонка */}
+
+            {/* ПРАВАЯ колонка: команда, права, маскот, телеграм, опасная зона */}
+            <div>
             {/* Команда: владелец + организаторы (сворачивается) */}
             <Section icon={<Users size={13} style={{ color: "var(--mut)" }} />} title={t("league_team")}
               count={Array.isArray(d.organizers) && d.organizers.length ? 1 + d.organizers.length : null}
@@ -269,7 +291,7 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
             <div style={{ background: "var(--surface2)", border: "1px solid var(--line)", borderRadius: 14, marginBottom: 12, overflow: "hidden" }}>
               {(() => {
                 const tgShort = (tg || "").trim().replace(/^https?:\/\/(www\.)?t\.me\//i, "@").replace(/^@@/, "@");
-                const chip = <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(34,158,217,.16)", color: "#4db8e8" }}><Send size={15} /></span>;
+                const chip = <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(34,158,217,.16)", color: "#4db8e8" }}><AtSign size={15} /></span>;
                 const rowStyle = { width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "10px 12px", background: "none", border: "none", textAlign: "left", fontFamily: "'Outfit',sans-serif" };
                 if (!canEdit) {
                   const row = (
@@ -317,7 +339,8 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
                 </div>
               </div>
             </div>
-          </>
+            </div>{/* /ПРАВАЯ колонка */}
+          </div>
         )}
 
         {danger && (
