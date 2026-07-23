@@ -2,9 +2,10 @@
 // Окно «ведения» лиги: фирменный логотип, организатор, телеграм-канал,
 // код приглашения. Админ/владелец редактирует, участник — только смотрит.
 // Данные тянет через get_league_details (RPC), сохраняет в groups (RLS).
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { createPortal } from "react-dom";
-import { X, Upload, AtSign, Check, Star, Users, ShieldCheck, ChevronDown, Loader, UserPlus, Swords, LogOut, Trash2, PawPrint, Globe, ChevronRight } from "lucide-react";
+import { X, Upload, AtSign, Check, Star, Users, ShieldCheck, ChevronDown, Loader, UserPlus, Swords, LogOut, Trash2, PawPrint, Globe, ChevronRight, Tv } from "lucide-react";
+const ClubTvLazy = lazy(() => import("./ClubTv"));
 import { getLeagueDetails, updateLeague, uploadLeagueLogo, leaveLeague, deleteLeague } from "../lib/padelApi";
 import Avatar from "./Avatar";
 import InviteCard from "./InviteCard";
@@ -65,6 +66,7 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
   const [dangerBusy, setDangerBusy] = useState(false);
   const isOwner = role === "owner";
   const isWide = useIsWide();   // ≥900: центрированная модалка в две колонки вместо нижней шторки
+  const [tvOpen, setTvOpen] = useState(false);   // полноэкранный «ТВ клуба» (ротация экранов лиги)
 
   // Владелец удаляет лигу целиком, остальные (организатор/участник) — выходят.
   const doDanger = async () => {
@@ -211,6 +213,21 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
                 <ChevronRight size={15} style={{ color: "var(--lime)", flexShrink: 0 }} />
               </a>
             )}
+
+            {/* ТВ клуба — полноэкранное табло (ротация экранов лиги) для экрана в
+                клубе / планшета на стойке. Публичный доступ — padelpack.app/tv/l/CODE. */}
+            {d.invite_code && !isDemo && (
+              <button onClick={() => setTvOpen(true)}
+                style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 12px", marginBottom: 6, borderRadius: 14, width: "100%", textAlign: "left", cursor: "pointer",
+                  border: "1px solid var(--line)", background: "var(--surface2)", fontFamily: "'Outfit',sans-serif" }}>
+                <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--yellow) 14%, transparent)", color: "var(--yellow)" }}><Tv size={15} /></span>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{t("league_club_tv")}</div>
+                  <div style={{ fontSize: 10.5, color: "var(--mut)", marginTop: 1 }}>{t("league_club_tv_sub")}</div>
+                </div>
+                <ChevronRight size={15} style={{ color: "var(--mut)", flexShrink: 0 }} />
+              </button>
+            )}
             </div>{/* /ЛЕВАЯ колонка */}
 
             {/* ПРАВАЯ колонка: команда, права, маскот, телеграм, опасная зона */}
@@ -354,6 +371,12 @@ export default function LeagueManager({ groupId, role = "member", canEdit = fals
           />
         )}
       </div>
+      {/* Полноэкранный ТВ клуба поверх модалки (сам fixed, zIndex выше). */}
+      {tvOpen && d?.invite_code && (
+        <Suspense fallback={null}>
+          <ClubTvLazy code={d.invite_code} onClose={() => setTvOpen(false)} />
+        </Suspense>
+      )}
     </div>,
     document.body
   );

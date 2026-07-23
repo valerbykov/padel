@@ -1,13 +1,16 @@
 // TvBoard — полноэкранное табло турнира (ТВ клуба / планшет на стойке).
 // Два режима: initial (ин-апп, данные от родителя) и code (публичный /tv/CODE,
 // поллинг публичного RPC — реалтайм анониму не гарантирован).
+// Экран турнира вынесен в TvTournamentScreen и переиспользуется в ClubTv
+// (единый «ТВ клуба» с ротацией экранов лиги — /tv/l/CODE).
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getTournamentByCode } from "../lib/tournamentApi";
 import { detailedStandings, pairStandings } from "../lib/americano";
 import { fmtById } from "./Tournaments";
 import { t as tr } from "../lib/i18n";
 
-const S = {
+// Общие стили ТВ (экспортируются для ClubTv — единая визуальная система табло).
+export const TV_S = {
   root: { position: "fixed", inset: 0, zIndex: 500, display: "flex", flexDirection: "column",
     background: "linear-gradient(160deg,#122a20 0%, #0a1612 70%)", color: "var(--ink)",
     fontFamily: "'Outfit',sans-serif", padding: "3vmin 4vmin" },
@@ -32,6 +35,79 @@ const S = {
     borderRadius: "1vmin", padding: ".7vmin 1vmin" },
   foot: { textAlign: "center", color: "var(--mut)", fontSize: "1.6vmin", fontWeight: 700, letterSpacing: ".15vmin", marginTop: "1.5vmin" },
 };
+const S = TV_S;
+
+// Полноэкранное центрированное сообщение (загрузка / ошибка / не начался).
+export function TvMessage({ text, muted = true, onClose = null }) {
+  return (
+    <div style={{ ...S.root, alignItems: "center", justifyContent: "center", textAlign: "center" }}>
+      <div style={{ color: muted ? "var(--mut)" : "var(--ink)", fontSize: "3vmin", fontWeight: 700, maxWidth: "70vmin", whiteSpace: "pre-line" }}>{text}</div>
+      {onClose && <button onClick={onClose} style={{ ...S.close, marginTop: "3vmin" }}>✕</button>}
+    </div>
+  );
+}
+
+// Экран одного турнира: корты текущего раунда + турнирная таблица. Данные — в t.
+// bare=true — без обёртки S.root/шапки-eyebrow/футера (для встраивания в ClubTv,
+// где своя хромота); иначе — самодостаточный полноэкранный экран.
+export function TvTournamentScreen({ t, code = null, onClose = null, staleMin = 0, bare = false }) {
+  const fmt = t ? fmtById(t.format) : null;
+  const isPairFmt = !!fmt && fmt.category === "pair" && t.format !== "beat_the_box";
+  const table = useMemo(() => {
+    if (!t) return [];
+    return isPairFmt ? pairStandings(t.players || [], t.matches || [])
+                     : detailedStandings(t.players || [], t.matches || []);
+  }, [t, isPairFmt]);
+  // Текущий раунд = МИНИМАЛЬНЫЙ с несыгранными матчами (американо генерирует все
+  // раунды заранее — max давал бы последний, а не текущий); всё сыграно → последний.
+  const round = useMemo(() => {
+    const ms = t?.matches || [];
+    if (!ms.length) return 0;
+    const unplayed = ms.filter((m) => m.score_a == null || m.score_b == null).map((m) => m.round_number || 1);
+    return unplayed.length ? Math.min(...unplayed) : ms.reduce((mx, x) => Math.max(mx, x.round_number || 0), 0);
+  }, [t]);
+  const courts = useMemo(() => (t?.matches || []).filter((m) => (m.round_number || 0) === round), [t, round]);
+  const nameOf = (id) => (t?.players || []).find((p) => p.id === id)?.name || "—";
+
+  const head = (
+    <div style={S.top}>
+      <span style={S.eyebrow}>🏆 {t.name || fmt.name} · {tr("trn_tv_round").replace("{n}", String(round))}</span>
+      {code && staleMin > 1 && <span style={{ color: "var(--mut)", fontSize: "1.4vmin" }}>{tr("trn_tv_stale").replace("{n}", String(staleMin))}</span>}
+      {onClose && <button onClick={onClose} style={S.close}>✕</button>}
+    </div>
+  );
+  const body = (
+    <div style={S.body}>
+      <div style={S.courts}>
+        {courts.map((m) => (
+          <div key={m.id} style={S.court}>
+            <div style={S.courtLabel}>{t.court_names?.[String(m.court)] || `${tr("court_label")} ${m.court}`}</div>
+            <div style={S.teams}>{nameOf(m.team_a?.[0])} & {nameOf(m.team_a?.[1])} — {nameOf(m.team_b?.[0])} & {nameOf(m.team_b?.[1])}</div>
+            <div style={S.score}>{m.score_a ?? 0}<span style={{ color: "#8fa3c8" }}> : </span>{m.score_b ?? 0}</div>
+          </div>
+        ))}
+      </div>
+      <div style={S.tablePane}>
+        <div style={S.th}>{tr("trn_pairs")} / {tr("rating")}</div>
+        {table.slice(0, 10).map((r, i) => (
+          <div key={r.id || i} style={{ ...S.trow, background: i === 0 ? "color-mix(in srgb, var(--lime) 10%, transparent)" : "none" }}>
+            <span style={{ width: "3vmin", color: i === 0 ? "var(--lime)" : "var(--mut)", fontWeight: 800 }}>{i + 1}</span>
+            <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name || (r.names || []).join(" & ")}</span>
+            <span style={{ fontWeight: 900, color: i === 0 ? "var(--lime)" : "var(--ink)" }}>{r.points}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+  if (bare) return <>{head}{body}</>;
+  return (
+    <div style={S.root}>
+      {head}
+      {body}
+      <div style={S.foot}>padelpack.app/t/{t.invite_code}</div>
+    </div>
+  );
+}
 
 export default function TvBoard({ code = null, initial = null, onClose = null }) {
   const [t, setT] = useState(initial);
@@ -64,68 +140,15 @@ export default function TvBoard({ code = null, initial = null, onClose = null })
   }, [onClose]);
 
   const fmt = t ? fmtById(t.format) : null;
-  const isPairFmt = !!fmt && fmt.category === "pair" && t.format !== "beat_the_box";
-  const table = useMemo(() => {
-    if (!t) return [];
-    return isPairFmt ? pairStandings(t.players || [], t.matches || [])
-                     : detailedStandings(t.players || [], t.matches || []);
-  }, [t, isPairFmt]);
-  // Текущий раунд = МИНИМАЛЬНЫЙ с несыгранными матчами (американо генерирует все
-  // раунды заранее — max давал бы последний, а не текущий); всё сыграно → последний.
-  const round = useMemo(() => {
-    const ms = t?.matches || [];
-    if (!ms.length) return 0;
-    const unplayed = ms.filter((m) => m.score_a == null || m.score_b == null).map((m) => m.round_number || 1);
-    return unplayed.length ? Math.min(...unplayed) : ms.reduce((mx, x) => Math.max(mx, x.round_number || 0), 0);
-  }, [t]);
-  const courts = useMemo(() => (t?.matches || []).filter((m) => (m.round_number || 0) === round), [t, round]);
-  const nameOf = (id) => (t?.players || []).find((p) => p.id === id)?.name || "—";
   const staleMin = Math.floor((Date.now() - fetchedAt) / 60000);
 
-  // Полноэкранное центрированное сообщение (загрузка / ошибка / не начался).
-  const message = (text, muted = true) => (
-    <div style={{ ...S.root, alignItems: "center", justifyContent: "center", textAlign: "center" }}>
-      <div style={{ color: muted ? "var(--mut)" : "var(--ink)", fontSize: "3vmin", fontWeight: 700, maxWidth: "70vmin", whiteSpace: "pre-line" }}>{text}</div>
-      {onClose && <button onClick={onClose} style={{ ...S.close, marginTop: "3vmin" }}>✕</button>}
-    </div>
-  );
   if (!t) {
-    if (err === "notfound") return message(tr("trn_tv_notfound"));
-    if (err === "neterr") return message(tr("trn_tv_neterr"));
-    return message(tr("loading"));
+    if (err === "notfound") return <TvMessage text={tr("trn_tv_notfound")} onClose={onClose} />;
+    if (err === "neterr") return <TvMessage text={tr("trn_tv_neterr")} onClose={onClose} />;
+    return <TvMessage text={tr("loading")} onClose={onClose} />;
   }
   // Турнир найден, но матчей ещё нет (не начат) — честное «не начался»,
   // а не пустая сетка кортов с «раунд 0».
-  if (!(t.matches || []).length) return message(`🏆 ${t.name || fmt.name}\n${tr("trn_tv_notstarted")}`, false);
-  return (
-    <div style={S.root}>
-      <div style={S.top}>
-        <span style={S.eyebrow}>🏆 {t.name || fmt.name} · {tr("trn_tv_round").replace("{n}", String(round))}</span>
-        {code && staleMin > 1 && <span style={{ color: "var(--mut)", fontSize: "1.4vmin" }}>{tr("trn_tv_stale").replace("{n}", String(staleMin))}</span>}
-        {onClose && <button onClick={onClose} style={S.close}>✕</button>}
-      </div>
-      <div style={S.body}>
-        <div style={S.courts}>
-          {courts.map((m) => (
-            <div key={m.id} style={S.court}>
-              <div style={S.courtLabel}>{t.court_names?.[String(m.court)] || `${tr("court_label")} ${m.court}`}</div>
-              <div style={S.teams}>{nameOf(m.team_a?.[0])} & {nameOf(m.team_a?.[1])} — {nameOf(m.team_b?.[0])} & {nameOf(m.team_b?.[1])}</div>
-              <div style={S.score}>{m.score_a ?? 0}<span style={{ color: "#8fa3c8" }}> : </span>{m.score_b ?? 0}</div>
-            </div>
-          ))}
-        </div>
-        <div style={S.tablePane}>
-          <div style={S.th}>{tr("trn_pairs")} / {tr("rating")}</div>
-          {table.slice(0, 10).map((r, i) => (
-            <div key={r.id || i} style={{ ...S.trow, background: i === 0 ? "color-mix(in srgb, var(--lime) 10%, transparent)" : "none" }}>
-              <span style={{ width: "3vmin", color: i === 0 ? "var(--lime)" : "var(--mut)", fontWeight: 800 }}>{i + 1}</span>
-              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name || (r.names || []).join(" & ")}</span>
-              <span style={{ fontWeight: 900, color: i === 0 ? "var(--lime)" : "var(--ink)" }}>{r.points}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div style={S.foot}>padelpack.app/t/{t.invite_code}</div>
-    </div>
-  );
+  if (!(t.matches || []).length) return <TvMessage text={`🏆 ${t.name || fmt.name}\n${tr("trn_tv_notstarted")}`} muted={false} onClose={onClose} />;
+  return <TvTournamentScreen t={t} code={code} onClose={onClose} staleMin={staleMin} />;
 }

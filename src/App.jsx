@@ -62,6 +62,7 @@ const TournamentJoin   = lazy(() => import("./components/TournamentJoin"));
 const ClaimProfile     = lazy(() => import("./components/ClaimProfile"));
 const TgNativeBridge   = lazy(() => import("./components/TgNativeBridge"));
 const TvBoard          = lazy(() => import("./components/TvBoard"));
+const ClubTv           = lazy(() => import("./components/ClubTv"));
 
 const BOT_NAME = "padelacc_bot"; // имя твоего Telegram-бота без @
 
@@ -91,6 +92,11 @@ function getLeaguePublicCode() {
 const getTvCode = () => {
   const m = window.location.pathname.match(/^\/tv\/([A-Za-z0-9]{4,12})$/i);
   return m ? m[1] : null;
+};
+// /tv/l/CODE — публичный «ТВ клуба» по всей лиге (ротация экранов, без логина).
+const getTvLeagueCode = () => {
+  const m = window.location.pathname.match(/^\/tv\/l\/([A-Za-z0-9]{4,12})$/i);
+  return m ? m[1].toUpperCase() : null;
 };
 
 export default function App({ initialShowLogin = false }) {
@@ -190,6 +196,7 @@ export default function App({ initialShowLogin = false }) {
   const claimCode       = getClaimCode();
   const leaguePublicCode = getLeaguePublicCode();
   const tvCode          = getTvCode();
+  const tvLeagueCode    = getTvLeagueCode();
 
   // ?join=CODE — автозаполнение формы вступления в лигу. В нативной обёртке
   // полная навигация webview теряет query, поэтому публичная страница лиги
@@ -606,6 +613,13 @@ export default function App({ initialShowLogin = false }) {
   if (tvCode) return (
     <Suspense fallback={routeSpinner}>
       <TvBoard code={tvCode} />
+    </Suspense>
+  );
+
+  // /tv/l/CODE — публичный «ТВ клуба» по всей лиге (ротация экранов).
+  if (tvLeagueCode) return (
+    <Suspense fallback={routeSpinner}>
+      <ClubTv code={tvLeagueCode} />
     </Suspense>
   );
 
