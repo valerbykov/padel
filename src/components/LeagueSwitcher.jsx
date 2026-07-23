@@ -8,7 +8,9 @@ import LeagueLogo from "./LeagueLogo";
 import LeagueManager from "./LeagueManager";
 import { t } from "../lib/i18n";
 
-export default function LeagueSwitcher({ leagues, leaguesReady = true, activeLeague, onLeagueChange, onLeagueCreated, onLeagueUpdated, onLeagueLeft }) {
+export default function LeagueSwitcher({ leagues, leaguesReady = true, activeLeague, onLeagueChange, onLeagueCreated, onLeagueUpdated, onLeagueLeft, compact = false, expanded = false }) {
+  // compact — вариант для вертикального рейла (App.jsx wide): свёрнут (только
+  // аватар лиги) / развёрнут (аватар+имя+⇅), попап открывается ВПРАВО от рейла.
   // Лиги ещё грузятся и активной пока нет → показываем лоадер, а не «Без лиги»
   // (иначе на старте мигает ложное «Без лиги», пока идёт bootstrap).
   const loadingLeagues = !leaguesReady && !activeLeague;
@@ -43,7 +45,7 @@ export default function LeagueSwitcher({ leagues, leaguesReady = true, activeLea
   const roleLabel = (r) => r === "owner" ? "★" : r === "admin" ? "⚙" : "";
 
   return (
-    <div style={{ position: "relative", minWidth: 0, maxWidth: 210 }}>
+    <div style={{ position: "relative", minWidth: 0, maxWidth: compact ? "none" : 210 }}>
       <style>{`
         .ls-trigger{transition:border-color .15s, background .15s;}
         .ls-trigger:hover{border-color:color-mix(in srgb,var(--lime) 45%,transparent);}
@@ -59,19 +61,37 @@ export default function LeagueSwitcher({ leagues, leaguesReady = true, activeLea
         .ls-spin{width:14px;height:14px;border-radius:50%;border:2px solid color-mix(in srgb,var(--lime) 22%,transparent);border-top-color:var(--lime);animation:lsspin .7s linear infinite;}
         @keyframes lsspin{to{transform:rotate(360deg)}}
       `}</style>
-      <button className="ls-trigger" onClick={() => { setMenu((v) => !v); setMode(false); setErr(""); }}
-        style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px 6px 7px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 999, cursor: "pointer", color: "var(--ink)", fontFamily: "'Outfit'", fontSize: 13, maxWidth: "100%", minWidth: 0, overflow: "hidden" }}>
-        {activeLeague
-          ? <LeagueLogo url={activeLeague.logo_url} name={activeLeague.name} size={26} radius={999} />
-          : <span style={{ width: 26, height: 26, borderRadius: "50%", background: "color-mix(in srgb,var(--lime) 16%,transparent)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              {loadingLeagues ? <span className="ls-spin" /> : <Trophy size={14} style={{ color: "var(--lime)" }} />}
-            </span>}
-        <span style={{ fontWeight: 700, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: loadingLeagues ? "var(--mut)" : undefined }}>{activeLeague?.name || (loadingLeagues ? t("loading") : t("no_league_chip"))}</span>
-        {menu ? <ChevronUp size={15} style={{ color: "var(--mut)", flexShrink: 0 }} /> : <ChevronDown size={15} style={{ color: "var(--mut)", flexShrink: 0 }} />}
-      </button>
+      {compact ? (
+        <button className="ls-trigger" onClick={() => { setMenu((v) => !v); setMode(false); setErr(""); }} title={activeLeague?.name || t("no_league_chip")} aria-label={activeLeague?.name || t("no_league_chip")}
+          style={expanded
+            ? { display: "flex", alignItems: "center", gap: 9, width: "100%", padding: "8px 10px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 12, cursor: "pointer", color: "var(--ink)", fontFamily: "'Outfit'", fontSize: 13, minWidth: 0, overflow: "hidden" }
+            : { position: "relative", display: "grid", placeItems: "center", width: 46, height: 46, margin: "0 auto", padding: 0, background: "none", border: "none", cursor: "pointer" }}>
+          {activeLeague
+            ? <LeagueLogo url={activeLeague.logo_url} name={activeLeague.name} size={expanded ? 30 : 34} radius={expanded ? 9 : 999} />
+            : <span style={{ width: expanded ? 30 : 34, height: expanded ? 30 : 34, borderRadius: "50%", background: "color-mix(in srgb,var(--lime) 16%,transparent)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                {loadingLeagues ? <span className="ls-spin" /> : <Trophy size={15} style={{ color: "var(--lime)" }} />}
+              </span>}
+          {expanded && <span style={{ fontWeight: 800, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: loadingLeagues ? "var(--mut)" : undefined, fontSize: 13 }}>{activeLeague?.name || (loadingLeagues ? t("loading") : t("no_league_chip"))}</span>}
+          {expanded
+            ? (menu ? <ChevronUp size={15} style={{ color: "var(--mut)", flexShrink: 0 }} /> : <ChevronDown size={15} style={{ color: "var(--mut)", flexShrink: 0 }} />)
+            : <span aria-hidden="true" style={{ position: "absolute", right: 0, bottom: 0, width: 16, height: 16, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line)", color: "var(--mut)", fontSize: 9, display: "grid", placeItems: "center" }}>⇅</span>}
+        </button>
+      ) : (
+        <button className="ls-trigger" onClick={() => { setMenu((v) => !v); setMode(false); setErr(""); }}
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px 6px 7px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 999, cursor: "pointer", color: "var(--ink)", fontFamily: "'Outfit'", fontSize: 13, maxWidth: "100%", minWidth: 0, overflow: "hidden" }}>
+          {activeLeague
+            ? <LeagueLogo url={activeLeague.logo_url} name={activeLeague.name} size={26} radius={999} />
+            : <span style={{ width: 26, height: 26, borderRadius: "50%", background: "color-mix(in srgb,var(--lime) 16%,transparent)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                {loadingLeagues ? <span className="ls-spin" /> : <Trophy size={14} style={{ color: "var(--lime)" }} />}
+              </span>}
+          <span style={{ fontWeight: 700, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: loadingLeagues ? "var(--mut)" : undefined }}>{activeLeague?.name || (loadingLeagues ? t("loading") : t("no_league_chip"))}</span>
+          {menu ? <ChevronUp size={15} style={{ color: "var(--mut)", flexShrink: 0 }} /> : <ChevronDown size={15} style={{ color: "var(--mut)", flexShrink: 0 }} />}
+        </button>
+      )}
 
       {menu && (
-        <div className="pl-pop ls-pop" style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, minWidth: 250, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 16, zIndex: 50, overflow: "hidden", boxShadow: "0 12px 32px rgba(0,0,0,.35)" }}>
+        <div className="pl-pop ls-pop" style={{ position: "absolute", minWidth: 250, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 16, zIndex: 50, overflow: "hidden", boxShadow: "0 12px 32px rgba(0,0,0,.35)",
+          ...(compact ? { left: "calc(100% + 10px)", top: 0 } : { top: "calc(100% + 8px)", left: 0 }) }}>
           {!mode && (
             <>
               {has && <div style={{ padding: "10px 14px 6px", fontSize: 10, fontWeight: 700, letterSpacing: 1.2, color: "var(--mut)", textTransform: "uppercase" }}>{t("league_your")}</div>}

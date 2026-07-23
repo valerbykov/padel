@@ -218,7 +218,7 @@ function ContactLinks({ contacts = {} }) {
 
 /* --------------------------------- root ----------------------------------- */
 
-export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin, onOpenLanding, onEditProfile, openSelfStatsNonce = 0, openAnalyticsNonce = 0, openEvent = null, profileNonce = 0 }) {
+export default function PadelLeague({ groupId, session, profileId, leagues = [], leaguesReady = true, activeLeague = null, isAdmin = false, onLeagueChange, onLeagueCreated, onLeagueUpdated, onLeagueLeft, theme = "dark", lang = "ru", onThemeToggle, onLangChange, onLogin, onOpenLanding, onEditProfile, onOpenEvent, profileName = "", profileAvatarUrl = null, openSelfStatsNonce = 0, openAnalyticsNonce = 0, openEvent = null, profileNonce = 0 }) {
   const [tab, setTab] = useState(session ? "board" : "welcome");
   const isWide = useIsWide();
   const rail = useRailExpanded();
@@ -330,7 +330,9 @@ export default function PadelLeague({ groupId, session, profileId, leagues = [],
       <style>{css}</style>
       {/* Заголовок вкладки и переключатель лиги убраны — переключатель теперь в топбаре, имя вкладки видно в нижней навигации. */}
       <div style={{ display: "flex", alignItems: "flex-start" }}>
-        {isWide && <WideRail tab={tab} goTab={goTab} session={session} activeLeague={activeLeague} expanded={rail.expanded} canExpand={rail.canExpand} onToggleExpand={rail.toggle} />}
+        {isWide && <WideRail tab={tab} goTab={goTab} session={session} activeLeague={activeLeague} expanded={rail.expanded} canExpand={rail.canExpand} onToggleExpand={rail.toggle}
+          leagues={leagues} leaguesReady={leaguesReady} isAdmin={isAdmin} onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onLeagueUpdated={onLeagueUpdated} onLeagueLeft={onLeagueLeft}
+          profileName={profileName} profileAvatarUrl={profileAvatarUrl} profileId={profileId} onEditProfile={onEditProfile} theme={theme} onThemeToggle={onThemeToggle} onOpenEvent={onOpenEvent} />}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={isWide
             ? { maxWidth: 1200, margin: "0 auto", padding: "14px 20px 40px" }

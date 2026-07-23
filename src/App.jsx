@@ -10,6 +10,7 @@ import { runBack, registerBack } from "./lib/backstack";
 import Avatar from "./components/Avatar";
 import Logo from "./components/Logo"; // текстовый логотип в топбаре для гостя
 import LeagueSwitcher from "./components/LeagueSwitcher"; // глобальный переключатель лиги в топбаре
+import { useIsWide } from "./components/wide/wide"; // в широком режиме контролы уходят в WideRail, верхний бар убираем
 import NotificationBell from "./components/NotificationBell"; // колокольчик уведомлений (новые игры/турниры лиг)
 import { LogIn, Sun, Moon } from "lucide-react";
 import { getMyLeagues, refreshMyLeagues, bootstrapApp, joinLeague } from "./lib/padelApi";
@@ -93,6 +94,7 @@ const getTvCode = () => {
 };
 
 export default function App({ initialShowLogin = false }) {
+  const isWide = useIsWide();                                 // ≥900: контролы в WideRail, верхний TopBar убираем
   const [session,      setSession]      = useState(null);
   const [authReady,    setAuthReady]    = useState(false);   // сессия ЕЩЁ не определена (null≠гость) → не мигаем публичной страницей гостевых ссылок
   const [profile,      setProfile]      = useState(null);
@@ -689,6 +691,9 @@ export default function App({ initialShowLogin = false }) {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
+      {/* Широкий режим: лига/профиль/тема/колокольчик — в WideRail (см. PadelLeague),
+          верхний бар убираем. Узкий (<900) — верхний бар как есть. */}
+      {!isWide && (
       <TopBar
         session={session}
         name={profile?.name}
@@ -710,6 +715,7 @@ export default function App({ initialShowLogin = false }) {
         onLeagueLeft={handleLeagueLeft}
         onOpenEvent={handleOpenEvent}
       />
+      )}
       {showInstall && (
         <div style={{
           position: "fixed", bottom: 74, left: 12, right: 12, zIndex: 90,
@@ -745,6 +751,8 @@ export default function App({ initialShowLogin = false }) {
         isAdmin={isAdmin}
         onLeagueChange={handleLeagueChange}
         onLeagueCreated={handleLeagueDone}
+        onLeagueUpdated={handleLeagueUpdated}
+        onLeagueLeft={handleLeagueLeft}
         theme={theme}
         lang={lang}
         onThemeToggle={toggleTheme}
@@ -752,6 +760,9 @@ export default function App({ initialShowLogin = false }) {
         onLogin={() => setShowLogin(true)}
         onOpenLanding={openLanding}
         onEditProfile={() => setShowProfile(true)}
+        onOpenEvent={handleOpenEvent}
+        profileName={profile?.name}
+        profileAvatarUrl={profile?.avatar_url}
         openSelfStatsNonce={statsNonce}
         openAnalyticsNonce={analyticsNonce}
         openEvent={openEvent}

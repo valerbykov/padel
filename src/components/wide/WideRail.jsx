@@ -1,11 +1,23 @@
 // WideRail — вертикальная навигация слева на ≥900px (заменяет нижние табы).
 // Task 1: только иконки (72px). Task 8: морфинг в сайдбар с подписями на ≥1280px
 // (гамбургер → localStorage-флаг pp_rail_exp, см. useRailExpanded в wide.js).
+// Wide-полировка: лига-свитчер вверху + профиль/тема/колокольчик внизу
+// (перенесены из верхнего TopBar App.jsx; в широком режиме верхний бар убран).
 import React from "react";
-import { Users, Swords, Trophy, History } from "lucide-react";
+import { Users, Swords, Trophy, History, Sun, Moon } from "lucide-react";
 import { t } from "../../lib/i18n";
+import LeagueSwitcher from "../LeagueSwitcher";
+import NotificationBell from "../NotificationBell";
+import Avatar from "../Avatar";
 
-export default function WideRail({ tab, goTab, session, activeLeague, expanded, canExpand, onToggleExpand }) {
+export default function WideRail({
+  tab, goTab, session, activeLeague, expanded, canExpand, onToggleExpand,
+  // перенесённые из TopBar контролы (только залогиненному):
+  leagues = [], leaguesReady = true, isAdmin = false,
+  onLeagueChange, onLeagueCreated, onLeagueUpdated, onLeagueLeft,
+  profileName = "", profileAvatarUrl = null, profileId = null, onEditProfile,
+  theme = "dark", onThemeToggle, onOpenEvent,
+}) {
   const items = [
     session && { id: "board", icon: Users, label: t("tab_friends") },
     { id: "games", icon: Swords, label: t("tab_games") },
@@ -24,6 +36,15 @@ export default function WideRail({ tab, goTab, session, activeLeague, expanded, 
           ≡
         </button>
       )}
+
+      {/* Лига — переключатель вверху (перенос из TopBar). Гостю не показываем. */}
+      {session && (
+        <div style={{ margin: expanded ? "0 0 6px" : "0 0 4px", alignSelf: "stretch" }}>
+          <LeagueSwitcher compact expanded={expanded} leagues={leagues} leaguesReady={leaguesReady} activeLeague={activeLeague} isAdmin={isAdmin}
+            onLeagueChange={onLeagueChange} onLeagueCreated={onLeagueCreated} onLeagueUpdated={onLeagueUpdated} onLeagueLeft={onLeagueLeft} />
+        </div>
+      )}
+
       {items.map(({ id, icon: Icon, label }) => expanded ? (
         <button key={id} onClick={() => goTab(id)} title={label} aria-label={label}
           style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", margin: "0 8px", borderRadius: 12,
@@ -42,23 +63,37 @@ export default function WideRail({ tab, goTab, session, activeLeague, expanded, 
           <Icon size={21} strokeWidth={tab === id ? 2.6 : 2} />
         </button>
       ))}
+
       <div style={{ flex: 1 }} />
-      {activeLeague && (expanded ? (
-        <div title={activeLeague.name} style={{ display: "flex", alignItems: "center", gap: 10, margin: "0 12px", minWidth: 0 }}>
-          <div style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--lime)", flexShrink: 0,
-            color: "var(--lime-fg)", display: "grid", placeItems: "center", fontWeight: 900, fontSize: 13 }}>
-            {(activeLeague.name || "?").trim().charAt(0).toUpperCase()}
+
+      {/* Низ рейла: колокольчик + профиль + тема (перенос из TopBar). */}
+      {session && (
+        <>
+          <div style={{ height: 1, background: "var(--line)", margin: expanded ? "4px 12px" : "4px 12px", alignSelf: "stretch" }} />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: expanded ? "flex-start" : "center", margin: expanded ? "0 12px" : 0 }}>
+            <NotificationBell leagues={leagues} activeLeague={activeLeague} onOpen={onOpenEvent} />
           </div>
-          <span style={{ fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {activeLeague.name}
-          </span>
-        </div>
-      ) : (
-        <div title={activeLeague.name} style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--lime)",
-          color: "var(--lime-fg)", display: "grid", placeItems: "center", fontWeight: 900, fontSize: 13, alignSelf: "center" }}>
-          {(activeLeague.name || "?").trim().charAt(0).toUpperCase()}
-        </div>
-      ))}
+          {onEditProfile && (expanded ? (
+            <button onClick={onEditProfile} title={profileName || t("pc_title")}
+              style={{ display: "flex", alignItems: "center", gap: 10, margin: "2px 8px 0", padding: "7px 10px", borderRadius: 12, border: "none", background: "none", cursor: "pointer", textAlign: "left", fontFamily: "'Outfit',sans-serif" }}>
+              <Avatar name={profileName} url={profileAvatarUrl} id={profileId} size={30} />
+              <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profileName || t("pc_title")}</span>
+            </button>
+          ) : (
+            <button onClick={onEditProfile} title={profileName || t("pc_title")} aria-label={profileName || t("pc_title")}
+              style={{ margin: "2px auto 0", padding: 0, border: "none", background: "none", cursor: "pointer", display: "grid", placeItems: "center" }}>
+              <Avatar name={profileName} url={profileAvatarUrl} id={profileId} size={38} />
+            </button>
+          ))}
+          <button onClick={onThemeToggle} aria-label={t("aria_theme")} title={t(theme === "dark" ? "theme_to_light" : "theme_to_dark")}
+            style={expanded
+              ? { display: "flex", alignItems: "center", gap: 10, margin: "2px 8px 0", padding: "8px 12px", borderRadius: 12, border: "none", background: "none", cursor: "pointer", color: "var(--mut)", fontFamily: "'Outfit',sans-serif", fontWeight: 700, fontSize: 12.5 }
+              : { width: 46, height: 40, margin: "2px auto 0", borderRadius: 10, border: "none", background: "none", cursor: "pointer", color: "var(--mut)", display: "grid", placeItems: "center" }}>
+            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+            {expanded && <span>{t(theme === "dark" ? "theme_to_light" : "theme_to_dark")}</span>}
+          </button>
+        </>
+      )}
     </div>
   );
 }
