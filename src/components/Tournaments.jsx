@@ -1234,14 +1234,16 @@ export function TournamentView({ id, players, back, readOnly = false, initialT =
                           style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 8, padding: "16px 8px 13px", borderRadius: 16, cursor: tap ? "pointer" : "default", minWidth: 0,
                             border: meCard ? "1.5px solid color-mix(in srgb, var(--lime) 55%, transparent)" : "1px solid var(--line)",
                             background: meCard ? "color-mix(in srgb, var(--lime) 8%, transparent)" : "var(--surface)" }}>
-                          <Avatar name={p.name} url={avatarOfTp(p.id)} id={p.profile_id} size={58} />
+                          <div style={{ position: "relative" }}>
+                            <Avatar name={p.name} url={avatarOfTp(p.id)} id={p.profile_id} size={58} />
+                            {!readOnly && (
+                              <button aria-label={tr("delete_btn")} onClick={(e) => { e.stopPropagation(); (async () => { try { await removeTournamentPlayer(p.id); } catch (err) {} load(); })(); }}
+                                style={{ position: "absolute", top: -2, right: -2, width: 22, height: 22, borderRadius: "50%", border: "2px solid var(--bg)", background: "var(--coral)", color: "#fff", cursor: "pointer", display: "grid", placeItems: "center" }}>
+                                <X size={12} />
+                              </button>
+                            )}
+                          </div>
                           <span style={{ maxWidth: "100%", fontSize: 13.5, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--ink)" }}>{p.name}</span>
-                          {!readOnly && (
-                            <button aria-label={tr("delete_btn")} onClick={(e) => { e.stopPropagation(); (async () => { try { await removeTournamentPlayer(p.id); } catch (err) {} load(); })(); }}
-                              style={{ position: "absolute", top: 6, right: 6, width: 24, height: 24, borderRadius: "50%", border: "none", background: "color-mix(in srgb, var(--coral) 16%, transparent)", color: "var(--coral)", cursor: "pointer", display: "grid", placeItems: "center" }}>
-                              <X size={13} />
-                            </button>
-                          )}
                         </div>
                       );
                     })}
